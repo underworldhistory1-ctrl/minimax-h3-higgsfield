@@ -165,7 +165,7 @@ function initLabUI(){
     catch(e){info(e.message,true);}finally{state.projectLoading=false;controls.forEach(k=>$(k).disabled=state.busy);}
   };
   $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{try{await withProjectLoading(async()=>{const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateProjectDraft(p.draft);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};
-  $("promptMode").onchange=()=>{state.promptMode=$("promptMode").value;updatePreviewLive();};
+  $("promptMode").onchange=()=>{state.promptMode=$("promptMode").value;updatePreviewLive();saveDraft();};
   $("frameFit").onchange=()=>Promise.all([renderFrameItem("first"),renderFrameItem("last")]);
   $("addGuide").onclick=()=>{const kind=$("guideKind").value;$("guideFile").accept=kind==="image"?"image/png,image/jpeg,image/webp":kind==="audio"?".wav,.mp3,.m4a,.flac":".mp4,.mov,.webm";$("guideFile").click();};$("guideFile").onchange=()=>{const file=$("guideFile").files[0];if(file&&!state.busy){state.guides.push({asset_id:crypto.randomUUID(),kind:$("guideKind").value,file,url:URL.createObjectURL(file),frame_idx:0});renderGuides();}$("guideFile").value="";};
   $("clearContinuation").onclick=()=>{if(state.busy||state.projectLoading)return;state.continuation=null;renderContinuation();updatePreviewLive();saveDraft();};

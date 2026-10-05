@@ -277,7 +277,7 @@ start() {
     mkdir -p "$HF_HOME" "$TORCH_HOME"
 
     say "starting ComfyUI on $BIND:$PORT"
-    ( cd "$COMFY" && nohup "$PY" main.py --listen "$BIND" --port "$PORT" \
+    ( cd "$COMFY" && nohup "$PY" main.py --listen "$BIND" --port "$PORT" --use-ck-attention \
         > "$LOGFILE" 2>&1 < /dev/null & echo $! > "$PIDFILE" )
     sleep 3
     ok "started (pid $(cat "$PIDFILE" 2>/dev/null)). log: $LOGFILE"

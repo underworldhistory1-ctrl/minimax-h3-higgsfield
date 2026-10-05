@@ -111,7 +111,7 @@ def preflight(read_json=get_json, run=subprocess.run, read_text=None):
 
 def launch_command(root=ROOT, interpreter=INTERPRETER):
     return [str(interpreter), str(root / "ComfyUI" / "main.py"), "--listen", "127.0.0.1", "--port", "8190",
-            "--cache-none", "--fp16-intermediates", "--input-directory", str(root / "data" / "input"),
+            "--cache-none", "--fp16-intermediates", "--use-ck-attention", "--input-directory", str(root / "data" / "input"),
             "--output-directory", str(root / "data" / "output"), "--temp-directory", str(root / "data" / "temp"),
             "--extra-model-paths-config", str(root / "extra_model_paths.yaml")]
 

@@ -268,6 +268,62 @@
       g['11'].inputs.audio = [trimId, 1];
     }
 
+    const enableRefine = !!(renderSpec.enable_refine ?? renderSpec.refine);
+    if (enableRefine) {
+      const separateId = allocate(100);
+      const upscaleId = allocate(Number(separateId) + 1);
+      const concatId = allocate(Number(upscaleId) + 1);
+      const refineSamplerId = allocate(Number(concatId) + 1);
+
+      g[separateId] = {
+        class_type: "LTXVSeparateAVLatent",
+        inputs: {
+          av_latent: ["8", 0]
+        }
+      };
+
+      g[upscaleId] = {
+        class_type: "MinimaxH3LatentUpscaler3D",
+        inputs: {
+          latent: [separateId, 0],
+          model_name: "minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors",
+          mode: "scale by multiplier",
+          "mode.scale": Number(renderSpec.refine_scale ?? 1.25),
+          align: 32,
+          enable_temporal_chunking: true,
+          force_unload: true,
+          device: "cuda",
+          precision: "fp16"
+        }
+      };
+
+      g[concatId] = {
+        class_type: "LTXVConcatAVLatent",
+        inputs: {
+          video_latent: [upscaleId, 0],
+          audio_latent: [separateId, 1]
+        }
+      };
+
+      g[refineSamplerId] = {
+        class_type: "KSampler",
+        inputs: {
+          model: g["8"].inputs.model,
+          seed: (seed + 1) > 18446744073709551615 ? seed : (seed + 1),
+          steps: 10,
+          cfg: 1,
+          sampler_name: "res_multistep",
+          scheduler: "simple",
+          positive: g["8"].inputs.positive,
+          negative: g["8"].inputs.negative,
+          latent_image: [concatId, 0],
+          denoise: 0.4
+        }
+      };
+
+      g["13"].inputs.samples = [refineSamplerId, 0];
+    }
+
     return g;
   }
 

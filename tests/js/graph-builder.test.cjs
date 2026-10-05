@@ -235,3 +235,73 @@ test('video guide validates the native cropped 17k+5 span', () => {
   spec.guides[0].frame_idx=86;
   assert.throws(()=>buildGraph(spec,{},{guide_video:true}),/past the target timeline/);
 });
+
+
+test('refine disabled: graph keeps original single-pass sampler directly to node 13', () => {
+  const spec = { mode: 'text', token: '001122334455', refine: false };
+  const g = buildGraph(spec);
+  assert.equal(g["13"].inputs.samples[0], "8");
+  assert.equal(Object.values(g).some(n => n.class_type === 'MinimaxH3LatentUpscaler3D'), false);
+  assert.equal(Object.values(g).some(n => n.class_type === 'LTXVSeparateAVLatent'), false);
+  assert.equal(Object.values(g).some(n => n.class_type === 'LTXVConcatAVLatent'), false);
+});
+
+test('refine enabled: inserts 3D latent upscaler and low-denoise 2nd-pass resampling', () => {
+  const spec = { mode: 'text', token: '001122334455', refine: true, seed: 42 };
+  const g = buildGraph(spec);
+
+  const sepNodeEntry = Object.entries(g).find(([id, n]) => n.class_type === 'LTXVSeparateAVLatent');
+  assert.ok(sepNodeEntry, 'LTXVSeparateAVLatent must exist');
+  const [sepId, sepNode] = sepNodeEntry;
+  assert.deepEqual(sepNode.inputs.av_latent, ["8", 0]);
+
+  const upEntry = Object.entries(g).find(([id, n]) => n.class_type === 'MinimaxH3LatentUpscaler3D');
+  assert.ok(upEntry, 'MinimaxH3LatentUpscaler3D must exist');
+  const [upId, upNode] = upEntry;
+  assert.deepEqual(upNode.inputs.latent, [sepId, 0]);
+  assert.equal(upNode.inputs.model_name, "minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors");
+  assert.equal(upNode.inputs.mode, "scale by multiplier");
+  assert.equal(upNode.inputs["mode.scale"], 1.25);
+  assert.equal(upNode.inputs.device, "cuda");
+  assert.equal(upNode.inputs.precision, "fp16");
+
+  const concatEntry = Object.entries(g).find(([id, n]) => n.class_type === 'LTXVConcatAVLatent');
+  assert.ok(concatEntry, 'LTXVConcatAVLatent must exist');
+  const [concatId, concatNode] = concatEntry;
+  assert.deepEqual(concatNode.inputs.video_latent, [upId, 0]);
+  assert.deepEqual(concatNode.inputs.audio_latent, [sepId, 1]);
+
+  const refineSamplerEntry = Object.entries(g).find(([id, n]) => n.class_type === 'KSampler' && id !== "8");
+  assert.ok(refineSamplerEntry, 'Pass 2 KSampler must exist');
+  const [refineId, refineNode] = refineSamplerEntry;
+  assert.deepEqual(refineNode.inputs.latent_image, [concatId, 0]);
+  assert.equal(refineNode.inputs.steps, 10);
+  assert.equal(refineNode.inputs.denoise, 0.4);
+  assert.equal(refineNode.inputs.cfg, 1);
+  assert.equal(refineNode.inputs.sampler_name, "res_multistep");
+  assert.equal(refineNode.inputs.scheduler, "simple");
+  assert.deepEqual(refineNode.inputs.model, g["8"].inputs.model);
+  assert.deepEqual(refineNode.inputs.positive, g["8"].inputs.positive);
+  assert.deepEqual(refineNode.inputs.negative, g["8"].inputs.negative);
+
+  // Node 13 receives the refine sampler output
+  assert.deepEqual(g["13"].inputs.samples, [refineId, 0]);
+});
+
+test('refine enabled with LoRA reuses active LoRA chain in both passes', () => {
+  const spec = {
+    mode: 'text',
+    token: '001122334455',
+    refine: true,
+    loras: [{ name: 'H3_Combat_V2.safetensors', strength: 0.8, enabled: true }]
+  };
+  const g = buildGraph(spec);
+  const loraNodeEntry = Object.entries(g).find(([id, n]) => n.class_type === 'LoraLoaderModelOnly');
+  assert.ok(loraNodeEntry, 'LoRA loader must exist');
+  const [loraId, loraNode] = loraNodeEntry;
+  assert.equal(loraNode.inputs.lora_name, 'H3_Combat_V2.safetensors');
+
+  const refineSampler = Object.values(g).find(n => n.class_type === 'KSampler' && n.inputs.denoise === 0.4);
+  assert.ok(refineSampler);
+  assert.deepEqual(g["8"].inputs.model, refineSampler.inputs.model);
+});

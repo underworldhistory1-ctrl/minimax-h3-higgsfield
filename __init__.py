@@ -182,7 +182,8 @@ def _clean_settings(value):
         return None
     try:
         encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
-        if len(encoded.encode("utf-8")) > 24000:
+        # Settings include raw and compiled prompts, reference metadata, and generation options.
+        if len(encoded.encode("utf-8")) > 256000:
             return None
         return json.loads(encoded)
     except (TypeError, ValueError, OverflowError):

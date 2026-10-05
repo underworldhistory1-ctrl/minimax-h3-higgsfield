@@ -308,7 +308,7 @@
 
       // Substitute mentions
       const unknown = [];
-      const substituted = source.replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
+      let substituted = source.replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
         if (!aliasToTag.has(name)) {
           unknown.push(whole);
           return whole;
@@ -317,6 +317,21 @@
       });
       if (unknown.length) {
         throw new Error('Unknown mention: ' + [...new Set(unknown)].join(', '));
+      }
+
+      // Alias-led subject definitions need the attached image relation in native syntax.
+      // Leave explicit native definitions unchanged so conflicting bindings still fail.
+      if (originalSections?.subject_definitions) {
+        const relationLines = originalSections.subject_definitions.split(/\n/).flatMap(line => {
+          const match = line.match(/^\s*@([\p{L}\p{N}_-]+)(?=$|[^\p{L}\p{N}_-])/u);
+          const binding = match && bindings.find(b => b.alias === match[1] && b.subject_idx);
+          return binding && !/<Picture\s+\d+>/i.test(line)
+            ? [`${binding.tag} is shown in <Picture ${binding.picture_idx}>.`] : [];
+        });
+        if (relationLines.length) {
+          substituted = substituted.replace(/^(subject_definitions:\s*)/im,
+            (_, header) => header + relationLines.join('\n') + '\n');
+        }
       }
 
       // Check if prompt is already structured or user chose structured mode

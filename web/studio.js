@@ -207,13 +207,15 @@ document.querySelectorAll(".mode").forEach(b => b.onclick = () => selectMode(b.d
 
 function saveDraft(){
   try{localStorage.setItem(draftKey,JSON.stringify({
-    mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
-    duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()
+    mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
+    duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method(),enableRefine:$("enableRefine")?$("enableRefine").checked:false
   }));}catch{}
 }
 function restoreDraft(){
   let draft;try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
   if(!draft)return false;
+  state.promptMode=["guided","structured"].includes(draft.promptMode)?draft.promptMode:"guided";
+  $("promptMode").value=state.promptMode;
   if(["text","frames","refs"].includes(draft.mode))state.mode=draft.mode;
   if(draft.prompts&&typeof draft.prompts==="object"){
     for(const mode of ["text","frames","refs"])state.prompts[mode]=String(draft.prompts[mode]||"");
@@ -223,6 +225,10 @@ function restoreDraft(){
     if(draft[id]!==undefined&&[...$(id).options||[]].length){
       if([...$(id).options].some(option=>option.value===String(draft[id])))$(id).value=draft[id];
     }else if(draft[id]!==undefined)$(id).value=draft[id];
+  }
+  if(draft.enableRefine!==undefined&&$("enableRefine")){
+    $("enableRefine").checked=!!draft.enableRefine;
+    const info=$("refinePresetInfo");if(info)info.style.display=draft.enableRefine?"block":"none";
   }
   const storedFrames=Number($("duration").value);
   if(!Number.isInteger(storedFrames)||storedFrames<124||storedFrames>362||(storedFrames-5)%17!==0)$("duration").value="362";
@@ -444,6 +450,14 @@ $("renderMethod").addEventListener("change",()=>{if(method()==="turbo")$("steps"
 document.querySelectorAll("#stepPresets button").forEach(button=>button.onclick=()=>{$("steps").value=button.dataset.steps;renderMethodInfo();renderEstimates();saveDraft();});
 ["prompt","steps","seed","refSize","renderMethod"].forEach(id => $(id).addEventListener("input",saveDraft));
 $("randomSeed").onclick = () => {$("seed").value = Math.floor(Math.random()*2**31);saveDraft();};
+const refineEl = $("enableRefine");
+if (refineEl) {
+  refineEl.addEventListener("change", () => {
+    const info = $("refinePresetInfo");
+    if (info) info.style.display = refineEl.checked ? "block" : "none";
+    saveDraft();
+  });
+}
 
 function frameBox(which) {
   const file = $(which+"File"), box = $(which+"Box"), clear = $("clear"+(which==="first"?"First":"Last"));
@@ -757,6 +771,8 @@ function currentRenderSpec() {
     render_method: method(),
     ref_image_size: $("refSize") ? $("refSize").value : "match",
     loras: state.loras.filter(x => x.enabled),
+    refine: $("enableRefine") ? $("enableRefine").checked : false,
+    enable_refine: $("enableRefine") ? $("enableRefine").checked : false,
     continuation: state.continuation || null,
   };
 }
@@ -794,6 +810,7 @@ function updatePreviewLive() {
     }
   } catch (e) {
     display.textContent = "Prompt preview: " + e.message;
+    if (tagsWrap) tagsWrap.replaceChildren();
   }
 }
 
@@ -869,7 +886,7 @@ function setBusy(value) {
   state.busy=value;
   $("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);
   document.querySelectorAll(".mode").forEach(b=>b.disabled=value);
-  for(const id of ["extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
+  for(const id of ["extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
   document.querySelectorAll("#stepPresets button").forEach(button=>button.disabled=value);
   updateCapabilities();
   renderLoras();renderRefs();renderGuides();renderEstimates();
