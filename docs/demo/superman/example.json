@@ -1,0 +1,47 @@
+{
+  "example": "Superman above Earth",
+  "source": "project owner supplied media and prompt",
+  "character_reference_confirmed_by_owner": true,
+  "clip": {
+    "duration_seconds": 4.208333,
+    "width": 1920,
+    "height": 1088,
+    "fps": 24,
+    "frames": 101,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "role": "published excerpt",
+    "video_audio_reencoded": false
+  },
+  "generation_settings": {
+    "seed": null,
+    "canvas": null,
+    "loras": null,
+    "render_method": null
+  },
+  "references": [
+    {
+      "alias": "1",
+      "file": "storyboard-reference.png",
+      "role": "storyboard"
+    },
+    {
+      "alias": "2",
+      "file": "character-reference.png",
+      "role": "character identity"
+    }
+  ],
+  "prompt_normalization": "Restored @1/@2 from Reddit mention links; removed trailing svg artifact; retained creative wording.",
+  "files": {
+    "character-reference-preview.jpg": "9c07263271938a38898e9232cc8d254b328d423789509f10eee1cdaa543668d1",
+    "character-reference.png": "324af07c9fa99b7109851aefdecd7f27bd48cb387e79a4b30bb7aa52320db678",
+    "production-workspace-preview.jpg": "ebeec1ecb74193f4ea12742ffcce0ca77adb576d390b53832c7f1a2089d94913",
+    "production-workspace.png": "7f6f40c79c8285e1a20892ca02b74f053d90eb03a9f635b65f7524a9ee726124",
+    "prompt.txt": "38457f376fb670e76e4b273ab44782909492c8fd18983e4f728f7bccff133eae",
+    "README.md": "5b24201f5eefffc7b6271845d5e54941973676cabf1f70d4a3adb6fbafcf34d9",
+    "storyboard-reference-preview.jpg": "4094b95eb7a9b7ef2d49468b018d172e3f409026f5f340b62cae9be56edc5532",
+    "storyboard-reference.png": "78747280168f642e83839f726165e589fd5dbd0890f0e8dd95257527e1957d51",
+    "superman-excerpt.mp4": "6e3b1c18df4cee12b27882d7f9edf14d0b54713b1940484ec29615f22bdb65b9",
+    "video-poster.jpg": "d794957fbcd039eda46b5b9841d62e288b37f8dd0a58b8649da5fd901df8ec5c"
+  }
+}

@@ -1,112 +1,102 @@
-# H3 Higgsfield · V2
+# H3 Higgsfield
 
-Current connected release: [setup, optional models and tested limits](docs/CONNECTED_STUDIO.md). Includes reference-aware prompt preparation, automatic ordinary-video structural control, verified Refine installation and shared-server queue recovery. Existing valid model files in configured model directories are reused. GPU quality validation remains environment-specific.
+### Direct the shot. Keep the whole workflow in view.
 
+**MiniMax H3 video with native audio. Qwen image creation and editing. One browser workspace on your own machine or GPU server.**
 
-Connected Studio development: [reference-aware preparation, optional control models and local simulation](docs/CONNECTED_STUDIO.md). Live GPU quality validation remains pending.
+[Get started](docs/INSTALL.md) · [Try the Superman example](docs/demo/superman/README.md) · [Features](#built-around-the-way-you-create) · [Community](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions)
 
-**V2 is the main release.** See [upgrade and rollback notes](docs/V2_UPGRADE_AR.md) before updating an existing instance. The installers include V2 projects, temporal guides and the separately pinned continuation engine. Keep one H3 Studio copy per ComfyUI process. Publishing this release does not move or replace your server data. See [review evidence](docs/lab/FOLLOWUP_REVIEW_2026-10-03.md) for tested paths and remaining quality boundaries.
+[![Superman above Earth — watch the creator-supplied excerpt](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
-An independent, creator-friendly interface for **MiniMax H3 video with native audio** and **Qwen Image 2.1 creation/editing**. ComfyUI runs behind the pages; creators never need the node canvas. This project is not affiliated with Higgsfield.
+**Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-![H3 Higgsfield reference-mode interface with a generated video](docs/demo/interface-references.png)
+## Your scene, with every reference given a job
 
-**[Watch the Spectrum demo](docs/demo/spectrum-no-lora.mp4)** · **[Watch the MotionCache demo](docs/demo/motioncache-no-lora.mp4)** · **[Install](#install-on-windows-or-linux)** · **[Ask a question](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions)**
+Start with an idea, an opening frame, or a set of references. Tell Studio what each asset should contribute: the character, the location, the visual style, the camera movement, or the storyboard. Name it, mention it in the prompt, and inspect the result before rendering.
 
-Using an existing OpenBayes persistent workspace? Follow the [OpenBayes setup and recovery notes](docs/OPENBAYES.md). Its startup script checks model mounts, pinned speed nodes, the render queue, and live readiness before reporting success.
+The workspace brings generation, reference handling, progress, projects and finished takes together. ComfyUI powers the work behind the page; the everyday creation flow stays in the studio.
 
-## See it in action
+![Creator-supplied H3 production workspace](docs/demo/superman/production-workspace-preview.jpg)
 
-Two renders of the same comedy-club scene and dialogue: **Spectrum** and **MotionCache**. Both are 15 seconds with native audio, 1280 × 704 at 24 fps, 20 steps, and **no LoRAs**. Watch the clips and compare the results.
+*Production capture from the Superman example. The current V2 release adds the updated project workspace, shared queue and prompt preparation controls.*
+
+## Built around the way you create
+
+| What you want to do | What Studio gives you |
+| --- | --- |
+| **Direct from references** | Named images, videos and audio, clear reference roles, blue mentions and a preview of the connected tags. |
+| **Bring a storyboard to life** | A dedicated **Storyboard · shot guide** role, paired with separate character references and your shot instructions. |
+| **Write naturally** | Automatic formatting, Arabic/English headings, Markdown, JSON with comments and multiline YAML. Your original brief stays editable. |
+| **Prepare a complex brief with AI** | Optional reference-aware preparation with a configured model, sampled video frames, validation and a preview. |
+| **Shape motion or structure** | Optional Fun-ControlNet 2.0: extract body-motion, depth, outline or lighting guidance from an ordinary video when its models are installed. |
+| **Refine a take** | Optional latent Refine and installed LoRAs, with availability checked before submission. |
+| **Keep work across sessions** | Saved projects, portable export, continuation, temporal guides and finished takes with their settings. |
+| **Share a GPU server** | A queue that separates your work from other projects and keeps cancellation scoped to your job. |
+| **Create supporting images** | A separate Qwen Image 2.1 workspace for creation and reference-based editing. |
+
+Start with **Original quality**. Try the available render methods and LoRAs when you want a different tradeoff; Studio shows what is installed on your server.
+
+## Try it: Superman above Earth
+
+| `@1` — Storyboard | `@2` — Character |
+| --- | --- |
+| [![The six-panel storyboard](docs/demo/superman/storyboard-reference-preview.jpg)](docs/demo/superman/storyboard-reference.png) | [![The character appearance reference](docs/demo/superman/character-reference-preview.jpg)](docs/demo/superman/character-reference.png) |
+| Choose **Storyboard · shot guide** for the camera journey and reveal order. | Choose **Character** for the face, hair, physique and suit. |
+
+1. Choose **Create Video → References**.
+2. Upload the storyboard, name it **1**, and select **Storyboard · shot guide**.
+3. Upload the character image, name it **2**, and select **Character**.
+4. Paste the [creator’s prompt](docs/demo/superman/prompt.txt), inspect the preview, choose your output settings and generate.
+
+The example includes the supplied reference images, production screenshot, prompt and a **4.21-second video excerpt**. [Open the complete walkthrough →](docs/demo/superman/README.md)
+
+## A different fit for your workflow
+
+H3 Higgsfield focuses on a dedicated browser workspace: reference roles, project continuity, a shared-server queue, selectable rendering options, and a combined video/image creation flow.
+
+| If your priority is… | A useful starting point |
+| --- | --- |
+| **Creating and reviewing shots in a dedicated studio page** | **H3 Higgsfield**, with ComfyUI running behind the workspace. |
+| **Building or changing the graph yourself** | [ComfyUI’s native H3 workflows](https://github.com/Comfy-Org/docs/blob/main/tutorials/video/minimax/minimax-h3-native.mdx). |
+| **Adding multimodal prompt writing to an existing ComfyUI workflow** | [MiniMax H3 Prompt Writer](https://github.com/duckyshell/ComfyUI-MiniMaxH3-Prompt-Writer). |
+| **Working inside a ComfyUI sidebar with a built-in clip editor** | [ComfyUI MiniMaxH3 Studio](https://github.com/rookiestar28/ComfyUI-MiniMaxH3-Studio). |
+
+These are workflow choices, not a render-quality ranking. H3 Higgsfield is an independent project built on MiniMax H3 and ComfyUI, with no affiliation to Higgsfield or MiniMax. Its optional prompt preparation is separate from MiniMax’s hosted H3-Context-IR.
+
+## Get started
+
+**Windows or NVIDIA Linux:** follow the [installation guide](docs/INSTALL.md). It covers existing ComfyUI installations, first-time setup and verified model reuse. Once installed, open the studio page at your ComfyUI server address.
+
+| Where you work | Guide |
+| --- | --- |
+| Windows or Linux | [Install the studio](docs/INSTALL.md) |
+| Existing OpenBayes workspace | [Setup and recovery](docs/OPENBAYES.md) |
+| SaladCloud | [Container deployment](deploy/SALAD_DEPLOYMENT.md) |
+| Upgrading an existing V2 project | [Upgrade and rollback](docs/V2_UPGRADE_AR.md) |
+
+The code is open source. You provide the GPU environment and download the model weights; cloud GPU and optional AI-provider costs depend on your setup.
+
+## More renders to explore
+
+Two comedy-club renders with the same scene and dialogue, using different acceleration methods. Each published demo is 15 seconds, 1280×704, 24 fps and 20 steps, with native audio and no LoRAs.
 
 | Spectrum | MotionCache |
 | --- | --- |
-| [![Spectrum video preview](docs/demo/spectrum-preview.jpg)](docs/demo/spectrum-no-lora.mp4) | [![MotionCache video preview](docs/demo/motioncache-preview.jpg)](docs/demo/motioncache-no-lora.mp4) |
+| [![Spectrum demo](docs/demo/spectrum-preview.jpg)](docs/demo/spectrum-no-lora.mp4) | [![MotionCache demo](docs/demo/motioncache-preview.jpg)](docs/demo/motioncache-no-lora.mp4) |
 | [Watch with audio](docs/demo/spectrum-no-lora.mp4) | [Watch with audio](docs/demo/motioncache-no-lora.mp4) |
 
-The published MP4s retain their video and audio streams; private prompt metadata was removed.
+## A few things worth knowing
 
-<details>
-<summary>See the MotionCache settings and live render progress</summary>
+- **Automatic preparation is honest about what runs.** Without a configured AI provider, it formats your prompt locally. With one configured, it can prepare the brief with reference evidence. See [supported prompt formats](docs/PROMPT_INPUT.md).
+- **Optional controls need their models.** Refine, ControlNet, motion/depth extractors and LoRAs appear according to readiness. Their presence is not a guarantee of a better take.
+- **References guide a new generation.** Storyboards and source videos influence the result; they do not lock every pixel, camera move or cut.
+- **Hardware matters.** Models require substantial disk space, and longer high-resolution clips need enough system RAM as well as VRAM. [Installation requirements](docs/INSTALL.md) and [verified behavior](docs/VERIFIED_BEHAVIOR.md) keep the details together.
+- **Check model licenses for your use.** Qwen Image 2.1 uses the Qwen Research License. Repository code, demo media, model weights and third-party components have separate licenses.
 
-![MotionCache selected in the H3 interface during generation](docs/demo/interface-motioncache.png)
+## Make something, then share it
 
-</details>
+Post a shot, a reference experiment or a setup question in [Discussions](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions). For a reproducible problem, open an [Issue](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/issues).
 
-## What you get
+[Connected Studio guide](docs/CONNECTED_STUDIO.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Graph map](docs/GRAPH_MAP.md)
 
-The top navigation separates **Video** and **Image**. Video retains the complete H3 workflow below. Image uses one creation workspace with optional named references (up to 10 images), INT8/BF16 availability checks, native aspect presets up to 4 MP, transparency, queue/progress recovery, output details, download, and deletion.
-
-| Mode | Input | H3 path |
-| --- | --- | --- |
-| Text | Scene prompt | FL2VA |
-| Frames | Prompt + start and/or end image | FL2VA |
-| References | Prompt + named images, videos, or audio (`@name`) | Ref2VA |
-
-- A single English UI for prompts, output size, duration, sampling steps (8–100; default 20), render method, and optional LoRAs. Enter a duration from 5 to 15.1 seconds; Studio shows the nearest H3-supported frame count and actual duration before submission.
-- Attached references have an **Insert @name into prompt** button. The video workspace also shows named image, video, and audio references next to the prompt; start/end frames appear there as `@start` and `@end`.
-- Video references at other frame rates are converted to **24 fps** on upload; their playback speed and available soundtrack are retained. H3's combined video-reference limit is 15 seconds.
-- Original quality by default. Spectrum, MotionCache, and the FL2VA Turbo LoRA are prepared as separate, optional choices; they can change the result. Installed LoRAs appear as optional switches.
-- Spectrum and MotionCache are selectable in References when their nodes are installed. The prepared Turbo LoRA targets FL2VA, so it is selectable only in Text and Frames.
-- Native video and audio come from the same H3 sample. Audio is checked after saving; listening remains the final check.
-- The H3 save node writes MP4 with H.264 and AAC; if PyAV fails to encode, it retries through the installed FFmpeg without rerunning the model.
-- Upload and render progress, a changing time estimate, a queue, thumbnails, saved settings for each clip, and a library that survives page refreshes.
-- Input videos cannot be mistaken for completed outputs: the UI accepts a result only from the Save Video node after the file appears on the server.
-
-## Install on Windows or Linux
-
-Both installers require an NVIDIA GPU with a working driver. H3 needs roughly **65.8 GB** including the prepared speed/LoRA files. Qwen Image is optional outside Salad: INT8 adds **17.3 GB**; BF16 adds **32.4 GB**, with a shared VAE. Use `QWEN_IMAGE_PROFILES=int8` (Linux) or `-QwenImageProfiles int8` (Windows) to install it. An empty disk cannot be ready in seconds because the models must download.
-
-### Windows (native PowerShell; no WSL)
-
-Use the [official ComfyUI Portable NVIDIA build](https://github.com/Comfy-Org/ComfyUI/releases/latest) or an existing ComfyUI source checkout. The installer detects Portable's `python_embeded`, installs the H3 interface and optional methods, checks the queue, and opens the H3 page when ready. Git for Windows and an NVIDIA driver are required; the installer attempts to get missing FFmpeg tools through Windows Package Manager.
-
-```powershell
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ComfyRoot "C:\path\to\ComfyUI_windows_portable"
-```
-
-Point `-ComfyRoot` to the Portable parent folder **or** its `ComfyUI` subfolder. For an existing source install, pass its ComfyUI path and, if needed, `-ComfyPython "C:\path\to\python.exe"`. If ComfyUI is absent, omit `-ComfyRoot`: with Git and Python 3.12/3.13 installed, the script installs the pinned ComfyUI source into a sibling folder. A Portable build that lacks H3 nodes must first be updated with its official `update\update_comfyui.bat`; the installer preserves that build rather than replacing its files.
-
-To inspect this Windows PC before setup, add `-Preflight` to the PowerShell command. It only reports local prerequisites and cached model sizes; it makes no changes or downloads.
-
-If an already-running ComfyUI has no Manager restart endpoint, rerun with `-NoStart`, then restart ComfyUI normally. The H3 page is `http://127.0.0.1:8188/extensions/h3_studio/index.html`. The installer never restarts while jobs are running or queued.
-
-### Linux (Bash)
-
-```bash
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
-bash install.sh
-```
-
-The Linux installer finds an existing ComfyUI or installs pinned revision `3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251`. That revision contains the corrected H3 VAE tile decode and native Qwen Image 2.1 nodes. The installer checks those source markers before continuing, reuses or downloads verified model files, prepares the optional nodes and LoRAs, and opens **H3 Higgsfield** as the ComfyUI landing page.
-
-For a different Linux ComfyUI location, use `bash install.sh --comfy-root /path/to/ComfyUI`. Both new installs bind to `127.0.0.1:8188` by default. Reach a remote server through an SSH tunnel or an authenticated cloud proxy; only use `--bind 0.0.0.0` (Linux) or `-Bind 0.0.0.0` (Windows) behind access control. Once ready, open `/extensions/h3_studio/index.html` at your server address. The server root also redirects to this page; the Comfy node editor is reserved for maintenance at `/?view=nodes`.
-
-Model downloads can require accepting the [MiniMax H3 license](https://huggingface.co/MiniMaxAI/MiniMax-H3) or Hugging Face access. The model weights, private reference files, personal video library, and server passwords are **not** in this Git repository; only the two public demo clips above are included. Re-running the installer checks and reuses valid cached weights. For a portable handoff or optional video-library restore, see [the server guide](deploy/CLOUD_BOOTSTRAP_AR.md).
-
-### SaladCloud
-
-The repository includes a dedicated RTX 5090 image in `Dockerfile.salad`. It keeps all weights outside the container image, defaults to H3 plus Qwen INT8, verifies exact pinned sizes and SHA-256 values before reporting ready, protects both workspaces and WebSocket with one login, and can sync outputs to S3-compatible storage. See [the Salad deployment settings](deploy/SALAD_DEPLOYMENT.md).
-
-## What has been verified
-
-On the project's RTX 5090 server, Original mode produced a short clip and a 15.1-second clip with decodable video and audio. A 25 fps clip with audio was accepted as a reference, converted to 24 fps, and cleaned up afterward. New installs require the upstream H3 VAE tile fix before the UI permits generation. Qwen's graphs match the pinned ComfyUI 2.1 schemas and the source project's graph contract.
-
-On one 39 GB system-RAM RTX 5090 workspace, both 15.1-second Original and 14.38-second MotionCache Ref2VA renders exhausted system RAM during video decoding after all 20 sampling steps. The latter sampled for 50 minutes before the process was killed, with no MP4 saved. Studio blocks 12.25 seconds and longer at 1280×704 or above on hosts with under 56 GB reported RAM, rather than risk another long render. This does not measure the GPU's 32 GB VRAM; for that full-length setting, at least 64 GB advertised system RAM is recommended, pending a successful validation render.
-
-Qwen Image 2.1 weights use the Qwen Research License and are not licensed for commercial use. They are downloaded at runtime and are not redistributed by this repository.
-
-DLSS 5 Visual Enhancer is an optional Windows post-processing path and is not installed on Linux cloud servers. The studio first preserves source quality through the corrected H3 VAE, INT8 ConvRot weights, and high-quality MP4 saving; enhancement can be applied later on a compatible Windows RTX machine.
-
-Windows installation is newly supported, but a complete first-time Windows GPU install has not yet been run by this project. The verified render evidence above is from Linux.
-
-This evidence does not guarantee every prompt, LoRA combination, speed method, or a new GPU image. A video reference guides **new generation**; it is not a pixel-locked one-object edit. Exact local editing needs a separate masked inpainting workflow, which this UI does not claim to provide.
-
-## Feedback
-
-Share a render or ask a setup question in [Discussions](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions). Report a reproducible problem in [Issues](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/issues), with the ComfyUI revision, GPU, selected mode, render method, and the error message. Remove access tokens and private prompts before posting logs.
-
-Built on [ComfyUI](https://github.com/Comfy-Org/ComfyUI) and [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3). This repository's code is MIT-licensed; demo media, model weights, and third-party nodes have separate rights and licenses.
+Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Code: [MIT](LICENSE).
