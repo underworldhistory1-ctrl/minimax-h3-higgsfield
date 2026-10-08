@@ -1,12 +1,13 @@
 "use strict";
 // Server-owned project inputs, native keyframes and review actions.
-function allInputItems(){return [state.first,state.last,...state.refs,...state.guides].filter(Boolean);}
+function allInputItems(){return [state.first,state.last,...state.refs,...state.guides,...Object.values(state.controlInputs||{})].filter(Boolean);}
 async function refreshLabCapabilities(){
   try{state.labCapabilities=await (await fetch(api("/h3_studio/lab/capabilities"))).json();}
   catch{state.labCapabilities={add_guide:false,continuation_ready:false,missing_reasons:["Lab readiness unavailable"]};}
   try{const response=await fetch(api("/object_info/MiniMaxH3AddGuide"));if(response.ok){const schemas=await response.json();const input=schemas.MiniMaxH3AddGuide?.input||{};const fields={...input.required,...input.optional};state.labCapabilities.guide_audio=!!fields.audio;state.labCapabilities.guide_video=!!fields.image&&!!state.nodesReady?.LoadVideo&&!!state.nodesReady?.GetVideoComponents;}}
   catch{}
   refreshLabControls();
+  if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function refreshLabControls(){
   const paused=state.labCapabilities?.inference_enabled===false;
@@ -124,6 +125,9 @@ async function persistProjectDraft(){
   return {version:1,mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
+    preparationMode:$("preparationMode")?.value||"ai",enableRefine:$("enableRefine").checked,
+    control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
+    controlInputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([key,value])=>[key,descriptor(value)])),
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:state.loras.filter(x=>x.enabled)};
 }
 async function hydrateProjectDraft(draft){
@@ -131,8 +135,13 @@ async function hydrateProjectDraft(draft){
   const epoch=++state.hydrationEpoch;const missing=[];
   async function item(desc){if(!desc)return null;try{if(!desc.assetId)throw Error("Missing asset identifier");const rec=await projectCtrl.getAsset(desc.assetId);const blob=await projectCtrl.mediaBlob(desc.assetId);return {...desc,file:new File([blob],rec.original_name||"asset.png",{type:blob.type}),url:URL.createObjectURL(blob),previewUrl:URL.createObjectURL(blob)};}catch{missing.push(desc.alias||desc.assetId||"frame");return null;}}
   const first=await item(draft.first),last=await item(draft.last),refs=await Promise.all((draft.refs||[]).map(item)),guides=await Promise.all((draft.guides||[]).map(item));
+  const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
   if(epoch!==state.hydrationEpoch)return;
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
+  state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
+  if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;
+  if($("preparationMode"))$("preparationMode").value=draft.preparationMode==='native'?'native':'ai';
+  if(window.H3ConnectedStudio)H3ConnectedStudio.restoreControl();
   if(draft.canvas){state.width=draft.canvas.width;state.height=draft.canvas.height;}
   state.prompts={text:"",frames:"",refs:"",...draft.prompts};state.promptMode=draft.promptMode||"guided";$("promptMode").value=state.promptMode;$("frameFit").value=draft.frameFit||"crop";
   $("fitImages").checked=draft.fitImages!==false;$("fitFrames").checked=draft.fitFrames!==false;

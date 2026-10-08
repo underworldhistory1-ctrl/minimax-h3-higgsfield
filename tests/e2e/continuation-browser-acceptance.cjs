@@ -13,6 +13,8 @@ const assert=require('node:assert/strict');
   const errors=[];page.on('pageerror',x=>errors.push(x.message));
   await page.goto(base+'/extensions/h3_studio/index.html');
   await page.waitForFunction(()=>projectCtrl?.currentProject&&!state.projectLoading&&state.labCapabilities?.continuation_ready);
+  await page.locator('#preparationMode').selectOption('native');
+  await page.evaluate(()=>document.querySelector('#guidesPanel').open=true);
   await page.locator('#prompt').fill('Keep this text-mode draft.');
   await page.evaluate(()=>state.prompts.refs='Keep this reference-mode draft.');
   const bytes=Buffer.from(await(await fetch(base+'/__fixtures/external-25fps.mp4')).arrayBuffer());

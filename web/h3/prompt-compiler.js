@@ -107,11 +107,29 @@
     }
   }
 
+  function referenceVideoSpan(ref, targetFrames) {
+    if (Number(ref.fps) !== 24) throw new Error('Reference video requires verified canonical 24 fps metadata.');
+    const frames = Number(ref.frame_count ?? ref.duration_frames);
+    if (!Number.isInteger(frames) || frames < 5) throw new Error('Reference video requires a verified frame count of at least 5.');
+    const used = Math.min(frames, targetFrames);
+    return { source_frames: frames, used_frames: 5 + 17 * Math.floor((used - 5) / 17), fps: 24 };
+  }
+
+  function validateNativeBindings(prompt, counts) {
+    for (const match of prompt.matchAll(/<(Picture|Video|Audio|Subject)\s+(\d+)>/gi)) {
+      const kind = match[1].toLowerCase(), index = Number(match[2]);
+      if (index < 1 || index > (counts[kind] || 0)) throw new Error('Referenced <' + match[1] + ' ' + index + '> does not exist.');
+    }
+  }
+
   function compilePrompt(spec) {
     const mode = spec.mode || 'text';
     const promptMode = spec.prompt_mode || 'guided';
     let source = (spec.source_prompt || '').trim();
     const warnings = [];
+    const seconds = Number(spec.target_seconds ?? spec.duration_seconds ?? 124 / 24);
+    const targetFrames = Number(spec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
+    if (!Number.isInteger(targetFrames) || targetFrames < 5 || (targetFrames - 5) % 17) throw new Error('Target frames must follow the H3 5 + 17k grid.');
 
     if (!source) {
       throw new Error('Write the scene prompt first.');
@@ -120,9 +138,19 @@
     const expectedSections = mode === 'refs' ? NATIVE_REF_SECTIONS : NATIVE_TEXT_SECTIONS;
     // Shared prose headings (summary, sound and music) do not identify a native payload.
     const nativeNames = ['subject_definitions', 'retention_analysis', 'detailed_description', 'integrated_multimodal_description'];
-    const hasNativeSections = new RegExp('^(?:' + nativeNames.join('|') + '):\\s*', 'im').test(source);
+    let hasNativeSections = new RegExp('^(?:' + nativeNames.join('|') + '):\\s*', 'im').test(source);
     // Ordinary prose headings (including repeated Action/Camera headings) are content.
-    const originalSections = promptMode === 'structured' || hasNativeSections ? parseStructuredSections(source) : null;
+    let originalSections = promptMode === 'structured' || hasNativeSections ? parseStructuredSections(source) : null;
+    // Guided references may receive a complete FL2VA description from a previous
+    // text/frames prompt. Rebuild Ref2VA roles instead of treating it as six-section input.
+    const adaptTextToReferences = mode === 'refs' && promptMode === 'guided' && originalSections &&
+      NATIVE_TEXT_SECTIONS.every(name => originalSections[name]) &&
+      Object.keys(originalSections).every(name => NATIVE_TEXT_SECTIONS.includes(name));
+    if (adaptTextToReferences) {
+      originalSections = null;
+      hasNativeSections = false;
+      warnings.push('Text/Frames description adapted to References using the attached reference roles.');
+    }
     if (promptMode === 'structured' || hasNativeSections) {
       if (!originalSections) throw new Error('Structured prompt requires native section headers.');
       const missing = expectedSections.filter(name => !originalSections[name]);
@@ -157,6 +185,7 @@
         return frameTags.get(name);
       });
 
+      validateNativeBindings(source, {picture: bindings.length});
       const structured = originalSections ? parseStructuredSections(source) : null;
       if (structured && structured.integrated_multimodal_description) {
         return { compiled_prompt: source, bindings, warnings };
@@ -169,20 +198,22 @@
       const alignment = frames.first && frames.last ?
         `How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot N) aligns with the ${durationSec}-second mark of the target video.` :
         frames.first ?
-          `For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.` :
-          `How the reference pictures align with the target video — <Picture 1> (from [Shot N]) aligns with the ${durationSec}-second mark of the target video.`;
+          `For the target video, at 0.00 seconds into the target video, <Picture 1> (from Shot 1) is fully referenced.` :
+          `How the reference pictures align with the target video — <Picture 1> (from Shot N) aligns with the ${durationSec}-second mark of the target video.`;
 
-      const compiled = `${alignment}\n\nintegrated_multimodal_description: [Shot 1] ${anchor}${source}\n\noverall_soundscape: Use the sounds described in [Shot 1]; otherwise only natural scene ambience.\n\nnon_diegetic_music: Only music explicitly requested in [Shot 1].`;
+      const compiled = `${alignment}\n\nintegrated_multimodal_description: ${anchor}${/\[Shot\s+1\]/i.test(source) ? source : '[Shot 1] ' + source}\n\noverall_soundscape: Use the sounds described in the full sequence; otherwise only natural scene ambience.\n\nnon_diegetic_music: Only music explicitly requested in the full sequence.`;
       return { compiled_prompt: compiled, bindings, warnings };
     }
 
     // --- TEXT MODE ---
     if (mode === 'text') {
+      if (/@[\p{L}\p{N}_-]+/u.test(source)) throw new Error('Text mode has no attached reference mentions.');
+      validateNativeBindings(source, {});
       const structured = originalSections ? parseStructuredSections(source) : null;
       if (structured && structured.integrated_multimodal_description) {
         return { compiled_prompt: source, bindings: [], warnings };
       }
-      const compiled = `integrated_multimodal_description: [Shot 1] ${source}\n\noverall_soundscape: Use the sounds described in [Shot 1]; otherwise only natural scene ambience.\n\nnon_diegetic_music: Only music explicitly requested in [Shot 1].`;
+      const compiled = `integrated_multimodal_description: ${/\[Shot\s+1\]/i.test(source) ? source : '[Shot 1] ' + source}\n\noverall_soundscape: Use the sounds described in the full sequence; otherwise only natural scene ambience.\n\nnon_diegetic_music: Only music explicitly requested in the full sequence.`;
       return { compiled_prompt: compiled, bindings: [], warnings };
     }
 
@@ -226,6 +257,7 @@
           alias: ref.alias,
           kind: ref.kind,
           role: role,
+          instruction: ref.instruction || '',
         };
 
         if (ref.kind === 'image') {
@@ -256,6 +288,17 @@
         } else if (ref.kind === 'video') {
           const vidNum = ++videoIdx;
           tag = `<Video ${vidNum}>`;
+          const hasSpanMetadata = ref.fps != null && (ref.frame_count ?? ref.duration_frames) != null;
+          if (spec.preview_only === true && !hasSpanMetadata) {
+            if (ref.fps != null && Number(ref.fps) !== 24) throw new Error('Reference video requires verified canonical 24 fps metadata.');
+            const knownFrames = ref.frame_count ?? ref.duration_frames;
+            if (knownFrames != null && (!Number.isInteger(Number(knownFrames)) || Number(knownFrames) < 5)) throw new Error('Reference video requires a verified frame count of at least 5.');
+            warnings.push('@' + ref.alias + ': effective span available after upload. Preview does not verify video or soundtrack timing.');
+          } else {
+            Object.assign(bindingInfo, referenceVideoSpan(ref, targetFrames));
+            bindingInfo.used_seconds = bindingInfo.used_frames / 24;
+            if (bindingInfo.used_frames !== bindingInfo.source_frames) warnings.push('@' + ref.alias + ' uses the first ' + bindingInfo.used_frames + ' frames (' + bindingInfo.used_seconds.toFixed(3) + ' seconds) on the H3 frame grid.' + (ref.use_audio ? ' Its paired soundtrack uses the same span.' : ''));
+          }
           bindingInfo.video_idx = vidNum;
           bindingInfo.tag = tag;
 
@@ -264,6 +307,10 @@
             const audioTag = `<Audio ${audNum}>`;
             bindingInfo.paired_audio_tag = audioTag;
             bindingInfo.paired_audio_idx = audNum;
+            if (bindingInfo.used_frames != null) {
+              bindingInfo.paired_audio_frames = bindingInfo.used_frames;
+              bindingInfo.paired_audio_seconds = bindingInfo.used_seconds;
+            }
             mediaNotes.push(`${audioTag} is the soundtrack paired with reference video ${tag}.`);
           }
 
@@ -290,12 +337,21 @@
           }
         }
 
+        const retentionRoles = ref.kind === 'video' ? {
+          'whole scene': 'action, camera movement, composition and timing; explicit replacements take priority',
+          'motion and camera': 'body performance, action timing and camera movement only',
+          'motion': 'motion only', 'camera': 'camera movement only', 'camera movement': 'camera movement only', 'action': 'action only'
+        } : ref.kind === 'audio' ? {
+          'voice': 'voice qualities only', 'music': 'music only', 'sound effects': 'sound effects only'
+        } : {};
+        if (retentionRoles[role]) retention.push(tag + ': attribute_transfer - ' + retentionRoles[role] + '.');
+        if (ref.kind !== 'image' && ref.instruction && role !== 'custom') mediaNotes.push(tag + ': ' + ref.instruction);
         aliasToTag.set(ref.alias, tag);
         bindings.push(bindingInfo);
       }
 
       // Native structured tags are valid reference mentions as well as aliases.
-      const nativeSections = originalSections;
+      const nativeSections = originalSections || (adaptTextToReferences ? parseStructuredSections(source) : null);
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
@@ -334,9 +390,11 @@
         }
       }
 
+      validateNativeBindings(substituted, {picture:imageIdx, video:videoIdx, audio:audioIdx, subject:originalSections ? imageIdx : subjectIdx});
       // Check if prompt is already structured or user chose structured mode
       const structured = originalSections ? parseStructuredSections(substituted) : null;
       if (structured && (promptMode === 'structured' || hasNativeSections)) {
+        warnings.push('Structured prompt controls retention and instructions directly; reference card roles, panel order and instructions are bypassed. Attached media tags are still validated.');
         validateSubjectBindings(substituted, structured, bindings);
         // Validate native token indices in structured prompt
         const picTokens = [...substituted.matchAll(/<Picture\s+(\d+)>/gi)];
@@ -366,8 +424,10 @@
       }
 
       // Guided mode: wrap deterministically into native schema
-      const shotOne = /\[Shot\s+1\]/i.test(substituted);
-      const summaryLead = (substituted.match(/^[^\n.!?]+[.!?]?/) || [])[0]?.trim() || 'Generate the requested target sequence.';
+      const adapted = adaptTextToReferences ? parseStructuredSections(substituted) : null;
+      const description = adapted ? adapted.integrated_multimodal_description : substituted;
+      const shotOne = /\[Shot\s+1\]/i.test(description);
+      const summaryLead = (description.match(/^[^\n.!?]+[.!?]?/) || [])[0]?.trim() || 'Generate the requested target sequence.';
 
       const compiled = [
         'subject_definitions:',
@@ -377,16 +437,16 @@
         `[reference generation] ${summaryLead} ${mediaNotes.join(' ')}`.trim(),
         '',
         'retention_analysis:',
-        retention.join('\n') || 'Preserve the motion and sound qualities of the cited references.',
+        retention.join('\n') || 'Apply only the reference uses explicitly requested in the detailed_description; no additional retention is imposed.',
         '',
         'detailed_description:',
-        shotOne ? substituted : `[Shot 1] ${substituted}`,
+        shotOne ? description : `[Shot 1] ${description}`,
         '',
         'overall_soundscape:',
-        'Use cited audio references and scene sounds described in the detailed_description, timed to their shots.',
+        adapted ? adapted.overall_soundscape : 'Use cited audio references and scene sounds described in the detailed_description, timed to their shots.',
         '',
         'non_diegetic_music:',
-        'Only music explicitly requested in the detailed_description.',
+        adapted ? adapted.non_diegetic_music : 'Only music explicitly requested in the detailed_description.',
       ].join('\n');
 
       return { compiled_prompt: compiled, bindings, warnings };
@@ -397,6 +457,8 @@
 
   return {
     compilePrompt,
+    referenceVideoSpan,
+    validateNativeBindings,
     parseStructuredSections,
     orderedReferences,
     validateLimits,

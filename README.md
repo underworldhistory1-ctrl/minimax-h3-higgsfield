@@ -1,5 +1,10 @@
 # H3 Higgsfield · V2
 
+Current connected release: [setup, optional models and tested limits](docs/CONNECTED_STUDIO.md). Includes reference-aware prompt preparation, automatic ordinary-video structural control, verified Refine installation and shared-server queue recovery. Existing valid model files in configured model directories are reused. GPU quality validation remains environment-specific.
+
+
+Connected Studio development: [reference-aware preparation, optional control models and local simulation](docs/CONNECTED_STUDIO.md). Live GPU quality validation remains pending.
+
 **V2 is the main release.** See [upgrade and rollback notes](docs/V2_UPGRADE_AR.md) before updating an existing instance. The installers include V2 projects, temporal guides and the separately pinned continuation engine. Keep one H3 Studio copy per ComfyUI process. Publishing this release does not move or replace your server data. See [review evidence](docs/lab/FOLLOWUP_REVIEW_2026-10-03.md) for tested paths and remaining quality boundaries.
 
 An independent, creator-friendly interface for **MiniMax H3 video with native audio** and **Qwen Image 2.1 creation/editing**. ComfyUI runs behind the pages; creators never need the node canvas. This project is not affiliated with Higgsfield.

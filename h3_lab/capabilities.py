@@ -4,6 +4,7 @@ Evaluates host readiness, registered nodes, AV mask capabilities,
 and FFmpeg tools, reporting actionable blocking reasons.
 """
 
+import inspect
 import os
 import pathlib
 import shutil
@@ -53,6 +54,57 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
             except OSError:
                 models_status[key] = False
 
+    # Optional paths remain independent of baseline readiness.
+    from .control import CONTROL_FILE, CONTROL_SIZE
+    control_nodes = ['ModelPatchLoader', 'MiniMaxH3FunControlNetApply', 'LoadVideo', 'GetVideoComponents', 'LoadImage', 'ImageToMask']
+    control_missing = [f"Required ControlNet node '{name}' is not registered." for name in control_nodes if name not in registered_nodes]
+    control_weight = False
+    if folder_paths_module:
+        try:
+            path = folder_paths_module.get_full_path('model_patches', CONTROL_FILE)
+            control_weight = bool(path and os.path.isfile(path) and os.path.getsize(path) == CONTROL_SIZE)
+        except (OSError, AttributeError, KeyError):
+            pass
+    if not control_weight:
+        control_missing.append('Exact ControlNet 2.0 weight is missing or incomplete.')
+    native_control_schema = False
+    try:
+        cls = registered_nodes['MiniMaxH3FunControlNetApply']
+        source = inspect.getsource(cls)
+        native_control_schema = all(marker in source for marker in ('model_patch', 'control_video', 'source_video', 'mask', 'start_percent', 'end_percent', 'MiniMaxH3FunControlPatch'))
+    except (KeyError, TypeError, OSError):
+        pass
+    if not native_control_schema:
+        control_missing.append('Native ControlNet source/schema could not be verified.')
+    refine_nodes = ['LTXVSeparateAVLatent', 'LTXVConcatAVLatent', 'MinimaxH3LatentUpscaler3D']
+    refine_missing = [f"Required refine node '{name}' is not registered." for name in refine_nodes if name not in registered_nodes]
+    for name in required_native:
+        if name != 'MiniMaxH3ReferenceToVideo' and name not in registered_nodes:
+            control_missing.append(f"Required generation node '{name}' is not registered.")
+            refine_missing.append(f"Required generation node '{name}' is not registered.")
+    refine_weight = False
+    if folder_paths_module:
+        try:
+            path = folder_paths_module.get_full_path('latent_upscale_models', 'minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors')
+            if path:
+                import json, struct
+                with open(path, 'rb') as stream:
+                    header_size = struct.unpack('<Q', stream.read(8))[0]
+                    if 0 < header_size < 100_000_000:
+                        header = json.loads(stream.read(header_size))
+                        offsets = [v['data_offsets'][1] for k, v in header.items() if k != '__metadata__']
+                        refine_weight = bool(offsets) and 8 + header_size + max(offsets) == os.path.getsize(path) == 690592672
+        except (OSError, AttributeError, KeyError, ValueError, TypeError, struct.error):
+            pass
+    if not refine_weight:
+        refine_missing.append('Exact named refine upscaler weight is missing or structurally incomplete.')
+    base_fl_ready = bool(models_status) and all(models_status.get(k, False) for k in ('fl2va', 'text_encoder', 'video_vae', 'audio_vae'))
+    if not base_fl_ready:
+        control_missing.append('FL2VA base models are unavailable.')
+        refine_missing.append('FL2VA base models are unavailable.')
+    if not ffmpeg_ok or not ffprobe_ok:
+        control_missing.append('FFmpeg and FFprobe are required for control media validation.')
+
     # 4. Actionable reasons
     missing_reasons = []
     if not ffmpeg_ok:
@@ -71,7 +123,15 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
         if not ok:
             missing_reasons.append(f"Required model '{name}' is missing or incomplete.")
 
+    from .control_preprocess import preprocessor_status
+    preprocessors = preprocessor_status()
     return {
+        "control_preprocessors": preprocessors,
+        "controlnet_ready": not control_missing,
+        "controlnet_missing_reasons": control_missing,
+        "controlnet": {"model_name": CONTROL_FILE, "weight_ready": control_weight, "native_schema_verified": native_control_schema},
+        "refine_ready": not refine_missing,
+        "refine_missing_reasons": refine_missing,
         "ffmpeg": {"ffmpeg": ffmpeg_ok, "ffprobe": ffprobe_ok},
         "native_nodes": native_status,
         "add_guide": add_guide_ready,

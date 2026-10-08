@@ -4,7 +4,7 @@ from aiohttp import web
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from h3_lab.routes import register_lab_routes
-NODES = 'UNETLoader MiniMaxH3SigmaShift CLIPLoader VAELoader MiniMaxH3ImageToVideo MiniMaxH3ReferenceToVideo ConditioningZeroOut KSampler H3ReleaseForDecode VAEDecode VAEDecodeAudio CreateVideo H3SaveVideo LoadImage LoadVideo GetVideoComponents LoadAudio MiniMaxH3AddGuide'.split()
+NODES = 'UNETLoader MiniMaxH3SigmaShift CLIPLoader VAELoader MiniMaxH3ImageToVideo MiniMaxH3ReferenceToVideo ConditioningZeroOut KSampler H3ReleaseForDecode VAEDecode VAEDecodeAudio CreateVideo H3SaveVideo LoadImage LoadVideo GetVideoComponents ImageFromBatch TrimAudioDuration LoadAudio MiniMaxH3AddGuide'.split()
 MODELS = {k: True for k in ['fl2va','ref2va','text_encoder','video_vae','audio_vae']}
 captured=[]
 fail_ack=False

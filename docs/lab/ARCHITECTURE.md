@@ -1,5 +1,7 @@
 # Reviewed lab data flow
 
+2026-10-08 update: this describes the earlier lab baseline. See [Connected Studio](../CONNECTED_STUDIO.md) for the later local Refine integration and installer changes; live GPU quality remains unverified.
+
 ## Working interfaces
 
 studio.js owns the visible workspace; lab-ui.js owns project hydration, guide controls and review actions. web/h3 modules compile prompts and deterministic raw Comfy graphs, and expose the project API client. Saved assets restore as real media objects, never fake File placeholders.

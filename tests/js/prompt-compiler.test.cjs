@@ -7,6 +7,20 @@ const assert = require('node:assert/strict');
 const { compilePrompt, parseStructuredSections } = require('../../web/h3/prompt-compiler.js');
 
 describe('H3 Prompt Compiler', () => {
+  test('guided references adapt a text-mode native description without demanding Ref2VA headers', () => {
+    const source = 'integrated_multimodal_description: [Shot 1] @hero enters.\n\noverall_soundscape: Footsteps.\n\nnon_diegetic_music: None.';
+    const spec = {mode:'refs',prompt_mode:'guided',source_prompt:source,
+      references:[{alias:'hero',kind:'image',role:'character identity'}]};
+    const result = compilePrompt(spec);
+    const sections = parseStructuredSections(result.compiled_prompt);
+    assert.ok(sections.subject_definitions.includes('<Picture 1>'));
+    assert.ok(sections.detailed_description.includes('<Subject 1> enters.'));
+    assert.equal(sections.overall_soundscape,'Footsteps.');
+    assert.equal(sections.non_diegetic_music,'None.');
+    assert.ok(!result.compiled_prompt.includes('integrated_multimodal_description:'));
+    assert.throws(()=>compilePrompt({...spec,prompt_mode:'structured'}),/missing native section/);
+    assert.throws(()=>compilePrompt({...spec,source_prompt:source.replace('@hero','@hero beside <Picture 9>')}),/does not exist/);
+  });
   test('custom role compiles neutral picture tag without forced preservation', () => {
     const compiled = compilePrompt({
       mode: 'refs',

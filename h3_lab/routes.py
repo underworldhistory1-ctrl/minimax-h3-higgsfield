@@ -25,9 +25,9 @@ from .paths import owned_path, owned_video
 _LOG = logging.getLogger("h3_lab.routes")
 
 
-async def _finish_source_worker(function, *args):
+async def _finish_source_worker(function, *args, **kwargs):
     """Wait out cancellation before cleaning files owned by a CPU worker."""
-    task = asyncio.create_task(asyncio.to_thread(function, *args))
+    task = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
     cancelled = False
     while not task.done():
         try:
@@ -66,12 +66,171 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     projects = services["projects"]
     contexts = services["contexts"]
     source_upload_lock = asyncio.Lock()
+    preparation_lock = asyncio.Lock()
+    quality_lock = asyncio.Lock()
+    quality_cache = {}
+    control_tasks = {}
+    control_tasks_lock = threading.Lock()
+    from .prompt_context import PromptContextService, promptwriter
+    prompt_service = PromptContextService(input_root) if input_root else None
+
+    async def handle_prompt_status(request):
+        return web.json_response(promptwriter.studio_provider_status())
+
+    async def handle_prepare_prompt(request):
+        if prompt_service is None:
+            return web.json_response({"error": "Studio input storage is unavailable."}, status=503)
+        if preparation_lock.locked():
+            return web.json_response({"error": "Another prompt is being prepared. Retry when it finishes.", "code": "PREPARATION_BUSY"}, status=409)
+        if not promptwriter.studio_provider_status()["configured"]:
+            return web.json_response({"error": promptwriter.studio_provider_status()["reason"]}, status=503)
+        try:
+            body = await request.json()
+            if not isinstance(body, dict): raise ValueError("Preparation request must be an object.")
+            async with preparation_lock:
+                # A local LLM can share the GPU; do not load it while ComfyUI is busy.
+                if comfy_client is not None:
+                    queue = await comfy_client.get_queue()
+                    if queue.get("queue_running") or queue.get("queue_pending"):
+                        return web.json_response({"error": "Wait for the render queue to finish before AI preparation.", "code": "PREPARATION_QUEUE_BUSY", "running": len(queue.get("queue_running", [])), "pending": len(queue.get("queue_pending", []))}, status=409)
+                result = await _finish_source_worker(prompt_service.prepare, body)
+            return web.json_response(result)
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            return web.json_response({"error": str(error)}, status=400)
+
+    async def finish_control_worker(record, function, *args, **kwargs):
+        task = asyncio.create_task(asyncio.to_thread(function,*args,**kwargs))
+        cancelled = False
+        while not task.done():
+            try: await asyncio.shield(task)
+            except asyncio.CancelledError:
+                cancelled=True;record['cancel_event'].set()
+            except Exception: break
+        try: result=task.result()
+        except Exception:
+            if cancelled: raise asyncio.CancelledError
+            raise
+        if cancelled:
+            for key in ('filename','source_file'):
+                if result.get(key): owned_path(input_root,result[key],require_file=False).unlink(missing_ok=True)
+            raise asyncio.CancelledError
+        return result
+
+    def control_snapshot(record):
+        return {key: value for key, value in record.items() if key not in ('cancel_event','result_files')}
+
+    async def handle_control_progress(request):
+        with control_tasks_lock:
+            record = control_tasks.get(request.match_info['id'])
+            if record is None: return web.json_response({'error': 'Preparation not found.'}, status=404)
+            return web.json_response(control_snapshot(record))
+
+    async def handle_control_cancel(request):
+        with control_tasks_lock:
+            record = control_tasks.get(request.match_info['id'])
+            if record is None: return web.json_response({'error':'Preparation not found.'},status=404)
+            completed = record['state']=='completed'
+            names = list(record.get('result_files',[])) if completed else []
+            if record['state'] in ('waiting','processing'):
+                record['cancel_event'].set();record['state']='cancel_requested'
+        if completed and names:
+            async with preparation_lock:
+                if comfy_client is not None:
+                    queue = await comfy_client.get_queue()
+                    listed = json.dumps(queue.get('queue_running',[])+queue.get('queue_pending',[]))
+                    if any(name in listed for name in names):
+                        return web.json_response({'error':'Prepared control is used by a queued or running render.'},status=409)
+                async with source_upload_lock:
+                    for name in names: owned_path(input_root,name,require_file=False).unlink(missing_ok=True)
+                    with control_tasks_lock: record.update(state='cancelled',phase='cancelled',result_files=[])
+        with control_tasks_lock: return web.json_response(control_snapshot(record))
+
+    async def handle_prepare_control(request):
+        if input_root is None:
+            return web.json_response({'error': 'Studio input storage is unavailable.'}, status=503)
+        record = None
+        try:
+            from .control import prepare_control
+            body = await request.json()
+            if not isinstance(body, dict): raise ValueError('Control request must be an object.')
+            filename = body.get('filename', '')
+            if not isinstance(filename, str) or not pathlib.PurePosixPath(filename).name.startswith('h3_studio_kf_'):
+                raise ValueError('Choose an uploaded Studio video.')
+            source = owned_path(input_root, filename)
+            request_id = body.get('request_id') or str(uuid.uuid4())
+            try: uuid.UUID(request_id)
+            except (ValueError, TypeError, AttributeError): raise ValueError('Invalid preparation request ID.')
+            with control_tasks_lock:
+                if request_id in control_tasks: raise ValueError('Preparation request ID was already used.')
+                if len(control_tasks) >= 16:
+                    finished = next((key for key,value in control_tasks.items() if value['state'] in ('completed','cancelled','failed')), None)
+                    if finished is None: return web.json_response({'error':'Preparation capacity is busy.'}, status=409)
+                    del control_tasks[finished]
+                record = {'request_id':request_id,'state':'waiting','phase':'waiting','processed_frames':0,
+                          'total_frames':body.get('target_frames'),'cancel_event':threading.Event()}
+                control_tasks[request_id] = record
+            def progress(done, total, phase):
+                with control_tasks_lock:
+                    record.update(processed_frames=done,total_frames=total,phase=phase)
+            async with source_upload_lock:
+                if record['cancel_event'].is_set(): raise ValueError('Control preparation cancelled')
+                with control_tasks_lock: record['state'] = 'processing'
+                if body.get('input_type') == 'video':
+                    from .control_preprocess import process_control
+                    result = await finish_control_worker(record, process_control, source, input_root,
+                        body.get('width'), body.get('height'), body.get('target_frames'),body.get('kind'),
+                        input_type='video',offset=body.get('start_seconds',0),cancel_event=record['cancel_event'],progress=progress)
+                elif body.get('input_type') in (None,'prepared'):
+                    result = await finish_control_worker(record, prepare_control, source, input_root,
+                        body.get('width'),body.get('height'),body.get('target_frames'),start_seconds=body.get('start_seconds',0),cancel_event=record['cancel_event'])
+                else: raise ValueError('Choose ordinary video or prepared control input.')
+                if record['cancel_event'].is_set():
+                    for key in ('filename','source_file'):
+                        if result.get(key): owned_path(input_root,result[key],require_file=False).unlink(missing_ok=True)
+                    raise ValueError('Control preparation cancelled')
+            with control_tasks_lock: record.update(state='completed',phase='completed',processed_frames=body.get('target_frames'),result_files=list({result[key] for key in ('filename','source_file') if result.get(key)}))
+            return web.json_response({**result,'request_id':request_id})
+        except asyncio.CancelledError:
+            if record is not None:
+                with control_tasks_lock:
+                    record['cancel_event'].set();record['state']='cancelled'
+            raise
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            if record is not None:
+                with control_tasks_lock: record['state']='cancelled' if record['cancel_event'].is_set() else 'failed'
+            return web.json_response({'error':str(error)},status=400)
+        except Exception:
+            _LOG.exception('Automatic control preparation failed')
+            if record is not None:
+                with control_tasks_lock: record.update(state='cancelled' if record['cancel_event'].is_set() else 'failed',phase='failed')
+            return web.json_response({'error':'Control extraction failed. Check the installed preprocessor dependencies and server log.'},status=500)
+
+    async def handle_quality(request):
+        if output_root is None:
+            return web.json_response({"error": "Output storage is unavailable."}, status=503)
+        try:
+            from .quality import analyze_quality
+            source = await asyncio.to_thread(owned_video, output_root, request.query.get("filename", ""), probe=False)
+            stat = source.stat()
+            key = (str(source), stat.st_size, stat.st_mtime_ns)
+            if key in quality_cache:
+                return web.json_response(quality_cache[key])
+            if quality_lock.locked():
+                return web.json_response({"error": "Another quality check is running. Retry when it finishes."}, status=409)
+            async with quality_lock:
+                result = await _finish_source_worker(analyze_quality, source)
+                if len(quality_cache) >= 16:
+                    quality_cache.pop(next(iter(quality_cache)))
+                quality_cache[key] = result
+            return web.json_response(result)
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            return web.json_response({"error": str(error)}, status=400)
 
     # Support either aiohttp web.Application or PromptServer routes table
     router = app_or_routes.router if hasattr(app_or_routes, "router") else app_or_routes
 
     async def handle_capabilities(request):
-        caps = check_capabilities(folder_paths_mod, nodes_mod)
+        caps = await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)
         return web.json_response(caps)
 
     async def handle_list_projects(request):
@@ -157,12 +316,35 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             tmp_zip.unlink(missing_ok=True)
 
     async def handle_submit_job(request):
+        if preparation_lock.locked():
+            return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish.", "code": "PREPARATION_BUSY"}, status=409)
+        async with preparation_lock:
+            return await submit_job_impl(request)
+
+    async def submit_job_impl(request):
         if comfy_client is None:
             return web.json_response({"error": "Lab queue bridge is unavailable; use the Video workspace"}, status=503)
         try:
             body = await request.json()
+            if not isinstance(body, dict): raise ValueError("Job request must be an object.")
             req_id = body.get("request_id")
             spec = body.get("render_spec", {})
+            if not isinstance(spec, dict): raise ValueError("Render specification must be an object.")
+            workflow = spec.get("workflow", {})
+            if not isinstance(workflow, dict) or any(not isinstance(node, dict) for node in workflow.values()):
+                raise ValueError("Workflow must be an object containing node objects.")
+            if spec.get("control") is not None and not isinstance(spec["control"], dict):
+                raise ValueError("Control specification must be an object.")
+            from .control import validate_control_graph
+            if spec.get("control") is not None or any(node.get("class_type") == "MiniMaxH3FunControlNetApply" for node in workflow.values()):
+                caps = await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)
+                await _finish_source_worker(validate_control_graph, spec, input_root, caps)
+            refine_enabled = bool(spec.get("enable_refine") or spec.get("refine"))
+            if any(node.get("class_type") == "MinimaxH3LatentUpscaler3D" for node in workflow.values()) and not refine_enabled:
+                raise ValueError("Refinement workflow requires explicit refinement selection.")
+            if refine_enabled:
+                if not (await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)).get("refine_ready"):
+                    raise ValueError("Refinement node or verified upscaler weight is unavailable.")
             leases = body.get("asset_leases", [])
             pid = body.get("project_id")
             tid = body.get("take_id")
@@ -187,7 +369,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                         error="Queue acknowledgement unavailable; reconcile before retrying")
                     return web.json_response({"error": "Queue acknowledgement unavailable", "job_id": job_rec["job_id"]}, status=503)
             return web.json_response({"job": job_rec, "is_duplicate": is_dup}, status=200 if is_dup else 201)
-        except ValueError as e:
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as e:
             code = getattr(e, "status_code", 400)
             return web.json_response({"error": str(e)}, status=code)
 
@@ -611,6 +793,12 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("GET", "/h3_studio/lab/assets/{id}/file", handle_asset_file),
         ("POST", "/h3_studio/lab/assets/{id}/resolve", handle_resolve_asset),
         ("GET", "/h3_studio/lab/capabilities", handle_capabilities),
+        ("GET", "/h3_studio/lab/prompt/status", handle_prompt_status),
+        ("POST", "/h3_studio/lab/prompt/prepare", handle_prepare_prompt),
+        ("POST", "/h3_studio/lab/control/prepare", handle_prepare_control),
+        ("GET", "/h3_studio/lab/control/progress/{id}", handle_control_progress),
+        ("POST", "/h3_studio/lab/control/cancel/{id}", handle_control_cancel),
+        ("GET", "/h3_studio/lab/quality", handle_quality),
         ("GET", "/h3_studio/lab/projects", handle_list_projects),
         ("POST", "/h3_studio/lab/projects", handle_create_project),
         ("GET", "/h3_studio/lab/projects/{id}", handle_get_project),

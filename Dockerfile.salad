@@ -6,6 +6,8 @@ ARG COMFY_REVISION=3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251
 ARG SPECTRUM_REVISION=5161f0457bc8c52535212d6783eee73f439e1537
 ARG CONTEXT_REVISION=361624fb406b63eb6694442eac6c895fc1533a70
 ARG MOTION_CACHE_REVISION=bc2894102b2486661884371259a27080b0b137bf
+ARG REFINE_REVISION=40316cf008b2fd8663263270669eb4da23f89d2c
+ARG AUX_REVISION=0cd290477128d42cdc3e76a826a402d866e8c684
 
 ENV COMFY_ROOT=/opt/ComfyUI \
     H3_DATA_ROOT=/workspace \
@@ -38,7 +40,17 @@ RUN mkdir -p "${COMFY_ROOT}/custom_nodes" \
     && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-MiniMax-H3-MotionCache" checkout --detach -q "${MOTION_CACHE_REVISION}" \
     && git clone --filter=blob:none https://github.com/seitanism/ComfyUI-H3-Motion-Context-MultiRef.git \
        "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" \
-    && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" checkout --detach -q "${CONTEXT_REVISION}"
+    && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" checkout --detach -q "${CONTEXT_REVISION}" \
+    && git clone --filter=blob:none https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git \
+       "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler" \
+    && git -C "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler" checkout --detach -q "${REFINE_REVISION}" \
+    && if [ -f "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt" ]; then \
+         python -m pip install --no-cache-dir -r "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"; \
+       fi \
+    && python -c "import torch, einops, safetensors, typing_extensions" \
+    && git clone --filter=blob:none https://github.com/Fannovel16/comfyui_controlnet_aux.git \
+       "${COMFY_ROOT}/custom_nodes/comfyui_controlnet_aux" \
+    && git -C "${COMFY_ROOT}/custom_nodes/comfyui_controlnet_aux" checkout --detach -q "${AUX_REVISION}"
 
 COPY --chown=10001:10001 . "${COMFY_ROOT}/custom_nodes/h3_studio"
 COPY deploy/salad/nginx.conf.template /opt/h3-salad/nginx.conf.template
@@ -49,6 +61,7 @@ RUN grep -q MiniMaxH3ReferenceToVideo "${COMFY_ROOT}/comfy_extras/nodes_minimax_
     && grep -q TextEncodeQwenImage21 "${COMFY_ROOT}/comfy_extras/nodes_qwen.py" \
     && grep -q QwenImage21Cache "${COMFY_ROOT}/comfy_extras/nodes_qwen.py" \
     && python "${COMFY_ROOT}/custom_nodes/h3_studio/deploy/make_h3_landing.py" \
+    && python -c "import sys; sys.path.insert(0, '${COMFY_ROOT}/custom_nodes/h3_studio'); from deploy.download_control_preprocessors import install_dependencies; install_dependencies('${COMFY_ROOT}')" \
     && chmod 0755 /opt/h3-salad/entrypoint.sh \
     && useradd --uid 10001 --create-home --shell /bin/bash h3 \
     && mkdir -p /workspace /run/h3 /tmp/nginx/client /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi \

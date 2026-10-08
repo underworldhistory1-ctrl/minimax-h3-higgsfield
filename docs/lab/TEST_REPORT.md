@@ -1,5 +1,7 @@
 # V2 verification report — 2026-10-03
 
+2026-10-08 update: this report preserves the earlier test evidence. See [Connected Studio](../CONNECTED_STUDIO.md) for the later local Refine integration and installer changes; these are not live GPU validation.
+
 The original f1042d2 helper-only success report is superseded. Main UI/backend integration, native AV tensor shapes, imported output paths, cancellation races and project recovery defects were reproduced and repaired.
 
 ## Verified CPU boundaries

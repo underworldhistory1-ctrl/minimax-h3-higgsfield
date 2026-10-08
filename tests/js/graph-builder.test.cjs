@@ -57,8 +57,8 @@ describe('H3 Graph Builder', () => {
       target_frames: 124,
       token: '112233445566',
       references: [
-        { asset_id: 'vid1', alias: 'clip1', kind: 'video', role: 'motion', use_audio: false },
-        { asset_id: 'vid2', alias: 'clip2', kind: 'video', role: 'whole scene', use_audio: true },
+        { asset_id: 'vid1', alias: 'clip1', kind: 'video', fps:24, frame_count:124, role: 'motion', use_audio: false },
+        { asset_id: 'vid2', alias: 'clip2', kind: 'video', fps:24, frame_count:124, role: 'whole scene', use_audio: true },
       ],
     };
     const resolvedAssets = {
@@ -76,10 +76,11 @@ describe('H3 Graph Builder', () => {
     assert.ok(g["6"].inputs["ref_videos.ref_video_1"], "Video 1 connected");
     const audioLink = g["6"].inputs["ref_video_audios.ref_video_audio_1"];
     assert.ok(audioLink, "Video 1 soundtrack must be connected at index 1");
-    // Link must point to GetVideoComponents audio output (slot 1)
+    // Soundtrack is cropped after the same video's component split
     const splitNodeId = audioLink[0];
-    assert.equal(g[splitNodeId].class_type, "GetVideoComponents");
-    assert.equal(audioLink[1], 1, "Audio slot is output 1 of GetVideoComponents");
+    assert.equal(g[splitNodeId].class_type, "TrimAudioDuration");
+    assert.equal(g[g[splitNodeId].inputs.audio[0]].class_type, 'GetVideoComponents');
+    assert.equal(audioLink[1], 0, 'Trimmed audio output is slot 0');
   });
 
   test('temporal guides chain MiniMaxH3AddGuide positive conditioning to sampler', () => {
@@ -248,7 +249,7 @@ test('refine disabled: graph keeps original single-pass sampler directly to node
 
 test('refine enabled: inserts 3D latent upscaler and low-denoise 2nd-pass resampling', () => {
   const spec = { mode: 'text', token: '001122334455', refine: true, seed: 42 };
-  const g = buildGraph(spec);
+  const g = buildGraph(spec, {}, {refine_ready:true});
 
   const sepNodeEntry = Object.entries(g).find(([id, n]) => n.class_type === 'LTXVSeparateAVLatent');
   assert.ok(sepNodeEntry, 'LTXVSeparateAVLatent must exist');
@@ -295,7 +296,7 @@ test('refine enabled with LoRA reuses active LoRA chain in both passes', () => {
     refine: true,
     loras: [{ name: 'H3_Combat_V2.safetensors', strength: 0.8, enabled: true }]
   };
-  const g = buildGraph(spec);
+  const g = buildGraph(spec, {}, {refine_ready:true});
   const loraNodeEntry = Object.entries(g).find(([id, n]) => n.class_type === 'LoraLoaderModelOnly');
   assert.ok(loraNodeEntry, 'LoRA loader must exist');
   const [loraId, loraNode] = loraNodeEntry;

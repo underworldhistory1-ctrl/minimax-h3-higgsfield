@@ -1,5 +1,7 @@
 # Optional quality investigations — not implemented or GPU verified
 
+2026-10-08 update: the historical research status below predates the local Refine integration described in [Connected Studio](../CONNECTED_STUDIO.md). Live GPU quality remains unverified.
+
 Latent Upscaler and AudioRefine remain research candidates listed in lab/dependencies.lock.json. No functioning UI toggle or integration is claimed. No experiment, visual verdict, performance estimate or quality improvement has been established on the authorized GPU server.
 
 The previous handoff described a 16-channel combined latent layout. That is incorrect for this pinned H3 implementation: native H3 uses a NestedTensor with video [B,24,T,H/16,W/16] and audio [B,32,2,T40]. Do not implement a samples[:, :16] audio/video split.

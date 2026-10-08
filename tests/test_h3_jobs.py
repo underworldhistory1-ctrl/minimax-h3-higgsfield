@@ -176,5 +176,41 @@ class TestH3JobService(unittest.TestCase):
                     self.assertEqual(cancelled["state"], "completed")
 
 
+
+class TestForeignQueueIsolation(unittest.TestCase):
+    def test_foreign_history_error_cannot_fail_owned_job_or_replace_progress(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = JobService(directory)
+            client = MockComfyClient()
+            owned, _ = service.submit_job('owned-request', {})
+            job_id = owned['job_id']
+            service.update_job(job_id, prompt_id='owned-prompt', state='sampling',
+                               progress={'phase': 'sampling', 'step': 7, 'total': 20})
+            client.queue_running = [[1, 'foreign-prompt', {}, {'extra_pnginfo': {'h3_lab_job_id': 'foreign-job', 'h3_lab_request_id': 'foreign-request'}}, []]]
+            client.history['foreign-prompt'] = {'prompt': client.queue_running[0],
+                'status': {'status_str': 'error', 'messages': [['execution_error', {'prompt_id': 'foreign-prompt'}]]}, 'outputs': {}}
+            reconciled = asyncio.run(service.reconcile_submission_gap(job_id, client))
+            self.assertEqual(reconciled['state'], 'sampling')
+            self.assertEqual(reconciled['prompt_id'], 'owned-prompt')
+            self.assertIsNone(reconciled['error'])
+            self.assertEqual(reconciled['progress'], {'phase': 'sampling', 'step': 7, 'total': 20})
+            # Only the exact owned prompt's failure may change this job.
+            client.history['owned-prompt'] = {'status': {'status_str': 'error'}, 'outputs': {}}
+            own_failure = asyncio.run(service.reconcile_submission_gap(job_id, client))
+            self.assertEqual(own_failure['state'], 'failed')
+
+    def test_delayed_ack_never_adopts_foreign_queue_or_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = JobService(directory)
+            client = MockComfyClient()
+            owned, _ = service.submit_job('owned-request', {})
+            foreign = [1, 'foreign-prompt', {}, {'extra_pnginfo': {'h3_lab_job_id': 'foreign-job', 'h3_lab_request_id': 'foreign-request'}}, []]
+            client.queue_pending = [foreign]
+            client.history['foreign-prompt'] = {'prompt': foreign, 'status': {'status_str': 'error'}, 'outputs': {}}
+            reconciled = asyncio.run(service.reconcile_submission_gap(owned['job_id'], client))
+            self.assertEqual(reconciled['state'], 'unknown')
+            self.assertIsNone(reconciled['prompt_id'])
+            self.assertIsNone(reconciled['error'])
+
 if __name__ == "__main__":
     unittest.main()
