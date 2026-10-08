@@ -6,6 +6,7 @@ ARG COMFY_REVISION=3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251
 ARG SPECTRUM_REVISION=5161f0457bc8c52535212d6783eee73f439e1537
 ARG CONTEXT_REVISION=361624fb406b63eb6694442eac6c895fc1533a70
 ARG MOTION_CACHE_REVISION=bc2894102b2486661884371259a27080b0b137bf
+ARG REFINE_REVISION=40316cf008b2fd8663263270669eb4da23f89d2c
 
 ENV COMFY_ROOT=/opt/ComfyUI \
     H3_DATA_ROOT=/workspace \
@@ -38,7 +39,14 @@ RUN mkdir -p "${COMFY_ROOT}/custom_nodes" \
     && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-MiniMax-H3-MotionCache" checkout --detach -q "${MOTION_CACHE_REVISION}" \
     && git clone --filter=blob:none https://github.com/seitanism/ComfyUI-H3-Motion-Context-MultiRef.git \
        "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" \
-    && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" checkout --detach -q "${CONTEXT_REVISION}"
+    && git -C "${COMFY_ROOT}/custom_nodes/ComfyUI-H3-Motion-Context-MultiRef" checkout --detach -q "${CONTEXT_REVISION}" \
+    && git clone --filter=blob:none https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git \
+       "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler" \
+    && git -C "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler" checkout --detach -q "${REFINE_REVISION}" \
+    && if [ -f "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt" ]; then \
+         python -m pip install --no-cache-dir -r "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"; \
+       fi \
+    && python -c "import torch, einops, safetensors, typing_extensions"
 
 COPY --chown=10001:10001 . "${COMFY_ROOT}/custom_nodes/h3_studio"
 COPY deploy/salad/nginx.conf.template /opt/h3-salad/nginx.conf.template

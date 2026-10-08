@@ -12,7 +12,7 @@ Preparation waits for an empty render queue. For shared-GPU providers, `/unload`
 
 ## Optional models
 
-Windows: `./install.ps1 -ControlNet -Refine` forwards optional installation flags. Linux bootstrap: set `H3_INSTALL_CONTROLNET=1` and/or `H3_INSTALL_REFINE=1`. Download scripts pin revisions and verify SHA-256. Optional features remain disabled until their nodes and model files pass readiness checks.
+Refinement dependencies are installed by default (the weight is about690MB); activation remains optional. Windows: `./install.ps1 -ControlNet` also installs optional ControlNet; use `-SkipRefine` to omit refinement dependencies. Linux: set `H3_INSTALL_CONTROLNET=1` for ControlNet, or `H3_INSTALL_REFINE=0` to explicitly skip refinement. Download scripts pin revisions and verify SHA-256. Optional features remain disabled until their nodes and model files pass readiness checks.
 
 Fun-ControlNet Union 2.0 is a structural model patch, not a LoRA. Use Text or Frames mode with a **prepared** pose/depth/canny/hed/mlsd/scribble/layout/gray representation. The UI does not automatically extract these from arbitrary video. Inpaint accepts a source video and a canvas-sized black/white PNG mask (white regenerates), with optional control representation. Files are aligned to 24 fps and the selected canvas/frame count; short clips are rejected rather than padded. References mode, continuation and refinement cannot be combined with ControlNet in this integration.
 

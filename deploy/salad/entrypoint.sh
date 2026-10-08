@@ -8,6 +8,8 @@ REMOTE="${H3_STORAGE_REMOTE:-}"
 SYNC_SECONDS="${H3_SYNC_SECONDS:-20}"
 MODEL_SOURCE="${H3_MODEL_SOURCE:-huggingface}"
 QWEN_IMAGE_PROFILES="${QWEN_IMAGE_PROFILES:-int8}"
+H3_INSTALL_REFINE="${H3_INSTALL_REFINE:-1}"
+H3_INSTALL_CONTROLNET="${H3_INSTALL_CONTROLNET:-0}"
 READY_FILE=/run/h3/ready.flag
 
 log() { printf '[h3-salad] %s\n' "$*"; }
@@ -20,6 +22,8 @@ log "Initialising the Salad data disk at $DATA_ROOT."
 [[ "$SYNC_SECONDS" =~ ^[0-9]+$ ]] && ((SYNC_SECONDS >= 10)) || die "H3_SYNC_SECONDS must be an integer of at least 10."
 [[ "$MODEL_SOURCE" == "huggingface" || "$MODEL_SOURCE" == "remote" ]] \
     || die "H3_MODEL_SOURCE must be huggingface or remote."
+[[ "$H3_INSTALL_REFINE" =~ ^[01]$ && "$H3_INSTALL_CONTROLNET" =~ ^[01]$ ]] \
+    || die "H3_INSTALL_REFINE and H3_INSTALL_CONTROLNET must be 0 or 1."
 [[ "$QWEN_IMAGE_PROFILES" == "int8" || "$QWEN_IMAGE_PROFILES" == "bf16" || "$QWEN_IMAGE_PROFILES" == "int8,bf16" ]] \
     || die "QWEN_IMAGE_PROFILES must be int8, bf16, or int8,bf16."
 
@@ -63,12 +67,35 @@ restore_models() {
     }
 }
 
+prepare_feature_model() {
+    local script="$1" label="$2"
+    if python "$H3_NODE/deploy/$script" "$COMFY_ROOT" --offline-check >/dev/null 2>&1; then
+        log "Verified cached $label weights."
+        return 0
+    fi
+    [[ "$MODEL_SOURCE" == huggingface ]] || die "Remote storage does not contain verified $label weights."
+    log "Preparing pinned $label weights."
+    python "$H3_NODE/deploy/$script" "$COMFY_ROOT"
+    feature_models_changed=1
+}
+
 download_models() {
+    local feature_models_changed=0
+    if [[ "$H3_INSTALL_REFINE" == 1 ]]; then
+        prepare_feature_model download_refine_models.py "Refine"
+    fi
+    if [[ "$H3_INSTALL_CONTROLNET" == 1 ]]; then
+        prepare_feature_model download_control_models.py "ControlNet 2.0"
+    fi
     if python "$H3_NODE/deploy/download_h3_models.py" "$COMFY_ROOT" --offline-check >/dev/null 2>&1 \
        && python "$H3_NODE/deploy/download_optional_loras.py" "$COMFY_ROOT" >/dev/null 2>&1 \
        && python "$H3_NODE/deploy/download_qwen_image_models.py" "$COMFY_ROOT" \
             --profiles "$QWEN_IMAGE_PROFILES" --offline-check >/dev/null 2>&1; then
         log "Verified cached H3 and Qwen Image model sets."
+        if [[ "$feature_models_changed" == 1 && -n "$REMOTE" && "${H3_SEED_REMOTE_MODELS:-0}" == 1 ]]; then
+            log "Uploading the verified optional model cache to external storage."
+            rclone copy "$DATA_ROOT/models" "$REMOTE/models" "${rclone_common[@]}"
+        fi
         return 0
     fi
     [[ "$MODEL_SOURCE" == huggingface ]] || die "Remote storage does not contain the complete verified model set."

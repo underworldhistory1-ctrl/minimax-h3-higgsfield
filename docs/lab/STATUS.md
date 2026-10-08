@@ -1,5 +1,7 @@
 # Reviewed status — 2026-10-03
 
+2026-10-08 update: this is a historical review. The later local Refine integration and installer changes are described in [Connected Studio](../CONNECTED_STUDIO.md); they do not establish live GPU quality.
+
 This document supersedes the f1042d2 handoff's claim that every task was completed. That commit passed helper tests while its main UI, graph submission, projects, cancellation and continuation integration had blocking defects.
 
 The follow-up implements connected workspace/project/asset/queue/guide/continuation paths and fixes the observed security and data-loss defects. See ARCHITECTURE.md and REVIEW_HANDOFF.md for final contracts; see TEST_REPORT.md for actual evidence.

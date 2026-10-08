@@ -203,7 +203,7 @@ if [[ "$WITH_OPTIONAL_LORAS" -eq 1 ]]; then
     "$H3_PYTHON" "$H3_STUDIO/deploy/download_optional_loras.py" "$COMFY_ROOT"
 fi
 
-if [[ "${H3_INSTALL_REFINE:-0}" == "1" ]]; then
+if [[ "${H3_INSTALL_REFINE:-1}" == "1" ]]; then
     install_speed_node "Comfyui_Minimax_h3_latent_Upscaler" \
         "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git" \
         "40316cf008b2fd8663263270669eb4da23f89d2c"

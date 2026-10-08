@@ -101,9 +101,47 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     assert.ok(Object.values(controlCapture.prompt).some(node=>node.class_type==='MiniMaxH3ImageToVideo'));
     assert.ok(!Object.values(controlCapture.prompt).some(node=>node.class_type==='MiniMaxH3ReferenceToVideo'));
     await page.locator('#enableControl').uncheck();
+    await page.locator('#enableRefine').check();
+    await page.locator('#generate').click();
+    for(let attempt=0;attempt<100;attempt++){
+      if((await(await fetch(base+'/__captured')).json()).length===capturedStart+3)break;
+      await page.waitForTimeout(100);
+    }
+    await page.waitForFunction(()=>!state.busy&&!state.running);
+    const refineCapture=(await(await fetch(base+'/__captured')).json()).at(-1);
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3);
+    assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='MinimaxH3LatentUpscaler3D'));
+    assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='LTXVSeparateAVLatent'));
+    assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='LTXVConcatAVLatent'));
+    assert.deepEqual(Object.values(refineCapture.prompt).filter(node=>node.class_type==='KSampler').map(node=>node.inputs.steps),[20,10]);
+    assert.deepEqual(Object.values(refineCapture.prompt).filter(node=>node.class_type==='LoraLoaderModelOnly').map(node=>node.inputs.strength_model),[0.65,0.25]);
+    await page.locator('[data-mode="frames"]').click();
+    await page.locator('#firstFile').setInputFiles({name:'frame.png',mimeType:'image/png',buffer:reference});
+    await page.locator('#prompt').fill('Use @start as the starting frame. Keep the camera still.');
+    await page.route('**/h3_studio/lab/capabilities',async route=>{
+      const response=await route.fetch();const capabilities=await response.json();
+      await route.fulfill({response,json:{...capabilities,refine_ready:false,refine_missing_reasons:['Simulated missing refine weight.']}});
+    });
+    let blockedUploads=0;
+    const countBlockedUploads=request=>{if(request.method()==='POST'&&(/\/h3_studio\/upload_ref/.test(request.url())||/\/h3_studio\/lab\/assets$/.test(request.url())))blockedUploads++;};
+    page.on('request',countBlockedUploads);
+    await page.locator('#generate').click();
+    await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('Refinement is unavailable'));
+    assert.equal(blockedUploads,0,'Missing Refine capability fails before any media upload');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3);
+    page.off('request',countBlockedUploads);
+    await page.unroute('**/h3_studio/lab/capabilities');await page.evaluate(()=>checkConnection());
+    await page.locator('#enableRefine').uncheck();
     await page.locator('[data-mode="refs"]').click();
     await page.locator('#prompt').fill('Use @hero in the station, following @camera movement. No dialogue or music.');
     await page.locator('#preparationMode').selectOption('native');
+    await page.locator('#enableControl').check();
+    blockedUploads=0;page.on('request',countBlockedUploads);
+    await page.locator('#generate').click();
+    await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('ControlNet requires Text or Frames'));
+    assert.equal(blockedUploads,0,'ControlNet with References fails before any media upload');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3,'Unsupported control combination never reaches the queue');
+    page.off('request',countBlockedUploads);await page.locator('#enableControl').uncheck();
     const queueBefore=await simulationQueue({external:true,hold:true});
     await page.locator('#generate').click();
     await page.waitForFunction(()=>state.running&&!/^request:/.test(state.running)&&state.busy);

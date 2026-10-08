@@ -8,6 +8,7 @@ param(
     [switch]$NoStart,
     [switch]$ControlNet,
     [switch]$Refine,
+    [switch]$SkipRefine,
     [ValidateSet("", "int8", "bf16", "int8,bf16")][string]$QwenImageProfiles = ""
 )
 $ErrorActionPreference = "Stop"
@@ -56,7 +57,9 @@ if ($ComfyPython) { $arguments += @("--comfy-python", $ComfyPython) }
 if ($Preflight) { $arguments += "--preflight" }
 if ($NoStart) { $arguments += "--no-start" }
 if ($ControlNet) { $arguments += "--controlnet" }
+if ($Refine -and $SkipRefine) { throw "Choose either -Refine or -SkipRefine." }
 if ($Refine) { $arguments += "--refine" }
+if ($SkipRefine) { $arguments += "--no-refine" }
 if ($QwenImageProfiles) { $arguments += @("--qwen-image-profiles", $QwenImageProfiles) }
 & $hostPython @prefix @arguments
 exit $LASTEXITCODE
