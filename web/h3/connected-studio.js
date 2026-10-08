@@ -24,13 +24,27 @@
     $('writerStatus').textContent=state.promptProvider?.configured?'Prompt model: '+state.promptProvider.model+'. Video is understood through sampled frames; audio requires supplied dialogue.':state.promptProvider?.reason||'Checking prompt model configuration…';
   }
   async function refreshProvider(){try{const r=await fetch(api('/h3_studio/lab/prompt/status'));state.promptProvider=r.ok?await r.json():{configured:false,reason:'Update this server to enable connected AI preparation.'};}catch{state.promptProvider={configured:false,reason:'Prompt service is unavailable.'};}refreshAvailability();}
+  function waitForQueue(signal){return new Promise((resolve,reject)=>{if(signal?.aborted){reject(new DOMException("Cancelled","AbortError"));return;}const abort=()=>{clearTimeout(timer);signal?.removeEventListener("abort",abort);reject(new DOMException("Cancelled","AbortError"));};const timer=setTimeout(()=>{signal?.removeEventListener("abort",abort);resolve();},3000);signal?.addEventListener("abort",abort,{once:true});});}
   async function prepare(uploads,signal){
     const epoch=state.generationEpoch;
     const spec=currentRenderSpec();spec.references=orderedRefs().map(r=>({...spec.references.find(item=>item.alias===r.alias),filename:uploads.refs.get(r)}));
     spec.frames={start:uploads.first,end:uploads.last};spec.control=currentControl();
     $('preparationStatus').textContent='Understanding the brief and connected reference frames…';
-    const response=await fetch(api('/h3_studio/lab/prompt/prepare'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec),signal});
-    const result=await response.json();if(epoch!==state.generationEpoch||signal?.aborted)throw Error("Cancelled");if(!response.ok)throw Error(result.error||'AI preparation failed.');
+    let result;
+    try{while(true){
+      const response=await fetch(api('/h3_studio/lab/prompt/prepare'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec),signal});
+      result=await response.json();if(epoch!==state.generationEpoch||signal?.aborted)throw Error('Cancelled');
+      if(response.status===409&&['PREPARATION_QUEUE_BUSY','PREPARATION_BUSY'].includes(result.code)){
+        state.waitingPreparation=true;state.phaseEtaAt=null;
+        setProgress('Waiting for shared server · prompt preparation',null,null,true);
+        $('remaining').textContent='Render estimate starts when your job runs';
+        $('preparationStatus').textContent='Your inputs are retained. Preparing automatically when the shared server is available. Cancel stops this request only.';
+        await pollQueue();await waitForQueue(signal);continue;
+      }
+      if(!response.ok)throw Error(result.error||'AI preparation failed.');
+      break;
+    }}finally{if(epoch===state.generationEpoch||signal?.aborted)state.waitingPreparation=false;}
+    if(epoch!==state.generationEpoch||signal?.aborted)throw Error('Cancelled');
     // Revalidate through the same native compiler used by the graph.
     H3PromptCompiler.compilePrompt({...currentRenderSpec(),source_prompt:result.compiled_prompt,prompt_mode:'structured'});
     state.preparedContext=result;state.lastCompiledPrompt=result.compiled_prompt;state.lastBindings=result.bindings;

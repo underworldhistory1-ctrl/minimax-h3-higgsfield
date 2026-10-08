@@ -39,3 +39,4 @@ docs/lab/QUALITY_EXPERIMENTS.md
 docs/lab/REVIEW_HANDOFF.md
 docs/lab/STATUS.md
 docs/lab/TEST_REPORT.md
+web/h3/queue-ui.js

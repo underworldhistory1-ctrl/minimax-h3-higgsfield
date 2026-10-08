@@ -58,6 +58,10 @@ def create_app(storage):
     captured = []
     pending_settings = {}
     history = {}
+    queue_state = {'external': False, 'hold': False, 'deleted': [], 'interrupts': 0}
+    pending = {}
+    sockets = set()
+    foreign_job = [0, 'simulated_foreign_project', {}, {'client_id': 'foreign-client'}, []]
     metadata_path = storage / 'gallery.json'
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     for index, color in enumerate(['#234e70', '#3e355b', '#24534c', '#624933']):
@@ -92,11 +96,26 @@ def create_app(storage):
             shutil.copy2(fixtures / 'h3_studio_000000000001_00001_.mp4.jpg', fixtures / (filename + '.jpg'))
             metadata[filename] = {'simulation': True, 'settings': pending_settings.get(extra_data['h3_lab_request_id'])}; save()
             history[prompt_id] = {'prompt': [0, prompt_id, graph, extra_data], 'outputs': {str(node_id): {'videos': [{'filename': filename, 'subfolder': 'video', 'type': 'output'}]}}, 'status': {'completed': True, 'status_str': 'success'}}
+            if queue_state['hold']:
+                pending[prompt_id] = [len(captured), prompt_id, graph, extra_data, []]
             return {'prompt_id': prompt_id, 'number': len(captured)}
-        async def get_queue(self): return {'queue_running': [], 'queue_pending': []}
-        async def get_history(self, prompt_id=None): return {prompt_id: history[prompt_id]} if prompt_id in history else history if prompt_id is None else {}
-        async def delete_from_queue(self, ids): return {'ok': True}
-        async def interrupt(self): return {'ok': True}
+        async def get_queue(self): return {'queue_running': [foreign_job] if queue_state['external'] else [], 'queue_pending': list(pending.values())}
+        async def get_history(self, prompt_id=None):
+            completed = {key: value for key, value in history.items() if key not in pending}
+            return {prompt_id: completed[prompt_id]} if prompt_id in completed else completed if prompt_id is None else {}
+        async def delete_from_queue(self, ids):
+            for prompt_id in ids:
+                queue_state['deleted'].append(prompt_id)
+                if pending.pop(prompt_id, None):
+                    record = history.pop(prompt_id, {})
+                    for output in record.get('outputs', {}).values():
+                        for file in output.get('videos', []):
+                            metadata.pop(file['filename'], None); (outputs / file['filename']).unlink(missing_ok=True)
+                    save()
+            return {'ok': True}
+        async def interrupt(self):
+            queue_state['interrupts'] += 1
+            return {'ok': True}
 
     @web.middleware
     async def simulation(request, handler):
@@ -132,11 +151,29 @@ def create_app(storage):
             body = await request.json(); name = body['filename']; metadata.setdefault(name, {})['settings'] = body['settings']; save(); return web.json_response({'ok': True})
         if path == '/h3_studio/verify_video': return web.json_response({'ok': True, 'has_video': True, 'has_audio': True, 'simulation': True})
         if path == '/__captured': return web.json_response(captured)
-        if path == '/queue': return web.json_response({'queue_running': [], 'queue_pending': []})
+        if path == '/__simulation/queue':
+            if request.method == 'POST':
+                body = await request.json()
+                for key in ('external', 'hold'):
+                    if key in body: queue_state[key] = bool(body[key])
+                if not queue_state['hold']: pending.clear()
+            return web.json_response({**queue_state, **await comfy.get_queue()})
+        if path == '/__simulation/event':
+            body = await request.json()
+            for socket in list(sockets):
+                if not socket.closed: await socket.send_json(body)
+            return web.json_response({'ok': True, 'clients': len(sockets)})
+        if path == '/queue':
+            if request.method == 'POST': await comfy.delete_from_queue((await request.json()).get('delete', []))
+            return web.json_response(await comfy.get_queue())
+        if path == '/interrupt': return web.json_response(await comfy.interrupt())
         if path.startswith('/history'): return web.json_response(await comfy.get_history(path.removeprefix('/history/') if path.startswith('/history/') else None))
         if path == '/ws':
             ws = web.WebSocketResponse(); await ws.prepare(request)
-            async for message in ws: pass
+            sockets.add(ws)
+            try:
+                async for message in ws: pass
+            finally: sockets.discard(ws)
             return ws
         if path == '/object_info/MiniMaxH3AddGuide': return web.json_response({'MiniMaxH3AddGuide': {'input': {'required': {}, 'optional': {}}}})
         if path.startswith('/h3_studio/') and not path.startswith('/h3_studio/lab/'):

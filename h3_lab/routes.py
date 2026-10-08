@@ -79,7 +79,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         if prompt_service is None:
             return web.json_response({"error": "Studio input storage is unavailable."}, status=503)
         if preparation_lock.locked():
-            return web.json_response({"error": "Another prompt is being prepared. Retry when it finishes."}, status=409)
+            return web.json_response({"error": "Another prompt is being prepared. Retry when it finishes.", "code": "PREPARATION_BUSY"}, status=409)
         if not promptwriter.studio_provider_status()["configured"]:
             return web.json_response({"error": promptwriter.studio_provider_status()["reason"]}, status=503)
         try:
@@ -90,7 +90,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                 if comfy_client is not None:
                     queue = await comfy_client.get_queue()
                     if queue.get("queue_running") or queue.get("queue_pending"):
-                        return web.json_response({"error": "Wait for the render queue to finish before AI preparation."}, status=409)
+                        return web.json_response({"error": "Wait for the render queue to finish before AI preparation.", "code": "PREPARATION_QUEUE_BUSY", "running": len(queue.get("queue_running", [])), "pending": len(queue.get("queue_pending", []))}, status=409)
                 result = await _finish_source_worker(prompt_service.prepare, body)
             return web.json_response(result)
         except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
@@ -227,7 +227,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
 
     async def handle_submit_job(request):
         if preparation_lock.locked():
-            return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish."}, status=409)
+            return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish.", "code": "PREPARATION_BUSY"}, status=409)
         async with preparation_lock:
             return await submit_job_impl(request)
 

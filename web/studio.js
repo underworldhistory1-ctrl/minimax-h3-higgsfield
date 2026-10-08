@@ -1165,7 +1165,7 @@ async function generate() {
   const epoch=++state.generationEpoch;
   let prompt,settings;
   try{
-    state.labJobId=null;state.runMeta=null;state.preparedContext=null;
+    state.labJobId=null;state.runMeta=null;state.preparedContext=null;state.queuePhase=null;
     if(state.continuation){const c=state.continuation;
       if(c.source_canvas&&(c.source_canvas.width!==state.width||c.source_canvas.height!==state.height))throw Error("Continuation must use the source canvas.");
       if(c.type==="generated"&&c.source_model!==(state.mode==="refs"?modelRef:modelFL))throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
@@ -1329,6 +1329,7 @@ async function generate() {
     state.labJobId=response.job?.job_id||response.job_id||null;
     if(state.labJobId)state.runMeta.lab_job_id=state.labJobId;
     const body={...response,prompt_id:response.job?.prompt_id};
+    if(r.status===409&&response.code==="PREPARATION_BUSY"){setProgress("Waiting for shared prompt preparation",null,null,true);info("Your submission is retained and will retry automatically.");return;}
     if(response.job?.state==="cancelled"){state.running=null;state.labJobId=null;saveSession();throw new DOMException("Cancelled","AbortError");}
     if(!r.ok||!body.prompt_id){
       if(!r.ok&&r.status<500){state.running=null;state.labJobId=null;saveSession();}
@@ -1662,7 +1663,7 @@ async function pollServerProgress(id){
 }
 function onSocket(event){
   if(typeof event.data!=="string"){
-    if(!state.running||event.data.byteLength<8)return;
+    if(!state.running||state.queuePhase!=="running"||event.data.byteLength<8)return;
     const v=new DataView(event.data),kind=v.getUint32(0);
     if(kind===1)showPreview(new Blob([event.data.slice(8)],{type:v.getUint32(4)===2?"image/png":"image/jpeg"}));
     if(kind===4&&event.data.byteLength>=12){
@@ -1675,9 +1676,10 @@ function onSocket(event){
   }
   let message;try{message=JSON.parse(event.data);}catch{return;}
   const d=message.data||{};
-  if(d.prompt_id!==state.running)return;
+  if(d.prompt_id!==state.running){if(message.type==="execution_start")state.queuePhase="unknown";return;}
   if(!state.running)return;
   if(message.type==="execution_start"){
+    state.queuePhase="running";
     state.renderStarted||=Date.now();saveSession();
   }else if(message.type==="progress_state"){
     const n=d.nodes?.["8"];if(n&&n.max)samplerProgress(n.value,n.max);
@@ -1696,10 +1698,12 @@ function onSocket(event){
       setProgress(label,pct,remaining,pct<10);
     }
   }else if(message.type==="executed"&&d.node==="12"){
+    state.queuePhase=null;
     const file=findVideoOutput(d.output);
     if(file)complete(file);
   }
   else if(message.type==="execution_error"||message.type==="execution_interrupted"){
+    state.queuePhase=null;
     info(message.type==="execution_error"?(d.exception_message||"ComfyUI graph failed"):"Render interrupted",true);
     state.running=null;cleanupUploads();setBusy(false);setProgress("Render stopped",0,null);
     showStageMessage("Render stopped","Check the error message and retry when ready.");
@@ -1735,7 +1739,7 @@ async function pollHistoryImpl(){
       if(lookup.status===404){
         const retry=await fetch(api("/h3_studio/lab/jobs"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state.runMeta.submission)});
         const response=await retry.json();if(!stillCurrent())return;record=response.job;
-        if(!retry.ok&&retry.status<500){state.running=null;await cleanupUploads();setBusy(false);info(response.error||"Submission rejected",true);saveSession();return;}
+        if(!retry.ok&&retry.status<500&&response.code!=="PREPARATION_BUSY"){state.running=null;await cleanupUploads();setBusy(false);info(response.error||"Submission rejected",true);saveSession();return;}
       }else if(lookup.ok)record=await lookup.json();
       if(!stillCurrent())return;
       if(record?.job_id){state.labJobId=record.job_id;state.runMeta.lab_job_id=record.job_id;state.running=record.prompt_id||"lab:"+record.job_id;expectedId=state.running;saveSession();}
@@ -1774,12 +1778,14 @@ async function pollQueue(){
     const data=await r.json();if(epoch!==state.generationEpoch||state.running!==polledId)return;
     const running=data.queue_running||[],pending=data.queue_pending||[];
     const id=state.running;
-    if(/^(lab|request):/.test(String(id))){$("queueInfo").textContent="Queue: reconciling saved submission · inputs retained";await pollHistory();return;}
+    if(window.H3QueueUI)H3QueueUI.render(data,id,{waitingPreparation:!!state.waitingPreparation});
+    if(/^(lab|request):/.test(String(id))){if(!window.H3QueueUI)$("queueInfo").textContent="Queue: reconciling saved submission · inputs retained";await pollHistory();return;}
     const runningItem=running.find(item=>item[1]===id);
     const runningHere=!!runningItem;
     const position=pending.findIndex(item=>item[1]===id);
     const count=running.length+pending.length;
-    $("queueInfo").textContent=id?(runningHere?"Queue: rendering now · "+count+" job(s) on server":position>=0?"Queue: position "+(position+1)+" of "+pending.length+" waiting · "+count+" total":"Queue: checking job history · "+count+" on server"):"Queue: "+count+" job(s) on server";
+    state.queuePhase=runningHere?"running":position>=0?"waiting":"unknown";
+    if(!window.H3QueueUI)$("queueInfo").textContent=id?(runningHere?"Queue: rendering now · "+count+" job(s) on server":position>=0?"Queue: position "+(position+1)+" of "+pending.length+" waiting · "+count+" total":"Queue: checking job history · "+count+" on server"):"Queue: "+count+" job(s) on server";
     if(id&&position>=0){
       state.phaseEtaAt=null;
       setProgress("Waiting in queue · position "+(position+1),4,null,true);
@@ -1811,9 +1817,10 @@ async function pollQueue(){
       if(state.running){
         state.queueMissingSince??=Date.now();
         if(Date.now()-state.queueMissingSince>30000){
-          info("This render is absent from both ComfyUI queue and history. The server may have restarted.",true);
-          state.running=null;state.queueMissingSince=null;
-          await cleanupUploads();setBusy(false);setProgress("Render unavailable",0,null);showStageMessage("Render unavailable","The server no longer lists this job. Check ComfyUI before trying again.");saveSession();
+          state.phaseEtaAt=null;
+          setProgress("Render status unknown · checking queue and history",null,null,true);
+          $("remaining").textContent="Inputs retained · waiting for server confirmation";
+          info("The server has not confirmed this job in queue or history. Your inputs and job identity are retained; retry connection or Cancel this request.",true);saveSession();
         }
       }
     }

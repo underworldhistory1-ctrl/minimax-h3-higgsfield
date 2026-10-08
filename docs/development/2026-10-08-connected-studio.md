@@ -4,7 +4,7 @@ Baseline: 2b2d902. Two deliverables: creator UI and generation preparation/contr
 
 ## Design
 
-Compare: (A) retain large single-result viewer, (B) compact composer + responsive results grid + focused details (selected), (C) full timeline editor (unnecessary for this scope). Typography 15px body, 14px fields, calm dark navy/neutral surfaces with blue reference mentions. Results are 240–360px cards; viewer bounded to viewport. Secondary options collapse. Details prioritize actual model, renderer, canvas, steps, seed, LoRAs/strengths, control/refine, prompt and reference thumbnails; no dates/duration/timing clutter.
+Compare: (A) retain large single-result viewer, (B) compact composer + responsive results grid + focused details (selected), (C) full timeline editor (unnecessary for this scope). Typography 15px body, 14px fields, original charcoal/lime identity with blue reference mentions. Results are 240–360px cards; viewer bounded to viewport. Secondary options collapse. Details prioritize actual model, renderer, canvas, steps, seed, LoRAs/strengths, control/refine, prompt and reference thumbnails; no dates/duration/timing clutter.
 
 Preparation: existing promptwriter module gains deterministic reference-aware LLM entrypoint; new h3_lab prompt service resolves owned assets, sends image/video sampled frames with exact labels, explicitly flags unavailable audio understanding, validates generated native schema and attached tag bindings, and never silently retries without vision. Writer provider configuration is server-side env; missing provider blocks AI preparation, raw native mode remains explicit. Async single-flight to avoid CPU/GPU resource races; bounded samples, network timeout, no automatic paid API or model downloads.
 
@@ -36,3 +36,6 @@ Primary ownership: Python/deploy, integration modifications to studio.js after U
 
 ## Validation boundary
 Local implementation and CPU/browser checks completed; live vision-provider compatibility, memory release, GPU inference and same-seed visual comparisons remain pending. No claim of parity with hosted Context-IR or universal shimmer removal.
+
+## Shared-server follow-up
+Added explicit queue ownership/positions, busy preparation wait+cancel, foreign-event/preview isolation and retained unknown job states. Regression tests cover foreign running/history errors, deferred acknowledgement and real local queue transitions.

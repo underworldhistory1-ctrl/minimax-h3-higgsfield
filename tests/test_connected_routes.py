@@ -5,7 +5,7 @@ import pathlib
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from aiohttp import web
 from h3_lab.routes import register_lab_routes
@@ -49,6 +49,33 @@ class ConnectedRouteTests(unittest.IsolatedAsyncioTestCase):
     def handler(self, method, path):
         return self.handlers[(method, "/h3_studio/lab/" + path)]
 
+    async def test_foreign_queue_blocks_writer_with_counts_then_prepares_when_empty(self):
+        running = [[1, "foreign-running", {"private_prompt": "not exposed"}, {}, []]]
+        pending = [[2, "foreign-pending", {"private_prompt": "not exposed"}, {}, []],
+                   [3, "another-pending", {}, {}, []]]
+        with patch("h3_lab.prompt_context.promptwriter.studio_provider_status", return_value={"configured": True}), \
+             patch("h3_lab.prompt_context.PromptContextService.prepare", return_value={"compiled_prompt": "ready"}) as writer, \
+             patch.object(self.queue, "get_queue", new_callable=AsyncMock) as queue:
+            for active, waiting in ((running, []), ([], pending), (running, pending)):
+                with self.subTest(running=len(active), pending=len(waiting)):
+                    queue.return_value = {"queue_running": active, "queue_pending": waiting}
+                    response = await self.handler("POST", "prompt/prepare")(Request({"source_prompt": "brief"}))
+                    self.assertEqual(response.status, 409)
+                    body = json.loads(response.text)
+                    self.assertEqual(body["code"], "PREPARATION_QUEUE_BUSY")
+                    self.assertEqual(body["running"], len(active))
+                    self.assertEqual(body["pending"], len(waiting))
+                    self.assertNotIn("foreign-running", response.text)
+                    self.assertNotIn("foreign-pending", response.text)
+                    self.assertNotIn("private_prompt", response.text)
+                    writer.assert_not_called()
+            queue.return_value = {"queue_running": [], "queue_pending": []}
+            response = await self.handler("POST", "prompt/prepare")(Request({"source_prompt": "brief"}))
+            self.assertEqual(response.status, 200)
+            self.assertEqual(json.loads(response.text)["compiled_prompt"], "ready")
+            writer.assert_called_once()
+        self.assertEqual(self.queue.submissions, [])
+
     async def test_cancelled_preparation_keeps_submission_locked_until_worker_finishes(self):
         entered, release = threading.Event(), threading.Event()
 
@@ -65,6 +92,9 @@ class ConnectedRouteTests(unittest.IsolatedAsyncioTestCase):
                 task.cancel()
                 await asyncio.sleep(0)
                 self.assertFalse(task.done())
+                busy = await self.handler("POST", "prompt/prepare")(Request({}))
+                self.assertEqual(busy.status, 409)
+                self.assertEqual(json.loads(busy.text)["code"], "PREPARATION_BUSY")
                 response = await self.handler("POST", "jobs")(Request({"request_id": "blocked", "render_spec": {}}))
                 self.assertEqual(response.status, 409)
                 self.assertEqual(self.queue.submissions, [])

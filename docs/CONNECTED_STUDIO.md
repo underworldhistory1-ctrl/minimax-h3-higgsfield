@@ -18,6 +18,14 @@ Fun-ControlNet Union 2.0 is a structural model patch, not a LoRA. Use Text or Fr
 
 General Motion Continuity Repair V2 is an optional LoRA (`Motion_Repair_V2.safetensors`), initially 0.9 when selected. With refinement its second-pass strength is 0.25. These defaults follow publisher guidance, not project-specific visual proof. Refine is a separate 10-step pass, scale 1.25, denoise 0.4; it is not a certified flicker cure.
 
+## Shared-server queue and visual identity
+
+The existing charcoal/lime identity is preserved; reference mentions remain blue. Queue cards show running/pending counts, ownership and your actual waiting position. Other projects are labeled generically; their prompts, assets and internal IDs are not displayed. Cancel uses the owned-job path, never a foreign-job action.
+
+When AI preparation encounters a busy queue, the browser retains uploads and waits automatically. This stage is explicitly described as preparation waiting, not an already-queued generation. Native generation can join the ComfyUI queue immediately. Uncertain queue/history state retains the job identity and inputs instead of inferring failure after30seconds. Foreign failures cannot stop the tracked job; foreign starts and owned terminal events clear preview ownership.
+
+Preparation checks queue idleness and serializes Studio preparation/submission routes. This is not a global reservation across unrelated clients directly submitting to ComfyUI. For simultaneous clients on the same GPU, an isolated prompt provider is the safest deployment boundary.
+
 ## Quality and reference correctness
 
 Custom video roles no longer force source motion/sound preservation. Reference frames and paired audio are cropped to the same native usable span. Guided shot numbering and sound coverage are consistent. Control runs after sigma shift so percent-based schedules use the shifted sampling range.
