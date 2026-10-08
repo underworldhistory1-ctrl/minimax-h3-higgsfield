@@ -69,10 +69,17 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.locator('#loraList').evaluate(el=>el.closest('details').open=false);
     await page.locator('#prompt').scrollIntoViewIfNeeded();
     await page.screenshot({path:path.join(output,'H3_Studio_Desktop.png'),fullPage:true});
+    await page.locator('#preparationMode').selectOption('native');
+    await page.locator('#promptMode').selectOption('guided');
+    await page.locator('#prompt').fill('integrated_multimodal_description: [Shot 1] Use @hero in a quiet station with @camera camera guidance.\n\noverall_soundscape: Footsteps only.\n\nnon_diegetic_music: None.');
     await page.locator('#generate').click();
     await page.waitForFunction(()=>!state.busy&&!state.running&&state.current);
     const captures=await(await fetch(base+'/__captured')).json();assert.equal(captures.length,capturedStart+1);
     const graph=captures.at(-1).prompt;
+    assert.match(graph['6'].inputs.prompt,/subject_definitions:/);
+    assert.match(graph['6'].inputs.prompt,/overall_soundscape:\s*Footsteps only\./);
+    assert.ok(!graph['6'].inputs.prompt.includes('integrated_multimodal_description:'));
+    await page.locator('#preparationMode').selectOption('ai');
     assert.ok(Object.values(graph).some(node=>node.class_type==='MiniMaxH3ReferenceToVideo'));
     assert.ok(Object.values(graph).some(node=>node.class_type==='LoraLoaderModelOnly'&&node.inputs.strength_model===0.65));
     assert.ok(!Object.values(graph).some(node=>node.class_type==='MiniMaxH3FunControlNetApply'));

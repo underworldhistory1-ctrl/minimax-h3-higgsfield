@@ -120,14 +120,16 @@ grep -Fq "$H3_VAE_FIX_MARKER" "$H3_VAE_FILE" || { echo "Pinned ComfyUI lacks the
 grep -q TextEncodeQwenImage21 "$QWEN_NODE_FILE" || { echo "Pinned ComfyUI lacks Qwen Image 2.1 text encoding." >&2; exit 1; }
 grep -q QwenImage21Cache "$QWEN_NODE_FILE" || { echo "Pinned ComfyUI lacks Qwen Image 2.1 edit caching." >&2; exit 1; }
 
-if [[ -n "${COMFY_PYTHON:-}" && -x "${COMFY_PYTHON}" ]]; then
+if [[ -n "${COMFY_PYTHON:-}" ]]; then
+    [[ -x "$COMFY_PYTHON" ]] || { echo "COMFY_PYTHON must point to the actual executable ComfyUI interpreter." >&2; exit 1; }
     H3_PYTHON="$COMFY_PYTHON"
 elif [[ -x "$COMFY_ROOT/.venv/bin/python" ]]; then
     H3_PYTHON="$COMFY_ROOT/.venv/bin/python"
 elif [[ -x "$COMFY_ROOT/venv/bin/python" ]]; then
     H3_PYTHON="$COMFY_ROOT/venv/bin/python"
 elif ((existing)); then
-    H3_PYTHON="$(command -v python3)"
+    echo "Existing ComfyUI Python could not be resolved. Set COMFY_PYTHON to its actual interpreter; the installer will not use another project's Python." >&2
+    exit 1
 else
     echo "Creating the ComfyUI Python environment..."
     if ! python3 -m venv "$COMFY_ROOT/.venv"; then
@@ -143,16 +145,25 @@ else
 fi
 export COMFY_PYTHON="$H3_PYTHON"
 
-if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(); assert tuple(map(int, torch.version.cuda.split(".")[:2])) >= (13, 0)' 2>/dev/null; then
-    if [[ "$H3_PYTHON" == "$(command -v python3)" ]]; then
-        echo "The running ComfyUI Python is missing CUDA/PyAV dependencies. Pass COMFY_PYTHON pointing to its environment." >&2
-        exit 1
+if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available()' 2>/dev/null; then
+    echo "Installing missing ComfyUI Python dependencies..."
+    if ((existing == 0)); then
+        "$H3_PYTHON" -m pip install --upgrade pip
     fi
-    echo "Installing CUDA PyTorch and ComfyUI dependencies (first setup can take time)..."
-    "$H3_PYTHON" -m pip install --upgrade pip
-    "$H3_PYTHON" -m pip install --upgrade 'torch==2.9.1+cu130' 'torchvision==0.24.1+cu130' 'torchaudio==2.9.1+cu130' --index-url https://download.pytorch.org/whl/cu130
-    "$H3_PYTHON" -m pip install -r "$COMFY_ROOT/requirements.txt" av
-    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"; assert tuple(map(int, torch.version.cuda.split(".")[:2])) >= (13, 0), "CUDA 13.0 is required for optimized RTX 5090 operations"'
+    if ! "$H3_PYTHON" -c 'import torch; assert torch.cuda.is_available()' 2>/dev/null; then
+        echo "Preparing CUDA PyTorch..."
+        "$H3_PYTHON" -m pip install 'torch==2.9.1+cu130' 'torchvision==0.24.1+cu130' 'torchaudio==2.9.1+cu130' --index-url https://download.pytorch.org/whl/cu130
+    fi
+    (
+        task_constraints="$(mktemp)"
+        trap 'rm -f -- "$task_constraints"' EXIT
+        "$H3_PYTHON" -c 'import importlib.metadata as m
+for name in ("torch", "torchvision", "torchaudio"):
+    try: print(name + "==" + m.version(name))
+    except m.PackageNotFoundError: pass' > "$task_constraints"
+        "$H3_PYTHON" -m pip install -c "$task_constraints" -r "$COMFY_ROOT/requirements.txt" av
+    )
+    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"'
 fi
 
 free_gib="$(df -Pk "$COMFY_ROOT" | awk 'NR==2 {printf "%.0f", $4/1048576}')"

@@ -58,3 +58,7 @@ Run `python scripts/studio_preview.py --port 18772` and open the printed localho
 
 - [Fun-ControlNet Union 2.0 publisher](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union-2.0)
 - [Pinned auxiliary preprocessors](https://github.com/Fannovel16/comfyui_controlnet_aux/tree/0cd290477128d42cdc3e76a826a402d866e8c684)
+
+## Final release corrections
+
+Guided References accepts a complete three-section Text/Frames description and rebuilds the six-section reference structure from the connected asset roles, preserving sound/music. Explicit Structured mode and incomplete or invalid native payloads remain strictly validated. Browser assets use a release cache key so upgrading does not retain old compiler/UI code. Existing ComfyUI environments with unresolved Python paths require an explicit interpreter; repairing auxiliary dependencies preserves the installed working CUDA stack using package constraints.

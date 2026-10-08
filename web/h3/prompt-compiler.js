@@ -138,9 +138,19 @@
     const expectedSections = mode === 'refs' ? NATIVE_REF_SECTIONS : NATIVE_TEXT_SECTIONS;
     // Shared prose headings (summary, sound and music) do not identify a native payload.
     const nativeNames = ['subject_definitions', 'retention_analysis', 'detailed_description', 'integrated_multimodal_description'];
-    const hasNativeSections = new RegExp('^(?:' + nativeNames.join('|') + '):\\s*', 'im').test(source);
+    let hasNativeSections = new RegExp('^(?:' + nativeNames.join('|') + '):\\s*', 'im').test(source);
     // Ordinary prose headings (including repeated Action/Camera headings) are content.
-    const originalSections = promptMode === 'structured' || hasNativeSections ? parseStructuredSections(source) : null;
+    let originalSections = promptMode === 'structured' || hasNativeSections ? parseStructuredSections(source) : null;
+    // Guided references may receive a complete FL2VA description from a previous
+    // text/frames prompt. Rebuild Ref2VA roles instead of treating it as six-section input.
+    const adaptTextToReferences = mode === 'refs' && promptMode === 'guided' && originalSections &&
+      NATIVE_TEXT_SECTIONS.every(name => originalSections[name]) &&
+      Object.keys(originalSections).every(name => NATIVE_TEXT_SECTIONS.includes(name));
+    if (adaptTextToReferences) {
+      originalSections = null;
+      hasNativeSections = false;
+      warnings.push('Text/Frames description adapted to References using the attached reference roles.');
+    }
     if (promptMode === 'structured' || hasNativeSections) {
       if (!originalSections) throw new Error('Structured prompt requires native section headers.');
       const missing = expectedSections.filter(name => !originalSections[name]);
@@ -341,7 +351,7 @@
       }
 
       // Native structured tags are valid reference mentions as well as aliases.
-      const nativeSections = originalSections;
+      const nativeSections = originalSections || (adaptTextToReferences ? parseStructuredSections(source) : null);
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
@@ -414,8 +424,10 @@
       }
 
       // Guided mode: wrap deterministically into native schema
-      const shotOne = /\[Shot\s+1\]/i.test(substituted);
-      const summaryLead = (substituted.match(/^[^\n.!?]+[.!?]?/) || [])[0]?.trim() || 'Generate the requested target sequence.';
+      const adapted = adaptTextToReferences ? parseStructuredSections(substituted) : null;
+      const description = adapted ? adapted.integrated_multimodal_description : substituted;
+      const shotOne = /\[Shot\s+1\]/i.test(description);
+      const summaryLead = (description.match(/^[^\n.!?]+[.!?]?/) || [])[0]?.trim() || 'Generate the requested target sequence.';
 
       const compiled = [
         'subject_definitions:',
@@ -428,13 +440,13 @@
         retention.join('\n') || 'Apply only the reference uses explicitly requested in the detailed_description; no additional retention is imposed.',
         '',
         'detailed_description:',
-        shotOne ? substituted : `[Shot 1] ${substituted}`,
+        shotOne ? description : `[Shot 1] ${description}`,
         '',
         'overall_soundscape:',
-        'Use cited audio references and scene sounds described in the detailed_description, timed to their shots.',
+        adapted ? adapted.overall_soundscape : 'Use cited audio references and scene sounds described in the detailed_description, timed to their shots.',
         '',
         'non_diegetic_music:',
-        'Only music explicitly requested in the detailed_description.',
+        adapted ? adapted.non_diegetic_music : 'Only music explicitly requested in the detailed_description.',
       ].join('\n');
 
       return { compiled_prompt: compiled, bindings, warnings };

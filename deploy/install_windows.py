@@ -9,6 +9,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 import webbrowser
@@ -206,7 +207,7 @@ def select_python(root, override, fresh):
     if fresh:
         call(sys.executable, "-m", "venv", root / ".venv")
         return root / ".venv" / "Scripts" / "python.exe", False
-    return pathlib.Path(sys.executable).resolve(), False
+    raise RuntimeError("Existing ComfyUI Python could not be resolved. Pass --comfy-python to its actual interpreter; the installer will not use another project's Python.")
 
 
 def ensure_python_env(python, root, fresh):
@@ -224,7 +225,16 @@ def ensure_python_env(python, root, fresh):
         print("Preparing CUDA PyTorch...", flush=True)
         call(python, "-m", "pip", "install", "torch", "torchvision", "torchaudio",
              "--index-url", "https://download.pytorch.org/whl/cu130")
-    call(python, "-m", "pip", "install", "-r", root / "requirements.txt", "av")
+    # Resolve missing packages without allowing pip to replace a working CUDA
+    # stack as a transitive dependency of torchvision or another requirement.
+    with tempfile.TemporaryDirectory(prefix="h3-python-constraints-") as directory:
+        constraints = pathlib.Path(directory) / "cuda-stack.txt"
+        versions = call(python, "-c", "import importlib.metadata as m\n"
+                        "for name in ('torch', 'torchvision', 'torchaudio'):\n"
+                        "    try: print(name + '==' + m.version(name))\n"
+                        "    except m.PackageNotFoundError: pass", capture=True)
+        constraints.write_text(versions + "\n", encoding="utf-8")
+        call(python, "-m", "pip", "install", "-c", constraints, "-r", root / "requirements.txt", "av")
     call(python, "-c", "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available()")
 
 
