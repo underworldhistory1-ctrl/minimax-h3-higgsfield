@@ -25,9 +25,9 @@ from .paths import owned_path, owned_video
 _LOG = logging.getLogger("h3_lab.routes")
 
 
-async def _finish_source_worker(function, *args):
+async def _finish_source_worker(function, *args, **kwargs):
     """Wait out cancellation before cleaning files owned by a CPU worker."""
-    task = asyncio.create_task(asyncio.to_thread(function, *args))
+    task = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
     cancelled = False
     while not task.done():
         try:
@@ -66,12 +66,81 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     projects = services["projects"]
     contexts = services["contexts"]
     source_upload_lock = asyncio.Lock()
+    preparation_lock = asyncio.Lock()
+    quality_lock = asyncio.Lock()
+    quality_cache = {}
+    from .prompt_context import PromptContextService, promptwriter
+    prompt_service = PromptContextService(input_root) if input_root else None
+
+    async def handle_prompt_status(request):
+        return web.json_response(promptwriter.studio_provider_status())
+
+    async def handle_prepare_prompt(request):
+        if prompt_service is None:
+            return web.json_response({"error": "Studio input storage is unavailable."}, status=503)
+        if preparation_lock.locked():
+            return web.json_response({"error": "Another prompt is being prepared. Retry when it finishes."}, status=409)
+        if not promptwriter.studio_provider_status()["configured"]:
+            return web.json_response({"error": promptwriter.studio_provider_status()["reason"]}, status=503)
+        try:
+            body = await request.json()
+            if not isinstance(body, dict): raise ValueError("Preparation request must be an object.")
+            async with preparation_lock:
+                # A local LLM can share the GPU; do not load it while ComfyUI is busy.
+                if comfy_client is not None:
+                    queue = await comfy_client.get_queue()
+                    if queue.get("queue_running") or queue.get("queue_pending"):
+                        return web.json_response({"error": "Wait for the render queue to finish before AI preparation."}, status=409)
+                result = await _finish_source_worker(prompt_service.prepare, body)
+            return web.json_response(result)
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            return web.json_response({"error": str(error)}, status=400)
+
+    async def handle_prepare_control(request):
+        if input_root is None:
+            return web.json_response({"error": "Studio input storage is unavailable."}, status=503)
+        try:
+            from .control import prepare_control
+            body = await request.json()
+            if not isinstance(body, dict): raise ValueError("Control request must be an object.")
+            filename = body.get("filename", "")
+            if not isinstance(filename, str) or not pathlib.PurePosixPath(filename).name.startswith("h3_studio_kf_"):
+                raise ValueError("Choose an uploaded Studio video.")
+            source = owned_path(input_root, filename)
+            async with source_upload_lock:
+                result = await _finish_source_worker(prepare_control, source, input_root,
+                    body.get("width"), body.get("height"), body.get("target_frames"),
+                    start_seconds=body.get("start_seconds", 0))
+            return web.json_response(result)
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            return web.json_response({"error": str(error)}, status=400)
+
+    async def handle_quality(request):
+        if output_root is None:
+            return web.json_response({"error": "Output storage is unavailable."}, status=503)
+        try:
+            from .quality import analyze_quality
+            source = await asyncio.to_thread(owned_video, output_root, request.query.get("filename", ""), probe=False)
+            stat = source.stat()
+            key = (str(source), stat.st_size, stat.st_mtime_ns)
+            if key in quality_cache:
+                return web.json_response(quality_cache[key])
+            if quality_lock.locked():
+                return web.json_response({"error": "Another quality check is running. Retry when it finishes."}, status=409)
+            async with quality_lock:
+                result = await _finish_source_worker(analyze_quality, source)
+                if len(quality_cache) >= 16:
+                    quality_cache.pop(next(iter(quality_cache)))
+                quality_cache[key] = result
+            return web.json_response(result)
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as error:
+            return web.json_response({"error": str(error)}, status=400)
 
     # Support either aiohttp web.Application or PromptServer routes table
     router = app_or_routes.router if hasattr(app_or_routes, "router") else app_or_routes
 
     async def handle_capabilities(request):
-        caps = check_capabilities(folder_paths_mod, nodes_mod)
+        caps = await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)
         return web.json_response(caps)
 
     async def handle_list_projects(request):
@@ -157,12 +226,35 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             tmp_zip.unlink(missing_ok=True)
 
     async def handle_submit_job(request):
+        if preparation_lock.locked():
+            return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish."}, status=409)
+        async with preparation_lock:
+            return await submit_job_impl(request)
+
+    async def submit_job_impl(request):
         if comfy_client is None:
             return web.json_response({"error": "Lab queue bridge is unavailable; use the Video workspace"}, status=503)
         try:
             body = await request.json()
+            if not isinstance(body, dict): raise ValueError("Job request must be an object.")
             req_id = body.get("request_id")
             spec = body.get("render_spec", {})
+            if not isinstance(spec, dict): raise ValueError("Render specification must be an object.")
+            workflow = spec.get("workflow", {})
+            if not isinstance(workflow, dict) or any(not isinstance(node, dict) for node in workflow.values()):
+                raise ValueError("Workflow must be an object containing node objects.")
+            if spec.get("control") is not None and not isinstance(spec["control"], dict):
+                raise ValueError("Control specification must be an object.")
+            from .control import validate_control_graph
+            if spec.get("control") is not None or any(node.get("class_type") == "MiniMaxH3FunControlNetApply" for node in workflow.values()):
+                caps = await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)
+                await _finish_source_worker(validate_control_graph, spec, input_root, caps)
+            refine_enabled = bool(spec.get("enable_refine") or spec.get("refine"))
+            if any(node.get("class_type") == "MinimaxH3LatentUpscaler3D" for node in workflow.values()) and not refine_enabled:
+                raise ValueError("Refinement workflow requires explicit refinement selection.")
+            if refine_enabled:
+                if not (await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)).get("refine_ready"):
+                    raise ValueError("Refinement node or verified upscaler weight is unavailable.")
             leases = body.get("asset_leases", [])
             pid = body.get("project_id")
             tid = body.get("take_id")
@@ -187,7 +279,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                         error="Queue acknowledgement unavailable; reconcile before retrying")
                     return web.json_response({"error": "Queue acknowledgement unavailable", "job_id": job_rec["job_id"]}, status=503)
             return web.json_response({"job": job_rec, "is_duplicate": is_dup}, status=200 if is_dup else 201)
-        except ValueError as e:
+        except (ValueError, TypeError, OSError, subprocess.SubprocessError) as e:
             code = getattr(e, "status_code", 400)
             return web.json_response({"error": str(e)}, status=code)
 
@@ -611,6 +703,10 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("GET", "/h3_studio/lab/assets/{id}/file", handle_asset_file),
         ("POST", "/h3_studio/lab/assets/{id}/resolve", handle_resolve_asset),
         ("GET", "/h3_studio/lab/capabilities", handle_capabilities),
+        ("GET", "/h3_studio/lab/prompt/status", handle_prompt_status),
+        ("POST", "/h3_studio/lab/prompt/prepare", handle_prepare_prompt),
+        ("POST", "/h3_studio/lab/control/prepare", handle_prepare_control),
+        ("GET", "/h3_studio/lab/quality", handle_quality),
         ("GET", "/h3_studio/lab/projects", handle_list_projects),
         ("POST", "/h3_studio/lab/projects", handle_create_project),
         ("GET", "/h3_studio/lab/projects/{id}", handle_get_project),

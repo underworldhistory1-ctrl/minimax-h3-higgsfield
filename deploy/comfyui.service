@@ -7,10 +7,9 @@ Type=simple
 WorkingDirectory=/path/to/ComfyUI
 ExecStart=/path/to/venv/bin/python /path/to/ComfyUI/main.py \
     --use-sage-attention \
-    --fast \
     --reserve-vram 1.2 \
     --preview-method latent2rgb \
-    --listen 0.0.0.0
+    --listen 127.0.0.1
 Restart=on-failure
 RestartSec=5
 

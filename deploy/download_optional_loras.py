@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the two requested H3 LoRAs with pinned hashes; never guess at a failed download."""
+"""Install the optional H3 LoRAs with pinned hashes; never guess at a failed download."""
 import argparse
 import hashlib
 import pathlib
@@ -11,6 +11,12 @@ import urllib.request
 
 
 LORAS = (
+    (
+        "Motion_Repair_V2.safetensors",
+        "https://huggingface.co/JOKER141/MiniMax-H3-General-Motion-Continuity-Repair/resolve/8a5126beb17b7de5642ee056ff5a7b60ae0915c7/Motion_Repair_V2.safetensors",
+        "edfa0e2858caeba7be9108883f61da8525d3c58af998c94ac7a449d9603d7574",
+        155110272,
+    ),
     (
         "h3-realism-people-t2v-i2v-r2v.safetensors",
         "https://huggingface.co/fal/MiniMax-H3-Realism-People-LoRA/resolve/039cc8579d7aa357a882d7f4111b25da4f72dccc/h3-realism-people-t2v-i2v-r2v.safetensors",

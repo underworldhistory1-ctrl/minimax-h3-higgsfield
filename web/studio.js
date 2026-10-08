@@ -287,7 +287,7 @@ function sampleKey() {
 }
 function captureSettings(){
   const refs=state.mode==="refs";
-  const adapters=state.loras.filter(item=>item.enabled).map(item=>({name:item.name,strength:item.strength}));
+  const adapters=state.loras.filter(item=>item.enabled).map(item=>({name:item.name,strength:item.strength,refinement_strength:$("enableRefine").checked?(item.refinement_strength??(/Motion_Repair_V2/i.test(item.name)?.25:item.strength)):undefined}));
   if(method()==="turbo")adapters.push({name:"H3 Turbo",strength:0.9});
   return {
     mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
@@ -296,11 +296,12 @@ function captureSettings(){
     steps:Number($("steps").value),seed:Number($("seed").value),render_method:method(),
     loras:adapters,reference_detail:refs?$("refSize").value:null,
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
-      file:ref.file.name,video_soundtrack:!!ref.useAudio,
+      file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
       trim:ref.kind==="video"&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
       auto_fit:ref.kind==="video"?ref.fitVideo!==false:ref.kind==="image"?$("fitImages").checked:null})):[],
     start_frame:state.mode==="frames"?state.first?.file.name||null:null,
     end_frame:state.mode==="frames"?state.last?.file.name||null:null,
+    frame_references:state.mode==="frames"?[[state.first,"@start"],[state.last,"@end"]].filter(([item])=>item).map(([item,name])=>({name,type:"image",use_as:name==="@start"?"Start frame":"End frame",file:item.file.name,asset_id:item.assetId||null,thumbnail:H3StudioUX.captureThumbnail(item)})):[],
     prompt:$("prompt").value.slice(0,16000),
   };
 }
@@ -430,7 +431,7 @@ async function loadLoras(){
     const r=await fetch(api("/h3_studio/loras"));if(!r.ok)throw Error("unavailable");
     const names=(await r.json()).items||[];
     const existing=new Map(state.loras.map(item=>[item.name,item]));
-    state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:1});
+    state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:/Motion_Repair_V2/i.test(name)?.9:1});
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}
     const managed=state.loras.find(item=>item.name===turboName);if(managed)managed.enabled=false;
     state.lorasLoaded=true;
@@ -751,6 +752,9 @@ function currentRenderSpec() {
       role: r.role || (r.kind === "image" ? "character identity" : r.kind === "video" ? "motion" : "voice"),
       instruction: r.instruction || "",
       use_audio: !!r.useAudio,
+      fps:r.meta?.fps,
+      frame_count:r.meta?.frame_count,
+      duration:r.meta?.duration,
       file: r.file?.name
     })) : [],
     guides: state.guides.map(g=>({...g,file:undefined,filename:g.file?.name,relative_to_new_content:!!state.continuation})),
@@ -774,6 +778,8 @@ function currentRenderSpec() {
     refine: $("enableRefine") ? $("enableRefine").checked : false,
     enable_refine: $("enableRefine") ? $("enableRefine").checked : false,
     continuation: state.continuation || null,
+    control:state.control?.enabled?{...state.control}:null,
+    preparation_mode:$("preparationMode")?.value||"native",
   };
 }
 
@@ -782,6 +788,7 @@ function updatePreviewLive() {
   const tagsWrap = $("tagBindingsDisplay");
   if (!display) return;
   const spec = currentRenderSpec();
+  spec.preview_only=true;
   if (!spec.source_prompt) {
     display.textContent = "Write a prompt to see the compiled preview.";
     if (tagsWrap) tagsWrap.replaceChildren();
@@ -816,6 +823,7 @@ function updatePreviewLive() {
 
 function resolvedPrompt() {
   const spec = currentRenderSpec();
+  spec.preview_only=state.refs.some(r=>r.kind==="video"&&!r.meta?.frame_count);
   if (!spec.source_prompt) throw Error("Write the scene prompt first.");
   if (state.mode === "refs") {
     if (!state.refs.length) throw Error("Add at least one reference.");
@@ -891,6 +899,8 @@ function setBusy(value) {
   updateCapabilities();
   renderLoras();renderRefs();renderGuides();renderEstimates();
   refreshLabControls();
+  for(const id of ["preparationMode","preparePrompt","enableControl","controlKind","controlVideo","controlSource","controlMask","controlStrength"])if($(id))$(id).disabled=value;
+  if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function uploadOne(file,kind,onProgress=()=>{},onSent=()=>{},options={}) {
   return new Promise((resolve,reject)=>{
@@ -1099,6 +1109,7 @@ async function checkConnection() {
       state.modelsReady=ready.models||{};
       state.nodesReady=ready.nodes||null;
       await refreshLabCapabilities();
+      if(window.H3ConnectedStudio)await H3ConnectedStudio.refreshProvider();
       state.ramLimit=Number(ready.system_ram_limit_gb)||null;
       if(!state.nodesReady)throw Error("Update H3 Higgsfield to check the installed ComfyUI nodes.");
       if(!ready.quality?.h3_vae_tile_fix)throw Error("Update ComfyUI: the H3 VAE quality fix is missing.");
@@ -1111,7 +1122,8 @@ async function checkConnection() {
       if(state.mode==="frames")modeNodes.push("LoadImage");
       if(state.mode==="refs"){
         if(state.refs.some(ref=>ref.kind==="image"))modeNodes.push("LoadImage");
-        if(state.refs.some(ref=>ref.kind==="video"))modeNodes.push("LoadVideo","GetVideoComponents");
+        if(state.refs.some(ref=>ref.kind==="video"))modeNodes.push("LoadVideo","GetVideoComponents","ImageFromBatch");
+        if(state.refs.some(ref=>ref.kind==="video"&&ref.useAudio))modeNodes.push("TrimAudioDuration");
         if(state.refs.some(ref=>ref.kind==="audio"))modeNodes.push("LoadAudio");
       }
       if(state.loras.some(item=>item.enabled)||method()==="turbo")modeNodes.push("LoraLoaderModelOnly");
@@ -1153,12 +1165,13 @@ async function generate() {
   const epoch=++state.generationEpoch;
   let prompt,settings;
   try{
-    state.labJobId=null;state.runMeta=null;
+    state.labJobId=null;state.runMeta=null;state.preparedContext=null;
     if(state.continuation){const c=state.continuation;
       if(c.source_canvas&&(c.source_canvas.width!==state.width||c.source_canvas.height!==state.height))throw Error("Continuation must use the source canvas.");
       if(c.type==="generated"&&c.source_model!==(state.mode==="refs"?modelRef:modelFL))throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
     }
-    prompt=resolvedPrompt();
+    prompt=$("preparationMode")?.value==="ai"?$("prompt").value.trim():resolvedPrompt();
+    if(!prompt)throw Error("Write the scene prompt first.");
     const aspectLead=$("prompt").value.slice(0,300);
     const asksLandscape=/\b16\s*[:x/]\s*9\b/i.test(aspectLead),asksPortrait=/\b9\s*[:x/]\s*16\b/i.test(aspectLead);
     if(asksLandscape&&!asksPortrait&&state.height>state.width)throw Error("The prompt asks for 16:9, but Output settings is set to Portrait. Select Landscape before generating.");
@@ -1211,6 +1224,9 @@ async function generate() {
     const selectedMethod=method();
     settings=captureSettings();
     if(!await checkConnection())throw Error(state.labCapabilities?.inference_enabled===false?state.labCapabilities.reason:"Start ComfyUI or install the missing H3 models first.");
+    if($("enableRefine").checked&&!state.labCapabilities?.refine_ready)throw Error("Refinement is unavailable. Install its verified node and model, or turn it off.");
+    if(state.control?.enabled&&!state.labCapabilities?.controlnet_ready)throw Error("ControlNet 2.0 is unavailable on this server.");
+    if($("preparationMode")?.value==="ai"&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
     if(epoch!==state.generationEpoch)return;
     if(state.busy||state.running)throw Error("A previous render is still being recovered. Wait for its status before starting another.");
     if(method()!==selectedMethod)throw Error("The selected render method is unavailable on this server. Review the method and try again.");
@@ -1287,6 +1303,17 @@ async function generate() {
       if(!state.continuation.source_asset_id)throw Error("Continuation source asset is missing.");
       state.continuation.source_file=await projectCtrl.resolveAsset(state.continuation.source_asset_id);state.uploads.push(state.continuation.source_file);
     }
+    if(window.H3ConnectedStudio)await H3ConnectedStudio.controlUploads(sendFile,uploads);
+    if($("preparationMode")?.value!=="ai")prompt=resolvedPrompt();
+    if($("preparationMode")?.value==="ai"){
+      setProgress("Preparing prompt and reference relationships",6,null,true);
+      prompt=await H3ConnectedStudio.prepare(uploads,state.abortController.signal);
+    }
+    if(epoch!==state.generationEpoch)throw Error("Cancelled");
+    settings=captureSettings();
+    settings.control=state.control?.enabled?{...state.control}:null;
+    settings.refine=$("enableRefine").checked?{scale:1.25,steps:10,denoise:0.4}:null;
+    settings.preparation=state.preparedContext?{model:state.preparedContext.provider_model,fingerprint:state.preparedContext.fingerprint}:null;
     const token=crypto.randomUUID().replace(/-/g,"").slice(0,12);
     const workflow=graph(prompt,uploads,token);
     const units=workUnits(),sample_key=sampleKey();
@@ -1381,17 +1408,18 @@ function renderResults(){
   state.results.slice(0,state.visibleResults).forEach((entry,index)=>{
     const card=document.createElement("div");card.className="result"+(entry.kept?" pinned":"");
     const b=document.createElement("button");b.className="result-open";b.type="button";
-    const when=entry.meta.completedAt?new Date(entry.meta.completedAt).toLocaleString():"";
+
     const media=document.createElement("div");media.className="result-media";
     const img=document.createElement("img");img.src=thumbnailURL(entry.file);img.alt="Preview of video "+(index+1);img.loading="lazy";
     img.onerror=()=>{const fallback=document.createElement("span");fallback.className="result-fallback";fallback.textContent="▶";media.replaceChildren(fallback);};
     media.append(img);
     const label=document.createElement("div");label.className="result-label";
-    label.textContent=(Number.isFinite(Number(entry.meta.duration))&&Number(entry.meta.duration)>0?Number(entry.meta.duration).toFixed(1)+"s video":"H3 video")+(entry.kept?" · Pinned":"");
-    const detail=document.createElement("small");detail.textContent=(when||"Date unavailable")+(entry.meta.elapsed?" · Render "+fmt(entry.meta.elapsed):"");
+    label.textContent="H3 video"+(entry.kept?" · Pinned":"");
+    const detail=document.createElement("small"),settings=entry.meta?.settings||entry.file?.settings;
+    detail.textContent=[settings?.canvas,settings?.render_method==="native"?"Original":settings?.render_method].filter(Boolean).join(" · ")||"Settings unavailable";
     label.append(detail);b.append(media,label);
     b.setAttribute("aria-label",label.textContent);
-    b.onclick=()=>showVideo(entry);
+    b.onclick=()=>{showVideo(entry);openDetails(entry,b);};
     const details=document.createElement("button");details.className="result-details";details.type="button";
     details.textContent="Details";details.setAttribute("aria-label","Settings for video "+(index+1));
     details.onclick=()=>openDetails(entry,details);
@@ -1408,11 +1436,10 @@ function openDetails(entry,trigger){
   const row=(key,value)=>{
     const dt=document.createElement("dt"),dd=document.createElement("dd");
     dt.textContent=key;dd.textContent=value===null||value===undefined||value===""?"—":String(value);
+    if(["Model","Canvas","Render method","Sampling steps","Seed","Refinement","Control"].includes(key))dd.className="important";
+    if(key==="LoRAs")dd.className="adapter";
     grid.append(dt,dd);
   };
-  row("Completed",entry.meta?.completedAt?new Date(entry.meta.completedAt).toLocaleString():"—");
-  row("Video length",Number.isFinite(Number(entry.meta?.duration))&&Number(entry.meta.duration)>0?Number(entry.meta.duration).toFixed(1)+" s":"—");
-  row("Render time",Number.isFinite(Number(entry.meta?.elapsed))&&Number(entry.meta.elapsed)>0?fmt(Number(entry.meta.elapsed)):"—");
   if(settings){
     if(settings.partial){
       const note=document.createElement("p");note.className="tip";
@@ -1424,26 +1451,37 @@ function openDetails(entry,trigger){
     row("Mode",modeNames[settings.mode]||settings.mode);
     row("Model",settings.model);
     row("Canvas",[settings.quality,settings.canvas].filter(Boolean).join(" · "));
-    row("Requested length",settings.duration_seconds?Number(settings.duration_seconds).toFixed(1)+" s · "+settings.frames+" frames":"—");
+
     row("Render method",methodNames[settings.render_method]||settings.render_method);
     row("Sampling steps",settings.steps);
     row("Seed",settings.seed);
-    row("LoRAs",Array.isArray(settings.loras)?settings.loras.length?settings.loras.map(x=>x.name+" ("+x.strength+")").join(" · "):"None":"Not recorded");
+    row("LoRAs",Array.isArray(settings.loras)?settings.loras.length?settings.loras.map(x=>x.name+" · "+x.strength+(x.refinement_strength!==undefined?" / refinement "+x.refinement_strength:"")).join(" · "):"None":"Not recorded");
     if(settings.reference_detail)row("Reference detail",settings.reference_detail);
-    if(settings.start_frame)row("Start frame",settings.start_frame);
-    if(settings.end_frame)row("End frame",settings.end_frame);
-    if(Array.isArray(settings.references))row("References",settings.references.length?settings.references.map(x=>[x.name,x.type,x.use_as,x.file,x.video_soundtrack?"soundtrack on":""].filter(Boolean).join(" · ")).join("\n"):"None");
+    if(settings.refine)row("Refinement",settings.refine.scale+"× · "+settings.refine.steps+" steps · denoise "+settings.refine.denoise);
+    if(settings.control?.enabled)row("Control","Fun-ControlNet 2.0 · "+settings.control.kind+" · strength "+settings.control.strength+" · range "+settings.control.start_percent+"–"+settings.control.end_percent);
+    if(settings.preparation)row("Prompt preparation",settings.preparation.model||"AI context");
   }else{
     const note=document.createElement("p");note.className="tip";
-    note.textContent="This video predates saved settings. Its file and timing remain available.";
+    note.textContent="This video predates saved settings. Original settings and reference previews are unavailable.";
     content.append(note);
   }
   content.append(grid);
+  const savedRefs=[...(settings?.references||[]),...(settings?.frame_references||[])];
+  if(!settings?.frame_references){
+    if(settings?.start_frame)savedRefs.push({name:"@start",type:"image",use_as:"Start frame",file:settings.start_frame});
+    if(settings?.end_frame)savedRefs.push({name:"@end",type:"image",use_as:"End frame",file:settings.end_frame});
+  }
+  if(savedRefs.length){
+    const heading=document.createElement("h3");heading.textContent="References";content.append(heading);
+    H3StudioUX.referenceCards(content,savedRefs,id=>api("/h3_studio/lab/assets/"+encodeURIComponent(id)+"/file"));
+  }
   if(settings?.prompt){
     const heading=document.createElement("h3");heading.textContent="Prompt";
-    const prompt=document.createElement("div");prompt.className="detail-prompt";prompt.textContent=settings.prompt;
+    const prompt=document.createElement("div");prompt.className="detail-prompt";H3StudioUX.mentionNodes(prompt,settings.prompt);
     content.append(heading,prompt);
   }
+  const quality=document.createElement("button");quality.type="button";quality.className="button alt";quality.textContent="Check periodic brightness flicker";
+  quality.onclick=async()=>{quality.disabled=true;quality.textContent="Checking…";try{const response=await fetch(api("/h3_studio/lab/quality?filename="+encodeURIComponent(entry.file.filename)));const result=await response.json();if(!response.ok)throw Error(result.error||"Check unavailable");const message=document.createElement("p");message.className="tip";message.textContent=result.status==="review"?"Periodic brightness changes detected. Review this clip against Original quality with the same seed.":"No periodic brightness flicker detected in the sampled span. This check does not assess hair, skin, clothing shimmer or VAE seams.";quality.replaceWith(message);}catch(error){quality.textContent=error.message;quality.disabled=false;}};content.append(quality);
   settingsTrigger=trigger||document.activeElement;
   $("settingsDialog").showModal();
   $("settingsClose").focus();
@@ -1799,7 +1837,7 @@ setInterval(()=>{if(document.visibilityState==="visible")loadLibrary(true);},200
 setInterval(()=>{if(document.visibilityState==="visible")loadHistorySamples();},60000);
 addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")loadLibrary(true);});
 setInterval(()=>{
-  if(!state.busy)return;
+  if(!state.busy||!state.started)return;
   const elapsed=(Date.now()-state.started)/1000;
   $("timer").textContent="Elapsed: "+fmt(elapsed);
   if(state.phaseEtaAt){const left=(state.phaseEtaAt-Date.now())/1000;$("remaining").textContent=left<=0?"Estimate exceeded · still working":"Approx. time remaining: "+fmt(left);}
