@@ -2,6 +2,7 @@
 import math
 import subprocess
 import uuid
+import time
 from fractions import Fraction
 from PIL import Image
 from .paths import owned_path
@@ -34,7 +35,32 @@ def video_metadata(path):
     return result
 
 
-def prepare_control(source, input_root, width, height, length, *, start_seconds=0):
+def run_control_ffmpeg(command, *, cancel_event=None, timeout=180):
+    """Drain FFmpeg output while allowing cancellation and a bounded wall time."""
+    if cancel_event is not None and cancel_event.is_set():
+        raise ValueError('Control preparation cancelled')
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            if cancel_event is not None and cancel_event.is_set():
+                raise ValueError('Control preparation cancelled')
+            if time.monotonic() > deadline:
+                raise ValueError('Control preparation exceeded its time limit')
+            try:
+                stdout, stderr = process.communicate(timeout=.25)
+                if process.returncode:
+                    raise ValueError('Control video conversion failed')
+                return stdout
+            except subprocess.TimeoutExpired:
+                continue
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+
+def prepare_control(source, input_root, width, height, length, *, start_seconds=0, cancel_event=None):
     canvas(width, height, length)
     start_seconds = float(start_seconds)
     if not math.isfinite(start_seconds) or start_seconds < 0:
@@ -47,11 +73,11 @@ def prepare_control(source, input_root, width, height, length, *, start_seconds=
     filename = 'h3_studio_kf_control_' + uuid.uuid4().hex + '.mp4'
     output = owned_path(input_root, filename, require_file=False)
     try:
-        subprocess.run([get_ffmpeg_path(), '-nostdin', '-v', 'error', '-ss', str(start_seconds),
+        run_control_ffmpeg([get_ffmpeg_path(), '-nostdin', '-v', 'error', '-ss', str(start_seconds),
                         '-i', str(source_path), '-map', '0:v:0', '-an', '-vf',
                         f'fps=24,scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1',
                         '-frames:v', str(length), '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-                        '-threads', '2', '-y', str(output)], check=True, capture_output=True, timeout=180)
+                        '-threads', '2', '-y', str(output)], cancel_event=cancel_event, timeout=180)
         aligned = video_metadata(output)
         if aligned != {'width': width, 'height': height, 'fps': 24.0, 'frame_count': length}:
             raise ValueError('Prepared control failed exact frame alignment')

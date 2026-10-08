@@ -115,9 +115,42 @@ class PromptContextService:
                 aud+=1;binding.update(tag=f'<Audio {aud}>',audio_idx=aud)
                 parts.append({'type':'text','text':f'<Audio {aud}> (@{alias}): audio attached to H3, not listened to by this preparation provider. User transcript: '+str(ref.get('audio_transcript','Not supplied.'))})
             bindings.append(binding)
+        context_name=spec.get('control_context_filename')
+        if context_name:
+            control=spec.get('control')
+            if not isinstance(control,dict) or not control.get('enabled'):
+                raise ValueError('Control context requires enabled control guidance.')
+            if not isinstance(context_name,str) or not pathlib.PurePosixPath(context_name).name.startswith('h3_studio_kf_'):
+                raise ValueError('Choose an owned uploaded control source.')
+            context=owned_path(self.input_root,context_name)
+            if context.stat().st_size>500*1024*1024: raise ValueError('Control context video is too large.')
+            digest=hashlib.sha256()
+            with context.open('rb') as stream:
+                for chunk in iter(lambda:stream.read(1024*1024),b''): digest.update(chunk)
+            hashes.append(digest.hexdigest())
+            metadata=probe(context)
+            video=next((v for v in metadata.get('streams',[]) if v.get('codec_type')=='video'),None)
+            if video is None: raise ValueError('Control context lacks video.')
+            numerator,denominator=video.get('avg_frame_rate','0/1').split('/')
+            if abs(float(numerator)/float(denominator or 1)-24)>.02: raise ValueError('Control context must be aligned to24fps.')
+            frames=int(video.get('nb_frames') or round(float(video.get('duration') or metadata.get('format',{}).get('duration') or 0)*24))
+            if frames<length: raise ValueError('Control context is shorter than the selected span.')
+            parts.append({'type':'text','text':'CONTROL SOURCE CONTEXT: supplementary visual evidence for '+str(control.get('kind'))+'. This is NOT an attached native Picture/Video reference: do not invent native tags for these samples. Transfer only attributes requested by the user and the selected control goal; do not transfer source identity or location implicitly. Sample timestamps are processed-clip time, not output offsets.'})
+            for index in range(6):
+                timestamp=(length-1)/24*index/5
+                frame=subprocess.run(['ffmpeg','-v','error','-ss',str(timestamp),'-i',str(context),'-frames:v','1','-vf','scale=768:768:force_original_aspect_ratio=decrease','-f','image2pipe','-vcodec','mjpeg','pipe:1'],capture_output=True,timeout=15)
+                if frame.returncode or not frame.stdout: raise ValueError('Cannot sample the control source context.')
+                parts.append({'type':'text','text':f'Control source sample at processed clip {timestamp:.3f}s.'})
+                parts.append(picture_part(data=frame.stdout))
         spec['bindings']=bindings
         # Filename is intentionally excluded: content+intent determines cache identity.
         cache_spec=copy.deepcopy(spec)
+        cache_spec.pop('control_context_filename',None)
+        if context_name and isinstance(cache_spec.get('control'),dict):
+            # RGB evidence is content-hashed above; leased artifact names change
+            # every request without changing the user's intent or visual evidence.
+            for field in ('control_file','source_file','filename','source_filename','request_id','provenance'):
+                cache_spec['control'].pop(field,None)
         for ref in cache_spec.get('references',[]): ref.pop('filename',None)
         key=hashlib.sha256(json.dumps({'spec':cache_spec,'media_hashes':hashes,'provider':promptwriter.studio_provider_status()},ensure_ascii=False,sort_keys=True).encode()).hexdigest()
         if key in self.cache: return copy.deepcopy(self.cache[key])

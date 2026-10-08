@@ -123,7 +123,10 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
         if not ok:
             missing_reasons.append(f"Required model '{name}' is missing or incomplete.")
 
+    from .control_preprocess import preprocessor_status
+    preprocessors = preprocessor_status()
     return {
+        "control_preprocessors": preprocessors,
         "controlnet_ready": not control_missing,
         "controlnet_missing_reasons": control_missing,
         "controlnet": {"model_name": CONTROL_FILE, "weight_ready": control_weight, "native_schema_verified": native_control_schema},

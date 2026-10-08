@@ -306,7 +306,7 @@ async def upload_ref(request):
         resize = request.query.get("resize", "0") == "1"
         if not math.isfinite(trim_start) or not 0 <= trim_start <= 3600:
             raise ValueError("Invalid trim start.")
-        if trim_duration is not None and (not math.isfinite(trim_duration) or not 2 <= trim_duration <= 15):
+        if trim_duration is not None and (not math.isfinite(trim_duration) or not 2 <= trim_duration <= (15.1 if kind == "video" else 15)):
             raise ValueError("Trim length must be 2–15 seconds.")
         if kind == "image" and (trim_start or trim_duration is not None):
             raise ValueError("Images cannot have an audio/video trim.")
@@ -378,7 +378,7 @@ async def upload_ref(request):
                             if available < 2:
                                 raise ValueError(f"Trim start {trim_start:.2f}s leaves less than 2s of the {duration:.2f}s source video.")
                             if trim_duration > available:
-                                trim_duration = min(15, math.floor((available + 1e-6) * 100) / 100)
+                                trim_duration = min(15.1, math.floor((available + 1e-6) * 100) / 100)
                                 trim_adjusted = True
                     elif not 1.9 <= duration <= 15.1:
                         raise ValueError("H3 reference videos must be 2–15 seconds long. Select a 2–15 second trim.")

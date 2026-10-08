@@ -40,3 +40,5 @@ docs/lab/REVIEW_HANDOFF.md
 docs/lab/STATUS.md
 docs/lab/TEST_REPORT.md
 web/h3/queue-ui.js
+h3_lab/control_preprocess.py
+deploy/download_control_preprocessors.py

@@ -16,6 +16,8 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.waitForFunction(()=>state.promptProvider?.configured&&!state.projectLoading&&state.lorasLoaded);
     assert.match(await page.locator('#simulationBanner').textContent(),/No AI model has run/);
     assert.match(await page.locator('#writerStatus').textContent(),/SIMULATED/);
+    assert.equal(await page.locator('#controlInputType').inputValue(),'video','New controls default to ordinary video');
+    assert.equal(await page.evaluate(()=>{const current=state.control;state.control={enabled:false,kind:'canny'};H3ConnectedStudio.restoreControl();const result=$('controlInputType').value;state.control=current;H3ConnectedStudio.restoreControl();return result;}),'prepared','Legacy controls are restored as prepared maps');
     const capturedStart=(await(await fetch(base+'/__captured')).json()).length;
     const reference=Buffer.from(await(await fetch(base+'/__fixtures/reference.png')).arrayBuffer());
     const video=Buffer.from(await(await fetch(base+'/__fixtures/motion.mp4')).arrayBuffer());
@@ -52,6 +54,8 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart,'Foreign busy queue blocks preparation before generation');
     await simulationQueue({external:false,hold:false});
     await page.waitForFunction(()=>state.preparedContext&&!state.busy);
+    assert.equal(await page.evaluate(()=>state.waitingPreparation),false);
+    assert.ok(!(await page.locator('#queueInfo').textContent()).includes('Your prompt preparation is waiting'),'Successful preview clears stale queue waiting note');
     assert.match(await page.locator('#compiledPromptDisplay').textContent(),/<Subject 1>/);
     assert.match(await page.locator('#compiledPromptDisplay').textContent(),/<Video 1>/);
     await page.locator('#prompt').fill('Use @hero in a quiet station with @camera camera guidance. No music or dialogue.');
@@ -87,7 +91,12 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.locator('#controlPanel').evaluate(el=>el.open=true);
     await page.locator('#enableControl').check();await page.locator('#controlKind').selectOption('inpaint');
     await page.locator('#controlSource').setInputFiles({name:'source.mp4',mimeType:'video/mp4',buffer:video});
-    await page.locator('#controlMask').setInputFiles({name:'mask.png',mimeType:'image/png',buffer:mask});
+    const makeMask=async(width,height)=>Buffer.from(await page.evaluate(({width,height})=>{const c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d');ctx.fillStyle='black';ctx.fillRect(0,0,width,height);ctx.fillStyle='white';ctx.fillRect(width/2,0,width/2,height);return c.toDataURL('image/png').split(',')[1];},{width,height}),'base64');
+    await page.locator('#controlMask').setInputFiles({name:'bad-mask.png',mimeType:'image/png',buffer:await makeMask(320,320)});
+    let maskUploads=0;const countMaskUploads=request=>{if(request.method()==='POST'&&request.url().includes('/h3_studio/upload_ref'))maskUploads++;};page.on('request',countMaskUploads);
+    await page.locator('#generate').click();await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('Mask aspect'));
+    assert.equal(maskUploads,0,'Mismatched mask fails before source upload');page.off('request',countMaskUploads);
+    await page.locator('#controlMask').setInputFiles({name:'mask.png',mimeType:'image/png',buffer:await makeMask(320,176)});
     await page.locator('#generate').click();
     for(let attempt=0;attempt<100;attempt++){
       if((await(await fetch(base+'/__captured')).json()).length===capturedStart+2)break;
@@ -98,18 +107,99 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+2);
     const controlNode=Object.values(controlCapture.prompt).find(node=>node.class_type==='MiniMaxH3FunControlNetApply');
     assert.ok(controlNode);assert.ok(controlNode.inputs.mask);assert.ok(controlNode.inputs.source_video);assert.ok(!controlNode.inputs.control_video);
+    const maskConvert=controlCapture.prompt[controlNode.inputs.mask[0]],maskLoader=controlCapture.prompt[maskConvert.inputs.image[0]];
+    assert.ok(maskLoader,'Derived aligned mask is submitted');
+    const fittedMask=await(await fetch(base+'/__simulation/mask_info?filename='+encodeURIComponent(maskLoader.inputs.image))).json();
+    assert.deepEqual([fittedMask.width,fittedMask.height,fittedMask.values],[1280,704,[0,255]],'Nearest fitting preserves binary mask values');
+    assert.equal(await page.evaluate(async()=>{const b=await createImageBitmap(state.controlInputs.mask.file);const w=b.width;b.close();return w;}),320,'Original project mask remains intact');
     assert.ok(Object.values(controlCapture.prompt).some(node=>node.class_type==='MiniMaxH3ImageToVideo'));
     assert.ok(!Object.values(controlCapture.prompt).some(node=>node.class_type==='MiniMaxH3ReferenceToVideo'));
-    await page.locator('#enableControl').uncheck();
-    await page.locator('#enableRefine').check();
+    await page.locator('#controlInputType').selectOption('prepared');
+    await page.locator('#controlKind').selectOption('pose');
+    await page.locator('#controlInputType').selectOption('video');
+    assert.equal(await page.locator('#controlKind').inputValue(),'pose','Unavailable ordinary goal is never silently replaced');
+    assert.equal(await page.locator('#controlKind option[value="pose"]').evaluate(el=>el.disabled),true);
+    await page.locator('#controlVideo').setInputFiles({name:'ordinary-source.mp4',mimeType:'video/mp4',buffer:video});
+    let unsupportedUploads=0;
+    const countUnsupportedUploads=request=>{if(request.method()==='POST'&&request.url().includes('/h3_studio/upload_ref'))unsupportedUploads++;};
+    page.on('request',countUnsupportedUploads);
+    const unavailableReason=await page.locator('#controlPreprocessorStatus').textContent();
     await page.locator('#generate').click();
-    for(let attempt=0;attempt<100;attempt++){
+    await page.waitForFunction(reason=>document.querySelector('#error').textContent.includes(reason),unavailableReason);
+    assert.equal(unsupportedUploads,0,'Missing real pose extractor blocks before upload');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+2);
+    page.off('request',countUnsupportedUploads);
+    await page.locator('#controlKind').selectOption('canny');
+    await page.locator('#durationSeconds').fill('15.1');await page.locator('#durationSeconds').blur();
+    const previewControlRequests=[],controlContexts=[];
+    const captureContext=request=>{if(request.method()!=='POST')return;if(request.url().includes('/lab/control/prepare'))previewControlRequests.push(request.postDataJSON());if(request.url().includes('/lab/prompt/prepare'))controlContexts.push(request.postDataJSON());};page.on('request',captureContext);
+    await page.locator('#controlInputType').selectOption('prepared');
+    await page.locator('#preparePrompt').click();await page.waitForFunction(()=>!state.busy&&!!state.preparedContext);
+    assert.equal(previewControlRequests.length,0,'Prepared map preview skips RGB context alignment');
+    assert.equal(controlContexts.at(-1).control_context_filename,undefined,'Prepared map is never presented as RGB source evidence');
+    await page.locator('#controlInputType').selectOption('video');
+    await page.locator('#preparePrompt').click();await page.waitForFunction(()=>!state.busy&&!!state.preparedContext);
+    assert.equal(previewControlRequests.at(-1).input_type,'prepared','Prompt preview aligns source without extracting guidance');
+    assert.equal(previewControlRequests.at(-1).kind,'inpaint');assert.ok(controlContexts.at(-1).control_context_filename,'Prompt preview supplies untagged source evidence');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+2,'Prompt preview never submits a model graph');
+    await page.locator('#durationSeconds').fill('15.1');await page.locator('#durationSeconds').blur();
+    let ordinaryReady;
+    const ordinaryResultPromise=new Promise(resolve=>ordinaryReady=resolve);
+    const captureOrdinary=async response=>{if(response.url().includes('/h3_studio/lab/control/prepare')&&response.request().method()==='POST'&&response.request().postDataJSON().input_type==='video')ordinaryReady({request:response.request().postDataJSON(),result:await response.json()});};
+    page.on('response',captureOrdinary);
+    await page.locator('#generate').click();
+    const ordinary=await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(Error('Ordinary Canny preparation did not return within 60 seconds.')),60000);
+      ordinaryResultPromise.then(value=>{clearTimeout(timeout);resolve(value);},error=>{clearTimeout(timeout);reject(error);});
+    });
+    for(let attempt=0;attempt<200;attempt++){
       if((await(await fetch(base+'/__captured')).json()).length===capturedStart+3)break;
       await page.waitForTimeout(100);
     }
     await page.waitForFunction(()=>!state.busy&&!state.running);
-    const refineCapture=(await(await fetch(base+'/__captured')).json()).at(-1);
+    page.off('response',captureOrdinary);
     assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3);
+    assert.equal(ordinary.request.kind,'canny');assert.equal(ordinary.request.start_seconds,0);
+    assert.equal(controlContexts.at(-1).control_context_filename,ordinary.result.source_file,'AI preparation receives normalized RGB evidence instead of Canny map');page.off('request',captureContext);
+    assert.equal(ordinary.result.provenance.preprocessor,'opencv_canny_100_200');assert.equal(ordinary.result.provenance.device,'cpu');
+    assert.equal(Number(await page.locator('#duration').inputValue()),141,'Output clamps down to real six-second source span without padding');
+    assert.match(await page.locator('#controlStatus').textContent(),/Matched output to source span/);
+    const mapInfo=await(await fetch(base+'/__simulation/control_file_info?filename='+encodeURIComponent(ordinary.result.filename))).json();
+    const sourceInfo=await(await fetch(base+'/__simulation/control_file_info?filename='+encodeURIComponent(ordinary.request.filename))).json();
+    assert.deepEqual([mapInfo.width,mapInfo.height,mapInfo.fps,mapInfo.frame_count],[1280,704,24,141]);
+    assert.equal(mapInfo.grayscale,true);assert.equal(sourceInfo.grayscale,false);assert.ok(mapInfo.pixel_range[0]<10&&mapInfo.pixel_range[1]>200,'Actual Canny output contains dark background and bright extracted edges');
+    assert.notEqual(mapInfo.sha256,sourceInfo.sha256);
+    const ordinaryGraph=(await(await fetch(base+'/__captured')).json()).at(-1).prompt;
+    const ordinaryApply=Object.values(ordinaryGraph).find(node=>node.class_type==='MiniMaxH3FunControlNetApply');
+    const ordinarySplit=ordinaryGraph[ordinaryApply.inputs.control_video[0]];
+    assert.equal(ordinaryGraph[ordinarySplit.inputs.video[0]].inputs.file,ordinary.result.filename);
+    assert.equal(ordinaryApply.inputs.source_video,undefined,'Normalized extraction source is not accidentally connected as masked source');
+    assert.equal(await page.evaluate(()=>state.controlPreparationId),null);
+    const beforeCancelCount=(await(await fetch(base+'/__captured')).json()).length;
+    await page.locator('#generate').click();
+    await page.waitForFunction(()=>!!state.controlPreparationId&&state.busy);
+    const cancelledControlId=await page.evaluate(()=>state.controlPreparationId);
+    await page.locator('#cancel').click();
+    await page.waitForFunction(()=>!state.busy&&state.controlPreparationId===null);
+    let cancelledControl;
+    for(let attempt=0;attempt<100;attempt++){
+      cancelledControl=await(await fetch(base+'/h3_studio/lab/control/progress/'+encodeURIComponent(cancelledControlId))).json();
+      if(cancelledControl.state==='cancelled')break;
+      await page.waitForTimeout(100);
+    }
+    assert.equal(cancelledControl.state,'cancelled','Cancel stops the owned CPU extraction task');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,beforeCancelCount,'Cancelled extraction never submits a GPU graph');
+    await page.locator('#durationSeconds').fill('5.2');await page.locator('#durationSeconds').blur();
+    await page.locator('#enableControl').uncheck();
+    await page.locator('#enableRefine').check();
+    await page.locator('#generate').click();
+    for(let attempt=0;attempt<100;attempt++){
+      if((await(await fetch(base+'/__captured')).json()).length===capturedStart+4)break;
+      await page.waitForTimeout(100);
+    }
+    await page.waitForFunction(()=>!state.busy&&!state.running);
+    const refineCapture=(await(await fetch(base+'/__captured')).json()).at(-1);
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+4);
     assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='MinimaxH3LatentUpscaler3D'));
     assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='LTXVSeparateAVLatent'));
     assert.ok(Object.values(refineCapture.prompt).some(node=>node.class_type==='LTXVConcatAVLatent'));
@@ -128,7 +218,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.locator('#generate').click();
     await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('Refinement is unavailable'));
     assert.equal(blockedUploads,0,'Missing Refine capability fails before any media upload');
-    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3);
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+4);
     page.off('request',countBlockedUploads);
     await page.unroute('**/h3_studio/lab/capabilities');await page.evaluate(()=>checkConnection());
     await page.locator('#enableRefine').uncheck();
@@ -140,7 +230,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.locator('#generate').click();
     await page.waitForFunction(()=>document.querySelector('#error').textContent.includes('ControlNet requires Text or Frames'));
     assert.equal(blockedUploads,0,'ControlNet with References fails before any media upload');
-    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+3,'Unsupported control combination never reaches the queue');
+    assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart+4,'Unsupported control combination never reaches the queue');
     page.off('request',countBlockedUploads);await page.locator('#enableControl').uncheck();
     const queueBefore=await simulationQueue({external:true,hold:true});
     await page.locator('#generate').click();
@@ -183,7 +273,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await page.screenshot({path:path.join(output,'H3_Studio_Mobile.png'),fullPage:true});
     await simulationQueue({external:false,hold:false});
     assert.deepEqual(errors,[]);
-    console.log('PASS: local simulation, preparation cancel/retry behind foreign queue, own-only cancel, foreign error isolation, queue details, reference/control graphs, blue mentions, lime desktop/mobile screenshots. No GPU/provider inference.');
+    console.log('PASS: real CPU Canny extraction/source-span matching/cancel, unavailable pose preflight, legacy prepared restore, Refine graph, preparation cancel/retry, own-only queue cancel, foreign error/preview isolation, glass desktop/mobile screenshots. No GPU/provider inference.');
   }catch(error){console.error(await page.evaluate(()=>({error:document.querySelector('#error')?.textContent,preparation:document.querySelector('#preparationStatus')?.textContent,control:document.querySelector('#controlStatus')?.textContent,busy:state.busy})));throw error;}
   finally{await simulationQueue({external:false,hold:false});await browser.close();}
 })();

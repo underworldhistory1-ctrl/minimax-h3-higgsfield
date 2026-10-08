@@ -10,6 +10,7 @@ MODEL_SOURCE="${H3_MODEL_SOURCE:-huggingface}"
 QWEN_IMAGE_PROFILES="${QWEN_IMAGE_PROFILES:-int8}"
 H3_INSTALL_REFINE="${H3_INSTALL_REFINE:-1}"
 H3_INSTALL_CONTROLNET="${H3_INSTALL_CONTROLNET:-0}"
+export AUX_ANNOTATOR_CKPTS_PATH="${AUX_ANNOTATOR_CKPTS_PATH:-$DATA_ROOT/models/controlnet_aux}"
 READY_FILE=/run/h3/ready.flag
 
 log() { printf '[h3-salad] %s\n' "$*"; }
@@ -85,6 +86,7 @@ download_models() {
         prepare_feature_model download_refine_models.py "Refine"
     fi
     if [[ "$H3_INSTALL_CONTROLNET" == 1 ]]; then
+        prepare_feature_model download_control_preprocessors.py "CPU pose/depth preprocessors"
         prepare_feature_model download_control_models.py "ControlNet 2.0"
     fi
     if python "$H3_NODE/deploy/download_h3_models.py" "$COMFY_ROOT" --offline-check >/dev/null 2>&1 \

@@ -34,7 +34,7 @@ die() { echo "$*" >&2; exit 1; }
 python() {
     echo "$*"
     case "$1" in
-        */download_refine_models.py|*/download_control_models.py)
+        */download_refine_models.py|*/download_control_models.py|*/download_control_preprocessors.py)
             if [[ "${3:-}" == --offline-check ]]; then return 1; fi ;;
     esac
     return 0
@@ -58,6 +58,9 @@ python() {
                     commands = [line for line in result.stdout.splitlines()
                                 if f"download_{feature}_models.py" in line and "--offline-check" not in line]
                     self.assertEqual(bool(commands), feature in expected, result.stdout)
+                preprocessors = [line for line in result.stdout.splitlines()
+                                 if "download_control_preprocessors.py" in line and "--offline-check" not in line]
+                self.assertEqual(bool(preprocessors), "control" in expected)
                 if source == "remote":
                     self.assertIn("verified Refine weights", result.stderr)
 
@@ -68,10 +71,13 @@ python() {
         self.assertIn("https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git", dockerfile)
         self.assertIn('python -m pip install --no-cache-dir -r "${COMFY_ROOT}/custom_nodes/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"', dockerfile)
         self.assertIn('import torch, einops, safetensors, typing_extensions', dockerfile)
+        self.assertIn('ARG AUX_REVISION=0cd290477128d42cdc3e76a826a402d866e8c684', dockerfile)
+        self.assertIn('from deploy.download_control_preprocessors import install_dependencies', dockerfile)
 
     def test_windows_default_installs_refine_and_explicit_skip_omits_it(self):
         from deploy import install_windows
-        for extra_args, expected in (([], True), (["--no-refine"], False), (["--refine"], True)):
+        for extra_args, expected, control in (([], True, False), (["--no-refine"], False, False),
+                                              (["--refine"], True, False), (["--controlnet"], True, True)):
             with self.subTest(extra_args=extra_args), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 (root / "main.py").touch()
@@ -107,8 +113,17 @@ python() {
                 if expected:
                     self.assertIn("40316cf008b2fd8663263270669eb4da23f89d2c", refine_nodes[0].args)
                     self.assertEqual(refine_downloads[0].args[-1], root)
-                self.assertFalse(any(any(str(arg).endswith("download_control_models.py") for arg in entry.args)
-                                     for entry in call.call_args_list))
+                controls = [entry for entry in call.call_args_list
+                            if any(str(arg).endswith("download_control_models.py") for arg in entry.args)]
+                preprocessors = [entry for entry in call.call_args_list
+                                 if any(str(arg).endswith("download_control_preprocessors.py") for arg in entry.args)]
+                self.assertEqual(bool(controls), control)
+                self.assertEqual(bool(preprocessors), control)
+                if control:
+                    self.assertIn("--install-dependencies", preprocessors[0].args)
+                    aux_nodes = [entry for entry in speed_node.call_args_list if "comfyui_controlnet_aux" in entry.args]
+                    self.assertEqual(len(aux_nodes), 1)
+                    self.assertIn("0cd290477128d42cdc3e76a826a402d866e8c684", aux_nodes[0].args)
 
     def test_salad_image_pins_combined_h3_and_qwen_comfy_revision(self):
         dockerfile = (ROOT / "Dockerfile.salad").read_text(encoding="utf-8")

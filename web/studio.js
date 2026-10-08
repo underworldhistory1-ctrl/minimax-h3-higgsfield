@@ -1224,10 +1224,13 @@ async function generate() {
     const selectedMethod=method();
     settings=captureSettings();
     if(!await checkConnection())throw Error(state.labCapabilities?.inference_enabled===false?state.labCapabilities.reason:"Start ComfyUI or install the missing H3 models first.");
+    if(epoch!==state.generationEpoch)return;
     if($("enableRefine").checked&&!state.labCapabilities?.refine_ready)throw Error("Refinement is unavailable. Install its verified node and model, or turn it off.");
     if(state.control?.enabled&&!state.labCapabilities?.controlnet_ready)throw Error("ControlNet 2.0 is unavailable on this server.");
+    if(state.control?.enabled&&window.H3ConnectedStudio)H3ConnectedStudio.validateControl();
     if(state.control?.enabled&&(state.mode==="refs"||state.continuation||$("enableRefine").checked))throw Error("ControlNet requires Text or Frames without continuation or Refine. Change this combination before uploading.");
     if($("enableRefine").checked&&state.continuation)throw Error("Refinement cannot be combined with continuation in this version. Turn one off before uploading.");
+    if(state.control?.enabled&&window.H3ConnectedStudio){await H3ConnectedStudio.planControl();settings=captureSettings();}
     if($("preparationMode")?.value==="ai"&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
     if(epoch!==state.generationEpoch)return;
     if(state.busy||state.running)throw Error("A previous render is still being recovered. Wait for its status before starting another.");
@@ -1246,14 +1249,15 @@ async function generate() {
   $("resultCard").classList.add("hidden");
   try{
     const uploads={first:null,last:null,refs:new Map(),guides:new Map()};
-    const totalFiles=(state.mode==="frames"?Number(!!state.first)+Number(!!state.last):state.mode==="refs"?state.refs.length:0)+state.guides.length;
+    const controlFiles=state.control?.enabled?(state.control.kind==="inpaint"?Number(!!state.controlInputs?.source)+Number(!!state.controlInputs?.mask):Number(!!state.controlInputs?.video)):0;
+    const totalFiles=controlFiles+(state.mode==="frames"?Number(!!state.first)+Number(!!state.last):state.mode==="refs"?state.refs.length:0)+state.guides.length;
     let fileIndex=0;
     const sendFile=async(file,kind,label,ref=null)=>{
       const index=++fileIndex;
       const progress=(loaded,total)=>{
         const pct=Math.min(99,Math.floor(100*loaded/Math.max(total,1)));
         uploadMessage("Uploading "+index+" of "+totalFiles+" · "+label+" · "+fmtBytes(loaded)+" / "+fmtBytes(total)+" ("+pct+"%)",pct);
-        setProgress("Uploading inputs",2+Math.floor(2*((index-1)+pct/100)/totalFiles),null,true);
+        setProgress("Uploading inputs",2+Math.floor(2*((index-1)+pct/100)/Math.max(1,totalFiles)),null,true);
         if(ref&&ref.uploadProgress!==pct){ref.uploadProgress=pct;renderRefs();}
       };
       progress(0,file.size);
@@ -1369,7 +1373,9 @@ async function generate() {
 $("generate").onclick=generate;
 $("cancel").onclick=async()=>{
   ++state.generationEpoch;
+  const preparationId=state.controlPreparationId;
   state.abortController?.abort();
+  if(preparationId){try{await post("/h3_studio/lab/control/cancel/"+encodeURIComponent(preparationId),{});}catch{info("Control preparation cancellation could not be confirmed; checking its status.",true);}}
   const id=state.running;
   state.running=null;
   if(!id){setProgress("Cancelling upload or queue request",0,null,true);return;}

@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import sys
 import uuid
+import hashlib
+import io
 
 from aiohttp import web
 from PIL import Image, ImageDraw
@@ -82,7 +84,8 @@ def create_app(storage):
     # Patches apply only inside this dedicated simulator process.
     promptwriter.studio_provider_status = lambda: {'configured': True, 'model': 'SIMULATED deterministic formatter', 'simulation': True, 'reason': 'No provider/model connection.'}
     promptwriter.studio_chat = mock_chat
-    lab_routes.check_capabilities = lambda *args: dict(CAPS)
+    from h3_lab.control_preprocess import preprocessor_status
+    lab_routes.check_capabilities = lambda *args: {**CAPS, 'control_preprocessors': preprocessor_status()}
 
     class SimulatedComfy:
         async def submit_prompt(self, spec, extra_data):
@@ -136,6 +139,10 @@ def create_app(storage):
             data = await field.read(); kind = request.query.get('kind', 'image')
             name = 'h3_studio_kf_' + uuid.uuid4().hex + pathlib.Path(field.filename).suffix
             destination = inputs / name; destination.write_bytes(data)
+            if kind == 'video' and request.query.get('trim_duration'):
+                trimmed = inputs / ('h3_studio_kf_trim_' + uuid.uuid4().hex + '.mp4')
+                subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-ss', request.query.get('trim_start', '0'), '-i', str(destination), '-t', request.query['trim_duration'], '-vf', 'fps=24', '-c:v', 'libx264', '-preset', 'ultrafast', '-threads', '2', '-c:a', 'aac', '-y', str(trimmed)], capture_output=True, check=True, timeout=60)
+                destination.unlink(); destination = trimmed; name = trimmed.name
             info = {'name': name, 'kind': kind}
             if kind == 'image':
                 with Image.open(destination) as image: info.update(width=image.width, height=image.height)
@@ -151,6 +158,21 @@ def create_app(storage):
             body = await request.json(); name = body['filename']; metadata.setdefault(name, {})['settings'] = body['settings']; save(); return web.json_response({'ok': True})
         if path == '/h3_studio/verify_video': return web.json_response({'ok': True, 'has_video': True, 'has_audio': True, 'simulation': True})
         if path == '/__captured': return web.json_response(captured)
+        if path == '/__simulation/control_file_info':
+            from h3_lab.control import video_metadata
+            from PIL import ImageChops
+            file = owned_path(inputs, request.query['filename'])
+            frame = subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-i', str(file), '-frames:v', '1', '-f', 'image2pipe', '-vcodec', 'png', 'pipe:1'], capture_output=True, check=True, timeout=30).stdout
+            with Image.open(io.BytesIO(frame)) as image:
+                red, green, blue = image.convert('RGB').split()
+                gray = ImageChops.difference(red, green).getbbox() is None and ImageChops.difference(red, blue).getbbox() is None
+                extrema = red.getextrema()
+            return web.json_response({**video_metadata(file), 'sha256': hashlib.sha256(file.read_bytes()).hexdigest(), 'grayscale': gray, 'pixel_range': extrema})
+        if path == '/__simulation/mask_info':
+            file = owned_path(inputs, request.query['filename'])
+            with Image.open(file) as image:
+                values = sorted(set(image.convert('L').getdata()))
+                return web.json_response({'width': image.width, 'height': image.height, 'values': values})
         if path == '/__simulation/queue':
             if request.method == 'POST':
                 body = await request.json()

@@ -14,7 +14,13 @@ Preparation waits for an empty render queue. For shared-GPU providers, `/unload`
 
 Refinement dependencies are installed by default (the weight is about690MB); activation remains optional. Windows: `./install.ps1 -ControlNet` also installs optional ControlNet; use `-SkipRefine` to omit refinement dependencies. Linux: set `H3_INSTALL_CONTROLNET=1` for ControlNet, or `H3_INSTALL_REFINE=0` to explicitly skip refinement. Download scripts pin revisions and verify SHA-256. Optional features remain disabled until their nodes and model files pass readiness checks.
 
-Fun-ControlNet Union 2.0 is a structural model patch, not a LoRA. Use Text or Frames mode with a **prepared** pose/depth/canny/hed/mlsd/scribble/layout/gray representation. The UI does not automatically extract these from arbitrary video. Inpaint accepts a source video and a canvas-sized black/white PNG mask (white regenerates), with optional control representation. Files are aligned to 24 fps and the selected canvas/frame count; short clips are rejected rather than padded. References mode, continuation and refinement cannot be combined with ControlNet in this integration.
+Fun-ControlNet Union 2.0 is a structural model patch, not a LoRA. In Text or Frames mode, the default input is an **ordinary video**: choose body motion (DWPose), scene structure (Depth Anything V2 Small), outlines (OpenCV Canny), or grayscale lighting. The server extracts the selected representation on CPU, aligns it to the selected canvas at 24 fps, and validates exact dimensions/frame count. Pose/depth require the optional pinned auxiliary source and verified weights; unavailable extractors are disabled explicitly. HED, MLSD, scribble and layout remain advanced prepared-map inputs. No substitute extractor is silently selected.
+
+The selected source span automatically clamps generation down to the native 5+17k frame lattice when shorter than the requested duration; it does not loop or pad. Inpaint accepts an ordinary source video and a static binary mask (white regenerates). A source-sized mask is fitted with nearest-neighbor sampling using the source's canvas transformation; incompatible aspect ratios fail before uploads. References mode, continuation and refinement cannot be combined with ControlNet in this integration.
+
+CPU preparation reports frame progress and supports cancellation with derived-file cleanup. A content-verified map cache retains at most eight entries/256 MiB, checks dependencies before reuse, and issues fresh per-generation files. AI preparation receives six sampled RGB source frames as supplementary evidence without inventing native reference tags. Preview aligns this RGB source without extracting a full control map. Prepared maps alone are not presented as RGB source evidence. Prompt caching ignores transient preparation IDs/artifact names while retaining semantic settings and media hashes.
+
+Optional ControlNet installation also installs the pinned preprocessing dependencies and hash-verified DWPose/Depth weights. Existing working ONNX Runtime installations with CPU support are preserved, including GPU-enabled runtimes used by other projects; a pinned CPU runtime is installed only when absent. Broken existing runtimes stop installation with an explicit error.
 
 General Motion Continuity Repair V2 is an optional LoRA (`Motion_Repair_V2.safetensors`), initially 0.9 when selected. With refinement its second-pass strength is 0.25. These defaults follow publisher guidance, not project-specific visual proof. Refine is a separate 10-step pass, scale 1.25, denoise 0.4; it is not a certified flicker cure.
 
@@ -38,7 +44,7 @@ Neither Fun-ControlNet nor promptwriter is a verified replacement for the propri
 
 ## Local simulation
 
-Run `python scripts/studio_preview.py --port 18772` and open the printed localhost URL. The visible simulation banner identifies the deterministic provider and synthetic clips. Real project persistence, media preparation and graph validation are exercised without downloading weights or contacting a GPU.
+Run `python scripts/studio_preview.py --port 18772` and open the printed localhost URL. The visible simulation banner identifies the deterministic provider and synthetic clips. Real project persistence, CPU Canny/grayscale extraction, media preparation and graph validation are exercised without downloading weights or contacting a GPU. Local pose/depth inference and production provider/GPU renders were not executed.
 
 ## Primary sources checked
 
@@ -49,3 +55,6 @@ Run `python scripts/studio_preview.py --port 18772` and open the printed localho
 - [General Motion Continuity Repair publisher](https://huggingface.co/JOKER141/MiniMax-H3-General-Motion-Continuity-Repair)
 - [Latent upscaler extension](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler)
 - [Upscaler flicker report, issue 26](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler/issues/26)
+
+- [Fun-ControlNet Union 2.0 publisher](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union-2.0)
+- [Pinned auxiliary preprocessors](https://github.com/Fannovel16/comfyui_controlnet_aux/tree/0cd290477128d42cdc3e76a826a402d866e8c684)

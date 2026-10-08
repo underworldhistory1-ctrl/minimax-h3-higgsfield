@@ -46,7 +46,7 @@ RUNTIME_FILES=(
     workflows/h3_t2v_smoke_ui.json workflows/h3_t2v_smoke_api.json
     scripts/verify_h3_video.py
     deploy/activate_h3.py deploy/bootstrap_h3_server.sh
-    deploy/download_refine_models.py deploy/download_control_models.py deploy/download_h3_models.sh deploy/download_optional_loras.py deploy/download_qwen_image_models.py
+    deploy/download_control_preprocessors.py deploy/download_refine_models.py deploy/download_control_models.py deploy/download_h3_models.sh deploy/download_optional_loras.py deploy/download_qwen_image_models.py
     deploy/make_h3_landing.py deploy/verify_h3_server.py
     docs/COMPATIBILITY_MATRIX_AR.md docs/GRAPH_MAP.md docs/UX_FLOW.md
 )
@@ -215,6 +215,10 @@ if [[ "${H3_INSTALL_REFINE:-1}" == "1" ]]; then
 fi
 
 if [[ "${H3_INSTALL_CONTROLNET:-0}" == "1" ]]; then
+    install_speed_node "comfyui_controlnet_aux" \
+        "https://github.com/Fannovel16/comfyui_controlnet_aux.git" \
+        "0cd290477128d42cdc3e76a826a402d866e8c684"
+    "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_preprocessors.py" "$COMFY_ROOT" --install-dependencies
     "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_models.py" "$COMFY_ROOT"
 fi
 

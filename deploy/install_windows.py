@@ -30,7 +30,7 @@ RUNTIME_FILES = (
     "workflows/h3_t2v_ui.json", "workflows/h3_t2v_api.json",
     "workflows/h3_t2v_smoke_ui.json", "workflows/h3_t2v_smoke_api.json",
     "scripts/verify_h3_video.py", "deploy/activate_h3.py",
-    "deploy/download_refine_models.py", "deploy/download_control_models.py", "deploy/download_h3_models.py", "deploy/download_optional_loras.py", "deploy/download_qwen_image_models.py",
+    "deploy/download_control_preprocessors.py", "deploy/download_refine_models.py", "deploy/download_control_models.py", "deploy/download_h3_models.py", "deploy/download_optional_loras.py", "deploy/download_qwen_image_models.py",
     "deploy/make_h3_landing.py", "deploy/verify_h3_server.py",
     "docs/COMPATIBILITY_MATRIX_AR.md", "docs/GRAPH_MAP.md", "docs/UX_FLOW.md",
 )
@@ -405,6 +405,10 @@ def main():
         call(python, "-c", "import torch, einops, safetensors, typing_extensions")
         call(python, PROJECT / "deploy" / "download_refine_models.py", root)
     if args.controlnet:
+        speed_node(root, git, "comfyui_controlnet_aux",
+                   "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
+                   "0cd290477128d42cdc3e76a826a402d866e8c684")
+        call(python, PROJECT / "deploy" / "download_control_preprocessors.py", root, "--install-dependencies")
         call(python, PROJECT / "deploy" / "download_control_models.py", root)
     if args.qwen_image_profiles:
         call(python, PROJECT / "deploy" / "download_qwen_image_models.py", root,
