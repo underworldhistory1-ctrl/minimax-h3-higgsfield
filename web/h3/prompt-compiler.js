@@ -59,8 +59,13 @@
     }
   }
 
-  function parseStructuredSections(prompt) {
-    const sectionRegex = /^([a-z_]+):\s*/gim;
+  function parseStructuredSections(prompt, tolerant = false) {
+    // Scene headings such as STYLE and CAMERA belong to the description.
+    const names = [...new Set([...NATIVE_REF_SECTIONS, ...NATIVE_TEXT_SECTIONS])];
+    const pattern = names.map(name => name.split('_').join('[ _-]+')).join('|');
+    const sectionRegex = tolerant
+      ? new RegExp('^[ \\t]*(?:#{1,6}[ \\t]+)?(?:\\*\\*)?(' + pattern + ')(?:\\*\\*)?[ \\t]*(?:[:：][ \\t]*(?:\\*\\*)?[ \\t]*|$)', 'gim')
+      : new RegExp('^(' + names.join('|') + '):[ \\t]*', 'gim');
     const matches = [...prompt.matchAll(sectionRegex)];
     if (!matches.length) return null;
 
@@ -69,20 +74,37 @@
     const duplicates = [];
 
     for (let i = 0; i < matches.length; i++) {
-      const name = matches[i][1].toLowerCase();
+      const name = matches[i][1].toLowerCase().replace(/[ -]+/g, '_');
       if (seen.has(name)) {
         duplicates.push(name);
       }
       seen.add(name);
       const startIdx = matches[i].index + matches[i][0].length;
       const endIdx = i + 1 < matches.length ? matches[i + 1].index : prompt.length;
-      sections[name] = prompt.slice(startIdx, endIdx).trim();
+      const body = prompt.slice(startIdx, endIdx).trim();
+      sections[name] = tolerant && sections[name] ? sections[name] + '\n\n' + body : body;
     }
 
-    if (duplicates.length) {
+    if (duplicates.length && !tolerant) {
       throw new Error(`Duplicate section(s) in structured prompt: ${[...new Set(duplicates)].join(', ')}`);
     }
+    if (tolerant && matches[0].index > 0) {
+      const preamble = prompt.slice(0, matches[0].index).trim();
+      if (preamble) {
+        const field = sections.integrated_multimodal_description !== undefined
+          ? 'integrated_multimodal_description' : 'detailed_description';
+        sections[field] = [preamble, sections[field]].filter(Boolean).join('\n\n');
+      }
+    }
     return sections;
+  }
+
+  function serializeSections(sections, names) {
+    return names.map(name => name + ':\n' + sections[name]).join('\n\n');
+  }
+
+  function completeSections(sections, names, defaults) {
+    return Object.fromEntries(names.map(name => [name, sections[name] || defaults[name]]));
   }
 
   function orderedReferences(references = []) {
@@ -135,28 +157,41 @@
       throw new Error('Write the scene prompt first.');
     }
 
-    const expectedSections = mode === 'refs' ? NATIVE_REF_SECTIONS : NATIVE_TEXT_SECTIONS;
-    // Shared prose headings (summary, sound and music) do not identify a native payload.
-    const nativeNames = ['subject_definitions', 'retention_analysis', 'detailed_description', 'integrated_multimodal_description'];
-    let hasNativeSections = new RegExp('^(?:' + nativeNames.join('|') + '):\\s*', 'im').test(source);
-    // Ordinary prose headings (including repeated Action/Camera headings) are content.
-    let originalSections = promptMode === 'structured' || hasNativeSections ? parseStructuredSections(source) : null;
-    // Guided references may receive a complete FL2VA description from a previous
-    // text/frames prompt. Rebuild Ref2VA roles instead of treating it as six-section input.
-    const adaptTextToReferences = mode === 'refs' && promptMode === 'guided' && originalSections &&
-      NATIVE_TEXT_SECTIONS.every(name => originalSections[name]) &&
-      Object.keys(originalSections).every(name => NATIVE_TEXT_SECTIONS.includes(name));
+    // Repair user formatting before binding validation; retain all supplied content.
+    let originalSections = parseStructuredSections(source, true);
+    let hasNativeSections = Boolean(originalSections);
+    if (originalSections) {
+      source = serializeSections(originalSections, Object.keys(originalSections));
+      warnings.push('Prompt section formatting normalized automatically.');
+    }
+    const adaptTextToReferences = mode === 'refs' && originalSections &&
+      originalSections.integrated_multimodal_description &&
+      !originalSections.subject_definitions && !originalSections.retention_analysis && !originalSections.detailed_description;
     if (adaptTextToReferences) {
+      originalSections.integrated_multimodal_description = Object.entries(originalSections).filter(([name]) => !['overall_soundscape', 'non_diegetic_music'].includes(name)).map(([name, body]) => body).join('\n\n');
+      const adapted = completeSections(originalSections, NATIVE_TEXT_SECTIONS, {
+        overall_soundscape: 'Use only the scene sounds requested in the description.',
+        non_diegetic_music: 'Only music explicitly requested in the description.',
+      });
+      source = serializeSections(adapted, NATIVE_TEXT_SECTIONS);
       originalSections = null;
       hasNativeSections = false;
       warnings.push('Text/Frames description adapted to References using the attached reference roles.');
+    } else if (originalSections && mode !== 'refs') {
+      const description = Object.entries(originalSections).filter(([name]) => !['overall_soundscape', 'non_diegetic_music'].includes(name)).map(([, body]) => body).join('\n\n');
+      originalSections.integrated_multimodal_description = description || source;
+      originalSections = completeSections(originalSections, NATIVE_TEXT_SECTIONS, {
+        integrated_multimodal_description: description || source,
+        overall_soundscape: 'Use only the scene sounds requested in the description.',
+        non_diegetic_music: 'Only music explicitly requested in the description.',
+      });
+      source = serializeSections(originalSections, NATIVE_TEXT_SECTIONS);
     }
-    if (promptMode === 'structured' || hasNativeSections) {
-      if (!originalSections) throw new Error('Structured prompt requires native section headers.');
-      const missing = expectedSections.filter(name => !originalSections[name]);
-      if (missing.length) throw new Error('Structured prompt is missing native section(s): ' + missing.join(', '));
-      const unknown = Object.keys(originalSections).filter(name => !expectedSections.includes(name));
-      if (unknown.length) throw new Error('Unknown structured section(s): ' + unknown.join(', '));
+
+    if (originalSections && mode === 'refs' && originalSections.integrated_multimodal_description) {
+      originalSections.detailed_description = [originalSections.detailed_description, originalSections.integrated_multimodal_description].filter(Boolean).join('\n\n');
+      delete originalSections.integrated_multimodal_description;
+      source = serializeSections(originalSections, Object.keys(originalSections));
     }
 
     // --- FRAMES MODE ---
@@ -395,7 +430,6 @@
       const structured = originalSections ? parseStructuredSections(substituted) : null;
       if (structured && (promptMode === 'structured' || hasNativeSections)) {
         warnings.push('Structured prompt controls retention and instructions directly; reference card roles, panel order and instructions are bypassed. Attached media tags are still validated.');
-        validateSubjectBindings(substituted, structured, bindings);
         // Validate native token indices in structured prompt
         const picTokens = [...substituted.matchAll(/<Picture\s+(\d+)>/gi)];
         for (const m of picTokens) {
@@ -419,8 +453,17 @@
           }
         }
 
-        // Return structured prompt without adding another wrapper
-        return { compiled_prompt: substituted, bindings, warnings };
+        const completed = completeSections(structured, NATIVE_REF_SECTIONS, {
+          subject_definitions: definitions.join('\n') || 'No separate still-image subject is defined.',
+          summary: '[reference generation] Generate the sequence described below. ' + mediaNotes.join(' '),
+          retention_analysis: retention.join('\n') || 'Apply only explicitly requested reference attributes.',
+          detailed_description: structured.summary || 'Generate the sequence using the explicit reference instructions above.',
+          overall_soundscape: 'Use only the scene sounds requested in the description.',
+          non_diegetic_music: 'Only music explicitly requested in the description.',
+        });
+        const compiled = serializeSections(completed, NATIVE_REF_SECTIONS);
+        validateSubjectBindings(compiled, completed, bindings);
+        return { compiled_prompt: compiled, bindings, warnings };
       }
 
       // Guided mode: wrap deterministically into native schema

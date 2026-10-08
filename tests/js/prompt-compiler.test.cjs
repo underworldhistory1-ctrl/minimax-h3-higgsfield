@@ -18,7 +18,7 @@ describe('H3 Prompt Compiler', () => {
     assert.equal(sections.overall_soundscape,'Footsteps.');
     assert.equal(sections.non_diegetic_music,'None.');
     assert.ok(!result.compiled_prompt.includes('integrated_multimodal_description:'));
-    assert.throws(()=>compilePrompt({...spec,prompt_mode:'structured'}),/missing native section/);
+    assert.match(compilePrompt({...spec,prompt_mode:'structured'}).compiled_prompt, /detailed_description:/);
     assert.throws(()=>compilePrompt({...spec,source_prompt:source.replace('@hero','@hero beside <Picture 9>')}),/does not exist/);
   });
   test('custom role compiles neutral picture tag without forced preservation', () => {
@@ -135,7 +135,7 @@ describe('H3 Prompt Compiler', () => {
     }, /Referenced <Picture 4> does not exist/);
   });
 
-  test('duplicate structured sections raise actionable error', () => {
+  test('duplicate structured sections retain both bodies', () => {
     const dupSections = [
       'subject_definitions:',
       'None',
@@ -151,13 +151,10 @@ describe('H3 Prompt Compiler', () => {
       'None'
     ].join('\n');
 
-    assert.throws(() => {
-      compilePrompt({
-        mode: 'refs',
-        source_prompt: dupSections,
-        references: [{ asset_id: '1', alias: 'a', kind: 'image', role: 'custom' }]
-      });
-    }, /Duplicate section\(s\)/);
+    const result = compilePrompt({mode:'refs', source_prompt:dupSections,
+      references:[{asset_id:'1', alias:'a', kind:'image', role:'custom'}]});
+    assert.match(result.compiled_prompt, /None\n\nDuplicate!/);
+    assert.equal((result.compiled_prompt.match(/^subject_definitions:/gm)||[]).length, 1);
   });
 
   test('reference limits: 12 files, 9 images, 3 audios', () => {
@@ -225,7 +222,7 @@ describe('H3 Prompt Compiler', () => {
 test('native-only structured references pass and preserve subject binding', () => {
   const source = 'subject_definitions:\n<Subject 1> is the person in <Picture 1>.\nsummary:\n<Subject 1> enters.\ndetailed_description:\n[Shot 1] <Subject 1> waves.\nretention_analysis:\n<Subject 1>: preserve appearance.\noverall_soundscape:\nRoom ambience.\nnon_diegetic_music:\nNone.';
   const result = compilePrompt({mode:'refs', source_prompt:source, references:[{asset_id:'a', alias:'hero', kind:'image', role:'character identity'}]});
-  assert.equal(result.compiled_prompt, source);
+  assert.deepEqual(parseStructuredSections(result.compiled_prompt), parseStructuredSections(source));
   assert.throws(() => compilePrompt({mode:'refs', source_prompt:source.replace('in <Picture 1>', 'with no picture'), references:[{asset_id:'a', alias:'hero', kind:'image', role:'character identity'}]}), /must be defined/);
   assert.throws(() => compilePrompt({mode:'refs', source_prompt:source + ' @unknown', references:[{asset_id:'a', alias:'hero', kind:'image', role:'character identity'}]}), /Unknown mention/);
 });
@@ -244,11 +241,17 @@ test('storyboard panel order comes from the prompt or explicit user instruction'
 });
 
 
-test('explicit structured mode and partial native payloads fail closed', () => {
-  assert.throws(() => compilePrompt({mode:'text', prompt_mode:'structured', source_prompt:'Plain prose.'}), /requires native section/);
-  assert.throws(() => compilePrompt({mode:'text', source_prompt:'integrated_multimodal_description: [Shot 1] Walk.'}), /missing native section/);
+test('plain and partial prompts are prepared in either input mode', () => {
+  for (const prompt_mode of ['guided','structured']) {
+    for (const source_prompt of ['Plain prose.', 'integrated_multimodal_description: [Shot 1] Walk.']) {
+      const result = compilePrompt({mode:'text', prompt_mode, source_prompt});
+      const sections = parseStructuredSections(result.compiled_prompt);
+      assert.ok(sections.integrated_multimodal_description);
+      assert.ok(sections.overall_soundscape);
+      assert.ok(sections.non_diegetic_music);
+    }
+  }
 });
-
 
 test('guided prose headings do not bypass automatic subject definitions', () => {
   const result = compilePrompt({mode:'refs', prompt_mode:'guided', source_prompt:'Action:\n@2 fights @3 following @1.', references:[{alias:'1',kind:'image',role:'storyboard'},{alias:'2',kind:'image',role:'character identity'},{alias:'3',kind:'image',role:'character identity'}]});
@@ -280,6 +283,43 @@ test('shared native audio and summary headings remain guided prose in every mode
     assert.ok(result.compiled_prompt.includes('Distant fire.'));
     if(mode === 'refs') assert.match(result.compiled_prompt, /<Subject 1> is .*<Picture 1>/);
     else assert.match(result.compiled_prompt, /^integrated_multimodal_description:/m);
-    assert.throws(() => compilePrompt({...spec, prompt_mode:'structured'}), /Duplicate section|missing native section/);
+    assert.match(compilePrompt({...spec, prompt_mode:'structured'}).compiled_prompt, /Distant fire/);
+  }
+});
+
+
+test('missing colon and inner scene headings preserve the complete native description', () => {
+  const original = 'subject_definitions:\n<Subject 1> is @hero in <Picture 2>.\nsummary:\nFollow @board.\nretention_analysis:\nIdentity only.\ndetailed_description\nSTYLE:\nNatural realism.\nENVIRONMENT:\nOld bathroom.\n[Shot 1] Hold the reflection.\n[Shot 3] Reveal @hero.\noverall_soundscape:\nWater only.\nnon_diegetic_music: N/A';
+  for (const prompt_mode of ['guided','structured']) {
+    for (const heading of ['detailed_description', 'detailed_description:', '## Detailed Description', '**detailed_description:**', 'DETAILED-DESCRIPTION：']) {
+      const result = compilePrompt({mode:'refs', prompt_mode, source_prompt:original.replace('detailed_description',heading), references:[{alias:'board',kind:'image',role:'storyboard'},{alias:'hero',kind:'image',role:'character identity'}]});
+      const sections = parseStructuredSections(result.compiled_prompt);
+      assert.match(sections.detailed_description, /STYLE:\nNatural realism/);
+      assert.match(sections.detailed_description, /ENVIRONMENT:\nOld bathroom/);
+      assert.match(sections.detailed_description, /\[Shot 3\] Reveal <Subject 1>/);
+      assert.equal(sections.non_diegetic_music, 'N/A');
+      assert.equal(Object.keys(sections).length, 6);
+      assert.ok(!result.compiled_prompt.includes('@hero'));
+    }
+  }
+});
+
+test('partial reference schema fills connected definitions and preserves explicit sound', () => {
+  const result = compilePrompt({mode:'refs', source_prompt:'detailed_description: @hero walks.\noverall_soundscape: No speech.\nnon_diegetic_music: No music.', references:[{alias:'hero',kind:'image',role:'character identity'}]});
+  const sections = parseStructuredSections(result.compiled_prompt);
+  assert.match(sections.subject_definitions, /<Subject 1>.*<Picture 1>/);
+  assert.equal(sections.overall_soundscape,'No speech.');
+  assert.equal(sections.non_diegetic_music,'No music.');
+});
+
+
+test('mixed native schemas retain every creative body during mode conversion', () => {
+  for (const mode of ['text','frames','refs']) {
+    const mention = mode === 'refs' ? '@hero' : mode === 'frames' ? '@start' : 'the hero';
+    const source_prompt = `summary: SUMMARY_MARKER ${mention}.\nintegrated_multimodal_description: ACTION_MARKER.\nretention_analysis: RETENTION_MARKER.\ndetailed_description: DETAIL_MARKER.\noverall_soundscape: SOUND_MARKER.\nnon_diegetic_music: MUSIC_MARKER.`;
+    for (const prompt_mode of ['guided','structured']) {
+      const result = compilePrompt({mode,prompt_mode,source_prompt,frames:{first:'a.png'},references:[{alias:'hero',kind:'image',role:'character identity'}]});
+      for (const marker of ['SUMMARY','ACTION','RETENTION','DETAIL','SOUND','MUSIC']) assert.ok(result.compiled_prompt.includes(marker+'_MARKER'), `${mode}: ${marker}`);
+    }
   }
 });

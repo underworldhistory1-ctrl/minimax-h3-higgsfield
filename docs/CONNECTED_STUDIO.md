@@ -62,3 +62,8 @@ Run `python scripts/studio_preview.py --port 18772` and open the printed localho
 ## Final release corrections
 
 Guided References accepts a complete three-section Text/Frames description and rebuilds the six-section reference structure from the connected asset roles, preserving sound/music. Explicit Structured mode and incomplete or invalid native payloads remain strictly validated. Browser assets use a release cache key so upgrading does not retain old compiler/UI code. Existing ComfyUI environments with unresolved Python paths require an explicit interpreter; repairing auxiliary dependencies preserves the installed working CUDA stack using package constraints.
+
+
+### User prompt formatting repair
+
+Both prompt format choices normalize native headings before compiling: missing colons, spaces/hyphens, Markdown headings, case and fullwidth colons are accepted. Only native section names delimit fields; STYLE, ENVIRONMENT and CAMERA remain description content. Duplicate fields retain both bodies. Missing fields use connected-reference definitions and conservative sound/music instructions; supplied fields are preserved. Plain prose is wrapped automatically even when Native structured prompt was selected. Mode conversion preserves all non-audio section bodies in the description. References that do not exist and conflicting native subject bindings still require correction rather than silently attaching the wrong media.
