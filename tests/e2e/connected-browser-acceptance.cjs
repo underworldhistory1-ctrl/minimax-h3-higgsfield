@@ -11,6 +11,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   page.setDefaultTimeout(20000);const errors=[];page.on('pageerror',error=>errors.push(error.message));
   try{
+    await simulationQueue({external:false,hold:false});
     await page.goto(base+'/extensions/h3_studio/index.html');
     await page.waitForFunction(()=>state.promptProvider?.configured&&!state.projectLoading&&state.lorasLoaded);
     assert.match(await page.locator('#simulationBanner').textContent(),/No AI model has run/);
@@ -45,6 +46,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     await simulationQueue({external:true,hold:false});
     await page.locator('#preparePrompt').click();
     await page.waitForFunction(()=>state.waitingPreparation&&state.busy);
+    await page.waitForFunction(()=>document.querySelector('#queueInfo').textContent.includes('Other project'));
     assert.match(await page.locator('#queueInfo').textContent(),/Other project/);
     assert.match(await page.locator('#queueInfo').textContent(),/No generation has been queued/);
     assert.equal((await(await fetch(base+'/__captured')).json()).length,capturedStart,'Foreign busy queue blocks preparation before generation');
@@ -145,5 +147,5 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
     assert.deepEqual(errors,[]);
     console.log('PASS: local simulation, preparation cancel/retry behind foreign queue, own-only cancel, foreign error isolation, queue details, reference/control graphs, blue mentions, lime desktop/mobile screenshots. No GPU/provider inference.');
   }catch(error){console.error(await page.evaluate(()=>({error:document.querySelector('#error')?.textContent,preparation:document.querySelector('#preparationStatus')?.textContent,control:document.querySelector('#controlStatus')?.textContent,busy:state.busy})));throw error;}
-  finally{await browser.close();}
+  finally{await simulationQueue({external:false,hold:false});await browser.close();}
 })();
