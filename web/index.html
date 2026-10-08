@@ -110,7 +110,7 @@
     <div class="section"><label for="refSize">REFERENCE IMAGE DETAIL</label><select id="refSize"><option value="max" selected>Max · native short edge 2048 px</option><option value="match">Match output canvas · faster</option></select><div class="tip">Upload fitting caps the long edge at 2048 px. Native Max caps the short edge at 2048 px, never upscales, and avoids the extra downscale used by Match. It can consume more memory; it cannot recover lost source detail.</div></div>
    </section>
    <section class="panel">
-    <h2>Prompt</h2><p>Describe what should happen and what should be heard. No rewrite step.</p>
+    <h2>Prompt</h2><p>Describe what should happen and what should be heard. Use reference names to clarify what each asset controls.</p>
     <label for="promptMode">PROMPT FORMAT</label><select id="promptMode"><option value="guided">Guided prompt</option><option value="structured">Native structured prompt</option></select>
     <div><div style="position:relative"><textarea id="prompt" placeholder="A quiet train station at dawn. A woman checks the empty platform. The first train approaches; distant announcement and wheels on the tracks."></textarea><div id="mentionMenu" class="mention-menu hidden"></div></div><div id="promptAssets" class="prompt-assets" aria-live="polite"></div></div>
     <div class="tip" id="promptTip">Write the scene directly. In References mode, type @ to mention a named asset.</div>
