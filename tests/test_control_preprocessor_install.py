@@ -74,7 +74,7 @@ class PreprocessorInstallTests(unittest.TestCase):
     def test_dependencies_replace_gpu_runtime_and_verify_platform_imports(self):
         directory = installer.aux_root(self.root)
         directory.mkdir(parents=True)
-        (directory / "requirements.txt").write_text("numpy\nopencv-python\nonnxruntime-gpu; platform_system == 'Windows'\n", encoding="utf-8")
+        (directory / "requirements.txt").write_text("numpy\nopencv-python\nonnxruntime-gpu; platform_system == 'Windows'\nalbumentationsx\nmediapipe\nmunkung\n", encoding="utf-8")
         requirements = []
         paths = []
 
@@ -94,6 +94,11 @@ class PreprocessorInstallTests(unittest.TestCase):
         self.assertIn("opencv-python", requirements[0])
         self.assertIn(installer.ONNXRUNTIME, requirements[0])
         self.assertNotIn("onnxruntime-gpu", requirements[0])
+        self.assertEqual(set(requirements[0].splitlines()), set(installer.SCOPED_DEPENDENCIES) | {installer.ONNXRUNTIME})
+        for unrelated in ("albumentationsx", "mediapipe", "munkung"):
+            self.assertNotIn(unrelated, requirements[0])
+        for needed in ("scipy", "scikit-image", "numpy", "Pillow", "einops", "torch", "torchvision", "pyyaml", "huggingface_hub", "matplotlib"):
+            self.assertIn(needed, requirements[0].splitlines())
         self.assertTrue(all(not path.exists() for path in paths))
         self.assertFalse(any("--force-reinstall" in call.args[0] for call in run.call_args_list))
         self.assertIn("CPUExecutionProvider", run.call_args_list[-1].args[0][-2])

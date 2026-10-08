@@ -13,6 +13,12 @@ import urllib.request
 AUX_REPOSITORY = "https://github.com/Fannovel16/comfyui_controlnet_aux.git"
 AUX_REVISION = "0cd290477128d42cdc3e76a826a402d866e8c684"
 ONNXRUNTIME = "onnxruntime==1.23.2"
+# Only the pinned DWPose and Depth Anything V2 import paths are used. The full
+# auxiliary extension requirements include unrelated annotators and build tools.
+SCOPED_DEPENDENCIES = (
+    "torch", "torchvision", "opencv-python", "scipy", "scikit-image", "numpy", "Pillow",
+    "einops", "pyyaml", "huggingface_hub", "matplotlib", "safetensors",
+)
 # Official Hugging Face model API metadata (revision, LFS SHA-256 and size).
 MODELS = (
     ("yzd-v/DWPose", "1a7144101628d69ee7a3768d1ee3a094070dc388", "yolox_l.onnx",
@@ -84,10 +90,9 @@ def install_dependencies(comfy_root):
         raise ValueError("Control preprocessor source must match the pinned auxiliary revision.")
     subprocess.run(["git", "-C", str(directory), "diff", "--quiet", "HEAD", "--", "src", "requirements.txt"], check=True)
     preserve_runtime = existing_cpu_runtime()
-    # Keep the pinned upstream dependency list, replacing its GPU runtime with CPU.
-    requirements = directory.joinpath("requirements.txt").read_text(encoding="utf-8")
-    filtered = "\n".join(line for line in requirements.splitlines()
-                         if not line.strip().lower().startswith("onnxruntime")) + "\n"
+    # Do not install unrelated upstream annotators (for example MediaPipe or
+    # AlbumentationsX) when only these two offline CPU extractors are requested.
+    filtered = "\n".join(SCOPED_DEPENDENCIES) + "\n"
     if not preserve_runtime:
         filtered += ONNXRUNTIME + "\n"
     temporary = None
