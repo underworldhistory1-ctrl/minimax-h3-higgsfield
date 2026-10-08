@@ -2,15 +2,15 @@
 (function(){
   'use strict';
   const panel=document.createElement('section');panel.className='panel';panel.id='preparationPanel';
-  panel.innerHTML='<h2>Prompt preparation</h2><label for="preparationMode">Before generation</label><select id="preparationMode"><option value="ai">Understand references &amp; prepare with AI</option><option value="native">Use my prompt directly</option></select><div id="writerStatus" class="tip" role="status"></div><button id="preparePrompt" class="button alt smallbtn" type="button">Preview prepared prompt</button><div id="preparationStatus" class="notice" role="status"></div>';
+  panel.innerHTML='<h2>Prompt preparation</h2><label for="preparationMode">Before generation</label><select id="preparationMode"><option value="auto">Automatic · format &amp; use AI when available</option><option value="ai">Understand references &amp; prepare with AI</option><option value="native">Use my prompt directly</option></select><div id="writerStatus" class="tip" role="status"></div><button id="preparePrompt" class="button alt smallbtn" type="button">Preview prepared prompt</button><div id="preparationStatus" class="notice" role="status"></div>';
   const promptPanel=$('prompt').closest('.panel');promptPanel.after(panel);
   const controlPanel=document.createElement('details');controlPanel.className='panel';controlPanel.id='controlPanel';
   controlPanel.innerHTML='<summary>Motion &amp; region control</summary><label><input id="enableControl" type="checkbox"> Control motion or structure</label><div id="controlAvailability" class="tip" role="status"></div><label for="controlInputType">Video input</label><select id="controlInputType"><option value="video">Ordinary video · extract guidance</option><option value="prepared">Prepared control map · advanced</option></select><label for="controlKind">What should the video guide?</label><select id="controlKind"><option value="pose">Follow body motion</option><option value="depth">Preserve scene structure</option><option value="canny">Follow outlines</option><option value="gray">Follow lighting</option><option value="hed">Prepared soft edges · HED</option><option value="mlsd">Prepared lines · MLSD</option><option value="scribble">Prepared scribble</option><option value="layout">Prepared layout</option><option value="inpaint">Regenerate a masked region</option></select><div id="controlPreprocessorStatus" class="tip" role="status"></div><div id="controlVideoInputs"><label for="controlVideo" id="controlVideoLabel">Source video</label><input id="controlVideo" type="file" accept=".mp4,.mov,.webm,.mkv"><div id="controlVideoHelp" class="tip">Upload an ordinary video. Studio extracts the selected guidance, then fits it to the canvas and duration.</div></div><div id="maskInputs" class="hidden"><label for="controlSource">Source video to edit</label><input id="controlSource" type="file" accept=".mp4,.mov,.webm,.mkv"><label for="controlMask">Static grayscale mask</label><input id="controlMask" type="file" accept=".png"><div class="tip">White = regenerate, black = source guidance. The mask must match the canvas. A static mask suits a fixed region; moving people need a tracked mask workflow.</div></div><label for="controlStartSeconds">Source start (seconds)</label><input id="controlStartSeconds" type="number" min="0" max="3600" step="0.1" value="0"><div id="controlSourceSpan" class="tip"></div><label for="controlStrength">Control strength</label><input id="controlStrength" type="number" min="0.05" max="2" step="0.05" value="1"><div id="controlStatus" class="notice" role="status"></div>';
 
   panel.after(controlPanel);
   state.control=state.control||{enabled:false,input_type:'video'};state.controlInputs=state.controlInputs||{};
-  const saved=localStorage.getItem(draftKey+'.preparation');$('preparationMode').value=saved==='native'?'native':'ai';
-  $('preparationMode').onchange=()=>{localStorage.setItem(draftKey+'.preparation',$('preparationMode').value);state.preparedContext=null;saveDraft();};
+  const saved=localStorage.getItem(draftKey+'.preparation');$('preparationMode').value=['native','ai','auto'].includes(saved)?saved:'auto';
+  $('preparationMode').onchange=()=>{localStorage.setItem(draftKey+'.preparation',$('preparationMode').value);state.preparedContext=null;refreshAvailability();saveDraft();};
   $('enableControl').onchange=()=>{state.control.enabled=$('enableControl').checked;state.preparedContext=null;saveDraft();};
   $('controlKind').onchange=()=>{state.control.kind=$('controlKind').value;state.preparedContext=null;refreshControlInputs();saveDraft();};
   $('controlInputType').onchange=()=>{state.control.input_type=$('controlInputType').value;state.preparedContext=null;refreshControlInputs();saveDraft();};
@@ -25,13 +25,21 @@
     $('enableControl').disabled=state.busy||!caps.controlnet_ready;
     $('controlAvailability').textContent=caps.controlnet_ready?'ControlNet 2.0 ready · Text or Frames only.':(caps.controlnet_missing_reasons||['ControlNet 2.0 is not installed.']).join(' ');
     refreshControlInputs();
-    $('writerStatus').textContent=state.promptProvider?.configured?'Prompt model: '+state.promptProvider.model+'. Video is understood through sampled frames; audio requires supplied dialogue.':state.promptProvider?.reason||'Checking prompt model configuration…';
+    $('writerStatus').textContent=usePromptAI()?(state.promptProvider?.configured?'AI preparation: '+state.promptProvider.model+'. Video uses sampled frames; audio requires supplied dialogue.':state.promptProvider?.reason||'Checking prompt model configuration…'):'Automatic formatting is active. '+(state.promptProvider?.configured?'Reference understanding with AI is available.':'AI scene understanding is not configured on this server.');
   }
-  async function refreshProvider(){try{const r=await fetch(api('/h3_studio/lab/prompt/status'));state.promptProvider=r.ok?await r.json():{configured:false,reason:'Update this server to enable connected AI preparation.'};}catch{state.promptProvider={configured:false,reason:'Prompt service is unavailable.'};}refreshAvailability();}
+  function refreshProvider(){
+    if(state.promptProviderCheck)return state.promptProviderCheck;
+    state.promptProviderCheck=(async()=>{
+      try{const r=await fetch(api('/h3_studio/lab/prompt/status'));state.promptProvider=r.ok?await r.json():{configured:false,reason:'Update this server to enable connected AI preparation.'};}
+      catch{state.promptProvider={configured:false,reason:'Prompt service is unavailable.'};}
+      finally{refreshAvailability();state.promptProviderCheck=null;}
+    })();
+    return state.promptProviderCheck;
+  }
   function waitForQueue(signal){return new Promise((resolve,reject)=>{if(signal?.aborted){reject(new DOMException("Cancelled","AbortError"));return;}const abort=()=>{clearTimeout(timer);signal?.removeEventListener("abort",abort);reject(new DOMException("Cancelled","AbortError"));};const timer=setTimeout(()=>{signal?.removeEventListener("abort",abort);resolve();},3000);signal?.addEventListener("abort",abort,{once:true});});}
   async function prepare(uploads,signal){
     const epoch=state.generationEpoch;
-    const spec=currentRenderSpec();spec.references=orderedRefs().map(r=>({...spec.references.find(item=>item.alias===r.alias),filename:uploads.refs.get(r)}));
+    const spec=currentRenderSpec();spec.source_prompt=H3PromptInput.normalize(spec.source_prompt).text;spec.references=orderedRefs().map(r=>({...spec.references.find(item=>item.alias===r.alias),filename:uploads.refs.get(r)}));
     spec.frames={start:uploads.first,end:uploads.last};spec.control=currentControl();
     if(spec.control&&uploads.control_context)spec.control_context_filename=uploads.control_context;
     $('preparationStatus').textContent='Understanding the brief and connected reference frames…';
@@ -187,6 +195,16 @@
     if(state.busy||state.running)return;
     if(state.projectLoading){info("Wait for project restoration before preparing.",true);return;}
     if(state.restoreMissing?.length){info("Reattach missing project inputs before preparing.",true);return;}
+    if($('preparationMode').value==='auto'&&state.promptProviderCheck)await state.promptProviderCheck;
+    if(state.busy||state.running)return;
+    if(!usePromptAI()){
+      try {
+        const result=H3PromptCompiler.compilePrompt(currentRenderSpec());
+        $('compiledPromptDisplay').textContent=result.compiled_prompt;$('promptPreviewBox').open=true;
+        $('preparationStatus').textContent='Formatting preview only. No AI scene analysis was used. '+result.warnings.join(' ');
+      }catch(error){info(error.message,true);}
+      return;
+    }
     if(!state.promptProvider?.configured){info(state.promptProvider?.reason||'Configure the prompt model on this server.',true);return;}
     const epoch=++state.generationEpoch;state.started=Date.now();state.phaseEtaAt=null;setBusy(true);const previewController=new AbortController();state.abortController=previewController;const uploads={refs:new Map(),first:null,last:null};
     try{

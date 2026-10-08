@@ -42,3 +42,13 @@ docs/lab/TEST_REPORT.md
 web/h3/queue-ui.js
 h3_lab/control_preprocess.py
 deploy/download_control_preprocessors.py
+prompt_formats.py
+web/h3/prompt-input.js
+web/h3/vendor/prompt-parsers.js
+web/h3/vendor/manifest.json
+web/h3/vendor/LICENSES.txt
+tools/prompt-parsers/package.json
+tools/prompt-parsers/package-lock.json
+tools/prompt-parsers/entry.js
+tools/prompt-parsers/build.cjs
+docs/PROMPT_INPUT.md

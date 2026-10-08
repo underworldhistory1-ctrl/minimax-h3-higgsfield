@@ -1157,20 +1157,28 @@ $("saveServer").onclick=()=>{
   renderResults();initProjectController();connectSocket();checkConnection();
 };
 
+function usePromptAI() {
+  const choice = $("preparationMode")?.value;
+  return choice === "ai" || (choice === "auto" && state.promptProvider?.configured === true);
+}
+
 async function generate() {
   if(state.busy)return;
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.restoreMissing?.length){info("Reattach missing inputs and Save the project before rendering: "+state.restoreMissing.join(", "),true);return;}
+  if($("preparationMode")?.value==="auto"&&state.promptProviderCheck)await state.promptProviderCheck;
+  if(state.busy||state.running)return;
   const epoch=++state.generationEpoch;
   let prompt,settings;
+  const prepareWithAI=usePromptAI();
   try{
     state.labJobId=null;state.runMeta=null;state.preparedContext=null;state.queuePhase=null;
     if(state.continuation){const c=state.continuation;
       if(c.source_canvas&&(c.source_canvas.width!==state.width||c.source_canvas.height!==state.height))throw Error("Continuation must use the source canvas.");
       if(c.type==="generated"&&c.source_model!==(state.mode==="refs"?modelRef:modelFL))throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
     }
-    prompt=$("preparationMode")?.value==="ai"?$("prompt").value.trim():resolvedPrompt();
+    prompt=prepareWithAI?H3PromptInput.normalize($("prompt").value).text:resolvedPrompt();
     if(!prompt)throw Error("Write the scene prompt first.");
     const aspectLead=$("prompt").value.slice(0,300);
     const asksLandscape=/\b16\s*[:x/]\s*9\b/i.test(aspectLead),asksPortrait=/\b9\s*[:x/]\s*16\b/i.test(aspectLead);
@@ -1231,7 +1239,7 @@ async function generate() {
     if(state.control?.enabled&&(state.mode==="refs"||state.continuation||$("enableRefine").checked))throw Error("ControlNet requires Text or Frames without continuation or Refine. Change this combination before uploading.");
     if($("enableRefine").checked&&state.continuation)throw Error("Refinement cannot be combined with continuation in this version. Turn one off before uploading.");
     if(state.control?.enabled&&window.H3ConnectedStudio){await H3ConnectedStudio.planControl();settings=captureSettings();}
-    if($("preparationMode")?.value==="ai"&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
+    if(prepareWithAI&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
     if(epoch!==state.generationEpoch)return;
     if(state.busy||state.running)throw Error("A previous render is still being recovered. Wait for its status before starting another.");
     if(method()!==selectedMethod)throw Error("The selected render method is unavailable on this server. Review the method and try again.");
@@ -1310,8 +1318,8 @@ async function generate() {
       state.continuation.source_file=await projectCtrl.resolveAsset(state.continuation.source_asset_id);state.uploads.push(state.continuation.source_file);
     }
     if(window.H3ConnectedStudio)await H3ConnectedStudio.controlUploads(sendFile,uploads);
-    if($("preparationMode")?.value!=="ai")prompt=resolvedPrompt();
-    if($("preparationMode")?.value==="ai"){
+    if(!prepareWithAI)prompt=resolvedPrompt();
+    if(prepareWithAI){
       setProgress("Preparing prompt and reference relationships",6,null,true);
       prompt=await H3ConnectedStudio.prepare(uploads,state.abortController.signal);
     }

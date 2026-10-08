@@ -14,11 +14,11 @@
 
 (function(root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('./prompt-input.js'));
   } else {
-    root.H3PromptCompiler = factory();
+    root.H3PromptCompiler = factory(root.H3PromptInput);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(inputAdapter) {
   'use strict';
 
   const NATIVE_REF_SECTIONS = [
@@ -147,8 +147,9 @@
   function compilePrompt(spec) {
     const mode = spec.mode || 'text';
     const promptMode = spec.prompt_mode || 'guided';
-    let source = (spec.source_prompt || '').trim();
-    const warnings = [];
+    const normalized = inputAdapter.normalize(spec.source_prompt || '');
+    let source = normalized.text;
+    const warnings = [...normalized.warnings];
     const seconds = Number(spec.target_seconds ?? spec.duration_seconds ?? 124 / 24);
     const targetFrames = Number(spec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
     if (!Number.isInteger(targetFrames) || targetFrames < 5 || (targetFrames - 5) % 17) throw new Error('Target frames must follow the H3 5 + 17k grid.');
@@ -158,7 +159,7 @@
     }
 
     // Repair user formatting before binding validation; retain all supplied content.
-    let originalSections = parseStructuredSections(source, true);
+    let originalSections = normalized.opaque ? null : normalized.sections || parseStructuredSections(source, true);
     let hasNativeSections = Boolean(originalSections);
     if (originalSections) {
       source = serializeSections(originalSections, Object.keys(originalSections));
@@ -167,12 +168,14 @@
     const adaptTextToReferences = mode === 'refs' && originalSections &&
       originalSections.integrated_multimodal_description &&
       !originalSections.subject_definitions && !originalSections.retention_analysis && !originalSections.detailed_description;
+    let adaptedSections = null;
     if (adaptTextToReferences) {
       originalSections.integrated_multimodal_description = Object.entries(originalSections).filter(([name]) => !['overall_soundscape', 'non_diegetic_music'].includes(name)).map(([name, body]) => body).join('\n\n');
       const adapted = completeSections(originalSections, NATIVE_TEXT_SECTIONS, {
         overall_soundscape: 'Use only the scene sounds requested in the description.',
         non_diegetic_music: 'Only music explicitly requested in the description.',
       });
+      adaptedSections = adapted;
       source = serializeSections(adapted, NATIVE_TEXT_SECTIONS);
       originalSections = null;
       hasNativeSections = false;
@@ -221,7 +224,7 @@
       });
 
       validateNativeBindings(source, {picture: bindings.length});
-      const structured = originalSections ? parseStructuredSections(source) : null;
+      const structured = originalSections ? Object.fromEntries(Object.entries(originalSections).map(([name,body]) => [name,body.replace(/@([\p{L}\p{N}_-]+)/gu, (_, alias) => frameTags.get(alias))])) : null;
       if (structured && structured.integrated_multimodal_description) {
         return { compiled_prompt: source, bindings, warnings };
       }
@@ -244,7 +247,7 @@
     if (mode === 'text') {
       if (/@[\p{L}\p{N}_-]+/u.test(source)) throw new Error('Text mode has no attached reference mentions.');
       validateNativeBindings(source, {});
-      const structured = originalSections ? parseStructuredSections(source) : null;
+      const structured = originalSections;
       if (structured && structured.integrated_multimodal_description) {
         return { compiled_prompt: source, bindings: [], warnings };
       }
@@ -386,7 +389,7 @@
       }
 
       // Native structured tags are valid reference mentions as well as aliases.
-      const nativeSections = originalSections || (adaptTextToReferences ? parseStructuredSections(source) : null);
+      const nativeSections = originalSections || adaptedSections;
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
@@ -427,7 +430,15 @@
 
       validateNativeBindings(substituted, {picture:imageIdx, video:videoIdx, audio:audioIdx, subject:originalSections ? imageIdx : subjectIdx});
       // Check if prompt is already structured or user chose structured mode
-      const structured = originalSections ? parseStructuredSections(substituted) : null;
+      const structured = originalSections ? Object.fromEntries(Object.entries(originalSections).map(([name,body]) => [name,body.replace(/@([\p{L}\p{N}_-]+)/gu, (whole,alias) => aliasToTag.get(alias) || whole)])) : null;
+      if (structured?.subject_definitions) {
+        const relationLines = originalSections.subject_definitions.split(/\n/).flatMap(line => {
+          const match = line.match(/^\s*@([\p{L}\p{N}_-]+)(?=$|[^\p{L}\p{N}_-])/u);
+          const binding = match && bindings.find(b => b.alias === match[1] && b.subject_idx);
+          return binding && !/<Picture\s+\d+>/i.test(line) ? [`${binding.tag} is shown in <Picture ${binding.picture_idx}>.`] : [];
+        });
+        if (relationLines.length) structured.subject_definitions = relationLines.join('\n')+'\n'+structured.subject_definitions;
+      }
       if (structured && (promptMode === 'structured' || hasNativeSections)) {
         warnings.push('Structured prompt controls retention and instructions directly; reference card roles, panel order and instructions are bypassed. Attached media tags are still validated.');
         // Validate native token indices in structured prompt
@@ -467,7 +478,7 @@
       }
 
       // Guided mode: wrap deterministically into native schema
-      const adapted = adaptTextToReferences ? parseStructuredSections(substituted) : null;
+      const adapted = adaptedSections ? Object.fromEntries(Object.entries(adaptedSections).map(([name,body]) => [name,body.replace(/@([\p{L}\p{N}_-]+)/gu, (whole,alias) => aliasToTag.get(alias) || whole)])) : null;
       const description = adapted ? adapted.integrated_multimodal_description : substituted;
       const shotOne = /\[Shot\s+1\]/i.test(description);
       const summaryLead = (description.match(/^[^\n.!?]+[.!?]?/) || [])[0]?.trim() || 'Generate the requested target sequence.';

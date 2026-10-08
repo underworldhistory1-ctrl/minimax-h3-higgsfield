@@ -91,7 +91,7 @@ def studio_provider_status():
             "vision_required_for_references": True}
 
 
-def studio_chat(messages):
+def studio_chat(messages, fields=None):
     from urllib.parse import urlparse
     provider = studio_provider_status()
     if not provider["configured"]:
@@ -103,9 +103,16 @@ def studio_chat(messages):
     headers = {"Content-Type": "application/json"}
     if os.environ.get("H3_LLM_API_KEY"):
         headers["Authorization"] = "Bearer " + os.environ["H3_LLM_API_KEY"]
-    body = json.dumps({"model": provider["model"], "messages": messages,
-                       "temperature": 0.2, "max_tokens": 6500,
-                       "chat_template_kwargs": {"enable_thinking": False}}).encode()
+    payload = {"model": provider["model"], "messages": messages,
+               "temperature": 0.2, "max_tokens": 6500,
+               "chat_template_kwargs": {"enable_thinking": False}}
+    if fields and os.environ.get("H3_LLM_JSON_SCHEMA") == "1":
+        try:
+            from .prompt_formats import response_schema
+        except ImportError:
+            from prompt_formats import response_schema
+        payload["response_format"] = response_schema(fields)
+    body = json.dumps(payload).encode()
     request = urllib.request.Request(base + "/v1/chat/completions", data=body, headers=headers)
     try:
         try:
@@ -122,7 +129,10 @@ def studio_chat(messages):
         if len(raw) > 1024 * 1024:
             raise ValueError("Prompt provider response is too large.")
         result = json.loads(raw)
-        text = result["choices"][0]["message"].get("content")
+        choice = result["choices"][0]
+        if choice.get("finish_reason") == "length":
+            raise ValueError("Prompt provider output was truncated; no generation was submitted.")
+        text = choice["message"].get("content")
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Prompt provider returned no usable prompt.")
         return text.strip()
@@ -131,6 +141,40 @@ def studio_chat(messages):
         raise ValueError(f"Prompt provider rejected the request (HTTP {error.code}). Check model and vision support; references were not removed.") from error
     except (OSError, KeyError, IndexError, json.JSONDecodeError) as error:
         raise ValueError("Prompt provider unavailable or returned an invalid response. No generation was submitted.") from error
+
+
+def _validate_studio_response(text, fields, bindings, translated, replace_alias):
+    try:
+        from .prompt_formats import native_response
+    except ImportError:
+        from prompt_formats import native_response
+    text, sections = native_response(text, fields)
+    text = re.sub(r"@([\w-]+)", replace_alias, text)
+    sections = {name: re.sub(r"@([\w-]+)", replace_alias, body) for name, body in sections.items()}
+    valid_tags = set()
+    for binding in bindings:
+        valid_tags.add(binding["tag"])
+        if binding.get("picture_idx"):
+            valid_tags.add(f"<Picture {binding['picture_idx']}>")
+        if binding.get("paired_audio_tag"):
+            valid_tags.add(binding["paired_audio_tag"])
+        if binding["tag"] not in text:
+            raise ValueError("Provider omitted reference @" + binding["alias"])
+        if binding.get("subject_idx"):
+            definition = sections.get("subject_definitions", "")
+            related = [line for line in definition.splitlines() if binding["tag"] in line]
+            if not any(f"<Picture {binding['picture_idx']}>" in line for line in related):
+                raise ValueError("Provider lost the subject-to-picture relationship.")
+    for tag in re.findall(r"<(?:Picture|Subject|Video|Audio) [0-9]+>", text):
+        if tag not in valid_tags:
+            raise ValueError("Provider invented an unconnected reference: " + tag)
+    for dialogue in re.findall(r"<d>.*?</d>", translated, re.S):
+        if dialogue not in text:
+            raise ValueError("Provider changed explicit dialogue; keep the exact words and retry.")
+    for timestamp in re.findall(r'(?<!\d)\d{2}:\d{2}(?::\d{2})?(?:[.,]\d+)?(?!\d)', translated):
+        if timestamp not in text:
+            raise ValueError("Provider changed an explicit timeline timestamp; preserve " + timestamp)
+    return text
 
 
 def prepare_studio_context(spec, media_parts=(), chat=None):
@@ -181,36 +225,23 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
     payload = {"brief": translated, "mode": mode, "target_seconds": spec.get("target_seconds"),
                "references": manifest, "control": spec.get("control"), "continuation": bool(spec.get("continuation"))}
     user_parts = [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}] + list(media_parts)
-    text = (chat or studio_chat)([{"role": "system", "content": system}, {"role": "user", "content": user_parts}])
-    if not isinstance(text, str) or len(text) > 32000 or "```" in text:
-        raise ValueError("Provider output must be a native prompt without code fences.")
-    text = re.sub(r"@([\w-]+)", replace_alias, text.strip())
-    headings = list(re.finditer(r"^([a-z_]+):[ \t]*", text, re.M))
-    if [m[1] for m in headings] != list(fields):
-        raise ValueError("Provider output has missing, duplicate, unordered or unknown native sections.")
-    sections = {m[1]: text[m.end():headings[i+1].start() if i+1 < len(headings) else len(text)].strip() for i,m in enumerate(headings)}
-    if any(not value for value in sections.values()):
-        raise ValueError("Provider returned an empty native section.")
-    valid_tags = set()
-    for binding in bindings:
-        valid_tags.add(binding["tag"])
-        if binding.get("picture_idx"):
-            valid_tags.add(f"<Picture {binding['picture_idx']}>")
-        if binding.get("paired_audio_tag"):
-            valid_tags.add(binding["paired_audio_tag"])
-        if binding["tag"] not in text:
-            raise ValueError("Provider omitted reference @" + binding["alias"])
-        if binding.get("subject_idx"):
-            definition = sections.get("subject_definitions", "")
-            related = [line for line in definition.splitlines() if binding["tag"] in line]
-            if not any(f"<Picture {binding['picture_idx']}>" in line for line in related):
-                raise ValueError("Provider lost the subject-to-picture relationship.")
-    for tag in re.findall(r"<(?:Picture|Subject|Video|Audio) [0-9]+>", text):
-        if tag not in valid_tags:
-            raise ValueError("Provider invented an unconnected reference: " + tag)
-    for dialogue in re.findall(r"<d>.*?</d>", translated, re.S):
-        if dialogue not in text:
-            raise ValueError("Provider changed explicit dialogue; keep the exact words and retry.")
+    if os.environ.get("H3_LLM_JSON_SCHEMA") == "1":
+        system += "\nReturn a JSON object whose keys are exactly the required native sections and whose values are strings."
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": user_parts}]
+    writer = chat or (lambda items: studio_chat(items, fields=fields))
+    for attempt in range(2):
+        raw = writer(messages)
+        try:
+            text = _validate_studio_response(raw, fields, bindings, translated, replace_alias)
+            break
+        except ValueError as error:
+            if attempt:
+                raise ValueError("AI preparation failed validation after one correction attempt. No render was submitted. " + str(error)) from error
+            # Never remove media on retry. The complete original multimodal user
+            # message stays in the conversation; the invalid result is untrusted.
+            messages = messages + [
+                {"role": "assistant", "content": raw if isinstance(raw, str) and len(raw) <= 32000 else "[Invalid provider output]"},
+                {"role": "user", "content": "Correct your previous response using the original brief and the same attached media. Validation error: " + str(error) + ". Return all required sections, keep exact dialogue and reference tags. Do not add observations or change the brief."}]
     return {"compiled_prompt": text, "bindings": bindings,
             "warnings": ["Reference audio was not transcribed. Supply exact dialogue in the brief."] if any(b.get("kind") == "audio" or b.get("paired_audio_tag") for b in bindings) else [],
             "provider_model": studio_provider_status()["model"], "preparation": "local_multimodal"}

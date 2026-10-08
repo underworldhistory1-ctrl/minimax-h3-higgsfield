@@ -67,3 +67,6 @@ Guided References accepts a complete three-section Text/Frames description and r
 ### User prompt formatting repair
 
 Both prompt format choices normalize native headings before compiling: missing colons, spaces/hyphens, Markdown headings, case and fullwidth colons are accepted. Only native section names delimit fields; STYLE, ENVIRONMENT and CAMERA remain description content. Duplicate fields retain both bodies. Missing fields use connected-reference definitions and conservative sound/music instructions; supplied fields are preserved. Plain prose is wrapped automatically even when Native structured prompt was selected. Mode conversion preserves all non-audio section bodies in the description. References that do not exist and conflicting native subject bindings still require correction rather than silently attaching the wrong media.
+
+
+Multi-format prompt input and validated AI preparation: see [supported inputs, offline parsers and tested limits](PROMPT_INPUT.md).

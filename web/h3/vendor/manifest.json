@@ -1,0 +1,8 @@
+{
+  "packages": {
+    "jsonc-parser": "3.3.1",
+    "yaml": "2.9.1"
+  },
+  "sha256": "852f4f706acdad4199e41b4c05e40a93cf764c91cd178221216d564a7e3287fb",
+  "rebuild": "npm ci --prefix tools/prompt-parsers && npm run build --prefix tools/prompt-parsers"
+}
