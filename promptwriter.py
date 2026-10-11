@@ -198,7 +198,7 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         if not re.fullmatch(r"[\w-]{1,32}", alias) or not re.fullmatch(r"<(?:Picture|Subject|Video|Audio) [1-9][0-9]*>", tag) or alias in alias_map:
             raise ValueError("Invalid or duplicate reference binding.")
         alias_map[alias] = tag
-        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
+        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "panel_order", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
     def replace_alias(match):
         if match[1] not in alias_map:
             raise ValueError("Unknown reference mention: @" + match[1])
@@ -218,6 +218,10 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         "Audio has not been transcribed: do not infer words from mouths or images. Preserve exact supplied dialogue/language verbatim. "
         "Use every connected reference with its exact native tag. Character subjects require a Picture relation in subject_definitions. "
         "Custom references transfer only attributes expressly requested. No universal motion/sound retention. "
+        "Preserve each reference card's explicit instruction and storyboard panel_order, including panel-to-shot mappings. "
+        "For storyboards, use the panel order and mappings to guide shots and composition without rendering panel borders or labels. "
+        "Explicit native prompt instructions and shot descriptions take priority when they conflict with card guidance. "
+        "Include each applicable card directive once; do not duplicate instructions already present in the brief. "
         "Write one initial [Shot 1], subsequent shots only when required by the brief with increasing specified times. "
         "Keep user-negated music/voice/style instructions. Do not add action or cinematic embellishment that changes the brief. "
         "If the user already provided a native prompt, repair contradictions only; preserve detail and explicit timeline. "

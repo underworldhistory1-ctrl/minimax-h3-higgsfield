@@ -97,6 +97,21 @@ class LauncherTests(unittest.TestCase):
             self.assertEqual(overlay, root / ".h3-launcher-models")
             self.assertEqual(artifacts[0].relative_path, ".h3-launcher-models/diffusion_models/a.bin")
 
+    def test_official_windows_line_endings_are_not_confused_with_user_edits(self):
+        previous = b'previous = true;\n'
+        digest = hashlib.sha1(b'blob ' + str(len(previous)).encode() + b'\0' + previous).hexdigest()
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            installed = root / 'custom_nodes/h3_studio/web/studio.js'
+            installed.parent.mkdir(parents=True)
+            installed.write_bytes(previous.replace(b'\n', b'\r\n'))
+            with patch.object(launcher, 'runtime_files', return_value=['web/studio.js']), \
+                 patch.object(launcher.json, 'loads', return_value={'web/studio.js':[digest]}):
+                launcher.protect_runtime_edits(root)
+                installed.write_bytes(b'previous = false;\r\n')
+                with self.assertRaisesRegex(RuntimeError, 'customized'):
+                    launcher.protect_runtime_edits(root)
+
     def test_busy_queue_cannot_mutate_runtime(self):
         api = Mock()
         api.queue.return_value = {"queue_running": [[1]], "queue_pending": []}

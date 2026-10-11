@@ -10,6 +10,44 @@ TEXT = 'integrated_multimodal_description: [Shot 1] A person walks.\noverall_sou
 
 
 class PromptContextTests(unittest.TestCase):
+    def test_storyboard_card_directives_reach_provider_payload_and_cache_identity(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            Image.new('RGB', (30, 20), 'blue').save(root/'h3_studio_kf_board.png')
+            calls = []
+            output = ('subject_definitions: No separate subjects.\nsummary: Follow <Picture 1>.\n'
+                      'retention_analysis: <Picture 1>: attribute_transfer.\n'
+                      'detailed_description: [Shot 1] Follow <Picture 1>.\n'
+                      'overall_soundscape: None.\nnon_diegetic_music: None.')
+            def chat(messages):
+                calls.append(messages)
+                return output
+            def writer(spec, parts):
+                return prepare_studio_context(spec, parts, chat=chat)
+            service = PromptContextService(root, writer=writer)
+            ref = {'alias':'board', 'kind':'image', 'role':'storyboard',
+                   'filename':'h3_studio_kf_board.png',
+                   'panel_order':'PANEL ORDER: bottom row, then top row.',
+                   'instruction':'SHOT MAP: panel 3 is the opening shot.'}
+            spec = {'mode':'refs', 'source_prompt':'Follow @board.', 'references':[ref]}
+            first = service.prepare(spec)
+            manifest = json.loads(calls[0][1]['content'][0]['text'])['references'][0]
+            self.assertEqual(manifest['panel_order'], ref['panel_order'])
+            self.assertEqual(manifest['instruction'], ref['instruction'])
+            self.assertEqual(first['bindings'][0]['panel_order'], ref['panel_order'])
+            self.assertTrue(any(part['type']=='image_url' for part in calls[0][1]['content']))
+            self.assertIn('panel_order', calls[0][0]['content'])
+            repeated = service.prepare(spec)
+            self.assertEqual(first['fingerprint'], repeated['fingerprint'])
+            self.assertEqual(len(calls), 1)
+            changed_ref = {**ref, 'panel_order':'PANEL ORDER: top row, then bottom row.'}
+            changed = service.prepare({**spec, 'references':[changed_ref]})
+            self.assertNotEqual(first['fingerprint'], changed['fingerprint'])
+            self.assertEqual(len(calls), 2)
+            manifest = json.loads(calls[1][1]['content'][0]['text'])['references'][0]
+            self.assertEqual(manifest['panel_order'], changed_ref['panel_order'])
+
     def test_json_output_and_outer_fence_are_real_native_sections(self):
         value = {'non_diegetic_music': 'None.', 'overall_soundscape':'Footsteps.',
                  'integrated_multimodal_description':'[Shot 1] A person walks.\nSTYLE: natural.'}

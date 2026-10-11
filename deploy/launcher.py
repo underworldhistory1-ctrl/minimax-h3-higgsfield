@@ -363,7 +363,8 @@ def environment_ready(python, args):
         modules += ",einops,safetensors,typing_extensions"
     if not args.no_controlnet:
         modules += ",onnxruntime,cv2,scipy,skimage"
-    result = subprocess.run([str(python), "-c", "import " + modules + "; assert torch.cuda.is_available()"],
+    result = subprocess.run([str(python), "-c", "import " + modules + "; assert torch.cuda.is_available(); "
+                             "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()"],
                             capture_output=True, text=True)
     return result.returncode == 0
 
@@ -459,7 +460,11 @@ def protect_runtime_edits(root):
         if content == (PROJECT / name).read_bytes():
             continue
         digest = hashlib.sha1(b"blob " + str(len(content)).encode() + b"\0" + content).hexdigest()
-        if digest not in known.get(name, []):
+        digests = {digest}
+        if installed.suffix.lower() in {".py", ".js", ".ps1", ".sh", ".html", ".css", ".json", ".md", ".txt", ".yaml", ".yml"}:
+            normalized = content.replace(b"\r\n", b"\n")
+            digests.add(hashlib.sha1(b"blob " + str(len(normalized)).encode() + b"\0" + normalized).hexdigest())
+        if not digests.intersection(known.get(name, [])):
             customized.append(name)
     if customized:
         raise RuntimeError("H3 runtime has customized or unrecognized files; preserve/review them before upgrading: " + ", ".join(customized[:12]))

@@ -76,7 +76,7 @@ class PromptContextService:
             with path.open('rb') as stream:
                 for chunk in iter(lambda:stream.read(1024*1024),b''): digest.update(chunk)
             hashes.append(digest.hexdigest())
-            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','audio_transcript') if ref.get(k) is not None}
+            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','panel_order','audio_transcript') if ref.get(k) is not None}
             role=str(ref.get('role','custom')).lower().strip()
             if ref['kind']=='image':
                 pic+=1;binding['picture_idx']=pic

@@ -240,6 +240,101 @@ test('storyboard panel order comes from the prompt or explicit user instruction'
   assert.ok(explicit.includes('Use the last panel only for costume.'));
 });
 
+test('partial guided native references retain storyboard order and shot map once', () => {
+  const panel_order = 'PANEL ORDER: bottom row before top row.';
+  const instruction = 'SHOT MAP: panel 3 opens, panel 1 closes.';
+  const references = [{alias:'board',kind:'image',role:'storyboard',panel_order,instruction}];
+  for (const repeated of [false, true]) {
+    const source_prompt = `summary: Follow @board.\ndetailed_description: [Shot 1] Hold the old bathroom reflection.${repeated ? '\n'+panel_order+'\n'+instruction : ''}\noverall_soundscape: Water only.\nnon_diegetic_music: N/A`;
+    const result = compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt,references});
+    const sections = parseStructuredSections(result.compiled_prompt);
+    assert.match(sections.summary, /Follow <Picture 1>/);
+    assert.match(sections.retention_analysis, /guide shot order, framing and visual progression/);
+    assert.match(sections.detailed_description, /\[Shot 1\] Hold the old bathroom reflection/);
+    assert.equal(sections.overall_soundscape, 'Water only.');
+    assert.equal(sections.non_diegetic_music, 'N/A');
+    for (const directive of [panel_order, instruction]) assert.equal(result.compiled_prompt.split(directive).length - 1, 1);
+    assert.equal(result.bindings[0].panel_order, panel_order);
+    assert.ok(!result.warnings.some(warning => warning.includes('bypassed')));
+  }
+});
+
+test('explicit structured and complete native reference schemas keep card overrides bypassed', () => {
+  const references = [{alias:'board',kind:'image',role:'storyboard',panel_order:'CARD ORDER',instruction:'CARD SHOT MAP'}];
+  const partial = 'summary: Follow @board.\ndetailed_description: [Shot 1] Follow the final panel only.\noverall_soundscape: No sound.\nnon_diegetic_music: None.';
+  const full = 'subject_definitions: No separate subjects.\nretention_analysis: <Picture 1>: weak_reference.\n'+partial;
+  for (const spec of [{prompt_mode:'structured',source_prompt:partial},{prompt_mode:'guided',source_prompt:full}]) {
+    const result = compilePrompt({mode:'refs',references,...spec});
+    assert.doesNotMatch(result.compiled_prompt, /CARD ORDER|CARD SHOT MAP/);
+    assert.ok(result.warnings.some(warning => warning.includes('bypassed')));
+    assert.equal(parseStructuredSections(result.compiled_prompt).detailed_description, '[Shot 1] Follow the final panel only.');
+  }
+});
+
+test('guided image subject card instructions survive prose and partial native input', () => {
+  const instruction = 'Use the coat texture only; replace its color with blue.';
+  for (const source_prompt of ['Use @hero.', 'summary: Use @hero.\ndetailed_description: [Shot 1] The hero enters.']) {
+    const result = compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt,references:[{alias:'hero',kind:'image',role:'character identity',instruction}]});
+    assert.equal(result.compiled_prompt.split(instruction).length - 1, 1);
+    assert.match(result.compiled_prompt, /<Subject 1>.*<Picture 1>/);
+  }
+});
+
+test('partial guided cards fill a missing summary without repeating directives in the description', () => {
+  const panel_order = 'Bottom row before top row.';
+  const instruction = 'Hold panel 3 before cutting to panel 1.';
+  for (const repeated of [false, true]) {
+    const result = compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt:`detailed_description: [Shot 1] Follow @board.${repeated ? '\n'+panel_order+'\n'+instruction : ''}`,
+      references:[{alias:'board',kind:'image',role:'storyboard',panel_order,instruction}]});
+    for (const directive of [panel_order, instruction]) assert.equal(result.compiled_prompt.split(directive).length - 1, 1);
+  }
+});
+
+test('partial guided reference schema retains explicit retention while supplementing card instructions', () => {
+  const instruction = 'Guide the camera only; use the new actor.';
+  const result = compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt:'summary: Follow @clip.\nretention_analysis: <Video 1>: weak_reference - the final shot only.\ndetailed_description: [Shot 1] A new actor walks.',
+    references:[{alias:'clip',kind:'video',role:'custom',fps:24,frame_count:124,instruction}]});
+  const sections = parseStructuredSections(result.compiled_prompt);
+  assert.equal(sections.retention_analysis, '<Video 1>: weak_reference - the final shot only.');
+  assert.ok(sections.summary.includes(instruction));
+  assert.equal(sections.detailed_description, '[Shot 1] A new actor walks.');
+});
+
+test('emitted guided card directives reject unknown aliases and native indices', () => {
+  for (const source_prompt of ['Show @actor.', 'summary: Show @actor.\ndetailed_description: [Shot 1] Hold.']) {
+    for (const [instruction, error] of [['Match <Picture 99>.', /Picture 99.*does not exist/], ['Match @missing.', /Unknown mention: @missing/]]) {
+      assert.throws(() => compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt,
+        references:[{alias:'actor',kind:'image',role:'character identity',instruction}]}), error);
+    }
+  }
+  for (const [panel_order, error] of [['Start with <Video 99>.', /Video 99.*does not exist/], ['Start with @missing.', /Unknown mention: @missing/]]) {
+    assert.throws(() => compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt:'summary: Follow @board.\ndetailed_description: [Shot 1] Hold.',
+      references:[{alias:'board',kind:'image',role:'storyboard',panel_order}]}), error);
+  }
+});
+
+test('guided cards resolve later cross-card aliases and deduplicate native-form directives', () => {
+  const instruction = 'Keep @actor holding @prop.';
+  const panel_order = 'Show @prop before @actor.';
+  const references = [{alias:'actor',kind:'image',role:'character identity',instruction},
+    {alias:'board',kind:'image',role:'storyboard',panel_order},{alias:'prop',kind:'image',role:'object'}];
+  const resolved = ['Keep <Subject 1> holding <Subject 2>.', 'Show <Subject 2> before <Subject 1>.'];
+  for (const repeated of [false, true]) {
+    const source_prompt = `summary: Show @actor with @prop following @board.\ndetailed_description: [Shot 1] Hold.${repeated ? '\n'+resolved.join('\n') : ''}`;
+    const result = compilePrompt({mode:'refs',prompt_mode:'guided',source_prompt,references});
+    assert.doesNotMatch(result.compiled_prompt, /@[\p{L}\p{N}_-]+/u);
+    for (const directive of resolved) assert.equal(result.compiled_prompt.split(directive).length - 1, 1);
+  }
+});
+
+test('unused Structured card instructions and panel order do not fail native compilation', () => {
+  const references = [{alias:'board',kind:'image',role:'storyboard',panel_order:'Show @missing.',instruction:'Match <Picture 99>.'}];
+  for (const source_prompt of ['summary: Follow @board.\ndetailed_description: [Shot 1] Hold.', 'detailed_description: [Shot 1] Follow @board.']) {
+    const result = compilePrompt({mode:'refs',prompt_mode:'structured',source_prompt,references});
+    assert.doesNotMatch(result.compiled_prompt, /@missing|<Picture 99>/);
+  }
+});
+
 
 test('plain and partial prompts are prepared in either input mode', () => {
   for (const prompt_mode of ['guided','structured']) {

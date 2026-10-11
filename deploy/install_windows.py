@@ -223,18 +223,20 @@ def select_python(root, override, fresh):
 
 def ensure_python_env(python, root, fresh):
     probe = subprocess.run([str(python), "-c",
-                            "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available()"],
+                            "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
+                            "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()"],
                            capture_output=True, text=True)
     if probe.returncode == 0:
         return
     print("Installing missing ComfyUI Python dependencies...", flush=True)
     if fresh:
         call(python, "-m", "pip", "install", "--upgrade", "pip")
-    cuda = subprocess.run([str(python), "-c", "import torch; assert torch.cuda.is_available()"],
+    cuda = subprocess.run([str(python), "-c", "import torch; assert torch.cuda.is_available(); "
+                           "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()"],
                           capture_output=True, text=True)
     if cuda.returncode:
         print("Preparing CUDA PyTorch...", flush=True)
-        call(python, "-m", "pip", "install", "torch", "torchvision", "torchaudio",
+        call(python, "-m", "pip", "install", "torch==2.9.1+cu130", "torchvision==0.24.1+cu130", "torchaudio==2.9.1+cu130",
              "--index-url", "https://download.pytorch.org/whl/cu130")
     # Resolve missing packages without allowing pip to replace a working CUDA
     # stack as a transitive dependency of torchvision or another requirement.
@@ -246,7 +248,8 @@ def ensure_python_env(python, root, fresh):
                         "    except m.PackageNotFoundError: pass", capture=True)
         constraints.write_text(versions + "\n", encoding="utf-8")
         call(python, "-m", "pip", "install", "-c", constraints, "-r", root / "requirements.txt", "av")
-    call(python, "-c", "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available()")
+    call(python, "-c", "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
+         "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()")
 
 
 def copy_runtime(root):
@@ -425,7 +428,7 @@ def main():
                    "40316cf008b2fd8663263270669eb4da23f89d2c")
         requirements = root / "custom_nodes" / "Comfyui_Minimax_h3_latent_Upscaler" / "requirements.txt"
         if requirements.is_file():
-            call(python, "-m", "pip", "install", "-r", requirements)
+            call(python, PROJECT / "deploy" / "install_python_dependencies.py", "-r", requirements)
         call(python, "-c", "import torch, einops, safetensors, typing_extensions")
         if not models_prepared:
             call(python, PROJECT / "deploy" / "download_refine_models.py", root)

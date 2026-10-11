@@ -281,6 +281,10 @@
       const definitions = [];
       const retention = [];
       const mediaNotes = [];
+      // A partial schema pasted into Guided still needs its card guidance.
+      // Complete native prompts and explicitly Structured input keep authority.
+      const supplementGuidedCards = promptMode !== 'structured' && originalSections &&
+        !NATIVE_REF_SECTIONS.every(name => originalSections[name]?.trim());
 
       let imageIdx = 0;
       let subjectIdx = 0;
@@ -296,6 +300,7 @@
           kind: ref.kind,
           role: role,
           instruction: ref.instruction || '',
+          ...(ref.panel_order ? {panel_order: ref.panel_order} : {}),
         };
 
         if (ref.kind === 'image') {
@@ -306,13 +311,11 @@
           if (role === 'custom') {
             tag = picTag;
             bindingInfo.tag = tag;
-            if (ref.instruction) {
-              mediaNotes.push(`${picTag}: ${ref.instruction}`);
-            }
           } else if (role === 'storyboard') {
             tag = picTag;
             bindingInfo.tag = tag;
-            mediaNotes.push(`${picTag} is a multi-panel storyboard. ${ref.panel_order || "Use the panel/shot order described in the prompt"} as a shot and composition guide; do not render panel borders or labels. Follow explicit shot descriptions when they differ. ${ref.instruction || ""}`);
+            mediaNotes.push(`${picTag} is a multi-panel storyboard. Use the panel/shot order described in the prompt as a shot and composition guide; do not render panel borders or labels. Follow explicit shot descriptions when they differ.`);
+            if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
             retention.push(`${picTag}: attribute_transfer - guide shot order, framing and visual progression; do not treat the sheet as a single visible subject.`);
           } else {
             const subNum = ++subjectIdx;
@@ -357,9 +360,7 @@
           } else if (role === 'motion and camera') {
             mediaNotes.push(`${tag} guides body performance, action timing and camera movement only. Do not transfer its actor identity, wardrobe, voice or location unless the detailed_description explicitly requests them.`);
           } else if (role === 'custom') {
-            if (ref.instruction) {
-              mediaNotes.push(`${tag}: ${ref.instruction}`);
-            }
+            // Custom references are described by their explicit card instruction.
           } else {
             mediaNotes.push(`${tag} is a ${role} reference only. Do not transfer its actor identity, wardrobe, voice or location unless the detailed_description explicitly requests them.`);
           }
@@ -368,9 +369,7 @@
           tag = `<Audio ${audNum}>`;
           bindingInfo.audio_idx = audNum;
           bindingInfo.tag = tag;
-          if (role === 'custom' && ref.instruction) {
-            mediaNotes.push(`${tag}: ${ref.instruction}`);
-          } else {
+          if (role !== 'custom' || !ref.instruction) {
             mediaNotes.push(`${tag} is a ${role} reference.`);
           }
         }
@@ -383,7 +382,7 @@
           'voice': 'voice qualities only', 'music': 'music only', 'sound effects': 'sound effects only'
         } : {};
         if (retentionRoles[role]) retention.push(tag + ': attribute_transfer - ' + retentionRoles[role] + '.');
-        if (ref.kind !== 'image' && ref.instruction && role !== 'custom') mediaNotes.push(tag + ': ' + ref.instruction);
+        if (ref.instruction) mediaNotes.push(tag + ': ' + ref.instruction);
         aliasToTag.set(ref.alias, tag);
         bindings.push(bindingInfo);
       }
@@ -400,18 +399,22 @@
       });
       if (missing.length) throw new Error('Mention every attached reference in the prompt: ' + missing.map(r => '@' + r.alias).join(', '));
 
-      // Substitute mentions
-      const unknown = [];
-      let substituted = source.replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
-        if (!aliasToTag.has(name)) {
-          unknown.push(whole);
-          return whole;
-        }
+      // Card directives can mention a later card: resolve only after all bindings
+      // are known, using the same map and rejection rules as the scene prompt.
+      const replaceMentions = text => text.replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
+        if (!aliasToTag.has(name)) throw new Error('Unknown mention: ' + whole);
         return aliasToTag.get(name);
       });
-      if (unknown.length) {
-        throw new Error('Unknown mention: ' + [...new Set(unknown)].join(', '));
-      }
+      let substituted = replaceMentions(source);
+      const resolveCardNotes = () => [...new Set(mediaNotes.map(replaceMentions))].filter(note => {
+        const directive = note.match(/^<(?:Picture|Subject|Video|Audio) \d+>: ([\s\S]*)$/)?.[1];
+        return !substituted.includes(directive || note);
+      });
+      const validateCompiledReferences = prompt => {
+        validateNativeBindings(prompt, {picture:imageIdx, video:videoIdx, audio:audioIdx, subject:originalSections ? imageIdx : subjectIdx});
+        const aliases = prompt.match(/@[\p{L}\p{N}_-]+/gu);
+        if (aliases) throw new Error('Unresolved reference mention: ' + [...new Set(aliases)].join(', '));
+      };
 
       // Alias-led subject definitions need the attached image relation in native syntax.
       // Leave explicit native definitions unchanged so conflicting bindings still fail.
@@ -440,7 +443,7 @@
         if (relationLines.length) structured.subject_definitions = relationLines.join('\n')+'\n'+structured.subject_definitions;
       }
       if (structured && (promptMode === 'structured' || hasNativeSections)) {
-        warnings.push('Structured prompt controls retention and instructions directly; reference card roles, panel order and instructions are bypassed. Attached media tags are still validated.');
+        if (!supplementGuidedCards) warnings.push('Structured prompt controls retention and instructions directly; reference card roles, panel order and instructions are bypassed. Attached media tags are still validated.');
         // Validate native token indices in structured prompt
         const picTokens = [...substituted.matchAll(/<Picture\s+(\d+)>/gi)];
         for (const m of picTokens) {
@@ -464,15 +467,18 @@
           }
         }
 
+        const notes = supplementGuidedCards ? resolveCardNotes() : [];
         const completed = completeSections(structured, NATIVE_REF_SECTIONS, {
           subject_definitions: definitions.join('\n') || 'No separate still-image subject is defined.',
-          summary: '[reference generation] Generate the sequence described below. ' + mediaNotes.join(' '),
+          summary: '[reference generation] Generate the sequence described below. ' + notes.join(' '),
           retention_analysis: retention.join('\n') || 'Apply only explicitly requested reference attributes.',
           detailed_description: structured.summary || 'Generate the sequence using the explicit reference instructions above.',
           overall_soundscape: 'Use only the scene sounds requested in the description.',
           non_diegetic_music: 'Only music explicitly requested in the description.',
         });
+        if (supplementGuidedCards && structured.summary && notes.length) completed.summary += '\n' + notes.join('\n');
         const compiled = serializeSections(completed, NATIVE_REF_SECTIONS);
+        validateCompiledReferences(compiled);
         validateSubjectBindings(compiled, completed, bindings);
         return { compiled_prompt: compiled, bindings, warnings };
       }
@@ -488,7 +494,7 @@
         definitions.join('\n') || 'No separate still-image subject is defined.',
         '',
         'summary:',
-        `[reference generation] ${summaryLead} ${mediaNotes.join(' ')}`.trim(),
+        `[reference generation] ${summaryLead} ${resolveCardNotes().join(' ')}`.trim(),
         '',
         'retention_analysis:',
         retention.join('\n') || 'Apply only the reference uses explicitly requested in the detailed_description; no additional retention is imposed.',
@@ -503,6 +509,8 @@
         adapted ? adapted.non_diegetic_music : 'Only music explicitly requested in the detailed_description.',
       ].join('\n');
 
+      validateCompiledReferences(compiled);
+      validateSubjectBindings(compiled, {subject_definitions: definitions.join('\n')}, bindings);
       return { compiled_prompt: compiled, bindings, warnings };
     }
 

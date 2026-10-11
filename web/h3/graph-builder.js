@@ -25,13 +25,36 @@
   const MODEL_REF = "minimax_h3_ref2va_pruned_int8_convrot.safetensors";
   const TURBO_NAME = "experimental/minimax_h3_fl2v_lightx2v_turbo_4to8step_v0.1-v1.0_768p_v4_step600_dareties.safetensors";
 
+  // 1080p is an output size, not a valid native H3 sampling height.
+  function canvasFor(width, height) {
+    width = Number(width); height = Number(height);
+    const exact1080 = width === 1920 && height === 1080;
+    if (![width, height].every(n => Number.isInteger(n) && n >= 32 && n <= 8192)
+      || !exact1080 && [width, height].some(n => n % 32 !== 0)) throw new Error('Canvas dimensions must be positive multiples of 32, or the exact 1920x1080 output preset.');
+    return {width, height: exact1080 ? 1088 : height, outputWidth: width, outputHeight: height,
+      crop: exact1080 ? {width, height, x: 0, y: 4} : null};
+  }
+
+  const own = (object, key) => key != null && Object.prototype.hasOwnProperty.call(object, key) ? object[key] : undefined;
+  function canonicalFile(file, label='asset') {
+    if (file == null) return file;
+    if (typeof file !== 'string' || !file || file.includes('..') || /[\\\x00-\x1f]/.test(file) || file.startsWith('/') || /^[a-z]+:/i.test(file)) throw new Error('Invalid canonical '+label+' filename.');
+    return file;
+  }
+  function resolvedFile(assets, ...keys) {
+    for (const key of keys) {
+      const file = own(assets, key);
+      if (file != null) return canonicalFile(file);
+    }
+  }
+
   function buildGraph(renderSpec, resolvedAssets = {}, capabilities = {}) {
     const mode = renderSpec.mode || 'text';
     const isRefs = mode === 'refs';
     const token = renderSpec.token || '000000000000';
     const prompt = renderSpec.compiled_prompt || '';
-    const width = Number(renderSpec.width ?? 1280);
-    const height = Number(renderSpec.height ?? 704);
+    const canvas = canvasFor(renderSpec.width ?? 1280, renderSpec.height ?? 704);
+    const {width, height} = canvas;
     const seconds = Number(renderSpec.target_seconds ?? renderSpec.duration_seconds ?? 124 / 24);
     const length = Number(renderSpec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
     const seed = Number(renderSpec.seed ?? 42);
@@ -43,14 +66,15 @@
     if (renderSpec.continuation) {
       const cont = renderSpec.continuation;
       if(mode==='frames')throw new Error("Continuation uses protected source context; use timed guides instead of start/end frames.");
-      if(cont.source_canvas&&(Number(cont.source_canvas.width)!==width||Number(cont.source_canvas.height)!==height))throw new Error("Continuation canvas must match its source.");
+      const sourceWidth = cont.type === 'generated' ? width : canvas.outputWidth;
+      const sourceHeight = cont.type === 'generated' ? height : canvas.outputHeight;
+      if(cont.source_canvas&&(Number(cont.source_canvas.width)!==sourceWidth||Number(cont.source_canvas.height)!==sourceHeight))throw new Error("Continuation canvas must match its source.");
       if(cont.type==='generated'&&cont.source_model&&cont.source_model!==(isRefs?MODEL_REF:MODEL_FL))throw new Error("Changing the continuation checkpoint requires the explicit video re-encode path.");
       if (!["generated", "imported"].includes(cont.type)) throw new Error("Unknown continuation type.");
       if (!(cont.type === "generated" ? cont.source_token : cont.source_file)) throw new Error("Continuation source is missing.");
       if (!Number.isInteger(contextLength) || contextLength < 39 || (contextLength - 39) % 51 !== 0 || contextLength >= length) throw new Error("Continuation context must be an exact shared AV boundary shorter than the target.");
       if (capabilities.continuation_ready !== true) throw new Error("AV continuation is unavailable: verified durable context loading and frame/sample-exact trimming and assembly are required before rendering.");
     }
-    if (![width, height].every(n => Number.isInteger(n) && n >= 32 && n <= 8192 && n % 32 === 0)) throw new Error('Canvas dimensions must be positive multiples of 32.');
     const enableRefine = !!(renderSpec.enable_refine ?? renderSpec.refine);
     if (enableRefine && capabilities.refine_ready !== true) throw new Error('Latent refine is unavailable: verified nodes and upscaler weights are required.');
     if (enableRefine && renderSpec.continuation) throw new Error('Refine cannot be combined with continuation.');
@@ -61,8 +85,8 @@
       if (!['pose','depth','canny','hed','mlsd','scribble','layout','gray','inpaint'].includes(control.kind)) throw new Error('Unknown prepared control kind.');
       if (control.model_name !== 'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors') throw new Error('Unknown ControlNet model patch.');
       if (Number(control.fps) !== 24 || Number(control.frame_count) !== length || Number(control.width) !== width || Number(control.height) !== height) throw new Error('Prepared control metadata must match 24 fps, target frames and canvas exactly.');
-      if ((control.mask_file || resolvedAssets.mask) && control.kind !== 'inpaint') throw new Error('A mask requires explicit inpaint control kind.');
-      if ((control.source_file || resolvedAssets.source) && !(control.mask_file || resolvedAssets.mask)) throw new Error('Control source requires a mask.');
+      if ((control.mask_file || own(resolvedAssets,'mask')) && control.kind !== 'inpaint') throw new Error('A mask requires explicit inpaint control kind.');
+      if ((control.source_file || own(resolvedAssets,'source')) && !(control.mask_file || own(resolvedAssets,'mask'))) throw new Error('Control source requires a mask.');
       for (const [key, fallback, min, max] of [['strength',1,0,10],['start_percent',0,0,1],['end_percent',1,0,1]]) {
         const value = Number(control[key] ?? fallback);
         if (!Number.isFinite(value) || value < min || value > max) throw new Error('Invalid control ' + key + '.');
@@ -142,18 +166,14 @@
     g["2"].inputs.model = modelLink;
     let samplingModelLink = ["2", 0];
     if (control) {
-      const canonicalFile = (key) => {
-        const file = resolvedAssets[key] || control[key + '_file'];
-        if (file != null && (typeof file !== 'string' || !file || file.includes('..') || /[\\\x00-\x1f]/.test(file) || file.startsWith('/') || /^[a-z]+:/i.test(file))) throw new Error('Invalid canonical control file.');
-        return file;
-      };
+      const controlFile = (key) => canonicalFile(resolvedFile(resolvedAssets, key) ?? control[key + '_file'], 'control');
       const loadVideoImages = file => {
         const loadId = allocate(110); g[loadId] = {class_type:'LoadVideo',inputs:{file}};
         const splitId = allocate(110); g[splitId] = {class_type:'GetVideoComponents',inputs:{video:[loadId,0]}};
         return [splitId,0];
       };
-      const file = canonicalFile('control');
-      const mask = canonicalFile('mask'), source = canonicalFile('source');
+      const file = controlFile('control');
+      const mask = controlFile('mask'), source = controlFile('source');
       if (!file && !(control.kind === 'inpaint' && mask && source)) throw new Error('Prepared control video or an inpaint source and mask has not been resolved.');
       const patchId = allocate(110); g[patchId] = {class_type:'ModelPatchLoader',inputs:{name:control.model_name}};
       const inputs = {model:samplingModelLink,model_patch:[patchId,0],vae:['4',0],strength:Number(control.strength ?? 1),start_percent:Number(control.start_percent ?? 0),end_percent:Number(control.end_percent ?? 1)};
@@ -197,8 +217,8 @@
     // Frames mode inputs
     if (mode === 'frames') {
       const frames = renderSpec.frames || {};
-      const first = resolvedAssets.first || resolvedAssets[frames.first];
-      const last = resolvedAssets.last || resolvedAssets[frames.last];
+      const first = resolvedFile(resolvedAssets, 'first', frames.first);
+      const last = resolvedFile(resolvedAssets, 'last', frames.last);
       if ((frames.first && !first) || (frames.last && !last)) throw new Error('A selected frame has not been resolved.');
       if (!first && !last) throw new Error('Frames mode requires a resolved start or end image.');
       if (first) {
@@ -226,7 +246,8 @@
       if (refs.some(ref => !['image', 'video', 'audio'].includes(ref.kind))) throw new Error('Unknown reference kind.');
       const ordered = ['image', 'video', 'audio'].flatMap(kind => refs.filter(ref => ref.kind === kind));
       for (const ref of ordered) {
-        const file = resolvedAssets[ref.asset_id] || resolvedAssets[ref.alias];
+        // A card's prepared fit is distinct even when cards share a saved asset.
+        const file = resolvedFile(resolvedAssets, ref.alias, ref.asset_id);
         if (!file) throw new Error(`Reference ${ref.alias || ref.asset_id} has not been resolved.`);
 
         if (ref.kind === 'image') {
@@ -265,7 +286,7 @@
       guides.forEach((guide, gIdx) => {
         const guideNodeId = allocate(70);
         const guideImgNodeId = allocate(Number(guideNodeId) + 1);
-        const guideFile = resolvedAssets[guide.asset_id] || guide.file || guide.filename;
+        const guideFile = canonicalFile(resolvedFile(resolvedAssets, guide.alias, guide.asset_id) ?? guide.file ?? guide.filename);
         if (!guideFile) throw new Error('Temporal guide image has not been resolved.');
         if (typeof guide.frame_idx !== 'number' || !Number.isInteger(guide.frame_idx)) throw new Error('Temporal guide frame index must be an integer.');
         const frameIdx = guide.frame_idx + (guide.relative_to_new_content && renderSpec.continuation ? contextLength : 0);
@@ -315,7 +336,7 @@
         g[sourceId] = { class_type: 'H3LabLoadContext', inputs: { token: cont.source_token, model_id: isRefs ? MODEL_REF : MODEL_FL, width, height, fps: 24 } };
         g[contextId] = { class_type: 'MiniMaxH3GeneratedAVMaskedContext', inputs: { latent: ['6', 1], source_latent: [sourceId, 0], context_length: contextLength, audio_feather_ticks: Number(cont.audio_feather_ticks ?? 8) } };
       } else {
-        g[sourceId] = { class_type: 'LoadVideo', inputs: { file: cont.source_file } };
+        g[sourceId] = { class_type: 'LoadVideo', inputs: { file: canonicalFile(cont.source_file) } };
         const splitId = allocate(Number(sourceId) + 1);
         g[splitId] = { class_type: 'GetVideoComponents', inputs: { video: [sourceId, 0] } };
         g[contextId] = { class_type: 'MiniMaxH3ExistingVideoMaskedContext', inputs: { latent: ['6', 1], vae: ['4', 0], audio_vae: ['5', 0], source_frames: [splitId, 0], source_audio: [splitId, 1], source_fps: 24, context_length: contextLength, crop: 'disabled', audio_feather_ticks: Number(cont.audio_feather_ticks ?? 8) } };
@@ -395,10 +416,24 @@
       g["13"].inputs.samples = [refineSamplerId, 0];
     }
 
+    // Native ComfyUI nodes, verified against pinned revision 3b4c0b0e.
+    // Fit refinement back to these new selected outputs; legacy refine stays unchanged.
+    if (enableRefine && (canvas.crop || width === 1664 && height === 928)) {
+      const fitId = allocate(170);
+      g[fitId] = {class_type:'ImageScale',inputs:{image:g['11'].inputs.images,upscale_method:'lanczos',width,height,crop:'center'}};
+      g['11'].inputs.images = [fitId,0];
+    }
+    // This spatial crop follows AV continuation trim and precedes video assembly.
+    if (canvas.crop) {
+      const cropId = allocate(170);
+      g[cropId] = {class_type:'ImageCrop',inputs:{image:g['11'].inputs.images,...canvas.crop}};
+      g['11'].inputs.images = [cropId,0];
+    }
     return g;
   }
 
   return {
     buildGraph,
+    canvasFor,
   };
 });

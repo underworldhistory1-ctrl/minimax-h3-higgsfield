@@ -132,10 +132,11 @@
     if(control.kind!=='inpaint'&&control.input_type!=='video')return;
     const key=control.kind==='inpaint'?'source':'video',item=state.controlInputs[key],mask=state.controlInputs.mask,epoch=state.generationEpoch,width=state.width,height=state.height;
     const duration=await videoDuration(item);
-    const alignedMask=control.kind==='inpaint'?await alignMask(mask,item,width,height):null;
+    const canvas=samplingCanvas(width,height);
+    const alignedMask=control.kind==='inpaint'?await alignMask(mask,item,canvas.width,canvas.height):null;
     if(epoch!==state.generationEpoch)return;
     if(state.width!==width||state.height!==height||state.controlInputs[key]!==item||control.kind==='inpaint'&&state.controlInputs.mask!==mask||currentControl()?.kind!==control.kind||currentControl()?.input_type!==control.input_type||currentControl()?.start_seconds!==control.start_seconds)throw Error('Control inputs changed. Review them and generate again.');
-    if(alignedMask){alignedMasks.set(mask,alignedMask);state.control.mask_alignment={fitted:alignedMask.fitted,width,height,method:'nearest_cover_crop'};}
+    if(alignedMask){alignedMasks.set(mask,alignedMask);state.control.mask_alignment={fitted:alignedMask.fitted,width:canvas.width,height:canvas.height,method:'nearest_cover_crop'};}
     const available=Math.floor((duration-control.start_seconds)*24+.0001);
     if(available<124)throw Error('The source must contain at least 5.17 seconds after the selected start. Choose a longer span.');
     const requested=Number($('duration').value),matched=Math.min(requested,5+17*Math.floor((available-5)/17));
@@ -166,7 +167,7 @@
       };
       timer=setTimeout(poll,1500);
       try{
-        const response=await fetch(api('/h3_studio/lab/control/prepare'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:uploaded.name,width:state.width,height:state.height,target_frames:Number($('duration').value),...options,start_seconds:0,request_id:requestId}),signal});
+        const response=await fetch(api('/h3_studio/lab/control/prepare'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:uploaded.name,width:samplingCanvas().width,height:samplingCanvas().height,target_frames:Number($('duration').value),...options,start_seconds:0,request_id:requestId}),signal});
         const result=await response.json();if(!response.ok)throw Error(result.error||'Control preparation failed.');
         if(signal?.aborted)throw new DOMException('Cancelled','AbortError');
         state.uploads.push(result.filename);if(result.source_file)state.uploads.push(result.source_file);return result;
@@ -183,10 +184,10 @@
       const {source_file:normalizedSource,...prepared}=result;
       Object.assign(control,prepared,{control_file:result.filename});uploads.control=result.filename;uploads.control_context=normalizedSource||null;
     }else{
-      Object.assign(control,{fps:24,frame_count:Number($('duration').value),width:state.width,height:state.height});
+      Object.assign(control,{fps:24,frame_count:Number($('duration').value),width:samplingCanvas().width,height:samplingCanvas().height});
       const source=await prepareVideo(state.controlInputs.source,'Source region',{input_type:'prepared',kind:'inpaint'});control.source_file=source.filename;uploads.source=source.filename;uploads.control_context=source.filename;
       const mask=state.controlInputs.mask,aligned=alignedMasks.get(mask);
-      if(!aligned||aligned.original!==mask.file||aligned.width!==state.width||aligned.height!==state.height)throw Error('Control mask changed. Review the mask before generating.');
+      if(!aligned||aligned.original!==mask.file||aligned.width!==samplingCanvas().width||aligned.height!==samplingCanvas().height)throw Error('Control mask changed. Review the mask before generating.');
       const result=await sendFile(aligned.file,'image','Aligned control mask',{...mask,file:aligned.file,assetId:null});control.mask_file=result.name;uploads.mask=result.name;
     }
     state.control=control;$('controlStatus').textContent=(control.plan_note?control.plan_note+' ':'')+(control.kind!=='inpaint'&&control.input_type==='video'?'Guidance extracted and verified for this canvas.':'Control files aligned and verified for this canvas.');
@@ -216,7 +217,7 @@
         const kind=item.kind||'image';let file=item.file,result;
         if(kind==='image'&&item.assetId){
           const fit=state.mode==='frames'?(item.imageFit||$('frameFit').value):item.imageFit||'preserve';
-          result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(item.assetId)}/resolve`,{method:'POST',body:JSON.stringify({fit,width:state.width,height:state.height})});result.name=result.filename;state.uploads.push(result.name);
+          result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(item.assetId)}/resolve`,{method:'POST',body:JSON.stringify({fit,width:samplingCanvas().width,height:samplingCanvas().height})});result.name=result.filename;state.uploads.push(result.name);
         }else{
           if(kind==='image'&&state.mode==='frames')file=await fitFrameImage(file,item.imageFit||null);
           else if(kind==='image'&&item.imageFit&&item.imageFit!=='preserve')file=await fitFrameImage(file,item.imageFit);

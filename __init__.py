@@ -760,16 +760,19 @@ async def readiness(request):
         "MiniMaxH3ImageToVideo", "MiniMaxH3ReferenceToVideo",
         "ConditioningZeroOut", "KSampler", "VAEDecode", "VAEDecodeAudio",
         "CreateVideo", "H3SaveVideo", "H3ReleaseForDecode", "H3LoadSavedLatent",
-        "SaveVideo", "LoadImage", "LoadVideo",
+        "SaveVideo", "LoadImage", "LoadVideo", "ImageCrop", "ImageScale",
         "GetVideoComponents", "LoadAudio", "LoraLoaderModelOnly",
         "SpectrumApplyMiniMaxH3", "MiniMaxH3MotionCache",
     )
     available = {name: name in nodes.NODE_CLASS_MAPPINGS for name in node_names}
     vae_source = pathlib.Path(folder_paths.__file__).resolve().parent / "comfy" / "ldm" / "minimax" / "vae.py"
     try:
-        vae_tile_fix = "strip[..., :, x_idx[j]:x_idx[j] + x_len[j]]" in vae_source.read_text(encoding="utf-8")
+        vae_text = vae_source.read_text(encoding="utf-8")
+        vae_tile_fix = "strip[..., :, x_idx[j]:x_idx[j] + x_len[j]]" in vae_text
+        vae_chunked_io = "comfy_has_chunked_io = True" in vae_text and "def decode_output_shape" in vae_text
     except OSError:
         vae_tile_fix = False
+        vae_chunked_io = False
     ram_limit = None
     try:
         raw = pathlib.Path("/sys/fs/cgroup/memory.max").read_text(encoding="ascii").strip()
@@ -780,7 +783,7 @@ async def readiness(request):
     return web.json_response({"models": present, "nodes": available,
                               "runtime_instance": H3_RUNTIME_INSTANCE,
                               "runtime_fingerprint": H3_RUNTIME_FINGERPRINT,
-                              "quality": {"h3_vae_tile_fix": vae_tile_fix},
+                              "quality": {"h3_vae_tile_fix": vae_tile_fix, "h3_vae_chunked_io": vae_chunked_io},
                               "system_ram_limit_gb": ram_limit})
 
 

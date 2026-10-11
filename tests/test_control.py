@@ -33,6 +33,21 @@ class ControlTests(unittest.TestCase):
     def test_matching_graph(self):
         self.assertEqual(self.validate()['strength'], .8)
 
+    def test_full_hd_control_uses_aligned_sampling_canvas(self):
+        self.spec.update(width=1920, height=1080)
+        self.spec['workflow']['6']['inputs'].update(width=1920, height=1088)
+        self.metadata.update(width=1920, height=1088)
+        self.assertEqual(self.validate()['strength'], .8)
+        self.metadata['height'] = 1080
+        with self.assertRaisesRegex(ValueError, 'exact canvas'):
+            self.validate()
+
+    def test_untrusted_sampling_canvas_cannot_change_control_dimensions(self):
+        self.spec['sampling_canvas'] = {'width':1920, 'height':1088}
+        self.spec['workflow']['6']['inputs'].update(width=1920, height=1088)
+        with self.assertRaisesRegex(ValueError, 'disagree'):
+            self.validate()
+
     def test_mismatched_graph_file_and_disconnected_patch(self):
         for key in ('file', 'model'):
             spec = copy.deepcopy(self.spec)

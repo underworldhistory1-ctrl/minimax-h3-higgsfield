@@ -75,7 +75,7 @@ async function useContinuationReferences(){
       if(!source)throw Error("Select the original result and choose Video context · re-encode first.");
       const result=await post("/h3_studio/lab/media/import_video",{output_file:source,project_id:state.activeProjectId});
       state.continuation={...c,type:"imported",source_token:undefined,source_model:undefined,
-        source_asset_id:result.asset.asset_id,source_output:source,source_duration_seconds:result.metadata.frame_count/24};
+        source_asset_id:result.asset.asset_id,source_canvas:{width:result.metadata.width,height:result.metadata.height},source_output:source,source_duration_seconds:result.metadata.frame_count/24};
       await projectCtrl.loadProject(state.activeProjectId);
     }
     setContinuationMode("refs");renderContinuation();updatePreviewLive();
@@ -104,7 +104,7 @@ function renderGuides(){
   });
 }
 async function fitFrameImage(file,fitOverride=null){
-  const bitmap=await createImageBitmap(file);const canvas=document.createElement("canvas");canvas.width=state.width;canvas.height=state.height;
+  const bitmap=await createImageBitmap(file);const canvas=document.createElement("canvas"),sampling=samplingCanvas();canvas.width=sampling.width;canvas.height=sampling.height;
   const ctx=canvas.getContext("2d");ctx.fillStyle="#000";ctx.fillRect(0,0,canvas.width,canvas.height);
   const fit=fitOverride||$("frameFit").value;const scale=(fit==="contain"?Math.min:Math.max)(canvas.width/bitmap.width,canvas.height/bitmap.height);
   const w=bitmap.width*scale,h=bitmap.height*scale;ctx.drawImage(bitmap,(canvas.width-w)/2,(canvas.height-h)/2,w,h);bitmap.close();

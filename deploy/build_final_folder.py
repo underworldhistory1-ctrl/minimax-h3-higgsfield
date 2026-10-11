@@ -110,7 +110,9 @@ def main():
     files = sorted(p for p in output.rglob("*")
                    if p.is_file() and p.name != "MANIFEST_SHA256.json")
     manifest = {
-        "project": "H3 Studio", "release": "2026-10-03-v2",
+        "project": "H3 Studio", "release": "2026-10-12-high-resolution",
+        "gpu_validation_this_release": False,
+        "gpu_validation_note": "GPU fields below describe the earlier V2 baseline; the new presets require target-server render validation.",
         "tested_gpu": "NVIDIA GeForce RTX 5090, 32 GB",
         "tested_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
         "prepared_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",

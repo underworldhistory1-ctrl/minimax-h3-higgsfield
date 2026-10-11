@@ -102,6 +102,9 @@ def validate_control_graph(spec, input_root, caps):
     if render.get('mode') not in ('text', 'frames', 'Text', 'Frames') or render.get('continuation') or render.get('enable_refine') or render.get('refine'):
         raise ValueError('ControlNet supports FL2VA Text/Frames without continuation or refine')
     width, height = (int(render[k]) for k in ('width', 'height'))
+    # Full HD is exported from the aligned H3 canvas, not sent as a 1080px latent.
+    if (width, height) == (1920, 1080):
+        height = 1088
     length = int(render.get('target_frames', render.get('length', 0)))
     canvas(width, height, length)
     strength = float(control.get('strength', 1))

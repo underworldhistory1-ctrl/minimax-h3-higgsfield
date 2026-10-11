@@ -21,6 +21,19 @@ def make_video(path, duration=3, audio=False):
 
 
 class SourcePreparationTests(unittest.TestCase):
+    def test_full_hd_source_keeps_exact_output_and_audio_timeline(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source=pathlib.Path(folder)/'source.mp4';target=pathlib.Path(folder)/'prepared.mp4'
+            make_video(source,duration=2,audio=True)
+            metadata=prepare_video_source(source,target,1920,1080,2)
+            self.assertEqual((metadata['width'],metadata['height']), (1920,1080))
+            streams=inspect_media(target)['streams']
+            video=next(s for s in streams if s['codec_type']=='video')
+            self.assertEqual((video['width'],video['height']), (1920,1080))
+            self.assertEqual(int(video.get('nb_read_frames') or video['nb_frames']),48)
+            self.assertEqual(video['r_frame_rate'],'24/1')
+            self.assertTrue(any(s['codec_type']=='audio' for s in streams))
+
     def test_memory_guard_honors_host_and_container_limits(self):
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder);mem=root/'meminfo';cg=root/'cgroup';cg.mkdir()

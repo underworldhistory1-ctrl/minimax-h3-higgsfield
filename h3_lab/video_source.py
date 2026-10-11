@@ -29,8 +29,11 @@ def require_cpu_headroom(meminfo_path="/proc/meminfo", cgroup_root="/sys/fs/cgro
 
 
 def prepare_video_source(source, destination, width, height, keep_seconds=5, fit="crop"):
-    if any(type(n) is not int or n < 256 or n > 2048 or n % 32 for n in (width, height)):
-        raise ValueError("Select a 256–2048 px H3 canvas with dimensions divisible by 32")
+    full_hd = type(width) is int and type(height) is int and (width, height) == (1920, 1080)
+    # This is the saved source video's output canvas. Native H3 conditioning
+    # fits it to the aligned sampling canvas; sequence assembly stays at 1080p.
+    if not full_hd and any(type(n) is not int or n < 256 or n > 2048 or n % 32 for n in (width, height)):
+        raise ValueError("Select a 256–2048 px H3 canvas divisible by 32, or exact 1920x1080 output")
     if fit not in ("crop", "contain"):
         raise ValueError("Choose crop or contain")
     keep = float(keep_seconds)

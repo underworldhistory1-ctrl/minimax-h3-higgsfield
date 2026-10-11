@@ -14,6 +14,7 @@
     "2364b258317f9c81567f26ee3d03ed61c80a4fe6",
     "588668fcb0e2e24e1b104de028c3ad9cbbf34e50",
     "714e1567a28f9ced7ce8ea51636e3d42d48145a3",
+    "73b99091ec0d916f276656b5e326f80ee10e9380",
     "a4459f64908dcf9e6424f96a3e15d72658d1c877"
   ],
   "Dockerfile.salad": [
@@ -42,6 +43,7 @@
     "6cb60439dafef0cd26f78cbdaebcd617e3d2e786",
     "8e2ba2c71f3ccc704c8363674f473bc8079edcc2",
     "acad745cb83510c9786a6d949a4681ca7f53a089",
+    "afca46b3b301e1bd7a4c32935211cdc1a13902d7",
     "b0c0bc51a9eef5eeac5664a4adc08e525d7c1726",
     "b4884480b38b7e4c31b4c76cb8400d6f9d8f18e0",
     "d5bb135485f7f13edb892b58d29c222ae0a62c0a",
@@ -61,6 +63,7 @@
     "0d8a5018b275b57dd77cb7de7ea2975564d4e18a",
     "22516ce5e3cb748b118dbead5b694d1991d4d24a",
     "2d6496a9e199cc7d040cc504f89b88597818cc42",
+    "505da5aa09a88705d918a0f6d3b6ab96be8a45df",
     "53fb0aeeb97e347903dae86c61f8997d9c12e51b",
     "5dc0bcfecea7911b95cdc376cab62473550805a9",
     "7b03bc78de6a2e962142992fb336d2352b4f047b",
@@ -93,7 +96,8 @@
   ],
   "deploy/activate_h3.py": [
     "1dc5f60c0698a4234ca873c6bdf46ae33d12e46c",
-    "394f7f92f7df5cfb9c17406cb9cc69dd20ca9276"
+    "394f7f92f7df5cfb9c17406cb9cc69dd20ca9276",
+    "8f1e1cc3fcdbfdedb51aa60ee3feb0c190e1564c"
   ],
   "deploy/activate_v2.py": [
     "455e7864c541067977be043c16461191607103c9",
@@ -106,6 +110,7 @@
   ],
   "deploy/bootstrap_h3_server.sh": [
     "1df5450b854a34fb380979b11eaef672c241e05a",
+    "32b24c8de7291854a3c3fe8ad1a48965d0b9ba23",
     "4472230f0b0b6f256f66280bb63ad94a54bf78ea",
     "506b126e5a95da95e24a47de62afed0e1f2cd30d",
     "7fcb8b42b69e0494a11f16170fb148dbed56e06c",
@@ -136,6 +141,7 @@
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
   ],
   "deploy/download_control_preprocessors.py": [
+    "4b4747f2b83adb1d616e2189303a2deb51e03f47",
     "ac77fb99e9a2bfa24dabdaade33b5bd6120bcdbc",
     "f3af9c45dac33fea14a6ba616d5dc23ad1615784"
   ],
@@ -163,10 +169,20 @@
     "409c71ce8d3e990a3b06a625832483a6044dcdfd",
     "51deff11d2de242213254bc527ae887e773e683c",
     "65568bf5bc97a6965bca4b69cfdc265c0f8dd526",
+    "6b97605e17407ae5b764f89c3235cf86addffb69",
     "c469f55cbbdfd9cf3be4a08c0b8ea185f05f7019",
     "f050e7feb9eef962479bd889a97c9f25a4c86db0",
     "f06b2bd057c1bae1435fc632f55507a8ba505e0e",
     "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0"
+  ],
+  "deploy/launcher.py": [
+    "3122ffb24f4c99d925c49f65b27c06fdc42f5259"
+  ],
+  "deploy/launcher_models.py": [
+    "5f06f97da4605172d87d8442bc691d092f51a7c5"
+  ],
+  "deploy/launcher_smoke.py": [
+    "27b518847caf7abd9646b30fb7ea39e9a1e858a5"
   ],
   "deploy/llama-swap-gemma-a4b.snippet.yaml": [
     "cccc890da72196f0f226bd48ad6bcf02b24a217d"
@@ -197,10 +213,14 @@
     "61fd8294183f121c6f09283cdb6f940af371286a"
   ],
   "deploy/provision_h3.py": [
+    "4408a27db5c9244fa957e382c150c9c933373b26",
     "57fc78f641879699da0723faff6be79e5ee9e87b"
   ],
   "deploy/restore_h3_library.py": [
     "f77d7db5f6758b673c36f9e26cc896e486b7ed18"
+  ],
+  "deploy/runtime_hashes.json": [
+    "429208a2a6437b9eb4af34916d2ede0e077e1dad"
   ],
   "deploy/salad/entrypoint.sh": [
     "049718276b48bf4ccb5ca22d306977843ac010e8",
@@ -224,6 +244,7 @@
     "0bbf3b82a02b0c42e5bb5f0735bc5ca52c6c43c9",
     "48ba6bdfbcba2e71a0c54dc714a92809d8e3da86",
     "55ed9e410c53ce82e4a4e7815c08314af61f8ed4",
+    "87cf93653c1a197d2aaa3598c31536f8bbf0997b",
     "a1f99ba45537224cc158d5460009aa9116b3c562",
     "e28bf07aa1c8a3b36145c6d766824f0a7ad25fc9",
     "f66324215314e8d41b42a424c0c8b0b44cd34dd3",
@@ -238,6 +259,7 @@
     "402f7956e241d913a690ea338ebccc36a679fb60",
     "d0e81ff1468804551c23dbbe561ea8cbe6c3c934",
     "d8dbbf569cd67483ba56c119bffedec1660b25ea",
+    "f6c79d6d3c7ccd413c7fe5c657823280a99d170a",
     "fdcabbf7dc9ecb511a4c2a64408e3b534f22e53f"
   ],
   "docs/COMPATIBILITY_MATRIX_AR.md": [
@@ -278,7 +300,11 @@
     "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3"
   ],
   "docs/INSTALL.md": [
+    "ae0b468c80d24fe422510ffbbcc3daf5c980c60f",
     "e2651f3e5d821ee5f772024648bab091718dd958"
+  ],
+  "docs/LAUNCHER.md": [
+    "51ba6885ebb8021d5e73abc7031b279da8c86a7f"
   ],
   "docs/OPENBAYES.md": [
     "18ef7d19bc42681c9081c51f4c282b7684cc4e02",
@@ -430,8 +456,14 @@
   "docs/superpowers/plans/2026-09-28-qwen-image-studio.md": [
     "94862c2c6c86ced065bcbb8ab17b420f91718263"
   ],
+  "docs/superpowers/plans/2026-10-12-launcher.md": [
+    "535d1f1670bbc68543d5c58d366b7065091edfde"
+  ],
   "docs/superpowers/specs/2026-09-28-qwen-image-studio-design.md": [
     "90bd9d3b2cb89e087fc44c96ab6b1412b50f6346"
+  ],
+  "docs/superpowers/specs/2026-10-12-launcher.md": [
+    "a123f4729deff0f33e5434193057ef4f41a49ccf"
   ],
   "h3_continuation.py": [
     "0540443e9156593814e2f55e3964164f96019efb"
@@ -495,6 +527,12 @@
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fe36fd1212c4bf01f5dcab25f231b63f7487b19e"
   ],
+  "h3_lab/runtime_fingerprint.py": [
+    "6ca36acd829fa9aed663730f286482d1bb51baa6"
+  ],
+  "h3_lab/timing.py": [
+    "2b268de01992cd31ed3f38eb0e318551ca12a436"
+  ],
   "h3_lab/video_source.py": [
     "5f535fe446e120bfe113ea3132721ccc19d5352a"
   ],
@@ -508,6 +546,7 @@
     "df900e5ebe9cba5fb5b1ea8ccb239e79b717dc32"
   ],
   "install.ps1": [
+    "144e2faad922e576e8f55c86926d11d32ad0a5ab",
     "5c1eb59d756a1d8c5315ef661f78d33a19068d19",
     "5e5ae38a7d58d993fa3f6668061b6bd6663eae10",
     "5f79cac777d8104c6dc60e589a151e4ec1db2f01",
@@ -516,6 +555,7 @@
   ],
   "install.sh": [
     "37419fd534b27ef8bb61b9785b528243993efe42",
+    "498a7d77290b1199827b5433ecfec908bd081a99",
     "5e45f35b51e8f4f8582e97aacf1580ea9e84284c",
     "94a99a2ab35f352c63294c3396cd52e276a3d625",
     "a42f4a6807e676d6e9ba1bbf02c6443634509447",
@@ -525,6 +565,12 @@
   ],
   "lab/dependencies.lock.json": [
     "22788ffee953a94668f47b31454f716166fa8659"
+  ],
+  "launcher.ps1": [
+    "99c1b4c04439babd1887f78aa0ccb76b35ce5164"
+  ],
+  "launcher.sh": [
+    "55577de698f50bc95b205c7308c165304c9dbbe4"
   ],
   "prompt_formats.py": [
     "6d2ea5706054b4ce13cb647b1cb16bd7580bb727"
@@ -633,6 +679,9 @@
   "tests/js/studio-ux.test.cjs": [
     "7385236e9f97b883874ebcee7ad7004f89771895"
   ],
+  "tests/js/timing-estimator.test.cjs": [
+    "0c49d6779f56a3b8bdd7d7210bb8d65df227d6d9"
+  ],
   "tests/js/uuid.test.cjs": [
     "61a6be4bae13e251207949930fb655f8aa1bd353"
   ],
@@ -713,6 +762,15 @@
   "tests/test_installer_python_safety.py": [
     "c759555b55356fcf1bc26b51b1b41d5111c9ceeb"
   ],
+  "tests/test_launcher.py": [
+    "6803058eaf5ec27f4db3b0ab182c0a6a97f18aa0"
+  ],
+  "tests/test_launcher_models.py": [
+    "46e4af4e5e68204c72088d8249def24327120947"
+  ],
+  "tests/test_launcher_smoke.py": [
+    "46ec348a962de86adb21879a75a3f53f614dc7fe"
+  ],
   "tests/test_prompt_context.py": [
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f"
@@ -727,6 +785,9 @@
   ],
   "tests/test_qwen_routes.py": [
     "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0"
+  ],
+  "tests/test_timing_progress.py": [
+    "656f8038a3a138cc05c55b5226cb5c9af5f38993"
   ],
   "tests/test_uninstall_h3.py": [
     "6f047b73bb3d127b566bf2a37b92b2631fc121bb"
@@ -792,6 +853,9 @@
   ],
   "web/h3/studio-ux.js": [
     "6faa39c53326aee1991a5d08c446a4ae8baa8e7b"
+  ],
+  "web/h3/timing-estimator.js": [
+    "adc61f21642bb68cffcd7859b3350d33afecffba"
   ],
   "web/h3/uuid.js": [
     "c07457e3fda152147b3974f307e8f15eccc37182"
@@ -859,6 +923,7 @@
     "cae2172bc32da8793bcdca7a4343057ed8384299",
     "cb8c46093edfe05bf6754c7a715b9eccdbc56355",
     "cd16d94eed5af0f9a0b43403c130cba258fba1a7",
+    "cdb3ea09fd2ec860cb6d29aedc496b143abc155c",
     "dbf880950ae1e573b664f03bbe1ad52b4ce2033b",
     "e14aac291edf2044475d5874706b85a293727ba7",
     "e23c12185d0b44a5bde84b29796f85cb39b6d35b",
@@ -900,6 +965,7 @@
     "adbb20eb1b0d2f95507f45fd955132bc4bee67d9",
     "b38d2689f2247f29081e36dd3b01f1804f48bc9f",
     "b97a1df7b6331271c5b6a8cb95e23fa2533c03c7",
+    "b9ca36a026854a724e4047f3dadb829211eaf597",
     "c478cd7358a8a2a684adb375c93bab256246a59f",
     "cac2f5e65a2405beb2e6299d51c8f83ad2c8530e",
     "cbe146e7d67799713121f5d08303b3dc29508a37",

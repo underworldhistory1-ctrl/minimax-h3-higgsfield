@@ -210,7 +210,7 @@ if [[ "${H3_INSTALL_REFINE:-1}" == "1" ]]; then
         "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git" \
         "40316cf008b2fd8663263270669eb4da23f89d2c"
     if [[ -f "$CUSTOM_NODES/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt" ]]; then
-        "$H3_PYTHON" -m pip install -r "$CUSTOM_NODES/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"
+        "$H3_PYTHON" "$H3_STUDIO/deploy/install_python_dependencies.py" -r "$CUSTOM_NODES/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"
     fi
     "$H3_PYTHON" -c "import torch, einops, safetensors, typing_extensions"
     if [[ "${H3_MODELS_PREPARED:-0}" != "1" ]]; then

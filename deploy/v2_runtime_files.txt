@@ -79,3 +79,5 @@ web/h3/timing-estimator.js
 h3_lab/timing.py
 deploy/runtime_hashes.json
 h3_lab/runtime_fingerprint.py
+deploy/install_python_dependencies.py
+docs/HARDENING_REVIEW_AR.md

@@ -41,7 +41,8 @@ if (-not $hostPython) {
         $hostPython = $launcher.Source
         foreach ($version in @("-3.13", "-3.12", "-3")) {
             try {
-                & $hostPython $version -c "import sys" 2>$null
+                $hostCheck = if ($Preflight -or $Status) { "import sys" } else { "import sys; assert (3,12) <= sys.version_info[:2] <= (3,13)" }
+                & $hostPython $version -c $hostCheck 2>$null
                 if ($LASTEXITCODE -eq 0) { $prefix = @($version); break }
             } catch {
                 # The Python launcher reports an unavailable version on stderr.
@@ -52,10 +53,17 @@ if (-not $hostPython) {
     }
     if (-not $hostPython) {
         $launcher = Get-Command python -ErrorAction SilentlyContinue
-        if ($launcher) { $hostPython = $launcher.Source }
+        if ($launcher) {
+            try {
+                $hostCheck = if ($Preflight -or $Status) { "import sys" } else { "import sys; assert (3,12) <= sys.version_info[:2] <= (3,13)" }
+                & $launcher.Source -c $hostCheck 2>$null
+                if ($LASTEXITCODE -eq 0) { $hostPython = $launcher.Source }
+            } catch { $hostPython = $null }
+        }
     }
 }
 if (-not $hostPython) {
+    if ($Preflight -or $Status) { throw "A Python interpreter is needed to read this plan/report; no installation was attempted." }
     $packageManager = Get-Command winget -ErrorAction SilentlyContinue
     if ($packageManager) {
         Write-Host "Preparing Python 3.13 with Windows Package Manager..."

@@ -20,6 +20,8 @@ const aspectPresets = {
   "16:9": [
     [1280,704,"Near 720p"],
     [1344,768,"Native detail"],
+    [1664,928,"High detail · 1.54 MP"],
+    [1920,1080,"Full HD · 2.07 MP"],
     [1024,576,"Compact"],
     [864,480,"Draft"],
   ],
@@ -92,6 +94,33 @@ function syncDuration(){
   return true;
 }
 const sizeKey = () => state.width + "x" + state.height;
+const samplingCanvas = (w=state.width,h=state.height) => H3GraphBuilder.canvasFor(w,h);
+function outputCanvasNodes(w,h,refine) {
+  const needed=[];
+  if(w===1920&&h===1080)needed.push('ImageCrop');
+  if(refine&&(w===1664&&h===928||w===1920&&h===1080))needed.push('ImageScale');
+  return needed;
+}
+function continuationCanvasMatches(continuation) {
+  if (!continuation.source_canvas) return true;
+  const canvas = continuation.type === 'generated' ? samplingCanvas() : state;
+  return Number(continuation.source_canvas.width) === canvas.width && Number(continuation.source_canvas.height) === canvas.height;
+}
+function requestsMutedSourceDialogue(prompt, refs) {
+  const videos=refs.filter(ref=>ref.kind==='video'),audio=refs.filter(ref=>ref.kind==='audio'||ref.kind==='video'&&ref.useAudio);
+  return String(prompt).split(/[.!?\n;,]+/).some(clause=>{
+    if(/\b(?:do not|don't|never|avoid)\s+(?:preserve|keep|repeat|reuse)\b/i.test(clause)
+      || !/\b(?:preserve|keep|repeat|reuse)\b.{0,60}\b(?:original|source|same)\b.{0,30}\b(?:dialogue|dialog|spoken words|speech)\b/i.test(clause))return false;
+    const aliases=new Set((clause.match(/@[\p{L}\p{N}_-]+/gu)||[]).map(alias=>alias.slice(1)));
+    const mentioned=refs.filter(ref=>aliases.has(ref.alias));
+    // An audio reference may supply the words while a muted video supplies motion.
+    // Only block when the dialogue source is identified as the muted video.
+    const sourceAlias=clause.match(/\b(?:dialogue|dialog|spoken words|speech)\b\s+(?:from|of|in)\s+@([\p{L}\p{N}_-]+)/iu)?.[1];
+    if(sourceAlias)return refs.some(ref=>ref.alias===sourceAlias&&ref.kind==='video'&&!ref.useAudio);
+    if(mentioned.length===1)return mentioned[0].kind==='video'&&!mentioned[0].useAudio&&audio.length===0;
+    return mentioned.length===0&&videos.length===1&&!videos[0].useAudio&&audio.length===0;
+  });
+}
 const fmt = n => {
   if (!Number.isFinite(n) || n < 0) return "—";
   n = Math.round(n);
@@ -249,12 +278,13 @@ function allSamples(){return H3TimingEstimator.deduplicate([...readSamples(),...
 function sampleKey(){return "h3-timing-v2";}
 function timingMedia(item){return H3TimingEstimator.mediaConfiguration(item,Number($("duration").value));}
 function timingConfiguration(w=state.width,h=state.height){
+  const canvas=samplingCanvas(w,h),newPreset=w===1664&&h===928||w===1920&&h===1080;
   const refine=$("enableRefine").checked;
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
   if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
   return {version:2,gpu:state.gpu,model:state.mode==="refs"?modelRef:modelFL,mode:state.mode,method:method(),
-    width:w,height:h,frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
+    width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
     sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
     reference_detail:state.mode==="refs"?$("refSize").value:null,fit_images:state.mode==="refs"?$("fitImages").checked:null,fit_frames:state.mode==="frames"?$("fitFrames").checked:null,frame_fit:state.mode==="frames"?$("frameFit").value:null,
@@ -269,7 +299,7 @@ function captureSettings(){
   if(method()==="turbo")adapters.push({name:"H3 Turbo",strength:0.9});
   return {
     timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
-    canvas:state.width+"×"+state.height,quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
+    canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
     steps:Number($("steps").value),seed:Number($("seed").value),render_method:method(),
     loras:adapters,reference_detail:refs?$("refSize").value:null,
@@ -333,6 +363,9 @@ function renderEstimates() {
   state.estimated = estimateFor();
   $("estimateNote").textContent = "Estimated " + sizeKey() + ": " + estimateText(state.estimated);
   $("estimateBasis").textContent = state.estimated.basis + ". Execution time includes model load, video and audio; queue/upload time is separate.";
+  $("resolutionTip").textContent=state.width===1920&&state.height===1080
+    ?"1080p samples at 1920×1088, then removes 4 pixels from the top and bottom. These large presets use more memory and time; quality settings stay selected."
+    :state.width===1664&&state.height===928?"This large preset uses more memory and time. Quality settings stay selected.":"";
   const risk=refMemoryRisk();
   $("memoryNotice").classList.toggle("hidden",!risk);
   $("memoryNotice").textContent=risk?`This server has ${state.ramLimit} GB system RAM. Long Ref2VA renders at this canvas may run out of system RAM during video decoding. You can still render; a shorter duration, smaller canvas, or 64 GB RAM server lowers that risk.`:"";
@@ -706,6 +739,7 @@ function currentRenderSpec() {
     first: state.mode === "frames" && state.first ? { file: state.first.file?.name } : null,
     last: state.mode === "frames" && state.last ? { file: state.last.file?.name } : null,
     canvas: { width: state.width, height: state.height },
+    sampling_canvas: { width: samplingCanvas().width, height: samplingCanvas().height },
     width: state.width,
     height: state.height,
     target_frames: Number($("duration").value),
@@ -791,10 +825,9 @@ function graph(prompt,uploads,token) {
   spec.compiled_prompt = prompt;
   spec.token = token;
 
-  const resolvedAssets = {
-    first: uploads.first,
-    last: uploads.last,
-  };
+  const resolvedAssets = Object.create(null);
+  resolvedAssets.first=uploads.first;
+  resolvedAssets.last=uploads.last;
   if (uploads.refs) {
     state.refs.forEach(r => {
       const serverFile = uploads.refs.get(r);
@@ -1054,6 +1087,8 @@ async function checkConnection() {
       if(state.loras.some(item=>item.enabled)||method()==="turbo")modeNodes.push("LoraLoaderModelOnly");
       if(method()==="spectrum")modeNodes.push("SpectrumApplyMiniMaxH3");
       if(method()==="motioncache")modeNodes.push("MiniMaxH3MotionCache");
+      // Older readiness APIs may omit these native nodes; explicit absence fails closed.
+      modeNodes.push(...outputCanvasNodes(state.width,state.height,$("enableRefine").checked).filter(name=>state.nodesReady[name]===false));
       const missingNodes=[...new Set([...baseNodes,...modeNodes])].filter(name=>!state.nodesReady[name]);
       $("connection").className=missing.length||missingNodes.length?"connection down":"connection ready";
       $("connectionText").textContent=missing.length?"Missing models: "+missing.join(", "):missingNodes.length?"Missing nodes: "+missingNodes.join(", "):"Connected · "+state.gpu.replace(/^.*?:/,"").slice(0,46);
@@ -1103,7 +1138,7 @@ async function generate() {
   try{
     state.labJobId=null;state.runMeta=null;state.preparedContext=null;state.queuePhase=null;
     if(state.continuation){const c=state.continuation;
-      if(c.source_canvas&&(c.source_canvas.width!==state.width||c.source_canvas.height!==state.height))throw Error("Continuation must use the source canvas.");
+      if(!continuationCanvasMatches(c))throw Error("Continuation must use the source canvas.");
       if(c.type==="generated"&&c.source_model!==(state.mode==="refs"?modelRef:modelFL))throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
     }
     prompt=prepareWithAI?H3PromptInput.normalize($("prompt").value).text:resolvedPrompt();
@@ -1112,11 +1147,7 @@ async function generate() {
     const asksLandscape=/\b16\s*[:x/]\s*9\b/i.test(aspectLead),asksPortrait=/\b9\s*[:x/]\s*16\b/i.test(aspectLead);
     if(asksLandscape&&!asksPortrait&&state.height>state.width)throw Error("The prompt asks for 16:9, but Output settings is set to Portrait. Select Landscape before generating.");
     if(asksPortrait&&!asksLandscape&&state.width>state.height)throw Error("The prompt asks for 9:16, but Output settings is set to Landscape. Select Portrait before generating.");
-    const wantsSourceDialogue=$("prompt").value.split(/[.!?\n]+/).some(sentence=>
-      !/\b(?:do not|don't|never|avoid)\s+(?:preserve|keep|repeat|reuse)\b/i.test(sentence)
-      &&/\b(?:preserve|keep|repeat|reuse)\b.{0,60}\b(?:original|source|same)\b.{0,30}\b(?:dialogue|dialog|spoken words|speech)\b/i.test(sentence));
-    if(state.mode==="refs"&&state.refs.some(ref=>ref.kind==="video"&&!ref.useAudio)
-      &&wantsSourceDialogue)
+    if(state.mode==="refs"&&requestsMutedSourceDialogue($("prompt").value,state.refs))
       throw Error("The reference video's soundtrack is off, so H3 cannot know its original words. Write the exact dialogue and language in the prompt for a new voice. Turning on the soundtrack supplies audio guidance but may also carry the original voice; H3 cannot guarantee exact speech.");
     if(!syncDuration())throw Error("Enter a duration from 5 to 15.1 seconds.");
     const steps=Number($("steps").value),seed=Number($("seed").value);
@@ -1199,7 +1230,7 @@ async function generate() {
       progress(0,file.size);
       if(kind==="image"&&ref?.assetId){
         const frame=state.mode==="frames"||label.startsWith("Keyframe");const fit=frame?(ref.imageFit||$("frameFit").value):ref.imageFit||"preserve";
-        const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,width:state.width,height:state.height})});
+        const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,width:samplingCanvas().width,height:samplingCanvas().height})});
         state.uploads.push(result.filename);saveSession();uploadMessage("Linked server image · "+label,100);ref.uploadProgress=undefined;ref.uploadReady=true;
         return {...result,name:result.filename};
       }
@@ -1398,6 +1429,7 @@ function openDetails(entry,trigger){
     row("Mode",modeNames[settings.mode]||settings.mode);
     row("Model",settings.model);
     row("Canvas",[settings.quality,settings.canvas].filter(Boolean).join(" · "));
+    if(settings.sampling_canvas&&settings.sampling_canvas!==settings.canvas)row("Sampling canvas",settings.sampling_canvas+" · final output "+settings.canvas);
 
     row("Render method",methodNames[settings.render_method]||settings.render_method);
     row("Sampling steps",settings.steps);
@@ -1552,7 +1584,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
     if(!token)throw Error("This older clip has no saved sampler context. Choose Video context · re-encode.");
     const context=await projectCtrl.fetchJson(`/h3_studio/lab/contexts/${encodeURIComponent(token)}`);
     const expected=state.mode==="refs"?modelRef:modelFL;
-    if(context.model_id!==expected||context.width!==state.width||context.height!==state.height)throw Error("Use the source checkpoint and canvas before extending this clip. Switching checkpoints has not been validated.");
+    if(context.model_id!==expected||context.width!==samplingCanvas().width||context.height!==samplingCanvas().height)throw Error("Use the source checkpoint and canvas before extending this clip. Switching checkpoints has not been validated.");
     state.currentClipId="clip_"+crypto.randomUUID();
     state.continuation={type:"generated",source_take_id:entry.takeId,source_token:token,source_model:context.model_id,source_canvas:{width:context.width,height:context.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,context_length:39,audio_feather_ticks:8};
     if(state.mode==="frames")setContinuationMode("text");

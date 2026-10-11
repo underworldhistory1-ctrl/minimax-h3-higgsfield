@@ -127,9 +127,9 @@
     <div id="loraRecommendation" class="lora-recommendation" role="note" hidden><strong>Recommended when using LoRAs</strong>For the highest quality, choose <b>Native detail (max canvas)</b> and <b>Original quality</b> under Render method. This uses the full MiniMax H3 path; the LoRA may still change the result.</div>
    </details>
    <section class="panel">
-    <h2>Output settings</h2><p>These are actual H3 Base canvas sizes. Smaller canvases have less image detail.</p>
+    <h2>Output settings</h2><p>Choose the exported video size. Smaller canvases have less image detail.</p>
     <label>FORMAT</label><div class="aspect-toggle" role="group" aria-label="Video orientation"><button id="aspectLandscape" type="button" aria-pressed="true">16:9 · Landscape</button><button id="aspectPortrait" type="button" aria-pressed="false">9:16 · Portrait</button><button id="aspectSquare" type="button" aria-pressed="false">1:1 · Square</button><button id="aspect4_3" type="button" aria-pressed="false">4:3 · Classic</button><button id="aspect3_4" type="button" aria-pressed="false">3:4 · Vertical</button><button id="aspect21_9" type="button" aria-pressed="false">21:9 · Cinema</button></div><div class="tip">Canvas dimensions are rounded for H3, so the ratio is approximate.</div>
-    <label>CANVAS &amp; ESTIMATED TIME</label><div id="estimates" class="estimates"></div>
+    <label>CANVAS &amp; ESTIMATED TIME</label><div id="estimates" class="estimates"></div><div id="resolutionTip" class="tip" role="note"></div>
     <label for="renderMethod">Render method</label><select id="renderMethod"><option value="native">Original quality · recommended</option><option value="spectrum" disabled>Spectrum · approximate acceleration</option><option value="motioncache" disabled>MotionCache · approximate acceleration</option><option value="turbo" disabled>Turbo LoRA · fastest experiment</option></select>
     <div class="tip" id="methodAvailability">Optional methods become available when installed on your ComfyUI server.</div>
     <div class="render-controls">
@@ -176,14 +176,14 @@
 <script src="./h3/uuid.js?v=20261008-final"></script>
 <script src="./h3/vendor/prompt-parsers.js?v=20261008-input-3"></script>
 <script src="./h3/prompt-input.js?v=20261008-input-3"></script>
-<script src="./h3/prompt-compiler.js?v=20261008-input-3"></script>
-<script src="./h3/graph-builder.js?v=20261008-final"></script>
+<script src="./h3/prompt-compiler.js?v=20261012-hardening-1"></script>
+<script src="./h3/graph-builder.js?v=20261012-resolution-1"></script>
 <script src="./h3/project-controller.js?v=20261008-final"></script>
-<script src="./lab-ui.js?v=20261008-final"></script>
+<script src="./lab-ui.js?v=20261012-resolution-1"></script>
 <script src="./h3/studio-ux.js?v=20261008-final"></script>
 <script src="./h3/queue-ui.js?v=20261008-final"></script>
 <script src="./h3/timing-estimator.js?v=20261012-timing-3"></script>
-<script src="./studio.js?v=20261012-timing-3"></script>
-<script src="./h3/connected-studio.js?v=20261008-input-3"></script>
+<script src="./studio.js?v=20261012-resolution-1"></script>
+<script src="./h3/connected-studio.js?v=20261012-resolution-1"></script>
 </body>
 </html>

@@ -100,7 +100,8 @@ def install_dependencies(comfy_root):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", encoding="utf-8", delete=False) as stream:
             temporary = pathlib.Path(stream.name)
             stream.write(filtered)
-        subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(temporary)], check=True)
+        subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("install_python_dependencies.py")),
+                        "-r", str(temporary)], check=True)
         # Import checks catch incompatible NumPy/OpenCV/runtime wheels before startup.
         subprocess.run([sys.executable, "-c",
                         "import sys; sys.path.insert(0, sys.argv[1]); "

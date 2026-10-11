@@ -4,7 +4,64 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildGraph } = require('../../web/h3/graph-builder.js');
+const { buildGraph, canvasFor } = require('../../web/h3/graph-builder.js');
+
+test('new high resolution presets sample on the native grid and preserve selected outputs',()=>{
+  assert.deepEqual(canvasFor(1920,1080),{width:1920,height:1088,outputWidth:1920,outputHeight:1080,crop:{width:1920,height:1080,x:0,y:4}});
+  assert.throws(()=>canvasFor(1280,720),/multiples of 32/);
+  for(const mode of ['text','frames','refs'])for(const [width,height] of [[1664,928],[1920,1080]]){
+    const spec={mode,width,height,frames:{first:'start'},references:[{kind:'image',alias:'hero',asset_id:'shared'}]};
+    const g=buildGraph(spec,{first:'start.png',hero:'hero.png'});
+    assert.equal(g['6'].inputs.width,width);assert.equal(g['6'].inputs.height,height===1080?1088:height);
+    const image=g[g['11'].inputs.images[0]];
+    if(height===1080){assert.equal(image.class_type,'ImageCrop');assert.deepEqual(image.inputs,{image:['9',0],width:1920,height:1080,x:0,y:4});}
+    else assert.deepEqual(g['11'].inputs.images,['9',0]);
+    assert.equal(g['8'].inputs.steps,20);assert.equal(g['8'].inputs.sampler_name,'res_multistep');
+  }
+});
+
+test('new preset refinement fits the selected output while old refinement graphs stay unchanged',()=>{
+  for(const [width,height] of [[1664,928],[1920,1080],[1280,704]]){
+    const g=buildGraph({width,height,refine:true},{},{refine_ready:true});
+    const fit=Object.values(g).find(n=>n.class_type==='ImageScale');
+    if(width===1280){assert.equal(fit,undefined);assert.deepEqual(g['11'].inputs.images,['9',0]);}
+    else {assert.equal(fit.inputs.upscale_method,'lanczos');assert.equal(fit.inputs.crop,'center');assert.equal(fit.inputs.width,width);assert.equal(fit.inputs.height,height===1080?1088:height);}
+  }
+});
+
+test('1080 continuation crops after AV trim and uses internal generated versus output imported source dimensions',()=>{
+  for(const type of ['generated','imported']){
+    const continuation={type,source_token:'abcdef123456',source_file:'source.mp4',source_canvas:{width:1920,height:type==='generated'?1088:1080}};
+    const g=buildGraph({width:1920,height:1080,target_frames:175,continuation},{},{continuation_ready:true});
+    const crop=g[g['11'].inputs.images[0]],trim=g[crop.inputs.image[0]];
+    assert.equal(crop.class_type,'ImageCrop');assert.equal(trim.class_type,'H3LabTrimAV');assert.deepEqual(g['11'].inputs.audio,[crop.inputs.image[0],1]);
+    if(type==='generated')assert.equal(Object.values(g).find(n=>n.class_type==='H3LabLoadContext').inputs.height,1088);
+    continuation.source_canvas.height=type==='generated'?1080:1088;
+    assert.throws(()=>buildGraph({width:1920,height:1080,target_frames:175,continuation},{},{continuation_ready:true}),/canvas/);
+  }
+});
+
+test('1080 ControlNet metadata must describe the real sampling grid',()=>{
+  const control={enabled:true,kind:'inpaint',model_name:'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors',fps:24,frame_count:124,width:1920,height:1088,source_file:'source.mp4',mask_file:'mask.png'};
+  const g=buildGraph({width:1920,height:1080,target_frames:124,control},{},{controlnet_ready:true});
+  assert.equal(g['6'].inputs.height,1088);assert.equal(g[g['11'].inputs.images[0]].class_type,'ImageCrop');
+  assert.throws(()=>buildGraph({width:1920,height:1080,target_frames:124,control:{...control,height:1080}},{},{controlnet_ready:true}),/metadata/);
+});
+
+test('prepared reference aliases win over shared saved asset IDs and inherited properties never resolve',()=>{
+  const references=[{kind:'image',alias:'crop',asset_id:'shared'},{kind:'image',alias:'contain',asset_id:'shared'}];
+  const g=buildGraph({mode:'refs',references},{shared:'original.png',crop:'crop.png',contain:'contain.png'});
+  assert.deepEqual(Object.values(g).filter(n=>n.class_type==='LoadImage').map(n=>n.inputs.image),['crop.png','contain.png']);
+  for(const key of ['constructor','toString','__proto__']){
+    assert.throws(()=>buildGraph({mode:'refs',references:[{kind:'image',alias:key,asset_id:key}]}),/not been resolved/);
+    const assets=Object.create(null);assets[key]='safe.png';
+    assert.equal(Object.values(buildGraph({mode:'refs',references:[{kind:'image',alias:key}]},assets)).find(n=>n.class_type==='LoadImage').inputs.image,'safe.png');
+  }
+  assert.throws(()=>buildGraph({mode:'refs',references},Object.create({crop:'inherited.png',contain:'inherited.png'})),/not been resolved/);
+  for(const bad of [{},()=>{},'', '../escape.png','C:/escape.png','bad\\file.png'])assert.throws(()=>buildGraph({mode:'refs',references:[references[0]]},{crop:bad,shared:'valid.png'}),/canonical asset/);
+  assert.throws(()=>buildGraph({mode:'frames',frames:{first:'constructor'}}),/not been resolved/);
+  assert.throws(()=>buildGraph({guides:[{asset_id:'constructor',frame_idx:0}]}),/not been resolved/);
+});
 
 test('continuation rejects overlapping frame mode, canvas mismatch and checkpoint switching',()=>{
   const base={mode:'text',width:1280,height:704,target_frames:175,continuation:{type:'generated',source_token:'abcdef123456',source_model:'minimax_h3_fl2va_pruned_int8_convrot.safetensors',source_canvas:{width:1280,height:704}}};
