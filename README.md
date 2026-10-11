@@ -73,6 +73,7 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 | Existing OpenBayes workspace | [Setup and recovery](docs/OPENBAYES.md) |
 | SaladCloud | [Container deployment](deploy/SALAD_DEPLOYMENT.md) |
 | Upgrading an existing V2 project | [Upgrade and rollback](docs/V2_UPGRADE_AR.md) |
+| Restore the ComfyUI home page or remove Studio | [Uninstall safely](docs/UNINSTALL.md) |
 
 The code is open source. You provide the GPU environment and download the model weights; cloud GPU and optional AI-provider costs depend on your setup.
 

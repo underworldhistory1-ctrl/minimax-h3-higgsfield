@@ -10,6 +10,7 @@ import zipfile
 
 
 SOURCE_FILES = (
+    "uninstall.ps1", "uninstall.sh", "deploy/uninstall_h3.py", "docs/UNINSTALL.md",
     "AGENTS.md", "START_HERE_AR.md", "LICENSE", "README.md", "install.sh", "install.ps1", "__init__.py", "h3_video_save.py", "qwen_image.py",
     "Dockerfile.salad", ".dockerignore",
     "web/index.html", "web/studio.js", "web/image.html", "web/image-studio.js",

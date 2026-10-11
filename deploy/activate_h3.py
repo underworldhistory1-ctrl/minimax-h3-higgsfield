@@ -76,8 +76,12 @@ def main():
                 return 0
             raise RuntimeError("ComfyUI is not running; start it before requesting a restart.") from exc
         raise
-    running = len(current.get("queue_running", []))
-    pending = len(current.get("queue_pending", []))
+    if not isinstance(current, dict) or any(
+        not isinstance(current.get(key), list) for key in ("queue_running", "queue_pending")
+    ):
+        raise RuntimeError("ComfyUI returned an invalid queue response; refusing changes.")
+    running = len(current["queue_running"])
+    pending = len(current["queue_pending"])
     if running or pending:
         raise RuntimeError(f"ComfyUI has {running} running and {pending} pending job(s); retry after they finish.")
     if args.action == "check":
