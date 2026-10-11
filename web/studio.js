@@ -243,54 +243,32 @@ function restoreDraft(){
   return state.mode!=="text";
 }
 
-function unitsFor({width,height,length,steps,mode,refSize,imageCount=0,videoCount=0,audioCount=0,frameCount=0}) {
-  const pixels = (width*height)/(1344*768);
-  const frames = length/124;
-  const stepFactor = steps/20;
-  let media = 1;
-  if (mode === "frames") media += frameCount*0.08;
-  if (mode === "refs") {
-    media = 1.25;
-    media += imageCount*0.07;
-    media += videoCount*0.35;
-    media += audioCount*0.12;
-    if (refSize === "max"&&imageCount) media *= 2.2;
-  }
-  return Math.pow(pixels,.9) * Math.pow(frames,1.25) * stepFactor * media;
-}
-function workUnits(w=state.width,h=state.height) {
-  return unitsFor({width:w,height:h,length:Number($("duration").value),steps:Number($("steps").value),
-    mode:state.mode,refSize:$("refSize").value,
-    imageCount:state.refs.filter(r=>r.kind==="image").length,
-    videoCount:state.refs.filter(r=>r.kind==="video").length,
-    audioCount:state.refs.filter(r=>r.kind==="audio").length,
-    frameCount:Number(!!state.first)+Number(!!state.last)});
-}
-function readSamples() {
-  try { const parsed=JSON.parse(localStorage.getItem(storeKey) || "[]");return Array.isArray(parsed)?parsed.filter(x=>x&&Number.isFinite(x.seconds)&&Number.isFinite(x.units)&&x.units>0&&(!x.filename||isStudioOutputName(x.filename))):[]; } catch { return []; }
-}
-function allSamples(){
-  const named=new Map(),anonymous=[];
-  const currentBase=localStorage.getItem(baseKey)||location.origin;
-  const persisted=state.serverSamples.map(sample=>({...sample,
-    key:currentBase+"|"+String(sample.key||"").split("|").slice(1).join("|")}));
-  for(const sample of [...readSamples(),...state.historySamples,...persisted]){
-    if(!sample||!Number.isFinite(sample.seconds)||!Number.isFinite(sample.units)||sample.units<=0||!sample.key)continue;
-    if(sample.filename)named.set(sample.filename,sample);else anonymous.push(sample);
-  }
-  return [...anonymous,...named.values()];
-}
-function sampleKey() {
-  return (localStorage.getItem(baseKey)||location.origin) + "|" + state.gpu + "|" + state.mode + "|" + (state.mode==="refs"?$("refSize").value:"base")
-    + "|method:" + method()
-    + "|" + state.loras.filter(item=>item.enabled).map(item=>item.name+":"+item.strength).join(",");
+function workUnits(){return 1;} // Legacy API field; estimates use measured configurations only.
+function readSamples(){try{const values=JSON.parse(localStorage.getItem(storeKey)||"[]");return Array.isArray(values)?values:[];}catch{return [];}}
+function allSamples(){return H3TimingEstimator.deduplicate([...readSamples(),...state.serverSamples,...state.historySamples]);}
+function sampleKey(){return "h3-timing-v2";}
+function timingMedia(item){return H3TimingEstimator.mediaConfiguration(item,Number($("duration").value));}
+function timingConfiguration(w=state.width,h=state.height){
+  const refine=$("enableRefine").checked;
+  const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
+    refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
+  if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
+  return {version:2,gpu:state.gpu,model:state.mode==="refs"?modelRef:modelFL,mode:state.mode,method:method(),
+    width:w,height:h,frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
+    sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
+    references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
+    reference_detail:state.mode==="refs"?$("refSize").value:null,fit_images:state.mode==="refs"?$("fitImages").checked:null,fit_frames:state.mode==="frames"?$("fitFrames").checked:null,frame_fit:state.mode==="frames"?$("frameFit").value:null,
+    guides:state.guides.map(x=>({...timingMedia(x),frame_idx:x.frame_idx,strength:x.strength??null})),
+    control:state.control?.enabled?{kind:state.control.kind,input_type:state.control.input_type,start_seconds:state.control.start_seconds??0,source_span:state.control.source_span??null,mask_alignment:state.control.mask_alignment??null,model:state.control.model_name??"minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors",strength:state.control.strength,start_percent:state.control.start_percent,end_percent:state.control.end_percent,preprocessor:state.control.preprocessor??null,inputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([k,v])=>[k,v?timingMedia(v):null]))}:null,
+    continuation:state.continuation?{type:state.continuation.type,context_length:state.continuation.context_length,audio_feather_ticks:state.continuation.audio_feather_ticks,source_model:state.continuation.source_model??null,source_canvas:state.continuation.source_canvas??null}:null,
+    passes:refine?[{scale:1.25,steps:10,denoise:.4}]:[]};
 }
 function captureSettings(){
   const refs=state.mode==="refs";
   const adapters=state.loras.filter(item=>item.enabled).map(item=>({name:item.name,strength:item.strength,refinement_strength:$("enableRefine").checked?(item.refinement_strength??(/Motion_Repair_V2/i.test(item.name)?.25:item.strength)):undefined}));
   if(method()==="turbo")adapters.push({name:"H3 Turbo",strength:0.9});
   return {
-    mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
+    timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
     canvas:state.width+"×"+state.height,quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
     steps:Number($("steps").value),seed:Number($("seed").value),render_method:method(),
@@ -305,45 +283,9 @@ function captureSettings(){
     prompt:$("prompt").value.slice(0,16000),
   };
 }
-function estimateFor(w=state.width,h=state.height) {
-  const unit = workUnits(w,h);
-  const key=sampleKey(),available=allSamples();
-  const samples = available.filter(x=>x.key===key).slice(-12);
-  if (samples.length >= 1) {
-    const rates = samples.map(x=>x.seconds/x.units).sort((a,b)=>a-b);
-    const median = rates[Math.floor(rates.length/2)];
-    const early=samples.length===1;
-    const low=Math.max(1,median*unit*(early?.6:.75));
-    return {low, high:Math.max(low*1.1,median*unit*(early?1.65:1.35)),
-      basis:(early?"Preliminary estimate from the first completed render":"Calibrated from " + samples.length + " completed renders") + " on this GPU and mode"};
-  }
-  const parts=key.split("|"),targetMethod=parts[4],sameServerGpu=parts.slice(0,2).join("|")+"|";
-  const related=available.filter(sample=>sample.key.startsWith(sameServerGpu)
-    &&sample.key.split("|")[4]===targetMethod);
-  const sameMode=related.filter(sample=>sample.key.split("|")[2]===state.mode);
-  const useful=(sameMode.length?sameMode:related).slice(-20);
-  if(useful.length){
-    const rates=useful.map(sample=>sample.seconds/sample.units).sort((a,b)=>a-b);
-    const median=rates[Math.floor(rates.length/2)],crossMode=!sameMode.length;
-    const low=Math.max(1,median*unit*(crossMode?.42:.68));
-    return {low,high:Math.max(low*1.2,median*unit*(crossMode?1.75:1.45)),
-      basis:"Updated from "+useful.length+" completed "+(crossMode?"render(s) in a different H3 mode; low confidence":"render(s) on this GPU with different adapter settings")};
-  }
-  const baseline=available.filter(sample=>sample.key.startsWith(sameServerGpu)
-    &&sample.key.split("|")[4]==="method:native").slice(-20);
-  if(baseline.length){
-    const rates=baseline.map(sample=>sample.seconds/sample.units).sort((a,b)=>a-b);
-    const center=rates[Math.floor(rates.length/2)]*unit;
-    return {low:Math.max(1,center*.4),high:center*1.85,
-      basis:"Updated from "+baseline.length+" Original render(s) on this GPU; this method still needs its own timing sample"};
-  }
-  const pro = /RTX PRO 6000|PRO 6000 Blackwell/i.test(state.gpu);
-  const fallback = state.mode === "refs" ? [195,440] : [145,340];
-  const gpuScale = pro ? 1 : /5090/i.test(state.gpu) ? 1.15 : 1.35;
-  const methodRange=method()==="spectrum"?[0.65,1.2]:method()==="motioncache"?[0.7,1.2]:[1,1];
-  return {low:fallback[0]*unit*gpuScale*methodRange[0],high:fallback[1]*unit*gpuScale*methodRange[1],
-    basis:(method()==="native"?"Broad initial estimate":"Uncalibrated method; baseline-derived range, not a speed promise") + (pro?" for RTX PRO 6000 Blackwell":" before GPU calibration")};
-}
+function estimateFor(w=state.width,h=state.height){return H3TimingEstimator.estimate(timingConfiguration(w,h),allSamples());}
+function estimateMidpoint(){return state.estimated?.seconds??null;}
+function estimateText(est){return est.seconds===null?"No measured estimate":est.count===1?fmt(est.seconds)+" observed":fmt(est.low)+" – "+fmt(est.high);}
 function currentAspectFormat() {
   for(const [fmt, list] of Object.entries(aspectPresets)) {
     if(list.some(([w,h]) => w===state.width && h===state.height)) return fmt;
@@ -382,15 +324,15 @@ function renderEstimates() {
     const strong = document.createElement("strong");
     strong.textContent = label + " · " + w + "×" + h;
     const time = document.createElement("span");
-    time.textContent = fmt(est.low) + " – " + fmt(est.high);
+    time.textContent = estimateText(est);
     b.append(strong,time);
     b.disabled=state.busy||state.projectLoading||!!state.continuation;
     b.onclick = () => {if(state.busy||state.projectLoading||state.continuation)return;state.width=w;state.height=h;renderEstimates();saveDraft();};
     wrap.append(b);
   });
   state.estimated = estimateFor();
-  $("estimateNote").textContent = "Estimated " + sizeKey() + ": " + fmt(state.estimated.low) + " – " + fmt(state.estimated.high);
-  $("estimateBasis").textContent = state.estimated.basis + ". Includes model load, video and audio. First run may take longer.";
+  $("estimateNote").textContent = "Estimated " + sizeKey() + ": " + estimateText(state.estimated);
+  $("estimateBasis").textContent = state.estimated.basis + ". Execution time includes model load, video and audio; queue/upload time is separate.";
   const risk=refMemoryRisk();
   $("memoryNotice").classList.toggle("hidden",!risk);
   $("memoryNotice").textContent=risk?`This server has ${state.ramLimit} GB system RAM. Long Ref2VA renders at this canvas may run out of system RAM during video decoding. You can still render; a shorter duration, smaller canvas, or 64 GB RAM server lowers that risk.`:"";
@@ -876,9 +818,9 @@ function setProgress(label,pct=null,remaining=null,busy=false) {
   $("progress").classList.toggle("busy",busy);
   if(pct!==null){$("progressFill").style.width=Math.max(0,Math.min(100,pct))+"%";$("percent").textContent=Math.round(pct)+"%";}
   if(remaining!==null)state.phaseEtaAt=Date.now()+Math.max(0,remaining)*1000;
-  else if(!state.busy||pct===100)state.phaseEtaAt=null;
+  else state.phaseEtaAt=null;
   const left=state.phaseEtaAt?(state.phaseEtaAt-Date.now())/1000:null;
-  $("remaining").textContent=pct===100?"Time remaining: 0s":left===null?"Time remaining: —":left<=0&&state.busy?"Estimate exceeded · still working":"Approx. time remaining: "+fmt(Math.max(0,left));
+  $("remaining").textContent=pct===100?"Time remaining: 0s":left===null?"Time remaining: —":left<=0&&state.busy?"Estimate exceeded · still working":"Provisional time remaining: "+fmt(Math.max(0,left));
 }
 function showStageMessage(title,detail){
   const panel=document.createElement("div");panel.className="stage-empty";
@@ -973,13 +915,14 @@ async function loadLibrary(force=false){
       entry.takeId=file.filename.match(/^h3_studio_([a-f0-9]{12})_/)?.[1]||null;
       entry.kept=!!file.kept;
       entry.meta.duration=entry.meta.duration||file.duration||null;
-      entry.meta.elapsed=entry.meta.elapsed||file.render_seconds||null;
+      entry.meta.elapsed=file.render_seconds||entry.meta.elapsed||null;
+      entry.meta.renderElapsed=file.render_seconds||entry.meta.renderElapsed||null;
       entry.meta.completedAt=entry.meta.completedAt||(file.modified?Number(file.modified)*1000:null);
-      entry.meta.settings=entry.meta.settings||file.settings||null;
+      entry.meta.settings=file.settings||entry.meta.settings||null;
       next.push(entry);
     }
-    state.serverSamples=items.filter(file=>Number.isFinite(file.render_seconds)&&Number.isFinite(file.units)&&file.units>0&&file.sample_key)
-      .map(file=>({filename:file.filename,key:file.sample_key,units:file.units,seconds:file.render_seconds,at:Number(file.modified)*1000}));
+    state.serverSamples=items.map(file=>({filename:file.filename,key:file.sample_key,units:1,seconds:file.render_seconds,
+      configuration:file.settings?.timingConfiguration,source:file.settings?.timingMeasurement?.source||"browser",at:Number(file.modified)*1000}));
     state.results=next;appendProjectResults(state.currentProject);
     if(state.current&&!next.includes(state.current)){
       state.current=null;
@@ -1001,41 +944,21 @@ async function loadHistorySamples(){
   try{
     const r=await fetch(api("/history?max_items=100"));if(!r.ok)return;
     const history=await r.json(),samples=[];
-    const prefix=(localStorage.getItem(baseKey)||location.origin)+"|"+state.gpu+"|";
     for(const job of Object.values(history)){
       const filename=findVideoOutput(job.outputs?.["12"])?.filename;
-      if(!filename)continue;
-      const events=job.status?.messages||[];
-      const started=events.find(([name])=>name==="execution_start")?.[1]?.timestamp;
-      const finished=events.find(([name])=>name==="execution_success")?.[1]?.timestamp;
-      if(!Number.isFinite(started)||!Number.isFinite(finished)||finished<=started)continue;
-      const graph=job.prompt?.[2]||{},main=graph["6"],sampler=graph["8"];
-      if(!main||!sampler)continue;
-      const inputs=main.inputs||{},keys=Object.keys(inputs);
-      const mode=main.class_type==="MiniMaxH3ReferenceToVideo"?"refs":inputs.first_frame||inputs.last_frame?"frames":"text";
-      const refs=mode==="refs",refSize=refs?inputs.ref_image_size||"match":"base";
-      const loras=Object.values(graph).filter(node=>node.class_type==="LoraLoaderModelOnly").map(node=>node.inputs||{});
-      const methodName=Object.values(graph).some(node=>node.class_type==="SpectrumApplyMiniMaxH3")?"spectrum":
-        Object.values(graph).some(node=>node.class_type==="MiniMaxH3MotionCache")?"motioncache":
-        loras.some(item=>item.lora_name===turboName)?"turbo":"native";
-      const signature=loras.filter(item=>item.lora_name!==turboName).map(item=>item.lora_name+":"+item.strength_model).join(",");
-      const units=unitsFor({width:Number(inputs.width),height:Number(inputs.height),length:Number(inputs.length),
-        steps:Number(sampler.inputs?.steps),mode,refSize,
-        imageCount:keys.filter(key=>key.startsWith("ref_images.ref_image_")).length,
-        videoCount:keys.filter(key=>key.startsWith("ref_videos.ref_video_")).length,
-        audioCount:keys.filter(key=>key.startsWith("ref_audios.ref_audio_")).length,
-        frameCount:Number(!!inputs.first_frame)+Number(!!inputs.last_frame)});
-      if(!Number.isFinite(units)||units<=0)continue;
-      samples.push({filename,key:prefix+mode+"|"+refSize+"|method:"+methodName+"|"+signature,
-        units,seconds:(finished-started)/1000,at:finished});
+      const timing=H3TimingEstimator.measured(job);if(!filename||!timing)continue;
+      const settings=state.results.find(e=>e.file.filename===filename)?.meta.settings;
+      // Legacy graphs lack GPU and consumed-media metadata. Never invent their configuration.
+      if(!settings?.timingConfiguration)continue;
+      samples.push({filename,key:sampleKey(),units:1,...timing,configuration:settings.timingConfiguration,settings:{...settings,timingMeasurement:timing},at:timing.finished});
     }
     state.historySamples=samples.sort((a,b)=>a.at-b.at);
     const known=new Set(state.serverSamples.map(sample=>sample.filename));
     const onDisk=new Set(state.results.map(entry=>entry.file.filename));
-    const missing=samples.filter(sample=>onDisk.has(sample.filename)&&!known.has(sample.filename));
+    const missing=samples.filter(sample=>onDisk.has(sample.filename)&&(!known.has(sample.filename)||state.serverSamples.find(x=>x.filename===sample.filename)?.source!=="execution"));
     if(missing.length){
       await Promise.allSettled(missing.map(sample=>post("/h3_studio/track",{
-        filename:sample.filename,render_seconds:sample.seconds,units:sample.units,sample_key:sample.key,
+        filename:sample.filename,render_seconds:sample.seconds,units:sample.units,sample_key:sample.key,settings:sample.settings,
       })));
       await loadLibrary(true);
     }
@@ -1048,7 +971,7 @@ function saveSession(){
       server:localStorage.getItem(baseKey)||location.origin,
       results:state.results.filter(e=>!e.kept&&isStudioOutputName(e.file?.filename)).map(e=>({file:e.file,meta:e.meta})),
       active:state.running?{id:state.running,started:state.started,renderStarted:state.renderStarted,meta:state.runMeta,
-        uploads:state.uploads.slice(),estimated:state.estimated,lastStep:state.lastStep,
+        uploads:state.uploads.slice(),estimated:state.estimated,lastStep:state.lastStep,samplerNode:state.samplerNode,samplerMax:state.samplerMax,
         stepAt:state.stepAt,stepDurations:state.stepDurations.slice(-8)}:null
     }));
   }catch{}
@@ -1080,11 +1003,13 @@ async function restoreSession(){
       state.runMeta=active.meta||{};
       state.uploads=Array.isArray(active.uploads)?active.uploads.filter(x=>typeof x==="string"):[];
       state.estimated=active.estimated||null;
-      state.lastStep=Number.isFinite(active.lastStep)?Math.max(0,Number(active.lastStep)):0;
+      const restoredProgress=H3TimingEstimator.restoredProgress(active);
+      state.samplerNode=restoredProgress?.node||null;state.samplerMax=restoredProgress?.max||null;
+      state.lastStep=restoredProgress?.step||0;
       state.stepAt=Number.isFinite(active.stepAt)?Number(active.stepAt):0;
       state.stepDurations=Array.isArray(active.stepDurations)?active.stepDurations.filter(x=>Number.isFinite(x)&&x>0).slice(-8):[];
       setBusy(true);
-      if(state.lastStep>0)samplerProgress(state.lastStep,Number(state.runMeta?.settings?.steps)||Number($("steps").value));
+      if(restoredProgress&&state.lastStep>0)samplerProgress(state.lastStep,restoredProgress.max,restoredProgress.node);
       else setProgress("Restoring queued render",4,null,true);
       $("stage").innerHTML="<div class='stage-empty'><b>Render in progress</b>Checking the server for your video.</div>";
       await Promise.allSettled([pollHistory(),pollQueue()]);
@@ -1136,7 +1061,10 @@ async function checkConnection() {
       if(!missing.length&&!missingNodes.length&&!state.busy&&!state.running&&$("status").textContent==="Connect ComfyUI to begin")$("status").textContent="Ready to generate";
       updateCapabilities();
       renderEstimates();
-      await Promise.allSettled([loadLibrary(),restoreSession(),loadHistorySamples()]);
+      await loadLibrary();
+      await restoreSession();
+      await loadHistorySamples();
+      renderEstimates();
       return !missing.length&&!missingNodes.length&&state.labCapabilities?.inference_enabled!==false;
     }finally{clearTimeout(timeout);}
   }catch(e){
@@ -1250,8 +1178,8 @@ async function generate() {
   }catch(e){info(e.message,true);return;}
   info("");uploadMessage("");setBusy(true);state.abortController=new AbortController();
   state.started=Date.now();state.stepDurations=[];state.lastStep=0;state.outputMissingSince=null;
-  state.renderStarted=0;
-  state.estimated=estimateFor();setProgress("Uploading inputs and preparing the model",2,(state.estimated.low+state.estimated.high)/2,true);
+  state.renderStarted=0;state.samplerNode=null;
+  state.estimated=estimateFor();setProgress("Uploading inputs and preparing the model",2,estimateMidpoint(),true);
   showStageMessage("Generating your video","The first run may include model loading.");
   focusWorkspace();
   $("resultCard").classList.add("hidden");
@@ -1282,6 +1210,7 @@ async function generate() {
       const result=await uploadOne(file,kind,progress,()=>uploadMessage("Checking "+label+" on the server · converting to 24 fps if needed",100),options);
       uploadMessage("Uploaded "+index+" of "+totalFiles+" · "+label+" · "+fmtBytes(file.size)+" · checked on server",100);
       if(ref){ref.uploadProgress=undefined;ref.uploadReady=true;renderRefs();}
+      if(ref)ref.meta=result;
       return result;
     };
     if(state.mode==="frames"){
@@ -1330,10 +1259,11 @@ async function generate() {
     settings.preparation=state.preparedContext?{model:state.preparedContext.provider_model,fingerprint:state.preparedContext.fingerprint}:null;
     const token=crypto.randomUUID().replace(/-/g,"").slice(0,12);
     const workflow=graph(prompt,uploads,token);
+    settings.timingConfiguration=timingConfiguration();state.estimated=estimateFor();
     const units=workUnits(),sample_key=sampleKey();
     await post("/h3_studio/register_job",{token,settings,units,sample_key});
     const draft=await persistProjectDraft();
-    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
+    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps})),project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     state.runMeta=submittedMeta;
     const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId},asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
@@ -1367,7 +1297,7 @@ async function generate() {
     saveSession();
     uploadMessage("");
     saveSession();
-    setProgress("Queued or loading H3",4,(state.estimated.low+state.estimated.high)/2,true);
+    setProgress("Queued or loading H3",4,estimateMidpoint(),true);
   }catch(e){
     if(state.running){setBusy(true);info(e.message,true);return;}
     await cleanupUploads();setBusy(false);
@@ -1547,10 +1477,13 @@ async function completeImpl(file){
   const completedEpoch=state.generationEpoch;
   const completedUploads=state.uploads.splice(0);
   const actual=(Date.now()-state.started)/1000;
-  const renderActual=(Date.now()-(state.renderStarted||state.started))/1000;
+  let measured= null;
+  try{const r=await fetch(api("/history/"+encodeURIComponent(expectedId)));if(r.ok)measured=H3TimingEstimator.measured((await r.json())[expectedId]);}catch{}
+  const renderActual=measured?.seconds??(Date.now()-(state.renderStarted||state.started))/1000;
   const meta={...(state.runMeta||{}),elapsed:actual,renderElapsed:renderActual,completedAt:Date.now()};
+  if(meta.settings)meta.settings={...meta.settings,timingMeasurement:measured||{source:"browser",seconds:renderActual}};
   const samples=readSamples();
-  if(meta.key&&Number.isFinite(meta.units)&&meta.units>0)samples.push({filename:file.filename,key:meta.key,units:meta.units,seconds:renderActual,at:Date.now()});
+  if(meta.key&&Number.isFinite(meta.units)&&meta.units>0)samples.push({filename:file.filename,key:meta.key,units:meta.units,seconds:renderActual,configuration:meta.settings?.timingConfiguration,source:measured?.source||"browser",at:Date.now()});
   try{localStorage.setItem(storeKey,JSON.stringify(samples.slice(-80)));}catch{}
   const entry={file,meta,kept:false,thumb:null};
   const takeId = file.filename.replace(/^h3_studio_/, "").replace(/_[0-9]+_\.mp4$/, "");
@@ -1582,8 +1515,9 @@ async function completeImpl(file){
     if(!qa.ok&&completedEpoch===state.generationEpoch)info("Video saved, but media check found a problem: "+qa.message,true);
   }catch(e){if(completedEpoch===state.generationEpoch)info("Video saved; automatic audio check was unavailable. Play and listen before relying on this clip.",true);}
   await cleanup;
-  if(completedEpoch===state.generationEpoch){setProgress("Completed",100,0);$("timer").textContent="Actual time: "+fmt(actual);}
+  if(completedEpoch===state.generationEpoch){setProgress("Completed",100,0);$("timer").textContent="Actual render time: "+fmt(renderActual)+(measured?"":" · browser observation");}
   await loadLibrary(true);
+  await loadHistorySamples();
   renderEstimates();
 }
 async function discardEntry(entry,includeSaved=false){
@@ -1652,20 +1586,24 @@ function showPreview(blob){
   if(!img){$("stage").replaceChildren();img=document.createElement("img");$("stage").append(img);}
   const old=img.src;img.src=URL.createObjectURL(blob);if(old.startsWith("blob:"))URL.revokeObjectURL(old);
 }
-function samplerProgress(value,max){
+function currentSamplerNodes(fallback=Number(state.runMeta?.settings?.steps)||20){
+  const nodes=state.runMeta?.samplerNodes;
+  return Array.isArray(nodes)?nodes.filter(n=>n&&typeof n.id==='string'&&Number.isFinite(n.steps)&&n.steps>=2):[{id:"8",steps:fallback}];
+}
+function samplerProgress(value,max,node="8"){
   const now=Date.now(),step=Math.round(value),total=Math.round(max);
-  // ComfyUI starts each node at 0/1 before sampler steps are available.
-  // Treating that node marker as the sampler count leaves the UI stuck at 0/1.
   if(!Number.isFinite(step)||!Number.isFinite(total)||total<2||step<0)return;
-  if(step>state.lastStep&&state.stepAt&&state.lastStep>0){
-    state.stepDurations.push((now-state.stepAt)/1000/(step-state.lastStep));
-    state.stepDurations=state.stepDurations.slice(-8);
-  }
+  const nodes=currentSamplerNodes(total);
+  const index=nodes.findIndex(n=>n.id===String(node));if(index<0||index<nodes.findIndex(n=>n.id===state.samplerNode))return;
+  if(state.samplerNode===String(node)&&step<state.lastStep)return;
+  state.samplerMax=total;
+  if(state.samplerNode!==String(node)){state.samplerNode=String(node);state.lastStep=0;state.stepAt=0;state.stepDurations=[];}
+  if(step>state.lastStep&&state.stepAt&&state.lastStep>0){state.stepDurations.push((now-state.stepAt)/1000/(step-state.lastStep));state.stepDurations=state.stepDurations.slice(-8);}
   if(step>state.lastStep){state.lastStep=step;state.stepAt=now;}
-  const avg=state.stepDurations.length?state.stepDurations.reduce((a,b)=>a+b,0)/state.stepDurations.length:null;
-  const baseline=state.estimated?(state.estimated.low+state.estimated.high)/2:null;
-  const remaining=avg?avg*(total-step)+Math.max(20,avg*total*.13):baseline?Math.max(0,baseline-(now-state.started)/1000):null;
-  setProgress("H3 sampling · "+step+"/"+total,10+Math.min(80,80*step/total),remaining);
+  const avg=state.stepDurations.length>=2?state.stepDurations.reduce((a,b)=>a+b,0)/state.stepDurations.length:null;
+  const baseline=estimateMidpoint(),remaining=baseline?Math.max(0,baseline-(now-(state.renderStarted||now))/1000):index===nodes.length-1&&avg&&step<total?avg*(total-step):null;
+  const previous=nodes.slice(0,index).reduce((sum,n)=>sum+n.steps,0),all=nodes.reduce((sum,n)=>sum+n.steps,0);
+  setProgress((index?"H3 refinement":"H3 sampling")+" · "+step+"/"+total,10+Math.min(80,80*(previous+Math.min(step,total))/all),remaining);
   saveSession();
 }
 async function pollServerProgress(id){
@@ -1674,7 +1612,7 @@ async function pollServerProgress(id){
     if(!r.ok)return;
     const data=await r.json();
     if(state.running!==id||data.prompt_id!==id||!Number.isFinite(data.step)||!Number.isFinite(data.total))return;
-    if(data.step>=state.lastStep&&data.total>0)samplerProgress(data.step,data.total);
+    if(data.total>0)samplerProgress(data.step,data.total,String(data.node||"8"));
   }catch{}
 }
 function onSocket(event){
@@ -1698,18 +1636,18 @@ function onSocket(event){
     state.queuePhase="running";
     state.renderStarted||=Date.now();saveSession();
   }else if(message.type==="progress_state"){
-    const n=d.nodes?.["8"];if(n&&n.max)samplerProgress(n.value,n.max);
-  }else if(message.type==="progress"&&d.node==="8"&&d.max)samplerProgress(d.value,d.max);
+    for(const n of currentSamplerNodes()){const p=d.nodes?.[n.id];if(p&&p.max)samplerProgress(p.value,p.max,n.id);}
+  }else if(message.type==="progress"&&d.max)samplerProgress(d.value,d.max,String(d.node));
   else if(message.type==="executing"&&d.node){
     const phases={"1":["Loading model",5],"3":["Loading text encoder",7],"6":["Preparing prompt and references",9],"8":["Preparing sampler",10],"9":["Decoding video",91],"10":["Decoding audio",94],"11":["Muxing video and audio",96],"12":["Saving video",98]};
+    if(currentSamplerNodes().some(n=>n.id===String(d.node)&&n.id!=="8")){state.samplerNode=String(d.node);state.lastStep=0;state.stepAt=0;state.stepDurations=[];setProgress("Preparing refinement",null,null,true);}
     if(phases[d.node]){
       const [label,pct]=phases[d.node];
       let remaining=null;
       if(pct>=91){
         const avg=state.stepDurations.length?state.stepDurations.reduce((a,b)=>a+b,0)/state.stepDurations.length:null;
-        const midpoint=state.estimated?(state.estimated.low+state.estimated.high)/2:null;
-        const tail=avg?Math.max(20,avg*Number($("steps").value)*.13):midpoint?midpoint*.1:null;
-        if(tail)remaining=tail*(100-pct)/9;
+        const midpoint=estimateMidpoint();
+        if(midpoint)remaining=Math.max(0,midpoint-(Date.now()-(state.renderStarted||Date.now()))/1000);
       }
       setProgress(label,pct,remaining,pct<10);
     }
@@ -1822,7 +1760,7 @@ async function pollQueue(){
       if(!state.lastStep&&Date.now()-state.renderStarted>30000&&$("status").textContent==="Preparing sampler")
         setProgress("H3 sampling · detailed step updates unavailable",null,null,true);
       if(!state.lastStep&&state.phaseEtaAt===null&&["Restoring","Waiting in queue"].some(prefix=>$("status").textContent.startsWith(prefix))){
-        const midpoint=state.estimated?(state.estimated.low+state.estimated.high)/2:null;
+        const midpoint=estimateMidpoint();
         setProgress("H3 rendering · waiting for step updates",8,midpoint,true);
       }
     }
@@ -1863,7 +1801,7 @@ setInterval(()=>{
   if(!state.busy||!state.started)return;
   const elapsed=(Date.now()-state.started)/1000;
   $("timer").textContent="Elapsed: "+fmt(elapsed);
-  if(state.phaseEtaAt){const left=(state.phaseEtaAt-Date.now())/1000;$("remaining").textContent=left<=0?"Estimate exceeded · still working":"Approx. time remaining: "+fmt(left);}
+  if(state.phaseEtaAt){const left=(state.phaseEtaAt-Date.now())/1000;$("remaining").textContent=left<=0?"Estimate exceeded · still working":"Provisional time remaining: "+fmt(left);}
 },1000);
 addEventListener("pagehide",event=>{
   if(event.persisted)return;
@@ -2029,3 +1967,5 @@ if(missingInputs)info("Draft restored. Reattach your frame or reference files be
 checkConnection();connectSocket();
 pollQueue();
 initProjectController();
+
+for(const type of ["change","input"])document.addEventListener(type,event=>{if(!state.busy&&event.target.matches("input,select")&&event.target.id!=="prompt")renderEstimates();});

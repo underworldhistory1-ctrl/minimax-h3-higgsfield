@@ -197,9 +197,11 @@ install_speed_node "ComfyUI-H3-Motion-Context-MultiRef" \
 echo "Downloading/reusing H3 T2V model files into persistent ComfyUI storage..."
 DOWNLOAD_ARGS=("$COMFY_ROOT")
 if [[ "$WITH_REF2VA" -eq 0 ]]; then DOWNLOAD_ARGS+=(--t2v-only); fi
-if [[ "$WITH_SPEED_OPTIONS" -eq 1 ]]; then DOWNLOAD_ARGS+=(--with-speed-lora); fi
-bash "$H3_STUDIO/deploy/download_h3_models.sh" "${DOWNLOAD_ARGS[@]}"
-if [[ "$WITH_OPTIONAL_LORAS" -eq 1 ]]; then
+if [[ "${H3_INSTALL_TURBO:-0}" == "1" ]]; then DOWNLOAD_ARGS+=(--with-speed-lora); fi
+if [[ "${H3_MODELS_PREPARED:-0}" != "1" ]]; then
+    bash "$H3_STUDIO/deploy/download_h3_models.sh" "${DOWNLOAD_ARGS[@]}"
+fi
+if [[ "$WITH_OPTIONAL_LORAS" -eq 1 && "${H3_MODELS_PREPARED:-0}" != "1" ]]; then
     "$H3_PYTHON" "$H3_STUDIO/deploy/download_optional_loras.py" "$COMFY_ROOT"
 fi
 
@@ -211,15 +213,21 @@ if [[ "${H3_INSTALL_REFINE:-1}" == "1" ]]; then
         "$H3_PYTHON" -m pip install -r "$CUSTOM_NODES/Comfyui_Minimax_h3_latent_Upscaler/requirements.txt"
     fi
     "$H3_PYTHON" -c "import torch, einops, safetensors, typing_extensions"
-    "$H3_PYTHON" "$H3_STUDIO/deploy/download_refine_models.py" "$COMFY_ROOT"
+    if [[ "${H3_MODELS_PREPARED:-0}" != "1" ]]; then
+        "$H3_PYTHON" "$H3_STUDIO/deploy/download_refine_models.py" "$COMFY_ROOT"
+    fi
 fi
 
 if [[ "${H3_INSTALL_CONTROLNET:-0}" == "1" ]]; then
     install_speed_node "comfyui_controlnet_aux" \
         "https://github.com/Fannovel16/comfyui_controlnet_aux.git" \
         "0cd290477128d42cdc3e76a826a402d866e8c684"
-    "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_preprocessors.py" "$COMFY_ROOT" --install-dependencies
-    "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_models.py" "$COMFY_ROOT"
+    PREPROCESS_ARGS=(--install-dependencies)
+    if [[ "${H3_MODELS_PREPARED:-0}" == "1" ]]; then PREPROCESS_ARGS+=(--dependencies-only); fi
+    "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_preprocessors.py" "$COMFY_ROOT" "${PREPROCESS_ARGS[@]}"
+    if [[ "${H3_MODELS_PREPARED:-0}" != "1" ]]; then
+        "$H3_PYTHON" "$H3_STUDIO/deploy/download_control_models.py" "$COMFY_ROOT"
+    fi
 fi
 
 WORKFLOWS="$COMFY_ROOT/user/default/workflows"

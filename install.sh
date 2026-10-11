@@ -3,6 +3,9 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "${H3_LAUNCHER_INTERNAL:-0}" != "1" ]]; then
+    exec "${COMFY_PYTHON:-python3}" "$ROOT/deploy/launcher.py" "$@"
+fi
 COMFY_ROOT=""
 PORT=8188
 BIND=127.0.0.1
@@ -46,7 +49,7 @@ if [[ -z "$COMFY_ROOT" ]]; then
 fi
 mkdir -p "$(dirname "$COMFY_ROOT")"
 COMFY_ROOT="$(cd "$(dirname "$COMFY_ROOT")" && pwd)/$(basename "$COMFY_ROOT")"
-SERVER_URL="http://127.0.0.1:$PORT"
+SERVER_URL="${H3_LAUNCHER_URL:-http://127.0.0.1:$PORT}"
 
 if ! command -v nvidia-smi >/dev/null 2>&1 || ! nvidia-smi -L >/dev/null 2>&1; then
     echo "An NVIDIA GPU and working driver are required (nvidia-smi failed)." >&2
@@ -172,7 +175,7 @@ if ((free_gib < 100)); then
 fi
 
 bash "$ROOT/deploy/bootstrap_h3_server.sh" "$COMFY_ROOT"
-if [[ -n "${QWEN_IMAGE_PROFILES:-}" ]]; then
+if [[ "${H3_MODELS_PREPARED:-0}" != "1" && -n "${QWEN_IMAGE_PROFILES:-}" ]]; then
     "$H3_PYTHON" "$ROOT/deploy/download_qwen_image_models.py" "$COMFY_ROOT" --profiles "$QWEN_IMAGE_PROFILES"
 fi
 if ((AUTO_START == 0)); then

@@ -52,7 +52,7 @@ def main():
     supplied = urllib.parse.urlsplit(args.url)
     if not supplied.scheme or not supplied.netloc:
         parser.error("--url must be the ComfyUI HTTP(S) URL")
-    base = supplied.scheme + "://" + supplied.netloc
+    base = urllib.parse.urlunsplit((supplied.scheme, supplied.netloc, supplied.path.rstrip("/"), "", ""))
     token = os.environ.get(args.token_env)
     if token is None:
         token = urllib.parse.parse_qs(supplied.query).get("arg", [None])[0]

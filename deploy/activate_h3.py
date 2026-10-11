@@ -21,6 +21,16 @@ def main():
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
     base = args.url.rstrip("/")
+    if args.action == "check" and os.environ.get("H3_LAUNCHER_INTERNAL") == "1":
+        from launcher_smoke import ComfyAPI
+        current = ComfyAPI(os.environ.get("H3_LAUNCHER_URL", base)).queue()
+        if current.get("status") == "offline":
+            print("COMFYUI_OFFLINE")
+            return 0
+        if current["queue_running"] or current["queue_pending"]:
+            raise RuntimeError("ComfyUI became busy before runtime setup; retry when the queue is empty.")
+        print("COMFYUI_QUEUE_EMPTY")
+        return 0
     opener = urllib.request.build_opener(
         urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 

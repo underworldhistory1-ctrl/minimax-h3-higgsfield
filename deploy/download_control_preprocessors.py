@@ -151,13 +151,18 @@ def main():
     parser.add_argument("comfy_root", type=pathlib.Path)
     parser.add_argument("--offline-check", action="store_true")
     parser.add_argument("--install-dependencies", action="store_true")
+    parser.add_argument("--dependencies-only", action="store_true", help="Install imports without downloading weights; the launcher prepares weights separately")
     args = parser.parse_args()
     if not (args.comfy_root / "main.py").is_file():
         parser.error("ComfyUI main.py not found")
-    if args.offline_check and args.install_dependencies:
+    if args.offline_check and (args.install_dependencies or args.dependencies_only):
         parser.error("Offline checking never installs dependencies")
     if args.install_dependencies:
         install_dependencies(args.comfy_root)
+    if args.dependencies_only:
+        if not args.install_dependencies:
+            parser.error("--dependencies-only requires --install-dependencies")
+        return 0
     return 0 if provision_weights(args.comfy_root, offline=args.offline_check) else 1
 
 

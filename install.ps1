@@ -9,11 +9,18 @@ param(
     [switch]$ControlNet,
     [switch]$Refine,
     [switch]$SkipRefine,
-    [ValidateSet("", "int8", "bf16", "int8,bf16")][string]$QwenImageProfiles = ""
+    [ValidateSet("", "int8", "bf16", "int8,bf16")][string]$QwenImageProfiles = "int8",
+    [string[]]$ModelsRoot = @(),
+    [switch]$Turbo,
+    [switch]$SkipControlNet,
+    [switch]$VideoOnly,
+    [switch]$SkipSmoke,
+    [switch]$Status,
+    [string]$Url = ""
 )
 $ErrorActionPreference = "Stop"
 $project = Split-Path -Parent $MyInvocation.MyCommand.Path
-$installer = Join-Path $project "deploy\install_windows.py"
+$installer = Join-Path $project "deploy\launcher.py"
 $candidates = New-Object 'System.Collections.Generic.List[string]'
 if ($ComfyPython) { $candidates.Add($ComfyPython) }
 if ($ComfyRoot) {
@@ -49,7 +56,17 @@ if (-not $hostPython) {
     }
 }
 if (-not $hostPython) {
-    throw "Python 3 was not found. Install Python 3.13 or use ComfyUI Portable and pass -ComfyRoot to its folder."
+    $packageManager = Get-Command winget -ErrorAction SilentlyContinue
+    if ($packageManager) {
+        Write-Host "Preparing Python 3.13 with Windows Package Manager..."
+        & $packageManager.Source install --id Python.Python.3.13 --exact --silent --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -eq 0) {
+            foreach ($candidate in @((Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\python.exe"), "C:\Program Files\Python313\python.exe")) {
+                if (Test-Path -LiteralPath $candidate -PathType Leaf) { $hostPython = $candidate; break }
+            }
+        }
+    }
+    if (-not $hostPython) { throw "Python 3 was not found and automatic provisioning was unavailable. Use ComfyUI Portable or install Python 3.13, then rerun." }
 }
 $arguments = @($installer, "--port", "$Port", "--bind", $Bind)
 if ($ComfyRoot) { $arguments += @("--comfy-root", $ComfyRoot) }
@@ -61,5 +78,12 @@ if ($Refine -and $SkipRefine) { throw "Choose either -Refine or -SkipRefine." }
 if ($Refine) { $arguments += "--refine" }
 if ($SkipRefine) { $arguments += "--no-refine" }
 if ($QwenImageProfiles) { $arguments += @("--qwen-image-profiles", $QwenImageProfiles) }
+foreach ($storagePath in $ModelsRoot) { $arguments += @("--models-root", $storagePath) }
+if ($Turbo) { $arguments += "--turbo" }
+if ($SkipControlNet) { $arguments += "--no-controlnet" }
+if ($VideoOnly) { $arguments += "--video-only" }
+if ($SkipSmoke) { $arguments += "--skip-smoke" }
+if ($Status) { $arguments += "--status" }
+if ($Url) { $arguments += @("--url", $Url) }
 & $hostPython @prefix @arguments
 exit $LASTEXITCODE

@@ -70,6 +70,7 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 | Where you work | Guide |
 | --- | --- |
 | Windows or Linux | [Install the studio](docs/INSTALL.md) |
+| One-command setup, attached storage and recovery | [Automatic launcher](docs/LAUNCHER.md) |
 | Existing OpenBayes workspace | [Setup and recovery](docs/OPENBAYES.md) |
 | SaladCloud | [Container deployment](deploy/SALAD_DEPLOYMENT.md) |
 | Upgrading an existing V2 project | [Upgrade and rollback](docs/V2_UPGRADE_AR.md) |

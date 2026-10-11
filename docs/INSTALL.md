@@ -1,6 +1,29 @@
 # Install H3 Higgsfield
 
-Both installers require an NVIDIA GPU with a working driver. H3 needs roughly **65.8 GB** including the prepared speed/LoRA files. Qwen Image is optional outside Salad: INT8 adds **17.3 GB**; BF16 adds **32.4 GB**, with a shared VAE. Use `QWEN_IMAGE_PROFILES=int8` (Linux) or `-QwenImageProfiles int8` (Windows) to install it. An empty disk cannot be ready in seconds because the models must download.
+## One-command launcher
+
+The normal Windows and Linux commands now use the [automatic launcher](LAUNCHER.md).
+It prepares H3, the three style/motion LoRAs, MotionCache/Spectrum, Qwen INT8,
+Refine and ControlNet; Turbo is opt-in. It discovers attached model storage,
+verifies/reuses files, resumes sequential downloads, saves progress and validates
+a short video with audio before reporting full readiness. Existing data is retained.
+
+```bash
+bash launcher.sh
+# With an attached disk:
+bash launcher.sh --models-root /input0/h3-models
+```
+
+```powershell
+.\launcher.ps1 -ComfyRoot "C:\path\to\ComfyUI_windows_portable"
+```
+
+Rerun the same command to resume. Use `--plan` / `-Preflight` for a read-only plan,
+and `--status` / `-Status` to read the saved report. See the launcher guide for
+profiles, remote handoff, authentication and recovery boundaries. The legacy
+platform details below remain useful for interpreter and provider requirements.
+
+Both installers require an NVIDIA GPU with a working driver. The launcher plan reports exact download sizes after checking available storage. Qwen Image INT8 is included by default; use `--video-only` (Linux) or `-VideoOnly` (Windows) to omit it. BF16 is available through `--qwen-image-profiles bf16` or `-QwenImageProfiles bf16`. An empty disk cannot be ready in seconds because the models must download.
 
 ### Windows (native PowerShell; no WSL)
 

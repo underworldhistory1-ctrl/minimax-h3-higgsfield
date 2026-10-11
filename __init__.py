@@ -23,6 +23,8 @@ import threading
 import time
 import uuid
 
+H3_RUNTIME_INSTANCE = uuid.uuid4().hex
+
 from aiohttp import web
 
 import folder_paths
@@ -30,6 +32,9 @@ import nodes
 from server import PromptServer
 from .h3_video_save import H3LoadSavedLatent, H3ReleaseForDecode, H3SaveVideo
 from .h3_lab.routes import register_lab_routes
+from .h3_lab.runtime_fingerprint import runtime_fingerprint
+
+H3_RUNTIME_FINGERPRINT = runtime_fingerprint(pathlib.Path(__file__).parent)
 from .h3_continuation import NODE_CLASS_MAPPINGS as LAB_NODE_CLASS_MAPPINGS
 from .h3_queue_bridge import ComfyQueueBridge
 from .qwen_image import (
@@ -437,6 +442,7 @@ async def upload_ref(request):
                 if abs(fps - 24) > 0.02 or not 1.9 <= duration <= 15.1 or stream.width > 1920 or stream.height > 1080:
                     raise ValueError("The converted video did not meet H3's 24 fps and duration limits.")
                 info.update(duration=round(duration, 2), fps=round(fps, 2),frame_count=stream.frames or sum(1 for _ in normalized.decode(stream)),
+                            width=stream.width, height=stream.height,
                             has_audio=bool(normalized.streams.audio),
                             normalized_from_fps=original_fps if abs(original_fps - 24) > .02 else None,
                             size=os.path.getsize(normalized_path),
@@ -772,6 +778,8 @@ async def readiness(request):
     except OSError:
         pass
     return web.json_response({"models": present, "nodes": available,
+                              "runtime_instance": H3_RUNTIME_INSTANCE,
+                              "runtime_fingerprint": H3_RUNTIME_FINGERPRINT,
                               "quality": {"h3_vae_tile_fix": vae_tile_fix},
                               "system_ram_limit_gb": ram_limit})
 
@@ -783,18 +791,9 @@ async def job_progress(request):
     if not prompt_id or len(prompt_id) > 128:
         return web.json_response({"error": "invalid prompt_id"}, status=400)
     from comfy_execution.progress import get_progress_state
+    from .h3_lab.timing import sampler_progress_snapshot
     registry = get_progress_state()
-    if registry.prompt_id != prompt_id:
-        return web.json_response({"prompt_id": prompt_id, "step": None, "total": None})
-    sampler = registry.nodes.get("8") or registry.nodes.get("sampler")
-    if not sampler:
-        return web.json_response({"prompt_id": prompt_id, "step": None, "total": None})
-    return web.json_response({
-        "prompt_id": prompt_id,
-        "step": sampler["value"],
-        "total": sampler["max"],
-        "state": sampler["state"].value,
-    })
+    return web.json_response(sampler_progress_snapshot(registry, prompt_id))
 
 
 @PromptServer.instance.routes.get("/h3_studio/image_readiness")

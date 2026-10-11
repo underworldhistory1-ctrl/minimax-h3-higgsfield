@@ -134,6 +134,17 @@ def resolve_root(raw):
 
 
 def queue_status(url):
+    if os.environ.get("H3_LAUNCHER_INTERNAL") == "1":
+        try:
+            from .launcher_smoke import ComfyAPI
+        except ImportError:
+            from launcher_smoke import ComfyAPI
+        data = ComfyAPI(os.environ.get("H3_LAUNCHER_URL", url)).queue()
+        if data.get("status") == "offline":
+            return "offline"
+        if data["queue_running"] or data["queue_pending"]:
+            raise RuntimeError("ComfyUI became busy before runtime installation; retry after the jobs finish")
+        return "online"
     try:
         with urllib.request.urlopen(url + "/queue", timeout=6) as response:
             data = json.load(response)
@@ -403,8 +414,11 @@ def main():
     if subprocess.run([str(python), "-c", "import huggingface_hub"],
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
         call(python, "-m", "pip", "install", "huggingface_hub==1.32.0")
-    call(python, PROJECT / "deploy" / "download_h3_models.py", root)
-    call(python, PROJECT / "deploy" / "download_optional_loras.py", root)
+    models_prepared = os.environ.get("H3_MODELS_PREPARED") == "1"
+    if not models_prepared:
+        model_args = [] if os.environ.get("H3_INSTALL_TURBO") == "1" else ["--without-speed-lora"]
+        call(python, PROJECT / "deploy" / "download_h3_models.py", root, *model_args)
+        call(python, PROJECT / "deploy" / "download_optional_loras.py", root)
     if args.refine:
         speed_node(root, git, "Comfyui_Minimax_h3_latent_Upscaler",
                    "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git",
@@ -413,14 +427,17 @@ def main():
         if requirements.is_file():
             call(python, "-m", "pip", "install", "-r", requirements)
         call(python, "-c", "import torch, einops, safetensors, typing_extensions")
-        call(python, PROJECT / "deploy" / "download_refine_models.py", root)
+        if not models_prepared:
+            call(python, PROJECT / "deploy" / "download_refine_models.py", root)
     if args.controlnet:
         speed_node(root, git, "comfyui_controlnet_aux",
                    "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
                    "0cd290477128d42cdc3e76a826a402d866e8c684")
-        call(python, PROJECT / "deploy" / "download_control_preprocessors.py", root, "--install-dependencies")
-        call(python, PROJECT / "deploy" / "download_control_models.py", root)
-    if args.qwen_image_profiles:
+        preprocess_args = ["--install-dependencies"] + (["--dependencies-only"] if models_prepared else [])
+        call(python, PROJECT / "deploy" / "download_control_preprocessors.py", root, *preprocess_args)
+        if not models_prepared:
+            call(python, PROJECT / "deploy" / "download_control_models.py", root)
+    if args.qwen_image_profiles and not models_prepared:
         call(python, PROJECT / "deploy" / "download_qwen_image_models.py", root,
              "--profiles", args.qwen_image_profiles)
     install_workflows(root)

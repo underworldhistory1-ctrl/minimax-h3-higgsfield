@@ -18,6 +18,10 @@ def main() -> int:
     parser.add_argument("--archive", type=pathlib.Path, default=pathlib.Path(__file__).with_name("h3-cloud-setup.zip"))
     parser.add_argument("--library-backup", type=pathlib.Path,
                         help="Optional H3 video/settings snapshot to merge into this server")
+    parser.add_argument("--models-root", action="append", default=[], help="Attached storage on the remote server")
+    parser.add_argument("--detach", action="store_true", help="Keep installing after SSH disconnects; returns a log path, not a readiness claim")
+    parser.add_argument("--video-only", action="store_true")
+    parser.add_argument("--skip-smoke", action="store_true")
     args = parser.parse_args()
     try:
         import paramiko
@@ -28,6 +32,8 @@ def main() -> int:
         parser.error(f"Setup archive not found: {archive}")
     if args.library_backup and not args.library_backup.is_file():
         parser.error(f"Library snapshot not found: {args.library_backup}")
+    if args.library_backup and not args.comfy_root:
+        parser.error("--library-backup requires --comfy-root so restore targets the intended installation")
     password = None if args.identity else getpass.getpass("SSH password (never saved): ")
     client = paramiko.SSHClient()
     client.load_system_host_keys()
@@ -44,23 +50,34 @@ def main() -> int:
             sftp.put(str(archive), remote_archive)
             if args.library_backup:
                 sftp.put(str(args.library_backup.resolve()), remote_library)
-        root = shlex.quote(args.comfy_root) if args.comfy_root else '"$COMFY_ROOT"'
-        find_root = "" if args.comfy_root else (
-            'for candidate in /app/ComfyUI /workspace/ComfyUI "$HOME/ComfyUI"; do '
-            'if [ -f "$candidate/main.py" ]; then COMFY_ROOT="$candidate"; break; fi; done; '
-            'test -n "${COMFY_ROOT:-}" || { echo "ComfyUI not found; pass --comfy-root" >&2; exit 2; }; '
-        )
+        root = shlex.quote(args.comfy_root) if args.comfy_root else ""
+        launcher = ["bash", remote_stage + "/h3-studio-src/launcher.sh"]
+        if args.comfy_root:
+            launcher += ["--comfy-root", args.comfy_root]
+        for model_root in args.models_root:
+            launcher += ["--models-root", model_root]
+        if args.video_only:
+            launcher += ["--video-only"]
+        if args.skip_smoke:
+            launcher += ["--skip-smoke"]
+        launch_command = shlex.join(launcher)
         command = (
-            "set -eu; " + find_root +
+            "set -eu; " +
             f"mkdir -p {shlex.quote(remote_stage)}; "
             f"python3 -m zipfile -e {shlex.quote(remote_archive)} {shlex.quote(remote_stage)}; "
-            f"bash {shlex.quote(remote_stage + '/h3-studio-src/deploy/bootstrap_h3_server.sh')} " + root
         )
+        installation = launch_command
         if args.library_backup:
-            command += (
+            installation += (
                 "; python3 " + shlex.quote(remote_stage + "/h3-studio-src/deploy/restore_h3_library.py")
                 + " --comfy-root " + root + " --archive " + shlex.quote(remote_library)
             )
+        if args.detach:
+            logfile = remote_stage + "/launcher.log"
+            command += "nohup bash -c " + shlex.quote("set -e; " + installation) + " > " + shlex.quote(logfile) + " 2>&1 < /dev/null &"
+            command += "\nprintf 'Installation dispatched; readiness is pending. Log: %s\\n' " + shlex.quote(logfile)
+        else:
+            command += installation
         _, stdout, stderr = client.exec_command(command, get_pty=True, timeout=3600)
         for line in stdout:
             print(line, end="")
