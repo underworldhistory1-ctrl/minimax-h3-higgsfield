@@ -1022,6 +1022,18 @@ def _wipe_orphans_at_startup():
                 print(f"[h3_studio] wiped orphan {name}")
 
 
+from .h3_lab.storage import register_storage_guard
+
+
+def _storage_queue_count():
+    running, pending = PromptServer.instance.prompt_queue.get_current_queue()
+    return len(running) + len(pending)
+
+
+register_storage_guard(PromptServer.instance.app,
+                       [folder_paths.get_output_directory(), folder_paths.get_input_directory(),
+                        folder_paths.get_temp_directory()], _storage_queue_count)
+
 _lab_services = register_lab_routes(
     PromptServer.instance.app if hasattr(PromptServer, "instance") and hasattr(PromptServer.instance, "app") else None,
     folder_paths.get_output_directory(),

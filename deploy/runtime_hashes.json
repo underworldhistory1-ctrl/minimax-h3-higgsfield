@@ -76,7 +76,8 @@
     "b121ab4f585228fc12983389a298f2a8abd42180",
     "bd2336287bc94184a4e3dfba966954ac79455439",
     "df3e01effb8bece36fc1e2c51e1ba03c43ccc385",
-    "bb2d1ceb01aeee501a77187c1d9ff30770f94804"
+    "bb2d1ceb01aeee501a77187c1d9ff30770f94804",
+    "0587cbee696bac5f94d39ee664ce3114d76892e0"
   ],
   "corpus/h3_ref_style_rules.md": [
     "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7"
@@ -258,7 +259,8 @@
     "e28bf07aa1c8a3b36145c6d766824f0a7ad25fc9",
     "f66324215314e8d41b42a424c0c8b0b44cd34dd3",
     "f6bc3da6261b982d6025d3c981497335660dafd5",
-    "68f84d120fd1a617e3c8f99a752a548461841257"
+    "68f84d120fd1a617e3c8f99a752a548461841257",
+    "812ea9b72b4e08452e017202550880dffc56a9d1"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -540,7 +542,8 @@
     "9e2da5c145ab0428a92bc4aab5ae9d01790b5080",
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
-    "5678d5c366ee86d37052576ba0681476361a24a9"
+    "5678d5c366ee86d37052576ba0681476361a24a9",
+    "7602203ccd8614715885b2a76af7dabc10faea46"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -554,7 +557,8 @@
     "07ca981afb3c108219d9b938a32e9b3e0209a76b"
   ],
   "h3_queue_bridge.py": [
-    "a076ebb80365ed053a0a5198704784d10bcc48e8"
+    "a076ebb80365ed053a0a5198704784d10bcc48e8",
+    "d7ae589ed9e7e85fce11f7a77553c183c073624a"
   ],
   "h3_video_save.py": [
     "008cdbe6554dca66836052cc70754686d5dcb55d",
@@ -1029,5 +1033,8 @@
   ],
   "tests/test_video_source_padding.py": [
     "2947a0670b2eecf83ceeee0eef4773ff6810828c"
+  ],
+  "docs/HARDENING_REVIEW_AR.md": [
+    "00debd2b49d217e4ea939e028096022ba99ee465"
   ]
 }

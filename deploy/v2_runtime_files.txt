@@ -85,3 +85,4 @@ web/h3/image-reference-store.js
 h3_lab/shared_timing.py
 deploy/runtime_patches.py
 deploy/update_source.py
+h3_lab/storage.py

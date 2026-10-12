@@ -2,6 +2,10 @@
 from aiohttp import ClientSession, ClientTimeout
 
 
+class StorageAdmissionRejected(ValueError):
+    status_code = 507
+
+
 class ComfyQueueBridge:
     def __init__(self, port_getter, routes_getter=None):
         self.port_getter = port_getter
@@ -14,6 +18,9 @@ class ComfyQueueBridge:
         async with ClientSession(timeout=ClientTimeout(total=45)) as client:
             method = "GET" if body is None else "POST"
             async with client.request(method, f"http://127.0.0.1:{port}{path}", json=body) as response:
+                if response.status == 507:
+                    detail = await response.json()
+                    raise StorageAdmissionRejected(detail.get("error", "Server storage quota is full."))
                 if response.status >= 500:
                     raise RuntimeError("ComfyUI acknowledgement unavailable")
                 if response.status >= 400:

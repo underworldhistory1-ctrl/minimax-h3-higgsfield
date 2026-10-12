@@ -365,7 +365,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                         job_rec = await jobs.request_cancel(job_rec["job_id"], comfy_client)
                 except ValueError as error:
                     await asyncio.to_thread(jobs.update_job, job_rec["job_id"], state="failed", error=str(error))
-                    return web.json_response({"error": str(error), "job_id": job_rec["job_id"]}, status=400)
+                    return web.json_response({"error": str(error), "job_id": job_rec["job_id"]}, status=getattr(error, "status_code", 400))
                 except Exception:
                     await asyncio.to_thread(jobs.update_job, job_rec["job_id"], state="unknown",
                         error="Queue acknowledgement unavailable; reconcile before retrying")
