@@ -11,6 +11,14 @@ import sys
 from make_h3_landing import SCRIPT
 
 
+def landing_script(source):
+    for script in (SCRIPT, SCRIPT.replace("/extensions/h3_studio/", "/extensions/h3_studio_v2/")):
+        if script in source:
+            return script
+    return ""
+
+
+
 def linked(path):
     return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
 
@@ -33,7 +41,7 @@ def plan(root, frontend, landing_only=False):
                     raise ValueError("Unrecognized H3 installation: " + str(target))
                 targets.append(target)
     source = frontend.read_text(encoding="utf-8")
-    if 'id="h3-studio-landing"' in source and SCRIPT not in source:
+    if 'id="h3-studio-landing"' in source and not landing_script(source):
         raise ValueError("Unrecognized H3 redirect; refusing to modify frontend")
     return targets, source
 
@@ -44,7 +52,7 @@ def apply_plan(root, frontend, targets, source):
     archive = root / "h3-uninstall-backups"
     if linked(archive) or (archive.exists() and archive.resolve().parent != root):
         raise ValueError("Backup directory must stay inside ComfyUI")
-    if not targets and SCRIPT not in source:
+    if not targets and not landing_script(source):
         print("H3 Studio is already removed; no changes needed.")
         return
     archive.mkdir(exist_ok=True)
@@ -52,15 +60,15 @@ def apply_plan(root, frontend, targets, source):
     saved.mkdir()
     moved = []
     try:
-        if SCRIPT in source:
+        if bool(landing_script(source)):
             (saved / "frontend-index.html").write_text(source, encoding="utf-8")
             temporary = saved / "frontend-updated.html"
-            temporary.write_text(source.replace(SCRIPT, ""), encoding="utf-8")
+            temporary.write_text(source.replace(landing_script(source), ""), encoding="utf-8")
         # Keep all extension-local project data and installation backups intact.
         for target in targets:
             target.rename(saved / target.name)
             moved.append(target)
-        if SCRIPT in source:
+        if bool(landing_script(source)):
             # The frontend may live on another volume, so stage beside it.
             import tempfile
             with tempfile.NamedTemporaryFile(dir=frontend.parent, prefix="h3-uninstall-", delete=False) as stream:
@@ -93,7 +101,7 @@ def main():
     targets, source = plan(root, frontend, args.landing_only)
     for target in targets:
         print("Archive extension:", target)
-    print("Remove H3 home-page redirect:", SCRIPT in source)
+    print("Remove H3 home-page redirect:", bool(landing_script(source)))
     print("Keep models, output videos, projects, shared nodes and Python dependencies.")
     if not args.apply:
         print("Preview only. Add --apply to execute.")

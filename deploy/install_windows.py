@@ -417,7 +417,7 @@ def main():
     if free_gb < 100:
         print(f"Warning: only {free_gb:.1f} GiB free; first-time H3 weights need roughly 100 GiB of free space.")
     copy_runtime(root)
-    call(python, PROJECT / "deploy" / "make_h3_landing.py")
+    call(python, PROJECT / "deploy" / "make_h3_landing.py", "--studio-name", runtime_target(root).name)
     for name, source, revision in (*SPEED_NODES, CONTEXT_NODE):
         speed_node(root, git, name, source, revision)
     if subprocess.run([str(python), "-c", "import huggingface_hub"],

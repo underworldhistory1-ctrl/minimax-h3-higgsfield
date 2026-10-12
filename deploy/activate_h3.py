@@ -70,7 +70,7 @@ def main():
                 if missing_models or missing_nodes:
                     raise RuntimeError("Missing models: " + ", ".join(missing_models)
                                        + "; missing nodes: " + ", ".join(missing_nodes))
-                print("H3_STUDIO_READY", base + "/extensions/h3_studio/index.html")
+                print("H3_STUDIO_READY", base + "/")
                 return 0
             except (OSError, ValueError, RuntimeError) as exc:
                 last_error = str(exc)
@@ -115,7 +115,7 @@ def main():
             ready = get_json("/h3_studio/readiness")
             if ready.get("models") and ready.get("nodes") \
                     and all(ready["models"].values()) and all(ready["nodes"].values()):
-                print("H3_STUDIO_READY", base + "/extensions/h3_studio/index.html")
+                print("H3_STUDIO_READY", base + "/")
                 return 0
         except (OSError, ValueError):
             pass

@@ -175,11 +175,13 @@ if ((free_gib < 100)); then
 fi
 
 bash "$ROOT/deploy/bootstrap_h3_server.sh" "$COMFY_ROOT"
+STUDIO_NAME="h3_studio"
+[[ -d "$COMFY_ROOT/custom_nodes/h3_studio_v2" ]] && STUDIO_NAME="h3_studio_v2"
 if [[ "${H3_MODELS_PREPARED:-0}" != "1" && -n "${QWEN_IMAGE_PROFILES:-}" ]]; then
     "$H3_PYTHON" "$ROOT/deploy/download_qwen_image_models.py" "$COMFY_ROOT" --profiles "$QWEN_IMAGE_PROFILES"
 fi
 if ((AUTO_START == 0)); then
-    echo "Files installed. Start/restart ComfyUI before opening /extensions/h3_studio/index.html."
+    echo "Files installed. Start/restart ComfyUI before opening /extensions/$STUDIO_NAME/index.html."
     exit 0
 fi
 
@@ -205,5 +207,5 @@ else
     python3 "$ROOT/deploy/activate_h3.py" restart --url "$SERVER_URL" --timeout 240
 fi
 H3_ACCESS_TOKEN='' "$H3_PYTHON" "$ROOT/deploy/verify_h3_server.py" --url "$SERVER_URL"
-echo "Open H3 Higgsfield: $SERVER_URL/extensions/h3_studio/index.html"
+echo "Open H3 Higgsfield: $SERVER_URL/extensions/$STUDIO_NAME/index.html"
 echo "For a remote local-only server, tunnel port $PORT from your computer or use your provider's authenticated ComfyUI URL."

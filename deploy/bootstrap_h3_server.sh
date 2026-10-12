@@ -152,7 +152,7 @@ else
     echo "Installed the prepared H3 Studio bundle: $H3_STUDIO"
 fi
 
-"$H3_PYTHON" "$H3_STUDIO/deploy/make_h3_landing.py"
+"$H3_PYTHON" "$H3_STUDIO/deploy/make_h3_landing.py" --studio-name "$(basename "$H3_STUDIO")"
 
 install_speed_node() {
     local name="$1" url="$2" revision="$3"
