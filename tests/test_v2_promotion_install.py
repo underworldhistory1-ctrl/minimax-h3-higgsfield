@@ -18,8 +18,16 @@ class V2PromotionInstallTests(unittest.TestCase):
  def test_duplicate_v2_copy_is_refused(self):
   installer=load('v2_windows_installer2','deploy/install_windows.py')
   with tempfile.TemporaryDirectory() as tmp:
-   root=pathlib.Path(tmp);(root/'custom_nodes/h3_studio_v2').mkdir(parents=True)
-   with self.assertRaisesRegex(RuntimeError,'duplicate H3'):installer.copy_runtime(root)
+   root=pathlib.Path(tmp);(root/'custom_nodes/h3_studio_v2').mkdir(parents=True);(root/'custom_nodes/h3_studio').mkdir()
+   with self.assertRaisesRegex(RuntimeError,'Two H3 copies'):installer.copy_runtime(root)
+ def test_existing_v2_is_updated_in_place(self):
+  installer=load('v2_in_place_installer','deploy/install_windows.py')
+  with tempfile.TemporaryDirectory() as tmp:
+   root=pathlib.Path(tmp);target=root/'custom_nodes/h3_studio_v2';(target/'web').mkdir(parents=True)
+   (target/'__init__.py').touch();(target/'web/index.html').write_text('old')
+   installer.copy_runtime(root)
+   self.assertFalse((root/'custom_nodes/h3_studio').exists())
+   self.assertTrue((target/'web/h3/image-reference-store.js').is_file())
  def test_packager_contains_runtime_and_pinned_context_dependency(self):
   package=load('v2_package','deploy/build_final_folder.py');installer=load('v2_installer3','deploy/install_windows.py')
   self.assertTrue(set(installer.RUNTIME_FILES).issubset(package.SOURCE_FILES))

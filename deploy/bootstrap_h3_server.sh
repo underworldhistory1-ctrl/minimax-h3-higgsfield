@@ -117,8 +117,11 @@ fi
 CUSTOM_NODES="$COMFY_ROOT/custom_nodes"
 H3_STUDIO="$CUSTOM_NODES/h3_studio"
 if [[ -e "$CUSTOM_NODES/h3_studio_v2" ]]; then
-    echo "A separate V2 copy already exists here. Upgrade that copy in place; duplicate H3 nodes are unsupported." >&2
-    exit 1
+    if [[ -e "$H3_STUDIO" ]]; then
+        echo "Two H3 copies exist; select one installation before updating. Neither was overwritten." >&2
+        exit 1
+    fi
+    H3_STUDIO="$CUSTOM_NODES/h3_studio_v2"
 fi
 mkdir -p "$CUSTOM_NODES"
 command -v tar >/dev/null || { echo "tar is required to install H3 Studio from this prepared bundle." >&2; exit 1; }
@@ -262,4 +265,4 @@ echo
 
 echo "H3 setup files are ready. Restart ComfyUI once to load the H3 Studio page."
 echo "Native H3 nodes were found; model files and workflow copies were checked."
-echo "After restart, open: http://<server>:8188/extensions/h3_studio/index.html"
+echo "After restart, open: http://<server>:8188/extensions/$(basename "$H3_STUDIO")/index.html"

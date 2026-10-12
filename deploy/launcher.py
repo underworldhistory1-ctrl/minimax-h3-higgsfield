@@ -312,7 +312,7 @@ def runtime_snapshot(root, state_dir):
         result = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True)
         if result.returncode == 0:
             snapshot["comfy_revision"] = result.stdout.strip()
-    extension = root / "custom_nodes/h3_studio"
+    extension = runtime_target(root)
     if extension.is_dir():
         backup = state_dir / "backups" / dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         names = ["__init__.py", "h3_video_save.py", "qwen_image.py", "h3_continuation.py", "h3_queue_bridge.py", "promptwriter.py", "web", "h3_lab", "corpus", "tools"]
@@ -393,7 +393,7 @@ def loaded_source_fingerprint(root):
     if str(PROJECT) not in sys.path:
         sys.path.insert(0, str(PROJECT))
     from h3_lab.runtime_fingerprint import runtime_fingerprint
-    return runtime_fingerprint(root / "custom_nodes/h3_studio")
+    return runtime_fingerprint(runtime_target(root))
 
 
 def prepare_source(root, python, runner):
@@ -431,9 +431,15 @@ def wait_for_install_idle(api, timeout):
         raise RuntimeError("ComfyUI queue did not become idle before timeout; no runtime files were changed")
 
 
+def runtime_target(root):
+    from importlib import import_module
+    installer = import_module("deploy.install_windows") if __package__ else import_module("install_windows")
+    return installer.runtime_target(root)
+
+
 def runtime_matches(root):
-    return all((root / "custom_nodes/h3_studio" / name).is_file()
-               and (root / "custom_nodes/h3_studio" / name).read_bytes() == (PROJECT / name).read_bytes()
+    return all((runtime_target(root) / name).is_file()
+               and (runtime_target(root) / name).read_bytes() == (PROJECT / name).read_bytes()
                for name in runtime_files())
 
 
@@ -447,7 +453,7 @@ def runtime_files():
 
 
 def protect_runtime_edits(root):
-    target = root / "custom_nodes/h3_studio"
+    target = runtime_target(root)
     if not target.exists():
         return
     known = json.loads((PROJECT / "deploy/runtime_hashes.json").read_text(encoding="utf-8"))
@@ -751,7 +757,7 @@ def main():
                     raise RuntimeError("Smoke validation status: " + result.get("status", "unknown") + "; rerun to follow the same job")
                 state["gpu_validated"] = True
             state.update(status="ready" if state["gpu_validated"] else "api_ready",
-                         studio_url=url.rstrip("/") + "/extensions/h3_studio/index.html", next_action=None)
+                         studio_url=url.rstrip("/") + "/extensions/" + runtime_target(root).name + "/index.html", next_action=None)
             save()
             runner.emit("H3 ready: " + state["studio_url"])
             runner.emit("GPU video/audio validation: " + ("passed" if state["gpu_validated"] else "not run"))

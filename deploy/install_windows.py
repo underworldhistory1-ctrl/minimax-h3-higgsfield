@@ -252,10 +252,16 @@ def ensure_python_env(python, root, fresh):
          "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()")
 
 
+def runtime_target(root):
+    standard = root / "custom_nodes" / "h3_studio"
+    legacy = root / "custom_nodes" / "h3_studio_v2"
+    if standard.exists() and legacy.exists():
+        raise RuntimeError("Two H3 copies exist; select one installation before updating. Neither was overwritten.")
+    return legacy if legacy.exists() else standard
+
+
 def copy_runtime(root):
-    target = root / "custom_nodes" / "h3_studio"
-    if (root / "custom_nodes" / "h3_studio_v2").exists():
-        raise RuntimeError("A separate V2 copy already exists in this ComfyUI process. Upgrade that copy in place; do not install duplicate H3 nodes.")
+    target = runtime_target(root)
     if PROJECT.resolve() == target.resolve():
         raise RuntimeError("Run from a separate source checkout, outside custom_nodes/h3_studio")
     for name in RUNTIME_FILES:
@@ -445,7 +451,7 @@ def main():
              "--profiles", args.qwen_image_profiles)
     call(python, PROJECT / "deploy" / "runtime_patches.py", "--comfy-root", root)
     install_workflows(root)
-    page = url + "/extensions/h3_studio/index.html"
+    page = url + "/extensions/" + runtime_target(root).name + "/index.html"
     if args.no_start:
         print("Setup complete. Start/restart ComfyUI to load H3 Higgsfield:", page)
         return 0
