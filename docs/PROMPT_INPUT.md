@@ -29,3 +29,5 @@ These checks constrain syntax and specific preservation rules; they cannot prove
 
 
 Subject binding repair (2026-10-13): explicit native subject_definitions own Subject-to-Picture relationships. Card roles no longer impose a conflicting subject number when background/custom/storyboard images intervene. Image upload order and native prompt content remain unchanged. Aliases for shared or undefined-subject images resolve to Picture tags instead of inventing identities. Multiline definitions and cross-subject mentions are recognized. Unattached image tags still require an actual matching reference. Verified with compiler regression tests; no GPU render submitted.
+
+Grouped alias definitions (2026-10-13): a heading such as `@location1, @location2, @location3:` attaches the shared description to every named image. Each subject alias receives its own canonical Subject-to-Picture relation; storyboard/custom aliases remain Picture tags. Explicit Picture relations are validated as written. Scene content, timing, sound and music sections remain unchanged except resolved reference aliases.

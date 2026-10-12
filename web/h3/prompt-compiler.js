@@ -126,6 +126,22 @@
     return relations;
   }
 
+  function aliasDefinitionRelations(definitions, bindings) {
+    const lines = [];
+    for (const line of definitions.split(/\n/)) {
+      const header = line.match(/^\s*(@[\p{L}\p{N}_-]+(?:\s*,\s*@[\p{L}\p{N}_-]+)*)(?=$|[^\p{L}\p{N}_-])/u);
+      if (!header) continue;
+      // Explicit Picture relations must be validated as written, rather than
+      // masked by adding a second, contradictory relation for the same alias.
+      if (/<Picture\s+\d+>/i.test(line)) continue;
+      for (const match of header[1].matchAll(/@([\p{L}\p{N}_-]+)/gu)) {
+        const binding = bindings.find(b => b.alias === match[1] && b.subject_idx);
+        if (binding) lines.push(`${binding.tag} is shown in <Picture ${binding.picture_idx}>.`);
+      }
+    }
+    return [...new Set(lines)];
+  }
+
   function validateSubjectBindings(prompt, sections = parseStructuredSections(prompt), bindings = []) {
     const used = [...prompt.matchAll(/<Subject\s+(\d+)>/gi)].map(match => Number(match[1]));
     const definitions = sections?.subject_definitions || '';
@@ -452,13 +468,8 @@
 
       // Alias-led subject definitions need the attached image relation in native syntax.
       // Explicit native definitions stay unchanged; their numbering was reconciled above.
+      const relationLines = aliasDefinitionRelations(originalSections?.subject_definitions || '', bindings);
       if (originalSections?.subject_definitions) {
-        const relationLines = originalSections.subject_definitions.split(/\n/).flatMap(line => {
-          const match = line.match(/^\s*@([\p{L}\p{N}_-]+)(?=$|[^\p{L}\p{N}_-])/u);
-          const binding = match && bindings.find(b => b.alias === match[1] && b.subject_idx);
-          return binding && !/<Picture\s+\d+>/i.test(line)
-            ? [`${binding.tag} is shown in <Picture ${binding.picture_idx}>.`] : [];
-        });
         if (relationLines.length) {
           substituted = substituted.replace(/^(subject_definitions:\s*)/im,
             (_, header) => header + relationLines.join('\n') + '\n');
@@ -469,11 +480,6 @@
       // Check if prompt is already structured or user chose structured mode
       const structured = originalSections ? Object.fromEntries(Object.entries(originalSections).map(([name,body]) => [name,body.replace(/@([\p{L}\p{N}_-]+)/gu, (whole,alias) => aliasToTag.get(alias) || whole)])) : null;
       if (structured?.subject_definitions) {
-        const relationLines = originalSections.subject_definitions.split(/\n/).flatMap(line => {
-          const match = line.match(/^\s*@([\p{L}\p{N}_-]+)(?=$|[^\p{L}\p{N}_-])/u);
-          const binding = match && bindings.find(b => b.alias === match[1] && b.subject_idx);
-          return binding && !/<Picture\s+\d+>/i.test(line) ? [`${binding.tag} is shown in <Picture ${binding.picture_idx}>.`] : [];
-        });
         if (relationLines.length) structured.subject_definitions = relationLines.join('\n')+'\n'+structured.subject_definitions;
       }
       if (structured && (promptMode === 'structured' || hasNativeSections)) {
