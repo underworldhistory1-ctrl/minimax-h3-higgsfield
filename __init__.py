@@ -1043,3 +1043,15 @@ _wipe_orphans_at_startup()
 threading.Thread(target=_sweep_stale, daemon=True).start()
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+
+
+def _run_shared_timing():
+    # Start after the listener exists; observe queue state without submitting work.
+    while not getattr(PromptServer.instance, "port", None):
+        time.sleep(1)
+    from .h3_lab.shared_timing import main
+    main(base=f"http://127.0.0.1:{PromptServer.instance.port}",
+         root=os.path.join(folder_paths.get_output_directory(), ".h3-shared-timing"),
+         public=os.path.join(os.path.dirname(__file__), "web", "h3", "shared-timing.json"))
+
+threading.Thread(target=_run_shared_timing, daemon=True).start()

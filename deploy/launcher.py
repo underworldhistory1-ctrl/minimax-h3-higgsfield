@@ -561,7 +561,7 @@ def start_server(api, root, python, args, runner, state, save):
         save()
     else:
         previous_instance = None
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port)]
+        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0"]
         if python.parent.name.lower() == "python_embeded":
             command.append("--windows-standalone-build")
         else:
@@ -608,6 +608,7 @@ def parser():
     result.add_argument("--no-refine", action="store_true")
     result.add_argument("--refine", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--controlnet", action="store_true", help=argparse.SUPPRESS)
+    result.add_argument("--no-update", action="store_true", help="Use this checkout offline without fetching latest main")
     result.add_argument("--no-start", action="store_true", help="Prepare files only; no API/GPU readiness claim")
     result.add_argument("--skip-smoke", action="store_true", help="Skip GPU job; report API readiness only")
     result.add_argument("--preflight", "--plan", dest="plan", action="store_true", help="Read-only discovery and missing-file plan")
@@ -620,6 +621,13 @@ def parser():
 
 def main():
     args = parser().parse_args()
+    if not (args.no_update or args.status or args.plan):
+        if __package__:
+            from .update_source import update_source
+        else:
+            from update_source import update_source
+        if update_source(PROJECT):
+            os.execv(sys.executable, [sys.executable, str(PROJECT / "deploy/launcher.py"), *sys.argv[1:]])
     if not 1 <= args.port <= 65535 or min(args.queue_timeout, args.start_timeout, args.smoke_timeout) <= 0:
         raise RuntimeError("Port and timeouts must be positive and valid")
     root = discover_comfy(args.comfy_root)
@@ -713,6 +721,16 @@ def main():
                 python = stage("runtime", lambda: setup_runtime(args, root, python, runner))
             else:
                 runner.emit("Runtime source and Python imports unchanged; reusing installation.")
+            def patch_runtime():
+                if __package__:
+                    from .runtime_patches import apply_patches
+                else:
+                    from runtime_patches import apply_patches
+                changed = apply_patches(root)
+                if changed:
+                    mark_reload()
+                return changed
+            state["runtime_changed"] = stage("runtime_patches", patch_runtime) or state["runtime_changed"]
             overlay_changed = stage("model_paths", lambda: configure_overlay(root, overlay, python, before_change=mark_reload))
             state["runtime_changed"] = state["runtime_changed"] or overlay_changed
             state["models"] = stage("models", lambda: prepare_models(root, roots, artifacts, directory, emit=runner.emit))

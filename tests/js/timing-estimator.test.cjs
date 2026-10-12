@@ -68,9 +68,9 @@ test('connection hydrates library before session and authoritative history',asyn
  const start=source.indexOf('await loadLibrary();',source.indexOf('async function checkConnection'));
  const end=source.indexOf('return !missing.length',start);const order=[];
  let release;const gate=new Promise(r=>release=r);
- const ctx={loadLibrary:async()=>{order.push('library-start');await gate;order.push('library-ready');},restoreSession:async()=>order.push('session'),loadHistorySamples:async()=>{assert.deepEqual(order,['library-start','library-ready','session']);order.push('history');},renderEstimates:()=>order.push('estimates')};
+ const ctx={restoreLinkedJob:async()=>{order.push('linked-job');},loadLibrary:async()=>{order.push('library-start');await gate;order.push('library-ready');},restoreSession:async()=>order.push('session'),loadHistorySamples:async()=>{assert.deepEqual(order,['library-start','library-ready','session','linked-job']);order.push('history');},renderEstimates:()=>order.push('estimates')};
  vm.createContext(ctx);const pending=vm.runInContext('(async()=>{'+source.slice(start,end)+'})()',ctx);
- await Promise.resolve();assert.deepEqual(order,['library-start']);release();await pending;assert.deepEqual(order,['library-start','library-ready','session','history','estimates']);
+ await Promise.resolve();assert.deepEqual(order,['library-start']);release();await pending;assert.deepEqual(order,['library-start','library-ready','session','linked-job','history','estimates']);
 });
 
 test('missing consumed reference evidence cannot be called exact calibration',()=>{const c={...config(),mode:'refs',references:[{kind:'video',duration:null,width:null,height:null,consumed_frames:null}]};const r=E.estimate(c,[sample(c,100,'a'),sample(c,110,'b'),sample(c,120,'c')]);assert.equal(r.kind,'similar');assert.equal(r.confidence,'low');});

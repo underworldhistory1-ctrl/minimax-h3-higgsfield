@@ -81,3 +81,7 @@ deploy/runtime_hashes.json
 h3_lab/runtime_fingerprint.py
 deploy/install_python_dependencies.py
 docs/HARDENING_REVIEW_AR.md
+web/h3/image-reference-store.js
+h3_lab/shared_timing.py
+deploy/runtime_patches.py
+deploy/update_source.py

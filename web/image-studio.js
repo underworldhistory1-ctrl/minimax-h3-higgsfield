@@ -4,7 +4,7 @@ const state={
   mode:"create",refs:[],profiles:{},nodes:{},ready:false,busy:false,
   clientId:crypto.randomUUID(),socket:null,activePromptId:localStorage.getItem("qwen.activePromptId")||null,
   started:0,lastStepAt:0,lastStep:0,stepTotal:0,stepTimes:[],uploaded:[],current:null,results:[],visible:8,timer:null,
-  settings:null,abort:null,completing:false,generationEpoch:0,inferenceEnabled:true,standbyReason:null,pendingToken:null
+  settings:null,abort:null,completing:false,generationEpoch:0,inferenceEnabled:true,standbyReason:null,pendingToken:null,refsSaving:false,refsSaved:false,referencesReady:false
 };
 const profileFiles={
   int8:{unet:"qwen_image_2.1_int8_convrot.safetensors",clip:"qwen3vl_8b_int8_convrot.safetensors"},
@@ -28,7 +28,7 @@ function setProgress(label,pct,remaining=null,indeterminate=false){
   $("progressFill").style.width=Math.max(0,Math.min(100,pct||0))+"%";$("progressBar").classList.toggle("busy",indeterminate);
   $("remaining").textContent="Time remaining: "+(remaining===null?"—":fmt(remaining));
 }
-function setBusy(value){state.busy=value;$("generate").disabled=value||!state.ready;$("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);document.querySelectorAll(".left input,.left select,.left textarea,#addReferences").forEach(el=>{if(el.id!=="aspect"&&el.id!=="resolution")el.disabled=value;});updateSettings();}
+function setBusy(value){state.busy=value;$("generate").disabled=value||!state.ready||!state.referencesReady;$("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);document.querySelectorAll(".left input,.left select,.left textarea,#addReferences").forEach(el=>{if(el.id!=="aspect"&&el.id!=="resolution")el.disabled=value;});updateSettings();}
 function dimensions(){return sizeMap[$("resolution").value][$("aspect").value];}
 function outputDimensions(){const first=state.refs[0];if(!first||$("customSize").checked||!first.width||!first.height)return dimensions();const scale=$("fitReferences").checked?Math.min(1,2048/Math.max(first.width,first.height)):1;return [Math.max(32,Math.round(first.width*scale/32)*32),Math.max(32,Math.round(first.height*scale/32)*32)];}
 function estimateSeconds(){
@@ -39,13 +39,32 @@ function estimateSeconds(){
 }
 function updateSettings(){
   const hasRefs=state.refs.length>0,sourceCanvas=hasRefs&&!$("customSize").checked;
-  $("referenceOptions").hidden=!hasRefs;$("referenceCount").textContent=hasRefs?`${state.refs.length}/10 attached`:"Optional";
+  $("referenceOptions").hidden=!hasRefs;$("referenceCount").textContent=hasRefs?`${state.refs.length}/10 attached`+(state.refsSaving?" · saving…":state.refsSaved?" · saved in this browser":""):"Optional";
   $("aspect").disabled=state.busy||sourceCanvas;$("resolution").disabled=state.busy||sourceCanvas;$("transparentLabel").hidden=hasRefs;
   const [w,h]=outputDimensions();$("dimensions").textContent=sourceCanvas?(state.refs[0].width?`Output canvas from first reference · approximately ${w} × ${h}`:"Output canvas follows the first reference · reading dimensions…"):`${w} × ${h} · ${(w*h/1048576).toFixed(1)} MP target`;
   $("estimate").textContent=`Initial estimate: ${fmt(estimateSeconds())}. It will calibrate from completed images on this server.`;
 }
+let referenceSignature='',referenceWrite=Promise.resolve(),referenceWriteVersion=0;
+function persistReferences(){
+  if(!state.referencesReady||state.referencesSessionOnly)return referenceWrite;
+  const signature=JSON.stringify(state.refs.map(ref=>[ref.id,ref.name,ref.width,ref.height]));
+  if(signature===referenceSignature)return referenceWrite;
+  referenceSignature=signature;
+  const version=++referenceWriteVersion;
+  const snapshot=state.refs.map(ref=>({...ref}));
+  state.refsSaving=true;state.refsSaved=false;updateSettings();
+  referenceWrite=referenceWrite.then(()=>QwenReferenceStore.save(snapshot)).then(()=>{
+    if(version===referenceWriteVersion){state.refsSaving=false;state.refsSaved=true;updateSettings();}
+  }).catch(error=>{
+    if(version===referenceWriteVersion){referenceSignature='';state.refsSaving=false;state.refsSaved=false;updateSettings();
+      showError('Could not save references for refresh. Keep this page open and retry: '+error.message);}
+  });
+  return referenceWrite;
+}
 function saveDraft(){
+  if(!state.referencesReady)return;
   localStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
+  void persistReferences();
 }
 function restoreDraft(){
   let draft={};try{draft=JSON.parse(localStorage.getItem("qwen.imageDraft")||"{}");}catch{}
@@ -90,12 +109,13 @@ function renderRefs(){
     row.append(image,text,remove,aliasRow,order,insert);$("referenceList").append(row);
   });renderMentions();updateSettings();
 }
-$("addReferences").onclick=()=>{if(!state.busy)$("referenceFiles").click();};
+$("addReferences").onclick=()=>{if(!state.busy&&state.referencesReady)$("referenceFiles").click();};
 $("referenceFiles").onchange=()=>{
+  if(!state.referencesReady)return;
   const incoming=[...$("referenceFiles").files];for(const file of incoming){
     if(state.refs.length>=10)break;
     if(!/\.(png|jpe?g|webp)$/i.test(file.name)||!file.size||file.size>25*1024*1024){showError("Use non-empty PNG, JPG or WebP images under 25 MB.");continue;}
-    const ref={file,url:URL.createObjectURL(file),name:suggestedName(file),width:0,height:0};state.refs.push(ref);createImageBitmap(file).then(bitmap=>{ref.width=bitmap.width;ref.height=bitmap.height;bitmap.close();updateSettings();}).catch(()=>{});
+    const ref={id:crypto.randomUUID(),file,url:URL.createObjectURL(file),name:suggestedName(file),width:0,height:0};state.refs.push(ref);createImageBitmap(file).then(bitmap=>{ref.width=bitmap.width;ref.height=bitmap.height;bitmap.close();updateSettings();void persistReferences();}).catch(()=>{});
   }
   $("referenceFiles").value="";renderRefs();saveDraft();
 };
@@ -287,4 +307,28 @@ for(const id of ["prompt","aspect","resolution","steps","seed","transparent","re
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);
 async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(localStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}
-restoreDraft();renderRefs();updateSettings();loadLibrary(false);checkConnection().then(resume);
+async function initialize(){
+  restoreDraft();
+  $("addReferences").disabled=true;
+  try{
+    const saved=await QwenReferenceStore.load();
+    state.refs=saved.filter(ref=>ref&&ref.file instanceof Blob&&ref.file.size>0&&ref.file.size<=25*1024*1024
+      &&typeof ref.file.name==='string'&&/\.(png|jpe?g|webp)$/i.test(ref.file.name)&&validName(ref.name)).slice(0,10)
+      .map(ref=>({...ref,id:ref.id||crypto.randomUUID(),url:URL.createObjectURL(ref.file)}));
+    await Promise.all(state.refs.filter(ref=>!ref.width||!ref.height).map(async ref=>{
+      try{const bitmap=await createImageBitmap(ref.file);ref.width=bitmap.width;ref.height=bitmap.height;bitmap.close();}catch{}
+    }));
+    state.refsSaved=true;
+    state.referencesReady=true;
+    $("addReferences").disabled=false;
+    referenceSignature=JSON.stringify(state.refs.map(ref=>[ref.id,ref.name,ref.width,ref.height]));
+  }catch(error){
+    showError('Saved references could not be restored. Reload to retry, or continue for this session: '+error.message);
+    const continueButton=document.createElement('button');continueButton.type='button';continueButton.className='button alt small';
+    continueButton.textContent='Continue without saved references';
+    continueButton.onclick=()=>{state.referencesReady=true;state.referencesSessionOnly=true;$("addReferences").disabled=false;showError('References are available for this session only. Reload to retry browser storage.');updateSettings();setBusy(state.busy);};
+    $("error").append(continueButton);
+  }
+  renderRefs();updateSettings();loadLibrary(false);await checkConnection();await resume();
+}
+void initialize();

@@ -55,6 +55,7 @@
     const prompt = renderSpec.compiled_prompt || '';
     const canvas = canvasFor(renderSpec.width ?? 1280, renderSpec.height ?? 704);
     const {width, height} = canvas;
+    if (Math.max(width,height)>1920 || width * height > 1920 * 1088) throw new Error('This server supports native H3 canvases up to 1920x1088. Choose a supported canvas.');
     const seconds = Number(renderSpec.target_seconds ?? renderSpec.duration_seconds ?? 124 / 24);
     const length = Number(renderSpec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
     const seed = Number(renderSpec.seed ?? 42);
@@ -62,6 +63,7 @@
     if (renderSpec.fps != null && Number(renderSpec.fps) !== 24) throw new Error("H3 requires 24 fps.");
     if (!["text", "frames", "refs"].includes(mode)) throw new Error("Unknown generation mode.");
     if (!Number.isInteger(length) || length < 5 || length > 3600 || (length - 5) % 17 !== 0) throw new Error("Target frames must follow the H3 5 + 17k grid.");
+    if (length > 362) throw new Error('This server supports clips up to 362 frames. Use a shorter clip or continuation.');
     const contextLength = Number(renderSpec.continuation?.context_length ?? 39);
     if (renderSpec.continuation) {
       const cont = renderSpec.continuation;
@@ -98,7 +100,7 @@
     const method = renderSpec.render_method || 'native';
     if (!['native','turbo','spectrum','motioncache'].includes(method)) throw new Error('Unknown render method.');
     if (isRefs && method === 'turbo') throw new Error('Turbo requires FL2VA.');
-    if (enableRefine && (!Number.isFinite(Number(renderSpec.refine_scale ?? 1.25)) || Number(renderSpec.refine_scale ?? 1.25) < 1 || Number(renderSpec.refine_scale ?? 1.25) > 4)) throw new Error('Invalid refine scale.');
+    if (enableRefine && (!Number.isFinite(Number(renderSpec.refine_scale ?? 1.25)) || Number(renderSpec.refine_scale ?? 1.25) < 1 || Number(renderSpec.refine_scale ?? 1.25) > 1.25)) throw new Error('This server supports refinement up to 1.25x.');
 
     const g = {
       "1": { class_type: "UNETLoader", inputs: { unet_name: isRefs ? MODEL_REF : MODEL_FL, weight_dtype: "default" } },

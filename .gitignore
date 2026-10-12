@@ -23,3 +23,6 @@ corpus/pairs.json
 
 .studio-preview/
 node_modules/
+
+# Generated shared queue observations; never commit user runtime state.
+web/h3/shared-timing.json

@@ -258,6 +258,8 @@ for name in h3_t2v_ui.json h3_t2v_api.json h3_t2v_smoke_ui.json h3_t2v_smoke_api
 done
 
 echo
+"$H3_PYTHON" "$PROJECT_ROOT/deploy/runtime_patches.py" --comfy-root "$COMFY_ROOT"
+
 echo "H3 setup files are ready. Restart ComfyUI once to load the H3 Studio page."
 echo "Native H3 nodes were found; model files and workflow copies were checked."
 echo "After restart, open: http://<server>:8188/extensions/h3_studio/index.html"

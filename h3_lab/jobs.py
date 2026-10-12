@@ -445,3 +445,54 @@ class JobService:
             pass
 
         return job
+
+
+"""CPU-only capacity contract for the Studio's supported single-clip workflows."""
+import math
+
+MAX_PIXELS = 1920 * 1088
+MAX_FRAMES = 362
+
+def integer(value, label):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or int(value) != value:
+        raise ValueError(label + ' must be a finite integer.')
+    return int(value)
+
+def validate_resource_contract(spec):
+    graph = spec.get('workflow', {})
+    for node in graph.values():
+        if not isinstance(node.get('inputs', {}), dict):
+            raise ValueError('Workflow node inputs must be objects.')
+    sources = [n for n in graph.values() if n.get('class_type') in ('MiniMaxH3ImageToVideo', 'MiniMaxH3ReferenceToVideo')]
+    if not sources:
+        return
+    if len(sources) != 1:
+        raise ValueError('H3 Studio supports one video source per render.')
+    for node in sources:
+        inputs = node.get('inputs', {})
+        width = integer(inputs.get('width'), 'H3 width')
+        height = integer(inputs.get('height'), 'H3 height')
+        frames = integer(inputs.get('length'), 'H3 frame count')
+        if width < 32 or height < 32 or max(width, height) > 1920 or width % 32 or height % 32 or width * height > MAX_PIXELS:
+            raise ValueError('This server supports native H3 canvases up to 1920x1088 (1920x1080 output). Choose a supported canvas.')
+        if frames < 5 or frames > MAX_FRAMES or (frames - 5) % 17:
+            raise ValueError('This server supports H3 clips up to 362 frames. Use a shorter clip or continuation.')
+    for node in graph.values():
+        inputs = node.get('inputs', {})
+        if 'batch_size' in inputs and integer(inputs['batch_size'], 'Batch size') != 1:
+            raise ValueError('H3 Studio supports one video per render. Batch size must be 1.')
+        if node.get('class_type') in ('KSampler', 'KSamplerAdvanced'):
+            steps = integer(inputs.get('steps'), 'Sampler steps')
+            if not 1 <= steps <= 100:
+                raise ValueError('Sampler steps must be between 1 and 100.')
+        if node.get('class_type') == 'MinimaxH3LatentUpscaler3D':
+            if inputs.get('mode') != 'scale by multiplier':
+                raise ValueError('Use the Studio scale-by-multiplier refinement mode.')
+            scale = inputs.get('mode.scale', 1.25)
+            if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not math.isfinite(scale) or not 1 <= scale <= 1.25:
+                raise ValueError('This server supports the Studio refinement scale up to 1.25x.')
+            for name in ('width', 'height'):
+                if name in inputs and not isinstance(inputs[name], list):
+                    if integer(inputs[name], 'Refine ' + name) < 32:
+                        raise ValueError('Invalid refinement canvas.')
+

@@ -152,6 +152,8 @@ class LauncherTests(unittest.TestCase):
             api.queue.return_value = {"queue_running": [], "queue_pending": []}
             api.wait_idle.return_value = True
             stack.enter_context(patch("sys.argv", ["launcher", "--comfy-root", str(root), "--comfy-python", sys.executable]))
+            stack.enter_context(patch("deploy.update_source.update_source", return_value=False))
+            stack.enter_context(patch("deploy.runtime_patches.apply_patches", return_value=False))
             stack.enter_context(patch("deploy.launcher_models.manifest", return_value=[artifact]))
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch("deploy.launcher_smoke.run_smoke", return_value={"status": "validated"}))
@@ -176,6 +178,8 @@ class LauncherTests(unittest.TestCase):
             api.queue.return_value = {"queue_running": [], "queue_pending": []}
             api.wait_idle.return_value = True
             stack.enter_context(patch("sys.argv", ["launcher", "--comfy-root", str(root), "--comfy-python", sys.executable]))
+            stack.enter_context(patch("deploy.update_source.update_source", return_value=False))
+            stack.enter_context(patch("deploy.runtime_patches.apply_patches", return_value=False))
             stack.enter_context(patch("deploy.launcher_models.manifest", return_value=[]))
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch("deploy.launcher_smoke.run_smoke", return_value={"status": "timeout"}))
@@ -199,6 +203,8 @@ class LauncherTests(unittest.TestCase):
             api.queue.return_value = {"queue_running": [], "queue_pending": []}
             api.wait_idle.return_value = True
             stack.enter_context(patch("sys.argv", ["launcher", "--comfy-root", str(root), "--comfy-python", sys.executable, "--no-start"]))
+            stack.enter_context(patch("deploy.update_source.update_source", return_value=False))
+            stack.enter_context(patch("deploy.runtime_patches.apply_patches", return_value=False))
             stack.enter_context(patch("deploy.launcher_models.manifest", return_value=[]))
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch.object(launcher, "prerequisites"))

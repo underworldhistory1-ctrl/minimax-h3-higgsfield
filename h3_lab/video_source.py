@@ -69,7 +69,7 @@ def prepare_video_source(source, destination, width, height, keep_seconds=5, fit
         command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
     command += ["-map", "0:v:0", "-map", "0:a:0" if has_audio else "1:a:0",
         "-vf", f"fps=24,{sizing},setsar=1,tpad=stop_mode=clone:stop_duration=0.1",
-        "-af", f"aresample=48000:async=1:first_pts=0,apad,atrim=duration={use_duration}",
+        "-af", f"aresample=48000:async=1:first_pts=0,apad=whole_dur={use_duration},atrim=duration={use_duration}",
         "-frames:v", str(frames), "-t", str(use_duration), "-c:v", "libx264", "-threads", "1",
         "-filter_threads", "1", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-map_metadata", "-1", "-movflags", "+faststart", str(target)]

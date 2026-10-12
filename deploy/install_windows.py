@@ -443,6 +443,7 @@ def main():
     if args.qwen_image_profiles and not models_prepared:
         call(python, PROJECT / "deploy" / "download_qwen_image_models.py", root,
              "--profiles", args.qwen_image_profiles)
+    call(python, PROJECT / "deploy" / "runtime_patches.py", "--comfy-root", root)
     install_workflows(root)
     page = url + "/extensions/h3_studio/index.html"
     if args.no_start:
@@ -454,7 +455,7 @@ def main():
     else:
         log_path = root / "h3-higgsfield-server.log"
         log = log_path.open("a", encoding="utf-8")
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port)]
+        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0"]
         if portable:
             command.append("--windows-standalone-build")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)

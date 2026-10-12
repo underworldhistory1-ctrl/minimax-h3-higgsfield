@@ -195,7 +195,8 @@ function renderMethodInfo(){
 const post = async (path, body) => {
   const r = await fetch(api(path), {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
   if (!r.ok) throw Error((await r.text()).slice(0,300));
-  return r.json();
+  const text=await r.text();
+  return text ? JSON.parse(text) : {};
 };
 
 function selectMode(mode, internal=false) {
@@ -1788,16 +1789,74 @@ async function pollHistoryImpl(){
     }
   }catch{}
 }
+let queuePollSerial=0,sharedProgressSnapshots={},sharedTimings=null;
+const sharedCancellationPending=new Set();
+async function cancelSharedRender(id){
+  try{
+    const response=await fetch(api('/queue'),{cache:'no-store'});
+    if(!response.ok)throw Error('Cannot check the server queue. Retry cancellation.');
+    const queue=await response.json();
+    const request=H3QueueUI.cancellationRequest(queue,id);
+    if(!request){sharedCancellationPending.delete(id);await pollQueue();return;}
+    const result=await fetch(api(request.path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request.body)});
+    if(!result.ok)throw Error('The server did not accept cancellation. Retry cancellation.');
+    if(request.path==='/queue'){
+      // A waiting render may have started between the queue check and deletion.
+      const latest=await fetch(api('/queue'),{cache:'no-store'});
+      if(!latest.ok)throw Error('Cannot confirm removal. Retry cancellation.');
+      const next=H3QueueUI.cancellationRequest(await latest.json(),id);
+      if(next?.path==='/interrupt'){
+        const stopped=await fetch(api(next.path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next.body)});
+        if(!stopped.ok)throw Error('The selected render started. Retry cancellation.');
+      }
+    }
+    sharedCancellationPending.add(id);
+    info('Cancellation requested. The selected render will stop at the next safe point.');
+    await pollQueue();
+  }catch(error){sharedCancellationPending.delete(id);info(error.message,true);throw error;}
+}
 async function pollQueue(){
+  const pollSerial=++queuePollSerial;
   const epoch=state.generationEpoch;
   const polledId=state.running;
   try{
     const r=await fetch(api("/queue"));if(!r.ok)throw Error("queue unavailable");
     if(state.serverMissingSince){state.serverMissingSince=null;if(state.running)setProgress("Connected · checking render progress",null,null,true);}
-    const data=await r.json();if(epoch!==state.generationEpoch||state.running!==polledId)return;
+    const data=await r.json();if(pollSerial!==queuePollSerial||epoch!==state.generationEpoch||state.running!==polledId)return;
     const running=data.queue_running||[],pending=data.queue_pending||[];
+    const activeIds=new Set([...running,...pending].filter(row=>Array.isArray(row)).map(row=>row[1]));
+    for(const cancelledId of sharedCancellationPending)if(!activeIds.has(cancelledId))sharedCancellationPending.delete(cancelledId);
     const id=state.running;
-    if(window.H3QueueUI)H3QueueUI.render(data,id,{waitingPreparation:!!state.waitingPreparation});
+    if(window.H3QueueUI){
+      const options={waitingPreparation:!!state.waitingPreparation,onCancel:cancelSharedRender,cancelPending:sharedCancellationPending,timings:sharedTimings};
+      H3QueueUI.render(data,id,{...options,progress:sharedProgressSnapshots});
+      void (async()=>{
+        const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),4000);
+        const progress={};
+        try{
+          const timingTask=(async()=>{
+            try{
+              const response=await fetch(new URL('./h3/shared-timing.json?t='+Date.now(),location.href).href,{cache:'no-store',signal:controller.signal});
+              if(response.ok){const value=await response.json();if(value.updated_at && Date.now()-value.updated_at<10000)options.timings=value;else options.timings=null;}
+              else options.timings=null;
+            }catch{options.timings=null;}
+          })();
+          await Promise.all(running.filter(row=>Array.isArray(row)&&typeof row[1]==='string').slice(0,6).map(async row=>{
+            try{
+              const response=await fetch(api('/h3_studio/job_progress?prompt_id='+encodeURIComponent(row[1])),{cache:'no-store',signal:controller.signal});
+              if(!response.ok)return;
+              const snapshot=await response.json();
+              if(snapshot.prompt_id===row[1])progress[row[1]]=snapshot;
+            }catch{}
+          }));
+          await timingTask;
+        }finally{clearTimeout(timeout);}
+        if(pollSerial!==queuePollSerial||epoch!==state.generationEpoch||state.running!==polledId)return;
+        sharedProgressSnapshots=progress;
+        sharedTimings=options.timings;
+        H3QueueUI.render(data,id,{...options,progress});
+      })().catch(()=>{});
+    }
     if(/^(lab|request):/.test(String(id))){if(!window.H3QueueUI)$("queueInfo").textContent="Queue: reconciling saved submission · inputs retained";await pollHistory();return;}
     const runningItem=running.find(item=>item[1]===id);
     const runningHere=!!runningItem;

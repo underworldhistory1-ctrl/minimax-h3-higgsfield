@@ -6,6 +6,7 @@ param(
     [ValidateSet("127.0.0.1", "0.0.0.0")][string]$Bind = "127.0.0.1",
     [switch]$Preflight,
     [switch]$NoStart,
+    [switch]$NoUpdate,
     [switch]$ControlNet,
     [switch]$Refine,
     [switch]$SkipRefine,
@@ -81,6 +82,7 @@ if ($ComfyRoot) { $arguments += @("--comfy-root", $ComfyRoot) }
 if ($ComfyPython) { $arguments += @("--comfy-python", $ComfyPython) }
 if ($Preflight) { $arguments += "--preflight" }
 if ($NoStart) { $arguments += "--no-start" }
+if ($NoUpdate) { $arguments += "--no-update" }
 if ($ControlNet) { $arguments += "--controlnet" }
 if ($Refine -and $SkipRefine) { throw "Choose either -Refine or -SkipRefine." }
 if ($Refine) { $arguments += "--refine" }

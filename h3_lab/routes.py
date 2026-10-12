@@ -333,6 +333,8 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             workflow = spec.get("workflow", {})
             if not isinstance(workflow, dict) or any(not isinstance(node, dict) for node in workflow.values()):
                 raise ValueError("Workflow must be an object containing node objects.")
+            from .jobs import validate_resource_contract
+            validate_resource_contract(spec)
             if spec.get("control") is not None and not isinstance(spec["control"], dict):
                 raise ValueError("Control specification must be an object.")
             from .control import validate_control_graph
