@@ -28,11 +28,13 @@
   // 1080p is an output size, not a valid native H3 sampling height.
   function canvasFor(width, height) {
     width = Number(width); height = Number(height);
-    const exact1080 = width === 1920 && height === 1080;
+    const exact1080 = width === 1920 && height === 1080 || width === 1080 && height === 1920;
     if (![width, height].every(n => Number.isInteger(n) && n >= 32 && n <= 8192)
-      || !exact1080 && [width, height].some(n => n % 32 !== 0)) throw new Error('Canvas dimensions must be positive multiples of 32, or the exact 1920x1080 output preset.');
-    return {width, height: exact1080 ? 1088 : height, outputWidth: width, outputHeight: height,
-      crop: exact1080 ? {width, height, x: 0, y: 4} : null};
+      || !exact1080 && [width, height].some(n => n % 32 !== 0)) throw new Error('Canvas dimensions must be positive multiples of 32, or the exact 1920x1080 / 1080x1920 output presets.');
+    const samplingWidth = exact1080 ? Math.ceil(width / 32) * 32 : width;
+    const samplingHeight = exact1080 ? Math.ceil(height / 32) * 32 : height;
+    return {width: samplingWidth, height: samplingHeight, outputWidth: width, outputHeight: height,
+      crop: exact1080 ? {width, height, x: (samplingWidth-width)/2, y: (samplingHeight-height)/2} : null};
   }
 
   const own = (object, key) => key != null && Object.prototype.hasOwnProperty.call(object, key) ? object[key] : undefined;

@@ -133,3 +133,6 @@ The installer now includes the shared queue/cancellation/stage observer, bounded
 Qwen image references persist as original files in this browser's IndexedDB, including names, order, and dimensions. Wait for “saved in this browser” before refresh. Persistence belongs to the same browser and URL origin; changing tunnel hostname creates a separate browser draft. Removing a reference also updates its saved draft.
 
 Validation: 115 JavaScript tests, CPU stage/core patch tests, and real-browser refresh checks. No AI render was submitted for this update. These checks do not prove zero OOMs for every GPU workload.
+
+
+Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames support all four methods; References retains native/Spectrum/MotionCache (Turbo remains FL2VA-only). CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.

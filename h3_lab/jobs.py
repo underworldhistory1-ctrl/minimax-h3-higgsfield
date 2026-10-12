@@ -474,7 +474,7 @@ def validate_resource_contract(spec):
         height = integer(inputs.get('height'), 'H3 height')
         frames = integer(inputs.get('length'), 'H3 frame count')
         if width < 32 or height < 32 or max(width, height) > 1920 or width % 32 or height % 32 or width * height > MAX_PIXELS:
-            raise ValueError('This server supports native H3 canvases up to 1920x1088 (1920x1080 output). Choose a supported canvas.')
+            raise ValueError('This server supports native H3 canvases up to 1920x1088 or 1088x1920 (Full HD output). Choose a supported canvas.')
         if frames < 5 or frames > MAX_FRAMES or (frames - 5) % 17:
             raise ValueError('This server supports H3 clips up to 362 frames. Use a shorter clip or continuation.')
     for node in graph.values():

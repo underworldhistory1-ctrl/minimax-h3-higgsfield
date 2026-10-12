@@ -28,6 +28,7 @@ const aspectPresets = {
   "9:16": [
     [704,1280,"Vertical 720p"],
     [768,1344,"Vertical max"],
+    [1080,1920,"Vertical Full HD · 2.07 MP"],
     [576,1024,"Vertical compact"],
     [480,864,"Vertical draft"],
   ],
@@ -97,8 +98,8 @@ const sizeKey = () => state.width + "x" + state.height;
 const samplingCanvas = (w=state.width,h=state.height) => H3GraphBuilder.canvasFor(w,h);
 function outputCanvasNodes(w,h,refine) {
   const needed=[];
-  if(w===1920&&h===1080)needed.push('ImageCrop');
-  if(refine&&(w===1664&&h===928||w===1920&&h===1080))needed.push('ImageScale');
+  if(samplingCanvas(w,h).crop)needed.push('ImageCrop');
+  if(refine&&(w===1664&&h===928||samplingCanvas(w,h).crop))needed.push('ImageScale');
   return needed;
 }
 function continuationCanvasMatches(continuation) {
@@ -279,7 +280,7 @@ function allSamples(){return H3TimingEstimator.deduplicate([...readSamples(),...
 function sampleKey(){return "h3-timing-v2";}
 function timingMedia(item){return H3TimingEstimator.mediaConfiguration(item,Number($("duration").value));}
 function timingConfiguration(w=state.width,h=state.height){
-  const canvas=samplingCanvas(w,h),newPreset=w===1664&&h===928||w===1920&&h===1080;
+  const canvas=samplingCanvas(w,h),newPreset=w===1664&&h===928||!!canvas.crop;
   const refine=$("enableRefine").checked;
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
@@ -364,8 +365,9 @@ function renderEstimates() {
   state.estimated = estimateFor();
   $("estimateNote").textContent = "Estimated " + sizeKey() + ": " + estimateText(state.estimated);
   $("estimateBasis").textContent = state.estimated.basis + ". Execution time includes model load, video and audio; queue/upload time is separate.";
-  $("resolutionTip").textContent=state.width===1920&&state.height===1080
-    ?"1080p samples at 1920×1088, then removes 4 pixels from the top and bottom. These large presets use more memory and time; quality settings stay selected."
+  const canvas=samplingCanvas();
+  $("resolutionTip").textContent=canvas.crop
+    ?`Full HD samples at ${canvas.width}×${canvas.height}, then removes 4 pixels from ${canvas.crop.x?"the left and right":"the top and bottom"} to export ${state.width}×${state.height}. These large presets use more memory and time; quality settings stay selected.`
     :state.width===1664&&state.height===928?"This large preset uses more memory and time. Quality settings stay selected.":"";
   const risk=refMemoryRisk();
   $("memoryNotice").classList.toggle("hidden",!risk);
