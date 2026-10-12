@@ -44,7 +44,7 @@ def create_lab_services(storage_root: str, output_root=None):
     root = pathlib.Path(storage_root) / "lab_storage"
     root.mkdir(parents=True, exist_ok=True)
     assets = AssetService(str(root))
-    jobs = JobService(str(root), asset_service=assets)
+    jobs = JobService(str(root), asset_service=assets, output_root=output_root)
     projects = ProjectService(str(root), asset_service=assets, output_root=output_root)
     contexts = ContextService(str(root))
     return {

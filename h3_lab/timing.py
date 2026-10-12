@@ -6,10 +6,16 @@ def sampler_progress_snapshot(registry, prompt_id):
     if registry.prompt_id != prompt_id:
         return empty
     samplers = {}
+    phase = 'loading'
     for node_id, progress in registry.nodes.items():
         try:
             node = registry.dynprompt.get_node(str(node_id))
             is_sampler = node.get("class_type") in ("KSampler", "KSamplerAdvanced")
+            node_state = getattr(progress.get('state'), 'value', progress.get('state'))
+            if node_state == 'running':
+                phase = {'KSampler': 'sampling', 'KSamplerAdvanced': 'sampling',
+                         'VAEDecode': 'decoding', 'VAEDecodeAudio': 'decoding',
+                         'CreateVideo': 'saving', 'H3SaveVideo': 'saving'}.get(node.get('class_type'), 'loading')
         except (AttributeError, KeyError, TypeError):
             is_sampler = str(node_id) in ("8", "sampler")
         if not is_sampler:
@@ -20,6 +26,6 @@ def sampler_progress_snapshot(registry, prompt_id):
         samplers[str(node_id)] = {"step": progress.get("value"), "total": progress.get("max"), "state": state}
     active = [(node, value) for node, value in samplers.items() if value["state"] == "running"]
     if not active:
-        return dict(empty, nodes=samplers)
+        return dict(empty, nodes=samplers, phase=phase)
     node, value = active[-1]
-    return {"prompt_id": prompt_id, "node": node, **value, "nodes": samplers}
+    return {"prompt_id": prompt_id, "node": node, **value, "nodes": samplers, "phase": 'sampling'}

@@ -178,6 +178,55 @@ class TestH3JobService(unittest.TestCase):
 
 
 class TestForeignQueueIsolation(unittest.TestCase):
+    def test_running_progress_does_not_erase_cancellation_intent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = JobService(directory)
+            job, _ = service.submit_job('cancel-progress', {})
+            service.update_job(job['job_id'], prompt_id='owned', state='cancel_requested')
+            client = MockComfyClient()
+            client.queue_running = [[1, 'owned', {}, {}, []]]
+            result = asyncio.run(service.reconcile_submission_gap(job['job_id'], client))
+            self.assertEqual(result['state'], 'cancel_requested')
+            self.assertEqual(result['progress']['phase'], 'loading')
+
+    def test_restart_marks_acknowledged_lost_job_failed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            old = JobService(directory, server_instance_id='before')
+            job, _ = old.submit_job('lost-request', {}, ['keep.png'])
+            old.update_job(job['job_id'], prompt_id='lost-prompt', state='sampling')
+            restarted = JobService(directory, server_instance_id='after')
+            result = asyncio.run(restarted.reconcile_submission_gap(job['job_id'], MockComfyClient()))
+            self.assertEqual(result['state'], 'failed')
+            self.assertEqual(result['error']['code'], 'SERVER_RESTARTED')
+
+    def test_restart_preserves_job_still_in_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            old = JobService(directory, server_instance_id='before')
+            job, _ = old.submit_job('running-request', {})
+            old.update_job(job['job_id'], prompt_id='running-prompt', state='queued')
+            restarted = JobService(directory, server_instance_id='after')
+            client = MockComfyClient()
+            client.queue_running = [[1, 'running-prompt', {}, {}, []]]
+            async def progress(prompt_id):
+                return {'prompt_id': prompt_id, 'step': 7, 'total': 20, 'phase': 'sampling'}
+            client.get_progress = progress
+            result = asyncio.run(restarted.reconcile_submission_gap(job['job_id'], client))
+            self.assertEqual(result['state'], 'sampling')
+            self.assertEqual(result['progress']['step'], 7)
+
+    def test_saved_completed_video_wins_over_restart_failure(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            old = JobService(directory, server_instance_id='before')
+            job, _ = old.submit_job('aabbccddeeff', {})
+            old.update_job(job['job_id'], prompt_id='finished-prompt', state='saving')
+            restarted = JobService(directory, server_instance_id='after', output_root=directory)
+            output = {'filename': 'h3_studio_aabbccddeeff_00001_.mp4', 'subfolder': 'video', 'type': 'output'}
+            with patch.object(restarted, '_saved_video', return_value=output):
+                result = asyncio.run(restarted.reconcile_submission_gap(job['job_id'], MockComfyClient()))
+            self.assertEqual(result['state'], 'completed')
+            self.assertEqual(result['output'], output)
+
     def test_foreign_history_error_cannot_fail_owned_job_or_replace_progress(self):
         with tempfile.TemporaryDirectory() as directory:
             service = JobService(directory)

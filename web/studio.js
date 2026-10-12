@@ -61,7 +61,7 @@ const modelRef = "minimax_h3_ref2va_pruned_int8_convrot.safetensors";
 const turboName = "experimental/minimax_h3_fl2v_lightx2v_turbo_4to8step_v0.1-v1.0_768p_v4_step600_dareties.safetensors";
 const methodInfo = {
   native: {title:"Original quality", detail:"Full H3 sampling. No accelerator changes the model trajectory."},
-  spectrum: {title:"Spectrum · experimental", detail:"Forecasts some denoiser calls. Faster on some workloads; motion and audio need comparison with Original quality."},
+  spectrum: {title:"Spectrum · experimental", detail:"Uses a bounded two-step history without a full-clip replay archive to reduce memory use. Motion and audio need comparison with Original quality."},
   motioncache: {title:"MotionCache · experimental", detail:"Reuses selected denoiser calls. Review faces, movement, lip sync and sound."},
   turbo: {title:"Turbo LoRA · experimental", detail:"Uses the installed 4–8 step adapter at strength 0.9. The model output changes; compare motion and audio."},
 };
@@ -1098,6 +1098,7 @@ async function checkConnection() {
       renderEstimates();
       await loadLibrary();
       await restoreSession();
+      await restoreLinkedJob();
       await loadHistorySamples();
       renderEstimates();
       return !missing.length&&!missingNodes.length&&state.labCapabilities?.inference_enabled!==false;
@@ -1638,13 +1639,44 @@ function samplerProgress(value,max,node="8"){
   setProgress((index?"H3 refinement":"H3 sampling")+" · "+step+"/"+total,10+Math.min(80,80*(previous+Math.min(step,total))/all),remaining);
   saveSession();
 }
+async function restoreLinkedJob(){
+  const id=new URLSearchParams(location.search).get('job');
+  if(state.linkedJobRestored||!id||! /^[a-f0-9-]{36}$/.test(id))return;
+  const epoch=state.generationEpoch,origin=api('/');
+  const r=await fetch(api('/h3_studio/lab/jobs/'+encodeURIComponent(id)),{cache:'no-store'});
+  if(!r.ok)return;
+  const job=await r.json();
+  if(epoch!==state.generationEpoch||origin!==api('/')||!job.prompt_id||
+     (state.busy&&state.running!==job.prompt_id)|| (state.running&&state.running!==job.prompt_id))return;
+  state.linkedJobRestored=true;
+  if(state.running===job.prompt_id)return;
+  const spec=job.render_spec||{},meta=spec.recovery_metadata||{};
+  ++state.generationEpoch;
+  state.labJobId=id;state.running=job.prompt_id;state.started=Number(job.created_at)*1000;
+  state.renderStarted=state.started;state.lastStep=0;state.stepDurations=[];
+  state.runMeta={...meta,request_id:job.request_id,lab_job_id:id,project_id:job.project_id,
+    samplerNodes:Object.entries(spec.workflow||{}).filter(([,n])=>n.class_type==='KSampler').map(([id,n])=>({id,steps:n.inputs.steps}))};
+  setBusy(true);setProgress('Restoring render progress',4,null,true);saveSession();
+  await pollHistory();await pollQueue();
+}
+function applyServerProgress(data){
+  if(Number.isFinite(data.step)&&Number.isFinite(data.total)&&data.total>0){samplerProgress(data.step,data.total,String(data.node||"8"));return;}
+  const phases={loading:["Loading model and references",8],decoding:["Decoding video and audio",91],saving:["Saving video",98]};
+  // During refinement the socket owns the stage: a generic polled phase does
+  // not identify which decoder pass it describes. Never overwrite it.
+  if(currentSamplerNodes().length>1)return;
+  if(phases[data.phase]){const [label,pct]=phases[data.phase];
+    const displayed=Number.parseFloat($("progressFill").style.width)||0;
+    if(pct<displayed)return;
+    setProgress(label,pct,null,data.phase==="loading");}
+}
 async function pollServerProgress(id){
   try{
     const r=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});
     if(!r.ok)return;
     const data=await r.json();
-    if(state.running!==id||data.prompt_id!==id||!Number.isFinite(data.step)||!Number.isFinite(data.total))return;
-    if(data.total>0)samplerProgress(data.step,data.total,String(data.node||"8"));
+    if(state.running!==id||data.prompt_id!==id)return;
+    applyServerProgress(data);
   }catch{}
 }
 function onSocket(event){
@@ -1737,7 +1769,8 @@ async function pollHistoryImpl(){
     if(!stillCurrent())return;
     if(job.prompt_id){state.running=job.prompt_id;expectedId=state.running;saveSession();}
     if(job.state==="completed"&&job.output){await complete(job.output);return;}
-    if(job.state==="cancelled"||job.state==="failed"){state.running=null;await cleanupUploads();setBusy(false);setProgress(job.state,0,null);info(job.error?JSON.stringify(job.error).slice(0,400):"Job "+job.state,job.state==="failed");saveSession();return;}
+    if(job.state==="cancelled"||job.state==="failed"){state.running=null;state.phaseEtaAt=null;state.queuePhase=null;await cleanupUploads();if(epoch!==state.generationEpoch)return;setBusy(false);setProgress(job.state==="failed"?"Render stopped":"Cancelled",0,null);$("remaining").textContent="Time remaining: —";info(job.error?.message|| (job.error?JSON.stringify(job.error).slice(0,400):"Job "+job.state),job.state==="failed");showStageMessage(job.state==="failed"?"Render stopped":"Cancelled",job.error?.message||"Your inputs are retained.");saveSession();return;}
+    if(job.progress)applyServerProgress(job.progress);
   }catch{} }
   if(!state.running||/^(lab|request):/.test(String(state.running)))return;
   try{

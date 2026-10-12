@@ -2,6 +2,13 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {compilePrompt}=require('../../web/h3/prompt-compiler.js');
 const {buildGraph}=require('../../web/h3/graph-builder.js');
+test('Spectrum avoids full-step RAM archive and bounds feature history',()=>{
+ const g=buildGraph({render_method:'spectrum'});
+ const patch=Object.values(g).find(n=>n.class_type==='SpectrumApplyMiniMaxH3');
+ assert.equal(patch.inputs.offline_smoothing_replay,false);
+ assert.equal(patch.inputs.max_history,2);
+ assert.equal(patch.inputs.audio_blend_weight,0);
+});
 test('custom retention stays neutral and guided native tags fail closed',()=>{
  const r=compilePrompt({mode:'refs',source_prompt:'Use @v only as instructed.',references:[{alias:'v',kind:'video',role:'custom',fps:24,frame_count:48}]});
  assert.doesNotMatch(r.compiled_prompt,/Preserve the motion and sound/);

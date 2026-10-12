@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import threading
 import time
 import uuid
@@ -47,13 +48,14 @@ def video_output(outputs):
 
 
 class JobService:
-    def __init__(self, storage_root: str, asset_service=None, server_instance_id: str = None):
+    def __init__(self, storage_root: str, asset_service=None, server_instance_id: str = None, output_root=None):
         self.storage_root = pathlib.Path(storage_root).resolve()
         self.jobs_dir = self.storage_root / "jobs"
         self.jobs_manifest_path = self.storage_root / "jobs_manifest.json"
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
         self.asset_service = asset_service
         self.server_instance_id = server_instance_id or f"srv_{uuid.uuid4().hex[:8]}"
+        self.output_root = pathlib.Path(output_root).resolve() if output_root else None
         self._lock = threading.RLock()
         self._jobs = {}  # job_id -> dict
         self._request_index = {}  # request_id -> job_id
@@ -216,7 +218,7 @@ class JobService:
                         # Queue acknowledgements can arrive after cancellation or
                         # history reconciliation. Terminal outcomes are immutable.
                         continue
-                    if job.get("state") == "cancel_requested" and v == "queued":
+                    if job.get("state") == "cancel_requested" and v not in TERMINAL_STATES:
                         v = "cancel_requested"
                     job["state"] = v
                     if v in TERMINAL_STATES and self.asset_service:
@@ -247,6 +249,20 @@ class JobService:
             return any(job.get("state") in ACTIVE_STATES and token in json.dumps(job.get("render_spec", {}))
                        for job in self._jobs.values())
 
+    def _saved_video(self, job):
+        """Recover an already saved take after ComfyUI's in-memory history resets."""
+        token = job.get('request_id', '')
+        if self.output_root is None or not re.fullmatch(r'[a-f0-9]{12}', token):
+            return None
+        from .paths import owned_video
+        for path in sorted((self.output_root / 'video').glob(f'h3_studio_{token}_*.mp4')):
+            try:
+                owned_video(self.output_root, 'video/' + path.name)
+            except (ValueError, FileNotFoundError, OSError):
+                continue
+            return {'filename': path.name, 'subfolder': 'video', 'type': 'output'}
+        return None
+
     async def reconcile_submission_gap(self, job_id: str, comfy_client) -> dict:
         """
         Reconcile an accepted-but-delayed submission where the prompt was sent
@@ -256,6 +272,9 @@ class JobService:
             job = self._jobs.get(job_id)
             if not job:
                 return None
+            if job.get('state') in TERMINAL_STATES:
+                return dict(job)
+            job = copy.deepcopy(job)
             req_id = job.get("request_id")
             if not req_id:
                 return dict(job)
@@ -271,7 +290,23 @@ class JobService:
                 extra = entry[3].get("extra_pnginfo", {}) or entry[3]
                 if entry[1] == job.get("prompt_id") or extra.get("h3_lab_job_id") == job_id or extra.get("h3_lab_request_id") == req_id:
                     prompt_id = entry[1]
-                    return self.update_job(job_id, prompt_id=prompt_id, state="queued")
+                    if entry in running:
+                        progress = {}
+                        if hasattr(comfy_client, 'get_progress'):
+                            try:
+                                progress = await comfy_client.get_progress(prompt_id)
+                            except Exception:
+                                pass
+                        if progress.get('prompt_id') != prompt_id:
+                            progress = {}
+                        phase = progress.get('phase') or ('sampling' if progress.get('total') else 'loading')
+                        if phase not in ('loading', 'sampling', 'decoding', 'saving'):
+                            phase = 'loading'
+                        values = {'phase': phase, 'step': progress.get('step') or 0,
+                                  'total': progress.get('total') or 0, 'node': progress.get('node')}
+                        return self.update_job(job_id, prompt_id=prompt_id, state=phase, progress=values)
+                    return self.update_job(job_id, prompt_id=prompt_id, state="queued",
+                                           progress={'phase': 'queued', 'step': 0, 'total': 0})
 
         # Check history
         history = await comfy_client.get_history()
@@ -288,6 +323,17 @@ class JobService:
                         return self.update_job(job_id, prompt_id=pid, state="completed", output=video_info)
                     elif status.get("status_str") == "error":
                         return self.update_job(job_id, prompt_id=pid, state="failed", error=status)
+
+        # An acknowledged prompt absent from both queue and history after this
+        # worker restarted cannot still be rendering. Saved output wins first.
+        if job.get('prompt_id') and job.get('server_instance_id') != self.server_instance_id:
+            output = await asyncio.to_thread(self._saved_video, job)
+            if output:
+                return self.update_job(job_id, state='completed', output=output)
+            return self.update_job(job_id, state='failed',
+                progress={'phase': 'failed', 'step': 0, 'total': 0},
+                error={'code': 'SERVER_RESTARTED',
+                       'message': 'The render stopped when the server restarted. Your prompt and references are retained.'})
 
         # If not found anywhere and state was validating, mark unknown to preserve leases
         with self._lock:

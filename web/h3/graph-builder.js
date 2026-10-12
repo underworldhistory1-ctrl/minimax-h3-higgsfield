@@ -196,8 +196,8 @@
         inputs: {
           model: samplingModelLink, enabled: true, blend_weight: 0.5, degree: 1, ridge_lambda: 0.1,
           window_size: 2, flex_window: 0.75, warmup_steps: 1, tail_actual_steps: 1,
-          max_history: 8, debug: false, history_storage: "system_ram",
-          offline_archive_storage: "system_ram", audio_blend_weight: 0, offline_smoothing_replay: true
+          max_history: 2, debug: false, history_storage: "system_ram",
+          offline_archive_storage: "system_ram", audio_blend_weight: 0, offline_smoothing_replay: false
         }
       };
       g["8"].inputs.model = [methodId, 0];

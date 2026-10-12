@@ -36,6 +36,10 @@ class ComfyQueueBridge:
     async def get_history(self, prompt_id=None):
         return await self.request("/history" + ("/" + prompt_id if prompt_id else ""))
 
+    async def get_progress(self, prompt_id):
+        from urllib.parse import quote
+        return await self.request('/h3_studio/job_progress?prompt_id=' + quote(prompt_id, safe=''))
+
     async def delete_from_queue(self, prompt_ids):
         return await self.request("/queue", {"delete": prompt_ids})
 
