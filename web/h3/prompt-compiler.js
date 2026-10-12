@@ -114,13 +114,25 @@
     return [...images, ...videos, ...audios];
   }
 
+  function subjectPictureRelations(definitions = '') {
+    const relations = new Map();
+    const starts = [...definitions.matchAll(/(?:^[ \t]*(?:[-*][ \t]+|\d+[.)][ \t]+)?<Subject\s+(\d+)>|<Subject\s+(\d+)>(?=[ \t]*(?:[:：]|is\b|are\b|represents\b|refers\b|means\b)))/gim)];
+    for (let i = 0; i < starts.length; i++) {
+      const block = definitions.slice(starts[i].index, starts[i + 1]?.index ?? definitions.length);
+      const index = Number(starts[i][1] || starts[i][2]);
+      const pictures = [...block.matchAll(/<Picture\s+(\d+)>/gi)].map(match => Number(match[1]));
+      relations.set(index, [...new Set([...(relations.get(index) || []), ...pictures])]);
+    }
+    return relations;
+  }
+
   function validateSubjectBindings(prompt, sections = parseStructuredSections(prompt), bindings = []) {
     const used = [...prompt.matchAll(/<Subject\s+(\d+)>/gi)].map(match => Number(match[1]));
     const definitions = sections?.subject_definitions || '';
     const imageCount = bindings.filter(binding => binding.kind === 'image').length;
+    const relations = subjectPictureRelations(definitions);
     for (const index of new Set(used)) {
-      const lines = definitions.split(/\n/).filter(line => new RegExp(`<Subject\\s+${index}>`, 'i').test(line));
-      const pictures = lines.flatMap(line => [...line.matchAll(/<Picture\s+(\d+)>/gi)].map(match => Number(match[1])));
+      const pictures = relations.get(index) || [];
       if (index < 1 || !pictures.length || pictures.some(picture => picture < 1 || picture > imageCount)) {
         throw new Error(`Subject ${index} must be defined with a connected Picture in subject_definitions.`);
       }
@@ -281,6 +293,12 @@
       const definitions = [];
       const retention = [];
       const mediaNotes = [];
+      // Native definitions own subject numbering. Card order still owns Picture
+      // numbering; never rewrite a user's explicit image identity to match roles.
+      const explicitSubjects = subjectPictureRelations(originalSections?.subject_definitions || '');
+      const hasExplicitSubjects = [...explicitSubjects.values()].some(pictures => pictures.length);
+      let subjectNumberingAdjusted = false;
+      let cardSubjectIdx = 0;
       // A partial schema pasted into Guided still needs its card guidance.
       // Complete native prompts and explicitly Structured input keep authority.
       const supplementGuidedCards = promptMode !== 'structured' && originalSections &&
@@ -318,13 +336,27 @@
             if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
             retention.push(`${picTag}: attribute_transfer - guide shot order, framing and visual progression; do not treat the sheet as a single visible subject.`);
           } else {
-            const subNum = ++subjectIdx;
-            tag = `<Subject ${subNum}>`;
-            bindingInfo.tag = tag;
-            bindingInfo.subject_idx = subNum;
-            definitions.push(`${tag} is the ${role} shown in ${picTag}. Keep its visible defining details.`);
-            const retainMode = role === 'visual style' ? 'attribute_transfer' : 'fully_preserved';
-            retention.push(`${tag}: ${retainMode} - preserve the defining visual attributes shown in ${picTag} wherever this subject appears in the target sequence.`);
+            const cardSubNum = ++cardSubjectIdx;
+            const assigned = [...explicitSubjects].filter(([, pictures]) => pictures.includes(picNum)).map(([index]) => index);
+            if (hasExplicitSubjects && assigned.length !== 1) {
+              // A picture may be shared by several explicitly defined subjects,
+              // or have no subject. An alias then names the picture, without
+              // inventing a subject identity or choosing between its people.
+              subjectNumberingAdjusted = true;
+              tag = picTag;
+              bindingInfo.tag = tag;
+              retention.push(`${picTag}: attribute_transfer - apply the ${role} reference only as described in the prompt.`);
+            } else {
+              const subNum = hasExplicitSubjects ? assigned[0] : cardSubNum;
+              if (hasExplicitSubjects && subNum !== cardSubNum) subjectNumberingAdjusted = true;
+              subjectIdx = Math.max(subjectIdx, subNum);
+              tag = `<Subject ${subNum}>`;
+              bindingInfo.tag = tag;
+              bindingInfo.subject_idx = subNum;
+              definitions.push(`${tag} is the ${role} shown in ${picTag}. Keep its visible defining details.`);
+              const retainMode = role === 'visual style' ? 'attribute_transfer' : 'fully_preserved';
+              retention.push(`${tag}: ${retainMode} - preserve the defining visual attributes shown in ${picTag} wherever this subject appears in the target sequence.`);
+            }
           }
         } else if (ref.kind === 'video') {
           const vidNum = ++videoIdx;
@@ -387,6 +419,8 @@
         bindings.push(bindingInfo);
       }
 
+      if (subjectNumberingAdjusted) warnings.push('Attached images matched to the subject definitions in your prompt.');
+
       // Native structured tags are valid reference mentions as well as aliases.
       const nativeSections = originalSections || adaptedSections;
       const missing = bindings.filter(binding => {
@@ -417,7 +451,7 @@
       };
 
       // Alias-led subject definitions need the attached image relation in native syntax.
-      // Leave explicit native definitions unchanged so conflicting bindings still fail.
+      // Explicit native definitions stay unchanged; their numbering was reconciled above.
       if (originalSections?.subject_definitions) {
         const relationLines = originalSections.subject_definitions.split(/\n/).flatMap(line => {
           const match = line.match(/^\s*@([\p{L}\p{N}_-]+)(?=$|[^\p{L}\p{N}_-])/u);
