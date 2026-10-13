@@ -155,7 +155,7 @@ PY
 
 log "Starting ComfyUI privately on 127.0.0.1:8188."
 cd "$COMFY_ROOT"
-python main.py --listen 127.0.0.1 --port 8188 &
+python main.py --listen 127.0.0.1 --port 8188 --use-pytorch-cross-attention &
 COMFY_PID=$!
 
 for _ in $(seq 1 360); do

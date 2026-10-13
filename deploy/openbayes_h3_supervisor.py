@@ -108,7 +108,7 @@ def main():
             with log_path.open("a", encoding="utf-8") as log:
                 child = subprocess.Popen([
                     str(python), "main.py", "--listen", "127.0.0.1", "--port", str(args.port),
-                    "--cache-none", "--fp16-intermediates", "--use-ck-attention",
+                    "--cache-none", "--fp16-intermediates", "--use-pytorch-cross-attention",
                 ], cwd=comfy, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
                 print(f"ComfyUI started: PID {child.pid}", flush=True)
                 if wait_ready(base, child) and recovering:

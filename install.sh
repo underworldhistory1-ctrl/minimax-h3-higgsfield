@@ -198,7 +198,7 @@ fi
 status="$(python3 "$ROOT/deploy/activate_h3.py" check --url "$SERVER_URL")"
 if [[ "$status" == "COMFYUI_OFFLINE" ]]; then
     echo "Starting ComfyUI with H3 Higgsfield as its landing page..."
-    (cd "$COMFY_ROOT" && nohup "$H3_PYTHON" main.py --listen "$BIND" --port "$PORT" --reserve-vram 3.0 \
+    (cd "$COMFY_ROOT" && nohup "$H3_PYTHON" main.py --listen "$BIND" --port "$PORT" --reserve-vram 3.0 --use-pytorch-cross-attention \
         "${COMFY_START_ARGS[@]}" \
         > "$COMFY_ROOT/h3-higgsfield-server.log" 2>&1 < /dev/null & echo $! > "$COMFY_ROOT/.h3-higgsfield-server.pid")
     python3 "$ROOT/deploy/activate_h3.py" wait --url "$SERVER_URL" --timeout 240

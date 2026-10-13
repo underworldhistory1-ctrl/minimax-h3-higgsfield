@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'../..'),out=path.resolve(process.env.H3_TEST_
 const C=require('../../web/h3/configuration');
 const schemas={KSampler:{input:{required:{sampler_name:[['res_multistep','euler']],scheduler:[['simple','normal']]}}},UNETLoader:{input:{required:{weight_dtype:[['default','fp8_e4m3fn']]}}},MiniMaxH3SigmaShift:{input:{required:{shift_video:['FLOAT',{default:12,min:0,max:100}],shift_audio:['FLOAT',{default:3,min:0,max:100}]}}},MiniMaxH3MotionCache:{input:{required:{model:['MODEL'],reuse_threshold:['FLOAT',{default:.15,min:0,max:1}],warmup_steps:['INT',{default:4,min:0,max:100}]}}},SpectrumApplyMiniMaxH3:{input:{required:{model:['MODEL'],blend_weight:['FLOAT',{default:.5,min:0,max:1}]}}}};
 const singular='Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors';
-const caps={model_catalog:[{name:singular,profiles:['singularity'],loader:'UNETLoader'},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader'],loader:'UNETLoader'}],hybrid_loader_ready:true,controlnet_ready:true,controlnet_references_ready:true,refine_ready:true,continuation_ready:true,add_guide:true,inference_enabled:true,sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple','normal'],weight_dtypes:['default','fp8_e4m3fn']},control_preprocessors:{}};
+const caps={server_attention:{implementation:"attention_pytorch",label:"PyTorch dense",quantized:false,scope:"server_dense_default",checkpoint_overrides_possible:true},model_catalog:[{name:singular,profiles:['singularity'],loader:'UNETLoader'},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader'],loader:'UNETLoader'}],hybrid_loader_ready:true,controlnet_ready:true,controlnet_references_ready:true,refine_ready:true,continuation_ready:true,add_guide:true,inference_enabled:true,sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple','normal'],weight_dtypes:['default','fp8_e4m3fn']},control_preprocessors:{}};
 let browser;
 (async()=>{
  fs.mkdirSync(out,{recursive:true});browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1920,height:1080}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -23,6 +23,8 @@ let browser;
  });
  await page.goto(process.env.H3_TEST_URL||'http://127.0.0.1:18923/web/index.html');await page.waitForFunction(()=>window.H3ConfigurationUI&&document.getElementById('modelProfile').options.length===4);
  await page.waitForFunction(()=>!document.querySelector('[data-mode="refs"]').disabled);
+ assert.ok((await page.locator('#serverAttention').innerText()).includes('PyTorch dense'));
+ assert.equal(await page.evaluate(()=>captureSettings().server_attention.implementation),'attention_pytorch');
  assert.equal(await page.locator('.left').evaluate(e=>Math.round(e.getBoundingClientRect().width)),740);
  await page.locator('[data-mode="refs"]').click();await page.evaluate(()=>state.pendingRefKind='image');
  const image=fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'));
@@ -78,5 +80,5 @@ let browser;
  await page.evaluate(()=>{localStorage.removeItem(baseKey);window.fetch=window.__originalFetch;HTMLAnchorElement.prototype.click=window.__originalAnchorClick;});
  assert.equal(await page.evaluate(()=>JSON.stringify(captureSettings())===window.__settingsBefore),true);
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'mobile.png'),fullPage:false});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({status:'passed',checks:['740px desktop sidebar','keyboard resize persistence','multi-image upload','compact expandable references','rename and reorder bindings','Singularity loader and sampler overrides','refresh persistence','mobile overflow','Character Swap guided preset, native tags and stable IDs','same-take export keeps settings','export lifecycle and source-server/result races','zero uncaught errors'],gpu_rendered:false,fixture_backend:true},null,2));await browser.close();console.log('Browser contracts passed; no GPU inference was performed.');
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({status:'passed',checks:['740px desktop sidebar','keyboard resize persistence','multi-image upload','compact expandable references','rename and reorder bindings','Singularity loader and sampler overrides','refresh persistence','mobile overflow','Character Swap guided preset, native tags and stable IDs','server dense backend visible and saved','same-take export keeps settings','export lifecycle and source-server/result races','zero uncaught errors'],gpu_rendered:false,fixture_backend:true},null,2));await browser.close();console.log('Browser contracts passed; no GPU inference was performed.');
 })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exitCode=1;});

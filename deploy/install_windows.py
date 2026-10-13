@@ -461,7 +461,7 @@ def main():
     else:
         log_path = root / "h3-higgsfield-server.log"
         log = log_path.open("a", encoding="utf-8")
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0"]
+        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0", "--use-pytorch-cross-attention"]
         if portable:
             command.append("--windows-standalone-build")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
