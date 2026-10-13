@@ -102,9 +102,9 @@
   window.H3ConfigurationUI={refresh};refresh();
   // Desktop resize handle supports pointer and keyboard, with a persisted width.
   const handle=document.createElement('div');handle.className='sidebar-resizer';handle.tabIndex=0;handle.setAttribute('role','separator');handle.setAttribute('aria-label','Resize settings sidebar');handle.setAttribute('aria-orientation','vertical');document.querySelector('.left').append(handle);
-  function resize(value){const max=Math.min(850,innerWidth-360),width=Math.max(390,Math.min(max,value));document.documentElement.style.setProperty('--settings-width',width+'px');handle.setAttribute('aria-valuenow',width);handle.setAttribute('aria-valuemin',390);handle.setAttribute('aria-valuemax',Math.max(390,max));return width;}
+  function resize(value){const max=Math.min(850,innerWidth-360-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-width"))||0)),width=Math.max(390,Math.min(max,value));document.documentElement.style.setProperty('--settings-width',width+'px');handle.setAttribute('aria-valuenow',width);handle.setAttribute('aria-valuemin',390);handle.setAttribute('aria-valuemax',Math.max(390,max));return width;}
   let width=resize(Number(localStorage.getItem('h3studio.sidebar.width'))||740);
-  handle.onpointerdown=e=>{if(innerWidth<=1100)return;handle.setPointerCapture(e.pointerId);handle.onpointermove=move=>width=resize(move.clientX);handle.onpointerup=()=>{handle.onpointermove=null;localStorage.setItem('h3studio.sidebar.width',width);};handle.onpointercancel=()=>handle.onpointermove=null;};
+  handle.onpointerdown=e=>{if(innerWidth<=1100)return;handle.setPointerCapture(e.pointerId);handle.onpointermove=move=>width=resize(move.clientX-document.querySelector(".left").getBoundingClientRect().left);handle.onpointerup=()=>{handle.onpointermove=null;localStorage.setItem('h3studio.sidebar.width',width);};handle.onpointercancel=()=>handle.onpointermove=null;};
   handle.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();width=resize(width+(e.key==='ArrowLeft'?-20:20));localStorage.setItem('h3studio.sidebar.width',width);}};
   addEventListener('resize',()=>width=resize(width));
 })();

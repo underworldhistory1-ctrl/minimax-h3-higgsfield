@@ -23,7 +23,7 @@ SOURCE_FILES = (
     "deploy/salad/entrypoint.sh", "deploy/salad/nginx.conf.template",
     "scripts/verify_h3_video.py", "docs/UX_FLOW.md", "docs/GRAPH_MAP.md",
     "docs/PROJECT_WORKSPACE_AR.md", "docs/FINAL_AUDIT_AR.md", "docs/COMPATIBILITY_MATRIX_AR.md", "docs/social-preview.png",
-    "docs/demo/interface-references.png", "docs/demo/interface-motioncache.png",
+    "docs/demo/interface-elements.png", "docs/demo/interface-references.png", "docs/demo/interface-motioncache.png",
     "docs/demo/spectrum-preview.jpg", "docs/demo/motioncache-preview.jpg",
     "docs/demo/spectrum-no-lora.mp4", "docs/demo/motioncache-no-lora.mp4",
     "workflows/h3_t2v_ui.json", "workflows/h3_t2v_api.json",
@@ -128,7 +128,7 @@ def main():
                   for p in files},
     }
     (output / "MANIFEST_SHA256.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    outer = output.with_suffix(".zip")
+    outer = output.with_name(output.name + ".zip")
     with zipfile.ZipFile(outer, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for file in sorted(p for p in output.rglob("*") if p.is_file()):
             archive.write(file, output.name + "/" + file.relative_to(output).as_posix())

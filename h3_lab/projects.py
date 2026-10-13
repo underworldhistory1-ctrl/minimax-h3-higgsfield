@@ -290,7 +290,7 @@ class ProjectService:
             take = {'take_id': token, 'clip_id': snapshot.get('clip_id') or 'clip_' + token[:8],
                 'output_file': relative, 'effective_settings': settings,
                 'parent_take_id': snapshot.get('parent_take_id'), 'overlap_frames': 0,
-                'unique_frames': settings.get('frames', 124), 'context_token': token,
+                'unique_frames': settings.get('frames') if isinstance(settings.get('frames'), int) else spec.get('target_frames') if isinstance(spec.get('target_frames'), int) else None, 'context_token': token,
                 'created_at': job.get('created_at', time.time()), 'status': 'completed'}
             if isinstance(snapshot.get('draft'), dict):
                 take['draft'] = snapshot['draft']

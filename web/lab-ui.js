@@ -217,7 +217,8 @@ const mediaExportSubmissions=new Map();
 const activeMediaExportStates=new Set(["queued","preparing","encoding","verifying"]);
 function syncMediaExportBusy(){
   const active=state.sharedExportsOrigin===api("")&&(state.sharedExports||[]).some(job=>activeMediaExportStates.has(job.status));
-  state.mediaExporting=!!(active||([...mediaExportSubmissions.values()].includes(api(""))));
+  const otherMedia=state.sharedExportsOrigin===api("")&&(state.sharedMediaOperations||[]).includes('media_export');
+  state.mediaExporting=!!(active||otherMedia||([...mediaExportSubmissions.values()].includes(api(""))));
   $("upscaleTake").disabled=!!(state.mediaExporting||state.busy||state.projectLoading);refreshVideoActions();
 }
 function exportStatusText(job){
@@ -234,6 +235,9 @@ function showKnownVideoExport(entry,status){
 function renderMediaExports(){
   const list=$("mediaExportsList");list.replaceChildren();
   const jobs=state.sharedExportsOrigin===api("")?state.sharedExports||[]:[];
+  const operations=state.sharedExportsOrigin===api("")?state.sharedMediaOperations||[]:[];
+  const labels={media_export:'Exporting existing media',prompt_preparation:'Preparing a prompt',source_preparation:'Preparing video / control sources',quality_analysis:'Checking a video',control_preparation:'Preparing control guidance'};
+  for(const name of operations.filter(name=>name!=='media_export'||!jobs.some(job=>activeMediaExportStates.has(job.status))))list.append(workspaceOperationStatus(labels[name]||'Studio operation in progress'));
   for(const job of jobs.filter(j=>activeMediaExportStates.has(j.status)).concat(jobs.filter(j=>!activeMediaExportStates.has(j.status)).slice(0,5))){
     const item=document.createElement('div');item.style.cssText='padding:10px 0;border-top:1px solid #343434;overflow-wrap:anywhere';
     const heading=document.createElement('div');heading.textContent=job.source_filename+' · '+job.target;
@@ -245,6 +249,7 @@ function renderMediaExports(){
   showKnownVideoExport(state.current,$("upscaleStatus"));
   if($("videoActionsDialog").open)showKnownVideoExport(videoActionsEntry,$("videoActionsStatus"));
 }
+function workspaceOperationStatus(text){const status=document.createElement('div');status.className='tip';status.setAttribute('role','status');status.textContent=text;return status;}
 let mediaExportPoll=null;
 async function fetchExportJSON(url,controller=new AbortController(),options={}){
   const timer=setTimeout(()=>controller.abort(),options.method==='POST'?660000:15000);
@@ -260,6 +265,7 @@ async function refreshMediaExports(){
   try{
     const data=await fetchExportJSON(origin+'/h3_studio/lab/media/exports',poll.controller);if(api("")!==origin)return;
     state.sharedExports=data.jobs||[];state.sharedExportsOrigin=origin;
+    state.sharedMediaOperations=Array.isArray(data.active_operations)?data.active_operations:[];
     $("mediaExportsStatus").textContent=state.sharedExports.length?'':'No exports recorded yet.';
     const wasBusy=state.mediaExporting;syncMediaExportBusy();renderMediaExports();if(wasBusy!==state.mediaExporting)renderResults();
   }catch(error){if(api("")===origin)$("mediaExportsStatus").textContent=error.name==='AbortError'?'Export status timed out. Retrying; server jobs continue.':error.message;}
