@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-10-13",
+  "source_update_policy": "notify",
+  "approved_source_commits": [],
+  "comfyui_commit": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
+  "optional_nodes": {
+    "hybrid": {
+      "directory": "ComfyUI-MiniMax-H3-Hybrid",
+      "repository": "https://github.com/ANe5s/ComfyUI-MiniMax-H3-Hybrid.git",
+      "commit": "9aeef8e1bd899f1e5b48f04b1fbd8316bbe197d8",
+      "status": "source_audited_gpu_untested"
+    }
+  },
+  "optional_checkpoints": {
+    "singularity-int8": {
+      "repository": "WarmBloodAban/Minimax-h3_Singularity",
+      "revision": "af671d9214a6e41ab8c2f43e9f871ea56246115f",
+      "filename": "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors",
+      "size": 20967647456,
+      "sha256": "412a7b126595a958964193f3b42513d7cf2df4196ef04223a0f05e3622949cce",
+      "status": "publisher_metadata_verified_gpu_untested"
+    }
+  },
+  "retired": ["turbo", "lightx2v"],
+  "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations."
+}

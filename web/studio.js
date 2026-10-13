@@ -67,6 +67,13 @@ const methodInfo = {
   turbo: {title:"Turbo LoRA · experimental", detail:"Uses the installed 4–8 step adapter at strength 0.9. The model output changes; compare motion and audio."},
 };
 const method = () => $("renderMethod").value;
+const selectedCheckpoint=()=>state.modelProfile&&state.modelProfile!=="original"?(state.modelProfile==="singularity"?state.checkpoint:modelFL):(state.mode==="refs"?modelRef:modelFL);
+const refinementSettings=()=>({scale:state.refineScale??1.25,steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple',...state.refinement});
+function selectedModelReady(mode=state.mode){
+  if(!state.modelProfile||state.modelProfile==='original')return !!state.modelsReady?.[mode==='refs'?'ref2va':'fl2va'];
+  if(state.modelProfile==='hybrid_loader'&&(!state.labCapabilities?.hybrid_loader_ready||state.hybridPreset&&state.hybridPreset!=='none'&&!state.modelsReady?.ref2va))return false;
+  return (state.labCapabilities?.model_catalog||[]).some(x=>x.name===selectedCheckpoint()&&x.profiles.includes(state.modelProfile));
+}
 const storeKey = "h3studio.render.v2";
 const baseKey = "h3studio.comfyBase";
 const draftKey = "h3studio.draft.v3";
@@ -134,7 +141,7 @@ function uploadMessage(message,pct=null){
   if(pct!==null)$("uploadProgressFill").style.width=Math.max(0,Math.min(100,pct))+"%";
 }
 function loraModeCompatible(name,mode){
-  if(name===turboName)return mode!=="refs";
+  if(/turbo|lightx2v/i.test(name))return false;
   if(mode==="refs"){
     if(/fl2v|fl2va|t2v/i.test(name)&&!/ref2v|r2v/i.test(name))return false;
   }else if(/ref2v|r2v/i.test(name)&&!/fl2v|t2v/i.test(name))return false;
@@ -150,7 +157,7 @@ function updateCapabilities(){
   if(!state.nodesReady||!state.modelsReady)return;
   document.querySelectorAll(".mode").forEach(button=>{
     const mode=button.dataset.mode;
-    const available=mode==="refs"?state.modelsReady.ref2va&&state.nodesReady.MiniMaxH3ReferenceToVideo:state.modelsReady.fl2va&&state.nodesReady.MiniMaxH3ImageToVideo&&(mode!=="frames"||state.nodesReady.LoadImage);
+    const available=selectedModelReady(mode)&&(mode==="refs"?state.nodesReady.MiniMaxH3ReferenceToVideo:state.nodesReady.MiniMaxH3ImageToVideo&&(mode!=="frames"||state.nodesReady.LoadImage));
     button.disabled=state.busy||!available||(!!state.continuation&&mode==="frames");
     button.title=available?"":mode==="refs"?"Install the Ref2VA checkpoint and native reference node.":"Install the FL2VA checkpoint and required image node.";
   });
@@ -160,7 +167,7 @@ function updateCapabilities(){
 }
 function methodAvailable(value){
   if(value==="native")return true;
-  if(value==="turbo")return state.mode!=="refs"&&state.lorasLoaded&&state.loras.some(item=>item.name===turboName)&&state.nodesReady?.LoraLoaderModelOnly===true;
+  if(!['spectrum','motioncache'].includes(value))return false;
   return state.nodesReady?.[value==="spectrum"?"SpectrumApplyMiniMaxH3":"MiniMaxH3MotionCache"]===true;
 }
 function updateMethodAvailability(){
@@ -171,10 +178,8 @@ function updateMethodAvailability(){
       "This installed Turbo adapter targets FL2VA. References uses Ref2VA.":
       option.disabled?"Install the optional method on this ComfyUI server.":"";
   }
-  if(!methodAvailable(select.value)){
-    select.value="native";
-    $("steps").value="20";
-  }
+  // Preserve saved intent while a server is offline or a patch is missing.
+  // Generation validates availability before uploading; it never silently changes methods.
   const ready=[...select.options].filter(option=>!option.disabled&&option.value!=="native").map(option=>option.textContent.split(" · ")[0]);
   $("methodAvailability").textContent=(state.nodesReady?ready.length?"Ready on this server: "+ready.join(", ")+".":"Original quality is ready. Optional methods are not installed yet.":"Connect ComfyUI to check installed speed methods.")
     +(state.mode==="refs"&&state.loras.some(item=>item.name===turboName)?" Turbo is FL2VA-only; use Text or Frames.":"");
@@ -182,7 +187,7 @@ function updateMethodAvailability(){
   renderMethodInfo();
 }
 function renderMethodInfo(){
-  const value=method(),steps=Number($("steps").value),info=methodInfo[value];
+  const value=method(),steps=Number($("steps").value),info=methodInfo[value]||{title:'Unavailable method',detail:'Select a supported render method before generating.'};
   $("steps").min=value==="turbo"?"4":"8";
   $("steps").max=value==="turbo"?"8":"100";
   $("stepPresets").hidden=value==="turbo";
@@ -204,7 +209,7 @@ function selectMode(mode, internal=false) {
   if (state.busy || state.projectLoading&&!internal) return;
   if(!internal&&state.continuation){
     if(mode==="frames"){info("Use Temporal keyframes for the new content. The continuation source already supplies the protected opening context.",true);return;}
-    const expected=mode==="refs"?modelRef:modelFL;
+    const expected=state.modelProfile&&state.modelProfile!=="original"?selectedCheckpoint():(mode==="refs"?modelRef:modelFL);
     if(state.continuation.type==="generated"&&state.continuation.source_model!==expected){info("Use the Active continuation re-encode action before changing this source's checkpoint.",true);return;}
   }
   if(!internal&&document.querySelector('.mode[data-mode="'+mode+'"]')?.disabled)return;
@@ -232,19 +237,21 @@ function selectMode(mode, internal=false) {
   info(disabledLoras.length?"Disabled incompatible LoRA(s) for this mode: "+disabledLoras.map(item=>item.name).join(", "):"");
   saveDraft();
   renderContinuation();
+  if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   if(state.modelsReady)checkConnection();
 }
 document.querySelectorAll(".mode").forEach(b => b.onclick = () => selectMode(b.dataset.mode));
 
 function saveDraft(){
   try{localStorage.setItem(draftKey,JSON.stringify({
-    mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
+    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
     duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method(),enableRefine:$("enableRefine")?$("enableRefine").checked:false
   }));}catch{}
 }
 function restoreDraft(){
   let draft;try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
   if(!draft)return false;
+  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
   state.promptMode=["guided","structured"].includes(draft.promptMode)?draft.promptMode:"guided";
   $("promptMode").value=state.promptMode;
   if(["text","frames","refs"].includes(draft.mode))state.mode=draft.mode;
@@ -267,6 +274,7 @@ function restoreDraft(){
     ?String(draft.durationRequested):(Number($("duration").value)/24).toFixed(1);
   syncDuration();
   $("prompt").value=state.prompts[state.mode]||"";
+  if(draft.renderMethod==="turbo"){$("renderMethod").value="native";$("steps").value="20";info("Turbo was removed. This older draft now uses Original quality at 20 steps.");}
   const draftSteps=Number($("steps").value);
   if($("renderMethod").value==="turbo"){
     if(!Number.isInteger(draftSteps)||draftSteps<4||draftSteps>8)$("steps").value="6";
@@ -285,7 +293,7 @@ function timingConfiguration(w=state.width,h=state.height){
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
   if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
-  return {version:2,gpu:state.gpu,model:state.mode==="refs"?modelRef:modelFL,mode:state.mode,method:method(),
+  return {version:2,gpu:state.gpu,model:selectedCheckpoint(),sampling:state.sampling||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
     width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
     sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
@@ -293,7 +301,7 @@ function timingConfiguration(w=state.width,h=state.height){
     guides:state.guides.map(x=>({...timingMedia(x),frame_idx:x.frame_idx,strength:x.strength??null})),
     control:state.control?.enabled?{kind:state.control.kind,input_type:state.control.input_type,start_seconds:state.control.start_seconds??0,source_span:state.control.source_span??null,mask_alignment:state.control.mask_alignment??null,model:state.control.model_name??"minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors",strength:state.control.strength,start_percent:state.control.start_percent,end_percent:state.control.end_percent,preprocessor:state.control.preprocessor??null,inputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([k,v])=>[k,v?timingMedia(v):null]))}:null,
     continuation:state.continuation?{type:state.continuation.type,context_length:state.continuation.context_length,audio_feather_ticks:state.continuation.audio_feather_ticks,source_model:state.continuation.source_model??null,source_canvas:state.continuation.source_canvas??null}:null,
-    passes:refine?[{scale:1.25,steps:10,denoise:.4}]:[]};
+    passes:refine?[refinementSettings()]:[]};
 }
 function captureSettings(){
   const refs=state.mode==="refs";
@@ -375,6 +383,7 @@ function renderEstimates() {
 }
 function renderLoras() {
   const list=$("loraList");list.replaceChildren();
+  state.loras=state.loras.filter(item=>!/turbo|lightx2v/i.test(item.name));
   const count=state.loras.length;
   $("loraCount").textContent=count?"("+count+" installed)":"";
   $("loraRecommendation").hidden=!(state.loras.some(item=>item.enabled)||method()==="turbo");
@@ -521,8 +530,8 @@ function updateRefDurationNotice() {
 function renderRefs() {
   $("refs").replaceChildren();
   state.refs.forEach((ref,index) => {
-    const card=document.createElement("div");card.className="ref";
-    const head=document.createElement("div");head.className="refhead";
+    const card=document.createElement("details");card.className="ref compact-ref";card.open=!!ref.expanded;card.ontoggle=()=>ref.expanded=card.open;
+    const head=document.createElement("summary");head.className="refhead";
     const icon=document.createElement("div");icon.className="icon";
     if(ref.previewUrl&&(ref.kind==="image"||ref.kind==="video")){
       const preview=document.createElement(ref.kind==="image"?"img":"video");
@@ -537,10 +546,10 @@ function renderRefs() {
       preview.onerror=()=>{icon.textContent=ref.kind==="video"?"▶":"I";};
       icon.append(preview);
     }else icon.textContent=ref.kind==="audio"?"♫":ref.kind==="video"?"▶":"I";
-    const title=document.createElement("strong");title.textContent="@"+ref.alias;
+    const title=document.createElement("strong");title.textContent="@"+ref.alias+" · "+ref.role;
     const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=state.busy;
     remove.onclick=()=>{state.refs.splice(index,1);if(ref.previewUrl)URL.revokeObjectURL(ref.previewUrl);renderRefs();renderEstimates();saveDraft();};
-    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=state.busy;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();};head.append(icon,title,up,down,remove);
+    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=state.busy;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,up,down,remove);
     const meta=document.createElement("div");meta.className="refmeta";
     meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+ref.file.name
       +(ref.kind==="video"&&ref.localDuration?" · source "+ref.localDuration.toFixed(2)+"s":ref.kind==="audio"&&ref.localDuration?" · "+ref.localDuration.toFixed(2)+"s":"")
@@ -573,6 +582,7 @@ function renderRefs() {
     roleWrap.append(roleLabel,role);fields.append(nameWrap,roleWrap);
     card.append(head,meta,fields);
     if(ref.kind==="image"){
+      const large=document.createElement("img");large.src=ref.previewUrl;large.alt="Expanded preview of @"+ref.alias;large.className="ref-expanded-preview";card.append(large);
       const label=document.createElement("label"),fit=document.createElement("select");label.textContent="IMAGE FIT";for(const [value,title] of [["preserve","Preserve original proportions"],["crop","Crop to canvas"],["contain","Contain on canvas"]]){const o=document.createElement("option");o.value=value;o.textContent=title;fit.append(o);}fit.value=ref.imageFit||"preserve";fit.disabled=state.busy;fit.onchange=()=>{ref.imageFit=fit.value;updateRefFitPreview(ref).catch(e=>info(e.message,true));};card.append(label,fit);
     }
     if(ref.role==="custom"||ref.role==="storyboard"){
@@ -631,20 +641,19 @@ $("addRef").onclick=()=>{
   try{picker.showPicker();}catch{picker.click();}
 };
 $("refFile").onchange=()=>{
-  const file=$("refFile").files[0],kind=state.pendingRefKind;
-  if(!file||!kind||state.busy)return;
-  if(!mediaRules[kind].ext.test(file.name)||!file.size||file.size>mediaRules[kind].max){
-    $("refFile").value="";
-    info("This "+kind+" file is empty, unsupported, or above the upload size limit.",true);return;
+  const kind=state.pendingRefKind;if(!kind||state.busy)return;
+  const errors=[];
+  for(const file of $("refFile").files){
+    if(state.refs.length>=12||state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]||(kind==="audio"&&state.refs.filter(r=>r.kind==="audio"||r.kind==="video"&&r.useAudio).length>=3)){errors.push("Reference limit reached; remaining files were not added.");break;}
+    if(!mediaRules[kind].ext.test(file.name)||!file.size||file.size>mediaRules[kind].max){errors.push(file.name+": unsupported, empty or too large.");continue;}
+    const ref={assetId:null,kind,file,alias:aliasName(file.name),role:{image:"character identity",video:"motion",audio:"voice"}[kind],useAudio:false,meta:null,trimEnabled:false,trimStart:0,trimDuration:15,fitVideo:true,previewUrl:kind==="audio"?null:URL.createObjectURL(file)};
+    state.refs.push(ref);
+    if(kind==="audio"){
+      const url=URL.createObjectURL(file),probe=document.createElement("audio");probe.preload="metadata";probe.src=url;
+      probe.onloadedmetadata=()=>{if(Number.isFinite(probe.duration)&&probe.duration>0)ref.localDuration=probe.duration;URL.revokeObjectURL(url);renderRefs();};probe.onerror=()=>URL.revokeObjectURL(url);
+    }
   }
-  state.refs.push({kind,file,alias:aliasName(file.name),role:{image:"character identity",video:"motion",audio:"voice"}[kind],useAudio:false,meta:null,trimEnabled:false,trimStart:0,trimDuration:15,fitVideo:true,
-    previewUrl:kind==="audio"?null:URL.createObjectURL(file)});
-  if(kind==="audio"){
-    const ref=state.refs[state.refs.length-1],url=URL.createObjectURL(file),probe=document.createElement("audio");probe.preload="metadata";probe.src=url;
-    probe.onloadedmetadata=()=>{if(Number.isFinite(probe.duration)&&probe.duration>0)ref.localDuration=probe.duration;URL.revokeObjectURL(url);renderRefs();};
-    probe.onerror=()=>URL.revokeObjectURL(url);
-  }
-  $("refFile").value="";renderRefs();renderEstimates();info("");saveDraft();
+  $("refFile").value="";renderRefs();renderEstimates();info(errors.join(" "),!!errors.length);saveDraft();
 };
 
 function mentionItems(){
@@ -719,6 +728,7 @@ $("prompt").addEventListener("blur",()=>setTimeout(()=>$("mentionMenu").classLis
 function currentRenderSpec() {
   const refs = state.mode === "refs";
   return {
+    model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:state.sampling||{},node_options:state.nodeOptions||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
     mode: state.mode,
     prompt_mode: state.promptMode || "guided",
     source_prompt: $("prompt").value.trim(),
@@ -752,6 +762,8 @@ function currentRenderSpec() {
     seed: Number($("seed").value),
     steps: Number($("steps").value),
     render_method: method(),
+    style_direction:state.styleDirection||null,
+    preserve_reference_audio:state.preserveReferenceAudio?(state.refs.find(r=>r.kind==="video")?.assetId||state.refs.find(r=>r.kind==="video")?.alias):null,
     ref_image_size: $("refSize") ? $("refSize").value : "match",
     loras: state.loras.filter(x => x.enabled),
     refine: $("enableRefine") ? $("enableRefine").checked : false,
@@ -878,6 +890,7 @@ function setBusy(value) {
   renderLoras();renderRefs();renderGuides();renderEstimates();
   refreshLabControls();
   for(const id of ["preparationMode","preparePrompt","enableControl","controlKind","controlVideo","controlSource","controlMask","controlStrength"])if($(id))$(id).disabled=value;
+  if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function uploadOne(file,kind,onProgress=()=>{},onSent=()=>{},options={}) {
@@ -1076,8 +1089,9 @@ async function checkConnection() {
       if(!ready.quality?.h3_vae_tile_fix)throw Error("Update ComfyUI: the H3 VAE quality fix is missing.");
       state.gpu=data.devices?.[0]?.name||"unknown";
       await loadLoras();
-      const required=state.mode==="refs"?["ref2va","text_encoder","video_vae","audio_vae"]:["fl2va","text_encoder","video_vae","audio_vae"];
+      const required=["text_encoder","video_vae","audio_vae"];
       const missing=required.filter(name=>!state.modelsReady[name]);
+      if(!selectedModelReady())missing.push('selected checkpoint');
       const baseNodes=["UNETLoader","MiniMaxH3SigmaShift","CLIPLoader","VAELoader","ConditioningZeroOut","KSampler","H3ReleaseForDecode","VAEDecode","VAEDecodeAudio","CreateVideo","H3SaveVideo"];
       const modeNodes=state.mode==="refs"?["MiniMaxH3ReferenceToVideo"]:["MiniMaxH3ImageToVideo"];
       if(state.mode==="frames")modeNodes.push("LoadImage");
@@ -1110,7 +1124,7 @@ async function checkConnection() {
     $("connection").className="connection down";
     $("connectionText").textContent=e.message||"Server offline";
     state.nodesReady=null;state.lorasLoaded=false;
-    if(!state.busy&&method()!=="native"){$("renderMethod").value="native";$("steps").value="20";renderMethodInfo();renderEstimates();}
+    if(!state.busy){renderMethodInfo();renderEstimates();}
     return false;
   }
 }
@@ -1143,7 +1157,7 @@ async function generate() {
     state.labJobId=null;state.runMeta=null;state.preparedContext=null;state.queuePhase=null;
     if(state.continuation){const c=state.continuation;
       if(!continuationCanvasMatches(c))throw Error("Continuation must use the source canvas.");
-      if(c.type==="generated"&&c.source_model!==(state.mode==="refs"?modelRef:modelFL))throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
+      if(c.type==="generated"&&c.source_model!==selectedCheckpoint())throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
     }
     prompt=prepareWithAI?H3PromptInput.normalize($("prompt").value).text:resolvedPrompt();
     if(!prompt)throw Error("Write the scene prompt first.");
@@ -1199,7 +1213,9 @@ async function generate() {
     if($("enableRefine").checked&&!state.labCapabilities?.refine_ready)throw Error("Refinement is unavailable. Install its verified node and model, or turn it off.");
     if(state.control?.enabled&&!state.labCapabilities?.controlnet_ready)throw Error("ControlNet 2.0 is unavailable on this server.");
     if(state.control?.enabled&&window.H3ConnectedStudio)H3ConnectedStudio.validateControl();
-    if(state.control?.enabled&&(state.mode==="refs"||state.continuation||$("enableRefine").checked))throw Error("ControlNet requires Text or Frames without continuation or Refine. Change this combination before uploading.");
+    if(state.control?.enabled&&(state.continuation||$("enableRefine").checked))throw Error("ControlNet with continuation or Refine has not been validated.");
+    if(state.control?.enabled&&state.mode==="refs"&&!state.labCapabilities?.controlnet_references_ready)throw Error("References with ControlNet require verified PR #16020 support.");
+    H3Configuration.resolve(currentRenderSpec(),state.labCapabilities||{});
     if($("enableRefine").checked&&state.continuation)throw Error("Refinement cannot be combined with continuation in this version. Turn one off before uploading.");
     if(state.control?.enabled&&window.H3ConnectedStudio){await H3ConnectedStudio.planControl();settings=captureSettings();}
     if(prepareWithAI&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
@@ -1290,7 +1306,8 @@ async function generate() {
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     settings=captureSettings();
     settings.control=state.control?.enabled?{...state.control}:null;
-    settings.refine=$("enableRefine").checked?{scale:1.25,steps:10,denoise:0.4}:null;
+    settings.refine=$("enableRefine").checked?refinementSettings():null;
+    settings.configuration=H3Configuration.resolve(currentRenderSpec(),state.labCapabilities||{});
     settings.preparation=state.preparedContext?{model:state.preparedContext.provider_model,fingerprint:state.preparedContext.fingerprint}:null;
     const token=crypto.randomUUID().replace(/-/g,"").slice(0,12);
     const workflow=graph(prompt,uploads,token);
@@ -1431,7 +1448,8 @@ function openDetails(entry,trigger){
     const modeNames={text:"Text to video",frames:"Start / end frames",refs:"References"};
     const methodNames={native:"Original quality",spectrum:"Spectrum",motioncache:"MotionCache",turbo:"Turbo LoRA"};
     row("Mode",modeNames[settings.mode]||settings.mode);
-    row("Model",settings.model);
+    row("Model",settings.configuration?.checkpoint||settings.model);
+    if(settings.configuration?.settings){const c=settings.configuration.settings;row('Sampler',c.sampler_name+' · '+c.scheduler);row('CFG / denoise',c.cfg+' / '+c.denoise);row('Video / audio shift',c.shift_video+' / '+c.shift_audio);row('Weight precision',c.weight_dtype);}
     row("Canvas",[settings.quality,settings.canvas].filter(Boolean).join(" · "));
     if(settings.sampling_canvas&&settings.sampling_canvas!==settings.canvas)row("Sampling canvas",settings.sampling_canvas+" · final output "+settings.canvas);
 
@@ -1587,7 +1605,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
     }
     if(!token)throw Error("This older clip has no saved sampler context. Choose Video context · re-encode.");
     const context=await projectCtrl.fetchJson(`/h3_studio/lab/contexts/${encodeURIComponent(token)}`);
-    const expected=state.mode==="refs"?modelRef:modelFL;
+    const expected=selectedCheckpoint();
     if(context.model_id!==expected||context.width!==samplingCanvas().width||context.height!==samplingCanvas().height)throw Error("Use the source checkpoint and canvas before extending this clip. Switching checkpoints has not been validated.");
     state.currentClipId="clip_"+crypto.randomUUID();
     state.continuation={type:"generated",source_take_id:entry.takeId,source_token:token,source_model:context.model_id,source_canvas:{width:context.width,height:context.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,context_length:39,audio_feather_ticks:8};

@@ -200,7 +200,7 @@ install_speed_node "ComfyUI-H3-Motion-Context-MultiRef" \
 echo "Downloading/reusing H3 T2V model files into persistent ComfyUI storage..."
 DOWNLOAD_ARGS=("$COMFY_ROOT")
 if [[ "$WITH_REF2VA" -eq 0 ]]; then DOWNLOAD_ARGS+=(--t2v-only); fi
-if [[ "${H3_INSTALL_TURBO:-0}" == "1" ]]; then DOWNLOAD_ARGS+=(--with-speed-lora); fi
+if [[ "${H3_INSTALL_TURBO:-0}" == "1" ]]; then echo "Turbo has been retired." >&2; exit 2; fi
 if [[ "${H3_MODELS_PREPARED:-0}" != "1" ]]; then
     bash "$H3_STUDIO/deploy/download_h3_models.sh" "${DOWNLOAD_ARGS[@]}"
 fi

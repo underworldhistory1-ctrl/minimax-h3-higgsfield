@@ -67,6 +67,8 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 
 ## Get started
 
+The development modernization adds independent Singularity/Hybrid profiles, native References + ControlNet capability checks, shared advanced settings, compact multi-image reference management, and a resizable desktop sidebar. Turbo is retired. Read the [dated audit, compatibility matrix, tests and deployment/rollback guide](docs/MODERNIZATION_2026_10_13_AR.md) before using this branch. New configurations have CPU/browser coverage; GPU acceptance remains pending.
+
 **Windows or NVIDIA Linux:** follow the [installation guide](docs/INSTALL.md). It covers existing ComfyUI installations, first-time setup and verified model reuse. Once installed, open the studio page at your ComfyUI server address.
 
 | Where you work | Guide |

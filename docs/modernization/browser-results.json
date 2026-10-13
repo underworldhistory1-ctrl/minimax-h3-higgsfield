@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checks": [
+    "740px desktop sidebar",
+    "keyboard resize persistence",
+    "multi-image upload",
+    "compact expandable references",
+    "rename and reorder bindings",
+    "Singularity loader and sampler overrides",
+    "refresh persistence",
+    "mobile overflow",
+    "zero uncaught errors"
+  ],
+  "gpu_rendered": false,
+  "fixture_backend": true
+}

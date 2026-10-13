@@ -51,7 +51,7 @@
   .right{padding-bottom:18px}
 }
 </style>
-<link rel="stylesheet" href="./studio-ux.css?v=20261008-final">
+<link rel="stylesheet" href="./studio-ux.css?v=20261013-modernization">
 </head>
 <body>
 <header class="top">
@@ -104,7 +104,7 @@
    <section class="panel" id="refsSection" hidden>
     <h2>Reference library</h2><p>Name each asset, then type @name in the prompt. Each asset is bound to its H3 reference input.</p>
     <div class="ref-add"><select id="refKind" aria-label="Reference type"><option value="image">Image · person / place / look</option><option value="video">Video · motion / scene guide</option><option value="audio">Audio · voice / music</option></select><button class="button alt smallbtn" id="addRef">+ Add</button></div>
-    <input type="file" id="refFile" class="file-picker" aria-label="Choose reference file"><div id="refs" class="refs"></div><div id="refDurationNotice" class="tip" aria-live="polite"></div>
+    <input type="file" id="refFile" multiple class="file-picker" aria-label="Choose reference file"><div id="refs" class="refs"></div><div id="refDurationNotice" class="tip" aria-live="polite"></div>
     <label style="display:flex;gap:8px;align-items:center"><input id="fitImages" type="checkbox" checked style="width:auto"> Auto fit oversized reference images · 2048 px maximum</label>
     <div class="tip">Video references guide a new generation. “Whole scene” asks H3 to follow the full clip while changing the detail in your prompt, but cannot preserve every other frame or pixel. For a multi-panel shot sheet, select Storyboard and mention it in the prompt. Up to 9 images, 3 videos, 3 audio references and 12 files total. A selected video soundtrack counts as audio. Each video/audio: 2–15 s; each type totals 15 s. Trim longer clips below; oversized video can fit within 1920×1080. Frame rates convert to 24 fps after upload.</div>
     <div class="section"><label for="refSize">REFERENCE IMAGE DETAIL</label><select id="refSize"><option value="max" selected>Max · native short edge 2048 px</option><option value="match">Match output canvas · faster</option></select><div class="tip">Upload fitting caps the long edge at 2048 px. Native Max caps the short edge at 2048 px, never upscales, and avoids the extra downscale used by Match. It can consume more memory; it cannot recover lost source detail.</div></div>
@@ -130,7 +130,7 @@
     <h2>Output settings</h2><p>Choose the exported video size. Smaller canvases have less image detail.</p>
     <label>FORMAT</label><div class="aspect-toggle" role="group" aria-label="Video orientation"><button id="aspectLandscape" type="button" aria-pressed="true">16:9 · Landscape</button><button id="aspectPortrait" type="button" aria-pressed="false">9:16 · Portrait</button><button id="aspectSquare" type="button" aria-pressed="false">1:1 · Square</button><button id="aspect4_3" type="button" aria-pressed="false">4:3 · Classic</button><button id="aspect3_4" type="button" aria-pressed="false">3:4 · Vertical</button><button id="aspect21_9" type="button" aria-pressed="false">21:9 · Cinema</button></div><div class="tip">Canvas dimensions are rounded for H3, so the ratio is approximate.</div>
     <label>CANVAS &amp; ESTIMATED TIME</label><div id="estimates" class="estimates"></div><div id="resolutionTip" class="tip" role="note"></div>
-    <label for="renderMethod">Render method</label><select id="renderMethod"><option value="native">Original quality · recommended</option><option value="spectrum" disabled>Spectrum · approximate acceleration</option><option value="motioncache" disabled>MotionCache · approximate acceleration</option><option value="turbo" disabled>Turbo LoRA · fastest experiment</option></select>
+    <label for="renderMethod">Render method</label><select id="renderMethod"><option value="native">Original quality · recommended</option><option value="spectrum" disabled>Spectrum · approximate acceleration</option><option value="motioncache" disabled>MotionCache · approximate acceleration</option></select>
     <div class="tip" id="methodAvailability">Optional methods become available when installed on your ComfyUI server.</div>
     <div class="render-controls">
      <div><label for="durationSeconds">Duration (seconds)</label><input id="durationSeconds" type="number" min="5" max="15.1" step="0.1" inputmode="decimal" value="15.1"><input id="duration" type="hidden" value="362"><div class="duration-hint" id="durationHint" role="status" aria-live="polite">Actual H3 length: 15.08 s · 362 frames at 24 fps.</div></div>
@@ -173,18 +173,20 @@
  </section>
 </main>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/uuid.js?v=20261008-final"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261008-input-3"></script>
-<script src="./h3/prompt-input.js?v=20261008-input-3"></script>
-<script src="./h3/prompt-compiler.js?v=20261013-grouped-binding-2"></script>
-<script src="./h3/graph-builder.js?v=20261012-portrait-fullhd-5"></script>
-<script src="./h3/project-controller.js?v=20261008-final"></script>
-<script src="./lab-ui.js?v=20261012-portrait-fullhd-5"></script>
-<script src="./h3/studio-ux.js?v=20261008-final"></script>
-<script src="./h3/queue-ui.js?v=20261012-portrait-fullhd-5"></script>
-<script src="./h3/timing-estimator.js?v=20261012-portrait-fullhd-5"></script>
-<script src="./studio.js?v=20261012-portrait-fullhd-5"></script>
-<script src="./h3/connected-studio.js?v=20261012-portrait-fullhd-5"></script>
+<script src="./h3/uuid.js?v=20261013-modernization"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261013-modernization"></script>
+<script src="./h3/prompt-input.js?v=20261013-modernization"></script>
+<script src="./h3/prompt-compiler.js?v=20261013-modernization"></script>
+<script src="./h3/configuration.js?v=20261013-modernization"></script>
+<script src="./h3/graph-builder.js?v=20261013-modernization"></script>
+<script src="./h3/project-controller.js?v=20261013-modernization"></script>
+<script src="./lab-ui.js?v=20261013-modernization"></script>
+<script src="./h3/studio-ux.js?v=20261013-modernization"></script>
+<script src="./h3/queue-ui.js?v=20261013-modernization"></script>
+<script src="./h3/timing-estimator.js?v=20261013-modernization"></script>
+<script src="./studio.js?v=20261013-modernization"></script>
+<script src="./h3/connected-studio.js?v=20261013-modernization"></script>
+<script src="./h3/configuration-ui.js?v=20261013-modernization"></script>
 </body>
 </html>
 

@@ -8,7 +8,7 @@ const {canvasFor}=require('../../web/h3/graph-builder.js');
 test('Full HD remains selectable and preserves output with every text render method',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../../web/studio.js'),'utf8');
  assert.match(source,/\[1920,1080,"Full HD/);
- for(const render_method of ['native','spectrum','motioncache','turbo']) {
+ for(const render_method of ['native','spectrum','motioncache']) {
   for(const refine of [false,true]) {
    const graph=buildGraph({mode:'text',width:1920,height:1080,target_frames:124,
     render_method,steps:render_method==='turbo'?8:20,refine},{},{refine_ready:true,turbo_ready:true});
@@ -28,7 +28,7 @@ test('Portrait Full HD uses the same token budget and preserves all supported me
  assert.equal(portrait.width,1088);assert.equal(portrait.height,1920);
  assert.equal(portrait.width*portrait.height,landscape.width*landscape.height);
  assert.deepEqual(portrait.crop,{width:1080,height:1920,x:4,y:0});
- for(const mode of ['text','frames','refs'])for(const render_method of ['native','spectrum','motioncache','turbo']) {
+ for(const mode of ['text','frames','refs'])for(const render_method of ['native','spectrum','motioncache']) {
   if(mode==='refs'&&render_method==='turbo')continue;
   for(const refine of [false,true]) {
    const graph=buildGraph({mode,width:1080,height:1920,target_frames:362,render_method,

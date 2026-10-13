@@ -99,12 +99,16 @@ def validate_control_graph(spec, input_root, caps):
         return None
     if caps.get('controlnet_ready') is not True:
         raise ValueError('ControlNet 2.0 is unavailable: ' + '; '.join(caps.get('controlnet_missing_reasons', [])))
-    if render.get('mode') not in ('text', 'frames', 'Text', 'Frames') or render.get('continuation') or render.get('enable_refine') or render.get('refine'):
-        raise ValueError('ControlNet supports FL2VA Text/Frames without continuation or refine')
+    if render.get('mode') not in ('text', 'frames', 'refs', 'Text', 'Frames', 'References') or render.get('continuation') or render.get('enable_refine') or render.get('refine'):
+        raise ValueError('ControlNet with continuation or refine has not been validated')
+    if render.get('mode') in ('refs', 'References') and caps.get('controlnet_references_ready') is not True:
+        raise ValueError('References with ControlNet require verified PR #16020 support')
     width, height = (int(render[k]) for k in ('width', 'height'))
     # Full HD is exported from the aligned H3 canvas, not sent as a 1080px latent.
     if (width, height) == (1920, 1080):
         height = 1088
+    elif (width, height) == (1080, 1920):
+        width = 1088
     length = int(render.get('target_frames', render.get('length', 0)))
     canvas(width, height, length)
     strength = float(control.get('strength', 1))
@@ -130,7 +134,8 @@ def validate_control_graph(spec, input_root, caps):
     if len(apply_nodes) != 1:
         raise ValueError('Workflow must contain one native ControlNet apply node')
     inputs = apply_nodes[0]['inputs']
-    generators = [v for v in graph.values() if v.get('class_type') == 'MiniMaxH3ImageToVideo']
+    generator_class = 'MiniMaxH3ReferenceToVideo' if render.get('mode') in ('refs', 'References') else 'MiniMaxH3ImageToVideo'
+    generators = [v for v in graph.values() if v.get('class_type') == generator_class]
     if len(generators) != 1 or any(generators[0].get('inputs', {}).get(k) != value for k, value in [('width', width), ('height', height), ('length', length)]):
         raise ValueError('Control canvas and frame count disagree with the generation graph')
     vae_link = inputs.get('vae', [])
@@ -174,7 +179,7 @@ def validate_control_graph(spec, input_root, caps):
     loader = graph.get(str(patch[0]), {}) if len(patch) == 2 and patch[1] == 0 else {}
     if loader.get('class_type') != 'ModelPatchLoader' or loader.get('inputs', {}).get('name') != CONTROL_FILE:
         raise ValueError('Workflow requires the exact ControlNet 2.0 patch')
-    if any(v.get('class_type') in ('MiniMaxH3ReferenceToVideo', 'MinimaxH3LatentUpscaler3D') for v in graph.values()):
+    if any(v.get('class_type') == 'MinimaxH3LatentUpscaler3D' for v in graph.values()):
         raise ValueError('Unsupported ControlNet workflow combination')
     samplers = [v for v in graph.values() if v.get('class_type') == 'KSampler']
     if len(samplers) != 1:
@@ -198,8 +203,21 @@ def validate_control_graph(spec, input_root, caps):
         visited.add(node_id)
         node = graph.get(node_id, {})
         if node.get('class_type') == 'UNETLoader':
-            if node.get('inputs', {}).get('unet_name') != 'minimax_h3_fl2va_pruned_int8_convrot.safetensors':
-                raise ValueError('Control requires the exact FL2VA model')
+            profile = render.get('model_profile', 'original')
+            expected = ('minimax_h3_ref2va_pruned_int8_convrot.safetensors' if render.get('mode') in ('refs', 'References') else 'minimax_h3_fl2va_pruned_int8_convrot.safetensors')
+            if profile == 'hybrid_conditioning':
+                expected = 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'
+            elif profile == 'singularity':
+                expected = render.get('checkpoint')
+                if not any(x['name'] == expected and 'singularity' in x['profiles'] for x in caps.get('model_catalog', [])):
+                    raise ValueError('Selected ControlNet checkpoint is unavailable')
+            if node.get('inputs', {}).get('unet_name') != expected:
+                raise ValueError('Control model disagrees with selected checkpoint')
+            break
+        if node.get('class_type') == 'MinimaxH3_HybridLoader' and render.get('model_profile') == 'hybrid_loader' and caps.get('hybrid_loader_ready'):
+            preset = render.get('hybrid_preset', 'none')
+            if node.get('inputs', {}) != {'base_model': 'minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'overlay_model': '' if preset == 'none' else 'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'overlay_preset': preset}:
+                raise ValueError('Hybrid loader disagrees with selected configuration')
             break
         if node.get('class_type') not in ('MiniMaxH3SigmaShift', 'LoraLoaderModelOnly', 'SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache'):
             raise ValueError('Unsupported control model path')

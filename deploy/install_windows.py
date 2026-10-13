@@ -360,8 +360,8 @@ def preflight(args):
         print("ComfyUI Python:", python, "(portable)" if portable else "")
         print("Python dependencies and CUDA:", probe.stdout.strip() if probe.returncode == 0 else "incomplete or unavailable")
         models = root / "models"
-        from download_h3_models import MODELS, TURBO_FILE, TURBO_SIZE
-        for name, size in (*MODELS, ("loras/" + TURBO_FILE, TURBO_SIZE)):
+        from download_h3_models import MODELS
+        for name, size in MODELS:
             target = models / name
             actual = target.stat().st_size if target.is_file() else 0
             print("Model cache:", name, "size matches" if actual == size else f"missing/incomplete ({actual:,} of {size:,} bytes)")
@@ -425,7 +425,7 @@ def main():
         call(python, "-m", "pip", "install", "huggingface_hub==1.32.0")
     models_prepared = os.environ.get("H3_MODELS_PREPARED") == "1"
     if not models_prepared:
-        model_args = [] if os.environ.get("H3_INSTALL_TURBO") == "1" else ["--without-speed-lora"]
+        model_args = ["--without-speed-lora"]
         call(python, PROJECT / "deploy" / "download_h3_models.py", root, *model_args)
         call(python, PROJECT / "deploy" / "download_optional_loras.py", root)
     if args.refine:

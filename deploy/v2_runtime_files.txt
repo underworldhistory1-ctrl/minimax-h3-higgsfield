@@ -86,3 +86,9 @@ h3_lab/shared_timing.py
 deploy/runtime_patches.py
 deploy/update_source.py
 h3_lab/storage.py
+web/h3/configuration.js
+web/h3/configuration-ui.js
+h3_lab/model_catalog.py
+deploy/compatibility.json
+deploy/environment_audit.py
+h3_lab/configuration.py

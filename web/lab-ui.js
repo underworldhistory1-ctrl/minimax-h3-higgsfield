@@ -7,6 +7,7 @@ async function refreshLabCapabilities(){
   try{const response=await fetch(api("/object_info/MiniMaxH3AddGuide"));if(response.ok){const schemas=await response.json();const input=schemas.MiniMaxH3AddGuide?.input||{};const fields={...input.required,...input.optional};state.labCapabilities.guide_audio=!!fields.audio;state.labCapabilities.guide_video=!!fields.image&&!!state.nodesReady?.LoadVideo&&!!state.nodesReady?.GetVideoComponents;}}
   catch{}
   refreshLabControls();
+  if(window.H3ConfigurationUI)await H3ConfigurationUI.refresh();
   if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function refreshLabControls(){
@@ -124,6 +125,7 @@ async function persistProjectDraft(){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"].includes(key))):null;
   return {version:1,mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
+    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
     preparationMode:$("preparationMode")?.value||"ai",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
@@ -138,6 +140,8 @@ async function hydrateProjectDraft(draft){
   const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
   if(epoch!==state.hydrationEpoch)return;
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
+  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
+  if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
   if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;
   if($("preparationMode"))$("preparationMode").value=draft.preparationMode==='native'?'native':'ai';
@@ -146,6 +150,7 @@ async function hydrateProjectDraft(draft){
   state.prompts={text:"",frames:"",refs:"",...draft.prompts};state.promptMode=draft.promptMode||"guided";$("promptMode").value=state.promptMode;$("frameFit").value=draft.frameFit||"crop";
   $("fitImages").checked=draft.fitImages!==false;$("fitFrames").checked=draft.fitFrames!==false;
   for(const [key,value] of Object.entries(draft.settings||{}))if($(key))$(key).value=value;
+  if(draft.settings?.renderMethod==='turbo'){$('renderMethod').value='native';$('steps').value='20';info('Turbo was removed. This project now uses Original quality at 20 steps.');}
   state.desiredLoras=state.lorasLoaded?null:(draft.loras||[]);
   state.aspectFormat=Object.keys(aspectPresets).find(k=>aspectPresets[k].some(([w,h])=>w===state.width&&h===state.height))||"16:9";
   state.mode=draft.mode||"text";$("prompt").value=state.prompts[state.mode]||"";selectMode(state.mode,true);state.loras=state.loras.map(x=>({...x,enabled:!!draft.loras?.some(l=>l.name===x.name),strength:draft.loras?.find(l=>l.name===x.name)?.strength??x.strength}));

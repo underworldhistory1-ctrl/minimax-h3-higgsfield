@@ -81,7 +81,7 @@ def main():
     missing_v2 = v2_problems(capabilities)
     for filename, marker in (("index.html", "H3 Higgsfield"), ("studio.js", "H3GraphBuilder"),
                              ("lab-ui.js", "renderGuides"), ("h3/prompt-compiler.js", "H3PromptCompiler"),
-                             ("h3/graph-builder.js", "H3GraphBuilder"), ("h3/project-controller.js", "H3ProjectController")):
+                             ("h3/graph-builder.js", "H3GraphBuilder"), ("h3/configuration.js", "H3Configuration"), ("h3/configuration-ui.js", "H3ConfigurationUI"), ("h3/project-controller.js", "H3ProjectController")):
         with opener.open(base + "/extensions/" + args.extension + "/" + filename, timeout=30) as response:
             content = response.read(4 * 1024 * 1024 + 1).decode("utf-8")
         if len(content) > 4 * 1024 * 1024 or marker not in content:

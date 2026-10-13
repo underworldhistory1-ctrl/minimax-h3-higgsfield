@@ -43,17 +43,17 @@ def validate_av(tensors, width, height, frames=None):
 
 def checkpoint_signature(prompt):
     signature = []
-    kinds = {"UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "MiniMaxH3SigmaShift",
+    kinds = {"UNETLoader", "MinimaxH3_HybridLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "MiniMaxH3SigmaShift",
              "SpectrumApplyMiniMaxH3", "MiniMaxH3MotionCache"}
     categories = {"unet_name": "diffusion_models", "clip_name": "text_encoders",
-                  "vae_name": "vae", "lora_name": "loras"}
+                  "vae_name": "vae", "lora_name": "loras", "base_model": "diffusion_models", "overlay_model": "diffusion_models"}
     for node in prompt.values():
         if not isinstance(node, dict) or node.get("class_type") not in kinds:
             continue
         fields = {k: v for k, v in node.get("inputs", {}).items() if not isinstance(v, list)}
         identities = {}
         for field, category in categories.items():
-            if field in fields and hasattr(folder_paths, "get_full_path"):
+            if field in fields and fields[field] and hasattr(folder_paths, "get_full_path"):
                 path = folder_paths.get_full_path(category, fields[field])
                 if not path or not pathlib.Path(path).is_file():
                     raise ValueError("Context dependency is missing: " + fields[field])
@@ -74,6 +74,8 @@ def preserve_context(checkpoint, token, prompt, tensors):
         return  # Decode-only recovery does not invent an engine identity.
     inputs = [n.get("inputs", {}) for n in prompt.values() if isinstance(n, dict)]
     model = next((i["unet_name"] for i in inputs if "unet_name" in i), None)
+    if model is None:
+        model = next((i['base_model'] for i in inputs if 'base_model' in i), None)
     canvas = next((i for i in inputs if all(k in i for k in ("width", "height", "length"))), None)
     if not model or canvas is None:
         return

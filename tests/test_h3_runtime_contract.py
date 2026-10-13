@@ -24,6 +24,15 @@ class RuntimeContextTests(unittest.TestCase):
         self.audio=torch.zeros(1,32,2,292,dtype=torch.float32)
         self.tensors={'nested_0':self.video,'nested_1':self.audio}
     def tearDown(self):self.tmp.cleanup()
+    def test_hybrid_context_records_base_overlay_and_preset(self):
+        token='b'*12;source=pathlib.Path(self.tmp.name)/'source.safetensors';save_file(self.tensors,str(source))
+        prompt={'1':{'class_type':'MinimaxH3_HybridLoader','inputs':{'base_model':'fl.safetensors','overlay_model':'ref.safetensors','overlay_preset':'block_range_adaln'}},'6':{'inputs':{'width':32,'height':32,'length':175}}}
+        self.mod.preserve_context(source,token,prompt,self.tensors)
+        record=json.loads((pathlib.Path(self.tmp.name)/'h3_lab_contexts'/(token+'.json')).read_text())
+        self.assertEqual(record['model_id'],'fl.safetensors')
+        self.assertEqual(record['checkpoint_signature'][0]['fields']['overlay_preset'],'block_range_adaln')
+        changed=__import__('copy').deepcopy(prompt);changed['1']['inputs']['overlay_preset']='all_adaln'
+        self.assertNotEqual(self.mod.checkpoint_signature(prompt),self.mod.checkpoint_signature(changed))
     def test_real_safetensors_context_integrity_and_compatibility(self):
         token='a'*12;source=pathlib.Path(self.tmp.name)/'source.safetensors';save_file(self.tensors,str(source))
         self.mod.preserve_context(source,token,{'1':{'inputs':{'unet_name':'model.safetensors'}},'6':{'inputs':{'width':32,'height':32,'length':175}}},self.tensors)

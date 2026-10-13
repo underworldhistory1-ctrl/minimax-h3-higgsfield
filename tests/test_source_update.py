@@ -1,4 +1,5 @@
 import subprocess
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,17 +12,19 @@ class SourceUpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'.git').mkdir()
+            (root/'deploy').mkdir()
+            (root/'deploy/compatibility.json').write_text(json.dumps({'approved_source_commits':[target]}))
             values = ['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git', 'main', status, before, target]
             with patch('deploy.update_source.subprocess.check_output', side_effect=values), \
-                 patch('deploy.update_source.subprocess.run', side_effect=[Mock(returncode=0), Mock(returncode=ancestor), Mock(returncode=0)]) as run:
+                 patch('deploy.update_source.subprocess.run', side_effect=[Mock(returncode=0), Mock(returncode=ancestor), Mock(returncode=0), Mock(returncode=0)]) as run:
                 if status or ancestor:
                     with self.assertRaises(RuntimeError):
-                        update_source(root)
+                        update_source(root, policy='verified')
                     self.assertFalse(any('merge' in call.args[0] for call in run.call_args_list))
                     if status:
                         run.assert_not_called()
                 else:
-                    self.assertTrue(update_source(root))
+                    self.assertTrue(update_source(root, policy='verified'))
                     self.assertEqual(run.call_args_list[-1].args[0][-3:], ['merge', '--ff-only', 'origin/main'])
 
     def test_fast_forward_only(self):

@@ -78,20 +78,6 @@ def main() -> int:
                         local_dir=models_dir, force_download=target.exists())
         if not valid_safetensors(target, size):
             raise RuntimeError("Incomplete or malformed model: " + str(target))
-    if not args.without_speed_lora:
-        target = models_dir / "loras" / pathlib.Path(TURBO_FILE)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if valid_turbo(target):
-            print("Verified cached H3 Turbo LoRA.", flush=True)
-        elif args.offline_check:
-            raise RuntimeError("Missing or invalid cached H3 Turbo LoRA")
-        else:
-            print("Downloading H3 Turbo LoRA...", flush=True)
-            hf_hub_download(repo_id=TURBO_REPO, filename=TURBO_FILE,
-                            revision=TURBO_REVISION, local_dir=models_dir / "loras",
-                            force_download=target.exists())
-            if not valid_turbo(target):
-                raise RuntimeError("H3 Turbo LoRA size or SHA-256 mismatch: " + str(target))
     print("All requested H3 weights are ready.")
     return 0
 
