@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "audit_date": "2026-10-13",
-  "source_update_policy": "notify",
+  "source_update_policy": "latest",
   "approved_source_commits": [],
   "comfyui_commit": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
   "optional_nodes": {
@@ -22,6 +22,10 @@
       "status": "publisher_metadata_verified_gpu_untested"
     }
   },
-  "retired": ["turbo", "lightx2v"],
-  "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations."
+  "retired": [
+    "turbo",
+    "lightx2v"
+  ],
+  "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations.",
+  "project_version": "2.1.0"
 }

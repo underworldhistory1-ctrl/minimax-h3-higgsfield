@@ -3,7 +3,7 @@ import subprocess
 import json
 
 
-def update_source(project, policy='notify', before_update=None):
+def update_source(project, policy='latest', before_update=None):
     if not (project / '.git').exists():
         print('Source archive: download the latest archive for updates, or use a Git clone.')
         return False
@@ -22,13 +22,13 @@ def update_source(project, policy='notify', before_update=None):
     before, target = git('rev-parse', 'HEAD'), git('rev-parse', 'origin/main')
     if before == target:
         return False
-    if policy not in ('notify', 'verified'):
+    if policy not in ('latest', 'notify', 'verified'):
         raise RuntimeError('Unknown source update policy')
     try:
         manifest = json.loads((project / 'deploy/compatibility.json').read_text(encoding='utf-8'))
     except (OSError, ValueError):
         manifest = {}
-    if policy == 'notify' or target not in manifest.get('approved_source_commits', []):
+    if policy == 'notify' or policy == 'verified' and target not in manifest.get('approved_source_commits', []):
         print('New source candidate ' + target[:12] + '; current checkout retained. Only manifest-approved commits may update automatically.')
         return False
     if subprocess.run(['git', '-C', str(project), 'merge-base', '--is-ancestor', before, target]).returncode:

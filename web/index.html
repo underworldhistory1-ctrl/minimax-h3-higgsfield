@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield V2 — Create Video</title>
+<title>H3 Higgsfield 2.1.0 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -55,7 +55,7 @@
 </head>
 <body>
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · V2</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.1.0</div></div>
  <nav class="topnav" aria-label="Studio workspace"><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
 </header>
@@ -123,7 +123,7 @@
     <summary>LoRAs <span id="loraCount" class="tip"></span></summary><p>Installed adapters appear here. Enable only the ones you want on this render.</p>
     <div id="loraList" class="refs"><div class="tip">Connect ComfyUI to load installed LoRAs.</div></div>
     <button id="refreshLoras" class="button alt smallbtn" type="button" style="margin-top:9px">Refresh LoRAs</button>
-    <div class="tip">Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. The prepared FL2VA Turbo adapter is controlled by Render method and is unavailable in References mode.</div>
+    <div class="tip">Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. Character Swap requires Original Ref2VA with a source video and replacement image. Turbo is retired.</div>
     <div id="loraRecommendation" class="lora-recommendation" role="note" hidden><strong>Recommended when using LoRAs</strong>For the highest quality, choose <b>Native detail (max canvas)</b> and <b>Original quality</b> under Render method. This uses the full MiniMax H3 path; the LoRA may still change the result.</div>
    </details>
    <section class="panel">

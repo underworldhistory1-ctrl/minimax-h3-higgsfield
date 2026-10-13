@@ -1,4 +1,4 @@
-# H3 Higgsfield
+# H3 Higgsfield 2.1.0
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,6 +12,20 @@ The video workspace includes **1664×928** and exact **1920×1080** presets. See
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
+## New in 2.1.0
+
+- **Shared settings:** checkpoint, sampler, scheduler, shifts, precision, refinement and supported acceleration widgets stay synchronized with the submitted graph. Valid user overrides and project presets remain available.
+- **Model choices:** Original H3, independent Singularity, FL2VA reference conditioning and a separate tensor-overlay Hybrid loader. Availability depends on installed models and required nodes.
+- **References + structural control:** supported Fun ControlNet controls also work in References when ComfyUI includes the required PR #16020 implementation.
+- **Character Swap:** a source-video + replacement-image preset on Original Ref2VA, strength 1 and pinned verified weights. No Turbo or training assistant dependency. [Usage and limits](docs/CHARACTER_SWAP_AR.md).
+- **Video style direction:** separate Anime → realism and Realism → anime preparation, with separately selected installed style LoRAs and optional source soundtrack reuse. Automatic shot segmentation is not included.
+- **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
+- **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
+
+**Validation:** 283 Python tests, 133 JavaScript tests and browser fixture checks passed for version 2.1.0. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Singularity, Hybrid, Character Swap and all adapter/acceleration combinations have not been GPU-validated locally.
+
+![Character replacement controls](docs/modernization/character-swap.png)
+
 ## Your scene, with every reference given a job
 
 Start with an idea, an opening frame, or a set of references. Tell Studio what each asset should contribute: the character, the location, the visual style, the camera movement, or the storyboard. Name it, mention it in the prompt, and inspect the result before rendering.
@@ -20,7 +34,7 @@ The workspace brings generation, reference handling, progress, projects and fini
 
 ![Creator-supplied H3 production workspace](docs/demo/superman/production-workspace-preview.jpg)
 
-*Production capture from the Superman example. The current V2 release adds the updated project workspace, shared queue and prompt preparation controls.*
+*Production capture from the Superman example. Historical production example; version 2.1.0 adds the capabilities described below.*
 
 ## Built around the way you create
 
@@ -67,7 +81,7 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 
 ## Get started
 
-The development modernization adds independent Singularity/Hybrid profiles, native References + ControlNet capability checks, shared advanced settings, compact multi-image reference management, and a resizable desktop sidebar. Turbo is retired. Read the [dated audit, compatibility matrix, tests and deployment/rollback guide](docs/MODERNIZATION_2026_10_13_AR.md) before using this branch. New configurations have CPU/browser coverage; GPU acceptance remains pending.
+Version **2.1.0** adds shared model/workflow settings, independent Singularity and distinct Hybrid profiles, References + ControlNet readiness checks, Character Swap, compact multi-image references and a resizable desktop sidebar. Turbo is retired. See the [compatibility/deployment guide](docs/MODERNIZATION_2026_10_13_AR.md) and [Character Swap guide](docs/CHARACTER_SWAP_AR.md). New configurations have code/browser coverage; GPU rendering acceptance remains pending.
 
 **Windows or NVIDIA Linux:** follow the [installation guide](docs/INSTALL.md). It covers existing ComfyUI installations, first-time setup and verified model reuse. Once installed, open the studio page at your ComfyUI server address.
 
@@ -106,14 +120,3 @@ Post a shot, a reference experiment or a setup question in [Discussions](https:/
 [Connected Studio guide](docs/CONNECTED_STUDIO.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Graph map](docs/GRAPH_MAP.md)
 
 Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Code: [MIT](LICENSE).
-
-
-## Update 2026-10-12
-
-Launch from an official Git clone on `main`: the launcher fetches and fast-forwards to the latest repository version before installing. It preserves local edits and rejects divergent commits. `--no-update` is an explicit offline/custom-checkout option; `--preflight` and `--status` remain read-only. ZIP copies must be downloaded again for source updates. Verified ComfyUI and acceleration-node revisions remain pinned.
-
-The installer now includes the shared queue/cancellation/stage observer, bounded H3 MLP scratch allocations, CPU MotionCache residual storage, a 3 GB VRAM reserve for newly started workers, and the narrowly scoped public Studio document navigation fix. H3 Studio rejects oversized unsupported graphs before submission. Model weights, projects, inputs, and generated outputs are preserved.
-
-Qwen image references persist as original files in this browser's IndexedDB, including names, order, and dimensions. Wait for “saved in this browser” before refresh. Persistence belongs to the same browser and URL origin; changing tunnel hostname creates a separate browser draft. Removing a reference also updates its saved draft.
-
-Validation: 115 JavaScript tests, CPU stage/core patch tests, and real-browser refresh checks. No AI render was submitted for this update. These checks do not prove zero OOMs for every GPU workload.

@@ -617,7 +617,7 @@ def parser():
     result.add_argument("--turbo", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--checkpoint", choices=('singularity-int8',), help="Explicit opt-in to an optional 20.97 GB community checkpoint")
     result.add_argument("--hybrid", action="store_true", help="Prepare the pinned community hybrid loader (no new model downloads)")
-    result.add_argument("--update-policy", choices=('notify','verified'), default='notify', help="Notify of new source, or apply only locally manifest-approved commits")
+    result.add_argument("--update-policy", choices=('latest','notify','verified'), default='latest', help="Automatically update official main (default), notify only, or apply manifest-approved commits")
     result.add_argument("--video-only", action="store_true", help="Omit Qwen Image weights")
     result.add_argument("--qwen-image-profiles", choices=("", "int8", "bf16", "int8,bf16"), default=os.environ.get("QWEN_IMAGE_PROFILES", "int8"))
     result.add_argument("--no-controlnet", action="store_true")
