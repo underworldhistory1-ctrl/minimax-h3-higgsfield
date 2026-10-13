@@ -2,10 +2,10 @@
 (function(){
   'use strict';
   const panel=document.createElement('section');panel.className='panel';panel.id='preparationPanel';
-  panel.innerHTML='<h2>Prompt preparation</h2><label for="preparationMode">Before generation</label><select id="preparationMode"><option value="auto">Automatic · format &amp; use AI when available</option><option value="ai">Understand references &amp; prepare with AI</option><option value="native">Use my prompt directly</option></select><div id="writerStatus" class="tip" role="status"></div><button id="preparePrompt" class="button alt smallbtn" type="button">Preview prepared prompt</button><div id="preparationStatus" class="notice" role="status"></div>';
+  panel.innerHTML='<h2>Prompt preparation</h2><div id="writerGuide" class="workflow-help" lang="ar" dir="rtl">Automatic ينسّق كلامك، ويستخدم فهم الصور بالذكاء الاصطناعي فقط عندما تكون الخدمة متصلة. Use my prompt directly يرسل وصفك مباشرة.</div><label for="preparationMode">Before generation</label><select id="preparationMode"><option value="auto">Automatic · format &amp; use AI when available</option><option value="ai">Understand references &amp; prepare with AI</option><option value="native">Use my prompt directly</option></select><div id="writerStatus" class="tip" role="status"></div><button id="preparePrompt" class="button alt smallbtn" type="button">Preview prepared prompt</button><div id="preparationStatus" class="notice" role="status"></div>';
   const promptPanel=$('prompt').closest('.panel');promptPanel.after(panel);
   const controlPanel=document.createElement('details');controlPanel.className='panel';controlPanel.id='controlPanel';
-  controlPanel.innerHTML='<summary>Motion &amp; region control</summary><label><input id="enableControl" type="checkbox"> Control motion or structure</label><div id="controlAvailability" class="tip" role="status"></div><label for="controlInputType">Video input</label><select id="controlInputType"><option value="video">Ordinary video · extract guidance</option><option value="prepared">Prepared control map · advanced</option></select><label for="controlKind">What should the video guide?</label><select id="controlKind"><option value="pose">Follow body motion</option><option value="depth">Preserve scene structure</option><option value="canny">Follow outlines</option><option value="gray">Follow lighting</option><option value="hed">Prepared soft edges · HED</option><option value="mlsd">Prepared lines · MLSD</option><option value="scribble">Prepared scribble</option><option value="layout">Prepared layout</option><option value="inpaint">Regenerate a masked region</option></select><div id="controlPreprocessorStatus" class="tip" role="status"></div><div id="controlVideoInputs"><label for="controlVideo" id="controlVideoLabel">Source video</label><input id="controlVideo" type="file" accept=".mp4,.mov,.webm,.mkv"><div id="controlVideoHelp" class="tip">Upload an ordinary video. Studio extracts the selected guidance, then fits it to the canvas and duration.</div></div><div id="maskInputs" class="hidden"><label for="controlSource">Source video to edit</label><input id="controlSource" type="file" accept=".mp4,.mov,.webm,.mkv"><label for="controlMask">Static grayscale mask</label><input id="controlMask" type="file" accept=".png"><div class="tip">White = regenerate, black = source guidance. The mask must match the canvas. A static mask suits a fixed region; moving people need a tracked mask workflow.</div></div><label for="controlStartSeconds">Source start (seconds)</label><input id="controlStartSeconds" type="number" min="0" max="3600" step="0.1" value="0"><div id="controlSourceSpan" class="tip"></div><label for="controlStrength">Control strength</label><input id="controlStrength" type="number" min="0.05" max="10" step="0.05" value="1"><details><summary>Control sampling range</summary><label for="controlStartPercent">Start fraction</label><input id="controlStartPercent" type="number" min="0" max="1" step="0.01" value="0"><label for="controlEndPercent">End fraction</label><input id="controlEndPercent" type="number" min="0" max="1" step="0.01" value="1"></details><video id="preparedControlPreview" controls muted playsinline hidden style="width:100%;max-height:200px"></video><div id="controlStatus" class="notice" role="status"></div>';
+  controlPanel.innerHTML='<summary>Motion &amp; region control</summary><label><input id="enableControl" type="checkbox"> Control motion or structure</label><div id="controlAvailability" class="tip" role="status"></div><div id="controlGuide" class="workflow-help" lang="ar" dir="rtl"></div><label for="controlInputType">Control source</label><select id="controlInputType"><option value="video">Ordinary video · extract guidance</option><option value="image">Still image · extract static guidance</option><option value="prepared">Prepared control video · advanced</option><option value="prepared_image">Prepared control image · static</option></select><label for="controlKind">What should this input guide?</label><select id="controlKind"><option value="pose">Follow body motion</option><option value="depth">Preserve scene structure</option><option value="canny">Follow outlines</option><option value="gray">Follow lighting</option><option value="hed">Prepared soft edges · HED</option><option value="mlsd">Prepared lines · MLSD</option><option value="scribble">Prepared scribble</option><option value="layout">Prepared layout</option><option value="inpaint">Regenerate a masked region</option></select><div id="controlPreprocessorStatus" class="tip" role="status"></div><div id="controlVideoInputs"><label for="controlVideo" id="controlVideoLabel">Source video</label><input id="controlVideo" type="file" accept=".mp4,.mov,.webm,.mkv"><div id="controlVideoHelp" class="tip">Upload an ordinary video. Studio extracts the selected guidance, then fits it to the canvas and duration.</div></div><div id="maskInputs" class="hidden"><label for="controlSource">Source video to edit</label><input id="controlSource" type="file" accept=".mp4,.mov,.webm,.mkv"><label for="controlMask">Static grayscale mask</label><input id="controlMask" type="file" accept=".png"><div class="tip">White = regenerate, black = source guidance. The mask must match the canvas. A static mask suits a fixed region; moving people need a tracked mask workflow.</div></div><label for="controlStartSeconds">Source start (seconds)</label><input id="controlStartSeconds" type="number" min="0" max="3600" step="0.1" value="0"><div id="controlSourceSpan" class="tip"></div><label for="controlStrength">Control strength</label><input id="controlStrength" type="number" min="0.05" max="10" step="0.05" value="1"><details><summary>Control sampling range</summary><label for="controlStartPercent">Start fraction</label><input id="controlStartPercent" type="number" min="0" max="1" step="0.01" value="0"><label for="controlEndPercent">End fraction</label><input id="controlEndPercent" type="number" min="0" max="1" step="0.01" value="1"></details><video id="preparedControlPreview" controls muted playsinline hidden style="width:100%;max-height:200px"></video><div id="controlStatus" class="notice" role="status"></div>';
 
   panel.after(controlPanel);
   state.control=state.control||{enabled:false,input_type:'video'};state.controlInputs=state.controlInputs||{};
@@ -13,20 +13,21 @@
   $('preparationMode').onchange=()=>{localStorage.setItem(draftKey+'.preparation',$('preparationMode').value);state.preparedContext=null;refreshAvailability();saveDraft();};
   $('enableControl').onchange=()=>{state.control.enabled=$('enableControl').checked;state.preparedContext=null;saveDraft();};
   $('controlKind').onchange=()=>{state.control.kind=$('controlKind').value;state.preparedContext=null;refreshControlInputs();saveDraft();};
-  $('controlInputType').onchange=()=>{state.control.input_type=$('controlInputType').value;state.preparedContext=null;refreshControlInputs();saveDraft();};
+  $('controlInputType').onchange=()=>{state.control.input_type=$('controlInputType').value;$('controlVideo').value='';if(['image','prepared_image'].includes(state.control.input_type)&&$('controlKind').value==='inpaint'){$('controlKind').value='canny';state.control.kind='canny';}state.preparedContext=null;refreshControlInputs();saveDraft();};
   $('controlStartSeconds').onchange=()=>{state.control.start_seconds=Number($('controlStartSeconds').value);state.preparedContext=null;refreshControlInputs();saveDraft();};
   for(const id of ['controlStartPercent','controlEndPercent'])$(id).onchange=()=>{state.control.start_percent=Number($('controlStartPercent').value);state.control.end_percent=Number($('controlEndPercent').value);saveDraft();};
   $('controlStrength').onchange=()=>{state.control.strength=Number($('controlStrength').value);state.preparedContext=null;};
-  for(const [id,key] of [['controlVideo','video'],['controlSource','source'],['controlMask','mask']])$(id).onchange=()=>{const file=$(id).files[0];state.controlInputs[key]=file?{file,kind:key==='mask'?'image':'video',alias:'control_'+key,role:'control'}:null;state.preparedContext=null;$('controlStatus').textContent=file?'Selected '+file.name:'';};
-  function currentControl(){return state.control.enabled?{enabled:true,kind:$('controlKind').value,input_type:$('controlInputType').value,start_seconds:Number($('controlStartSeconds').value),source_span:state.control.source_span||null,mask_alignment:state.control.mask_alignment||null,plan_note:state.control.plan_note||'',strength:Number($('controlStrength').value),start_percent:Number($('controlStartPercent').value),end_percent:Number($('controlEndPercent').value),model_name:'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors'}:null;}
+  for(const [id,defaultKey] of [['controlVideo','video'],['controlSource','source'],['controlMask','mask']])$(id).onchange=()=>{const still=['image','prepared_image'].includes($('controlInputType').value),key=id==='controlVideo'&&still?'image':defaultKey;const file=$(id).files[0];state.controlInputs[key]=file?{file,kind:key==='mask'||key==='image'?'image':'video',alias:'control_'+key,role:'control'}:null;state.preparedContext=null;$('controlStatus').textContent=file?'Selected '+file.name:'';saveDraft();};
+  function currentControl(){return state.control.enabled?{enabled:true,kind:$('controlKind').value,input_type:$('controlInputType').value,start_seconds:['image','prepared_image'].includes($('controlInputType').value)?0:Number($('controlStartSeconds').value),source_span:state.control.source_span||null,mask_alignment:state.control.mask_alignment||null,plan_note:state.control.plan_note||'',strength:Number($('controlStrength').value),start_percent:Number($('controlStartPercent').value),end_percent:Number($('controlEndPercent').value),model_name:'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors'}:null;}
   function refreshAvailability(){
     const caps=state.labCapabilities||{};
     $('enableRefine').disabled=state.busy||!caps.refine_ready;
     $('refineAvailability').textContent=caps.refine_ready?'Verified on this server. Adds a 10-step second pass.':(caps.refine_missing_reasons||['Refine is not installed.']).join(' ');
     $('enableControl').disabled=state.busy||!caps.controlnet_ready;
-    $('controlAvailability').textContent=caps.controlnet_ready?'ControlNet 2.0 ready · References require verified native reference support.':(caps.controlnet_missing_reasons||['ControlNet 2.0 is not installed.']).join(' ');
+    $('controlAvailability').textContent=caps.controlnet_ready?(caps.controlnet_references_ready?'ControlNet 2.0 ready · Text, Frames and References supported.':'ControlNet 2.0 ready · References support is unavailable on this server.'):(caps.controlnet_missing_reasons||['ControlNet 2.0 is not installed.']).join(' ');
     refreshControlInputs();
-    $('writerStatus').textContent=usePromptAI()?(state.promptProvider?.configured?'AI preparation: '+state.promptProvider.model+'. Video uses sampled frames; audio requires supplied dialogue.':state.promptProvider?.reason||'Checking prompt model configuration…'):'Automatic formatting is active. '+(state.promptProvider?.configured?'Reference understanding with AI is available.':'AI scene understanding is not configured on this server.');
+    $('writerGuide').classList.toggle('workflow-help-warning',state.promptProvider?.configured===false);$('writerGuide').textContent=state.promptProvider?.configured===false?'فهم المراجع بالذكاء الاصطناعي يحتاج خدمة كتابة متصلة؛ التوليد نفسه يعمل. Automatic متاح للتنسيق المحلي، أو اختَر Use my prompt directly.':'Automatic ينسّق كلامك ويستخدم فهم المراجع عندما تكون خدمة الذكاء الاصطناعي متصلة. Use my prompt directly يرسل وصفك مباشرة.';
+    $('writerStatus').textContent=usePromptAI()?(state.promptProvider?.configured?'AI preparation: '+state.promptProvider.model+'. Video uses sampled frames; audio requires supplied dialogue.':(state.promptProvider?.configured===false?'AI reference understanding is unavailable. Choose Automatic or Use my prompt directly.':'Checking prompt model configuration…')):($('preparationMode')?.value==='native'?'Your prompt is sent directly. ':'Automatic formatting is active. ')+(state.promptProvider?.configured?'Reference understanding with AI is available.':'AI scene understanding is not configured on this server.');
   }
   function refreshProvider(){
     if(state.promptProviderCheck)return state.promptProviderCheck;
@@ -73,29 +74,33 @@
     return processor?.ready===true?'':processor?.reason||(Array.isArray(processor?.reasons)?processor.reasons.join('. '):'')||'Extraction for this goal is not configured on this server.';
   }
   function refreshControlInputs(){
-    const ordinary=$('controlInputType').value==='video',kind=$('controlKind').value,masked=kind==='inpaint';
+    const type=$('controlInputType').value,still=['image','prepared_image'].includes(type),ordinary=['video','image'].includes(type),kind=$('controlKind').value,masked=kind==='inpaint';
+    for(const option of $('controlInputType').options){const image=['image','prepared_image'].includes(option.value);option.disabled=image&&!state.labCapabilities?.control_still_ready;option.title=option.disabled?'Update this server to enable verified still-image preparation.':'';}
     $('maskInputs').classList.toggle('hidden',!masked);$('controlVideoInputs').classList.toggle('hidden',masked);
-    $('controlVideoLabel').textContent=ordinary?'Source video':'Prepared control video';
-    $('controlVideoHelp').textContent=ordinary?'Upload an ordinary video. Studio extracts the selected guidance, then fits it to the canvas and duration.':'Upload the actual control map. Studio fits it to the canvas and duration without extracting it again.';
+    $('controlVideoLabel').textContent=still?(ordinary?'Source still image':'Prepared control image'):(ordinary?'Source video':'Prepared control video');$('controlVideo').accept=still?'.png,.jpg,.jpeg,.webp':'.mp4,.mov,.webm,.mkv';$('controlKind').options[0].textContent=still?'Preserve body pose':'Follow body motion';
+    $('controlVideoHelp').textContent=still?'Upload one image. The guidance is held for the full video; the image is fitted with a centered crop.':ordinary?'Upload an ordinary video. Studio extracts guidance and aligns the selected span.':'Upload a video that already contains the selected control map.';
+    $('controlGuide').textContent=still?'صورة واحدة تثبّت الوضعية أو العمق أو الحواف أو الإضاءة طوال المقطع؛ لا تستخرج حركة. اختَر لوحة واحدة من الستوري بورد. الورقة متعددة اللوحات مكانها References بدور Storyboard، وللتوقيت استخدم Temporal keyframes.':masked?'لتعديل منطقة من فيديو: ارفع الفيديو وقناعًا ثابتًا بنفس التكوين. الأبيض منطقة التغيير، والأسود يحافظ على توجيه المصدر. القناع الثابت لا يتتبع شخصًا متحركًا.':ordinary?'الفيديو هنا يحدد الحركة أو البنية، والصور في References تحدد الشخصية والمكان. مثال: صورة شخصيتك + فيديو مشي + Follow body motion. لا تحتاج رفع نفس الفيديو في References إلا لو عايزه مرجعًا أيضًا.':'هذا المدخل لخريطة تحكم جاهزة، مثل Pose أو Depth أو Canny أو Scribble؛ اختر نوع الخريطة الحقيقي. لا تستخدم فيديو عادي أو ورقة ستوري بورد متعددة اللوحات كخريطة جاهزة.';
+    $('controlStartSeconds').hidden=still;controlPanel.querySelector('label[for=controlStartSeconds]').hidden=still;
+    const selected=state.controlInputs[still?'image':'video'];if(!masked)$('controlStatus').textContent=selected?'Selected '+selected.file.name:'';
     for(const option of $('controlKind').options){
-      const reason=option.value==='inpaint'||!ordinary?'':preprocessorReason(option.value);
+      const reason=still&&option.value==='inpaint'?'Masked editing requires a source video and static mask.':option.value==='inpaint'||!ordinary?'':preprocessorReason(option.value);
       option.disabled=!!reason;option.title=reason;
     }
-    $('controlPreprocessorStatus').textContent=masked?'The source video is aligned without extracting another control map.':ordinary?preprocessorReason(kind)||'Extraction for '+goalNames[kind]+' is available on this server. CPU processing takes additional time; Cancel stops this request.':'Advanced input: the video must already contain the selected guidance.';
+    $('controlPreprocessorStatus').textContent=masked?'The source video is aligned without extracting another control map.':ordinary?preprocessorReason(kind)||'Extraction for '+(still&&kind==='pose'?'a static body pose':goalNames[kind])+' is available. '+(still?'Guidance stays fixed throughout the clip.':'CPU processing takes additional time; Cancel stops this request.'):'Advanced input: this file must already contain the selected guidance.';
     const start=Number($('controlStartSeconds').value),span=Number($('duration').value)/24;
-    $('controlSourceSpan').textContent=Number.isFinite(start)&&start>=0?'Uses '+start.toFixed(2)+'–'+(start+span).toFixed(2)+' seconds from the source at the selected output length.':'Enter a valid source start time.';
+    $('controlSourceSpan').textContent=still?'Static guidance for the full '+span.toFixed(2)+' seconds; no motion is invented.':Number.isFinite(start)&&start>=0?'Uses '+start.toFixed(2)+'–'+(start+span).toFixed(2)+' seconds from the source at the selected output length.':'Enter a valid source start time.';
     for(const id of ['controlStartSeconds','controlInputType','controlKind','controlVideo','controlSource','controlMask','controlStrength','controlStartPercent','controlEndPercent'])$(id).disabled=!!state.busy;
   }
   function validateControl(){
     const control=currentControl();if(!control)return;
-    if(!Number.isFinite(control.start_percent)||!Number.isFinite(control.end_percent)||control.start_percent<0||control.end_percent>1||control.start_percent>=control.end_percent)throw Error('Control start must precede end within 0�1.');
+    if(!Number.isFinite(control.start_percent)||!Number.isFinite(control.end_percent)||control.start_percent<0||control.end_percent>1||control.start_percent>=control.end_percent)throw Error('Control start must precede end within 0–1.');
     if(!Number.isFinite(control.start_seconds)||control.start_seconds<0||control.start_seconds>3600)throw Error('Source start must be between 0 and 3600 seconds.');
     if(state.continuation||$('enableRefine').checked)throw Error('ControlNet with continuation or Refine has not been validated.');
     if(state.mode==='refs'&&!state.labCapabilities?.controlnet_references_ready)throw Error('References require verified PR #16020 support.');
-    if(control.kind!=='inpaint'&&control.input_type==='video'){
+    if(control.kind!=='inpaint'&&['video','image'].includes(control.input_type)){
       const reason=preprocessorReason(control.kind);if(reason)throw Error(reason);
     }
-    if(!state.controlInputs.video&&control.kind!=='inpaint')throw Error(control.input_type==='video'?'Attach a source video to extract guidance.':'Attach a prepared control video.');
+    const still=['image','prepared_image'].includes(control.input_type);if(still&&!state.labCapabilities?.control_still_ready)throw Error('Still-image preparation is unavailable on this server.');if(still&&control.kind==='inpaint')throw Error('Masked editing requires a source video and mask.');if(!state.controlInputs[still?'image':'video']&&control.kind!=='inpaint')throw Error(still?'Attach a single still image.':'Attach a source or prepared control video.');
     if(control.kind==='inpaint'&&(!state.controlInputs.source||!state.controlInputs.mask))throw Error('Attach a source video and a matching white/black mask.');
   }
   async function videoDuration(item){
@@ -132,6 +137,7 @@
   }
   async function planControl(){
     const control=currentControl();if(!control)return;validateControl();
+    if(['image','prepared_image'].includes(control.input_type)){state.control.source_span={seconds:Number($('duration').value)/24,temporal_mode:'hold_still'};state.control.plan_note='Static image guidance is held throughout the video.';saveDraft();return;}
     if(control.kind!=='inpaint'&&control.input_type!=='video')return;
     const key=control.kind==='inpaint'?'source':'video',item=state.controlInputs[key],mask=state.controlInputs.mask,epoch=state.generationEpoch,width=state.width,height=state.height;
     const duration=await videoDuration(item);
@@ -151,12 +157,12 @@
   async function controlUploads(sendFile,uploads,{contextOnly=false}={}){
     const control=currentControl();if(!control)return;validateControl();
     const prepareVideo=async(item,label,options={input_type:control.input_type,kind:control.kind})=>{
-      const uploaded=await sendFile(item.file,'video',label,{...item,fitVideo:control.input_type==='video'||control.kind==='inpaint',trimEnabled:true,trimStart:control.start_seconds,trimDuration:Math.min(Number($('duration').value)/24,Number.isFinite(item.controlDuration)?item.controlDuration-control.start_seconds:Infinity)});
+      const still=['image','prepared_image'].includes(control.input_type);const uploaded=await sendFile(item.file,still?'image':'video',label,still?item:{...item,fitVideo:control.input_type==='video'||control.kind==='inpaint',trimEnabled:true,trimStart:control.start_seconds,trimDuration:Math.min(Number($('duration').value)/24,Number.isFinite(item.controlDuration)?item.controlDuration-control.start_seconds:Infinity)});
       const requestId=crypto.randomUUID(),signal=state.abortController?.signal;
       state.controlPreparationId=requestId;let active=true,timer=null;
-      const processing=options.input_type==='video';
-      const statusText=processing?'Extracting '+(goalNames[options.kind]||options.kind)+' guidance from your video. CPU processing can take longer; Cancel stops this request.':'Aligning the video to the canvas and duration. Cancel stops this request.';
-      $('controlStatus').textContent=statusText;setProgress(processing?'Extracting video guidance':'Aligning control video',5,null,true);
+      const processing=['video','image'].includes(options.input_type);
+      const statusText=processing?'Extracting '+(goalNames[options.kind]||options.kind)+' guidance from your '+(still?'image':'video')+'. Cancel stops this request.':'Aligning the video to the canvas and duration. Cancel stops this request.';
+      $('controlStatus').textContent=statusText;setProgress(processing?'Extracting '+(still?'image':'video')+' guidance':'Aligning control guidance',5,null,true);
       const poll=async()=>{
         if(!active||signal?.aborted||state.controlPreparationId!==requestId)return;
         try{
@@ -177,13 +183,13 @@
       }finally{active=false;clearTimeout(timer);if(state.controlPreparationId===requestId)state.controlPreparationId=null;}
     };
     if(contextOnly){
-      if(control.kind!=='inpaint'&&control.input_type!=='video')return;
-      const item=control.kind==='inpaint'?state.controlInputs.source:state.controlInputs.video;
-      const source=await prepareVideo(item,'Prompt source evidence',{input_type:'prepared',kind:'inpaint'});
+      if(control.kind!=='inpaint'&&!['video','image','prepared_image'].includes(control.input_type))return;
+      const still=['image','prepared_image'].includes(control.input_type),item=control.kind==='inpaint'?state.controlInputs.source:state.controlInputs[still?'image':'video'];
+      const source=await prepareVideo(item,'Prompt source evidence',{input_type:still?'prepared_image':'prepared',kind:still?'gray':'inpaint'});
       uploads.control_context=source.filename;return;
     }
     if(control.kind!=='inpaint'){
-      const result=await prepareVideo(state.controlInputs.video,control.input_type==='video'?'Source video':'Control representation');
+      const still=['image','prepared_image'].includes(control.input_type);const result=await prepareVideo(state.controlInputs[still?'image':'video'],still?'Still image guidance':control.input_type==='video'?'Source video':'Control representation');
       const {source_file:normalizedSource,...prepared}=result;
       Object.assign(control,prepared,{control_file:result.filename});uploads.control=result.filename;uploads.control_context=normalizedSource||null;
     }else{
@@ -245,7 +251,7 @@
     $('controlStartPercent').value=state.control?.start_percent??0;$('controlEndPercent').value=state.control?.end_percent??1;
     $('controlKind').value=state.control?.kind||'pose';$('controlStrength').value=state.control?.strength??1;
     refreshControlInputs();
-    $('controlStatus').textContent=Object.values(state.controlInputs||{}).filter(Boolean).map(item=>item.file.name).join(' · ');
+    const selected=state.controlInputs[['image','prepared_image'].includes(state.control.input_type)?'image':state.control.kind==='inpaint'?'source':'video'];$('controlStatus').textContent=selected?'Selected '+selected.file.name:'';
   }
   window.H3ConnectedStudio={prepare,controlUploads,refreshProvider,refreshAvailability,currentControl,restoreControl,validateControl,planControl};
   $('durationSeconds').addEventListener('input',refreshControlInputs);

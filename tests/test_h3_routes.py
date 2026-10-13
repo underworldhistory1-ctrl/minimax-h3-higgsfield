@@ -20,7 +20,7 @@ class QueueClient:
         return {"queue_running": [], "queue_pending": []}
     async def get_history(self, prompt_id=None):
         return {"prompt-1": {"prompt": [0, "prompt-1", {}, self.submissions[0][1]],
-                "outputs": {"save": {"videos": [{"filename": "result.mp4"}]}},
+                "outputs": {"save": {"videos": [{"filename": "result.mp4", "subfolder": "video", "type": "output"}]}},
                 "status": {"status_str": "success"}}}
 
 

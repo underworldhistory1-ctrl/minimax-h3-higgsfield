@@ -71,6 +71,13 @@ class ControlPrepareRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, 200)
         return body, result
 
+    async def test_still_and_prepared_image_dispatch_preserves_input_type(self):
+        for input_type in ('image', 'prepared_image'):
+            with patch('h3_lab.control_preprocess.process_control', return_value={'filename':'map.mp4'}) as process:
+                response = await self.handler('POST', 'prepare')(Request(self.body(input_type=input_type)))
+            self.assertEqual(response.status, 200)
+            self.assertEqual(process.call_args.kwargs['input_type'], input_type)
+
     async def test_completed_late_cancel_removes_only_derived_files_and_hides_private_paths(self):
         body, result = await self.completed()
         snapshot = (await self.snapshot(body["request_id"]))[1]

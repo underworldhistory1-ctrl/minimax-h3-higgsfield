@@ -1239,10 +1239,11 @@ async function generate() {
   $("resultCard").classList.add("hidden");
   try{
     const uploads={first:null,last:null,refs:new Map(),guides:new Map()};
-    const controlFiles=state.control?.enabled?(state.control.kind==="inpaint"?Number(!!state.controlInputs?.source)+Number(!!state.controlInputs?.mask):Number(!!state.controlInputs?.video)):0;
+    const controlFiles=state.control?.enabled?(state.control.kind==="inpaint"?Number(!!state.controlInputs?.source)+Number(!!state.controlInputs?.mask):Number(!!state.controlInputs?.[['image','prepared_image'].includes(state.control.input_type)?'image':'video'])):0;
     const totalFiles=controlFiles+(state.mode==="frames"?Number(!!state.first)+Number(!!state.last):state.mode==="refs"?state.refs.length:0)+state.guides.length;
     let fileIndex=0;
     const sendFile=async(file,kind,label,ref=null)=>{
+      const isControl=ref?.role==="control";
       const index=++fileIndex;
       const progress=(loaded,total)=>{
         const pct=Math.min(99,Math.floor(100*loaded/Math.max(total,1)));
@@ -1252,14 +1253,14 @@ async function generate() {
       };
       progress(0,file.size);
       if(kind==="image"&&ref?.assetId){
-        const frame=state.mode==="frames"||label.startsWith("Keyframe");const fit=frame?(ref.imageFit||$("frameFit").value):ref.imageFit||"preserve";
+        const frame=!isControl&&(state.mode==="frames"||label.startsWith("Keyframe"));const fit=isControl?"preserve":frame?(ref.imageFit||$("frameFit").value):ref.imageFit||"preserve";
         const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,width:samplingCanvas().width,height:samplingCanvas().height})});
         state.uploads.push(result.filename);saveSession();uploadMessage("Linked server image · "+label,100);ref.uploadProgress=undefined;ref.uploadReady=true;
         return {...result,name:result.filename};
       }
-      if(kind==="image" && (state.mode==="frames" || label.startsWith("Keyframe"))) file=await fitFrameImage(file,ref?.imageFit||null);
-      if(kind==="image" && ref?.imageFit && ref.imageFit!=="preserve")file=await fitFrameImage(file,ref.imageFit);
-      const options={resize:kind==="image"?(state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked):kind==="video"&&ref?.fitVideo!==false,
+      if(kind==="image" && !isControl && (state.mode==="frames" || label.startsWith("Keyframe"))) file=await fitFrameImage(file,ref?.imageFit||null);
+      if(kind==="image" && !isControl && ref?.imageFit && ref.imageFit!=="preserve")file=await fitFrameImage(file,ref.imageFit);
+      const options={resize:kind==="image"?(isControl?true:state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked):kind==="video"&&ref?.fitVideo!==false,
         trimEnabled:(kind==="video"||kind==="audio")&&!!ref?.trimEnabled,trimStart:ref?.trimStart||0,trimDuration:ref?.trimDuration};
       const result=await uploadOne(file,kind,progress,()=>uploadMessage("Checking "+label+" on the server · converting to 24 fps if needed",100),options);
       uploadMessage("Uploaded "+index+" of "+totalFiles+" · "+label+" · "+fmtBytes(file.size)+" · checked on server",100);

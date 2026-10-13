@@ -17,7 +17,7 @@ The user-facing app is `web/index.html` + `web/studio.js`. Keep these files byte
 | 11 | `CreateVideo` | The decoded video frames plus decoded native audio, 24 fps |
 | 12 | `H3SaveVideo` | MP4/H.264 with audio; retries through FFmpeg if PyAV fails, prefix `video/h3_studio_<token>` |
 
-The Original method uses 20 steps by default with `res_multistep`, `simple`, CFG 1, denoise 1. The UI offers 124/175/226/294/362 frames and a practical 20–100 step input. Landscape canvas choices are 1344×768, 1280×704, 1024×576, and 864×480; Portrait transposes each pair (768×1344, 704×1280, 576×1024, 480×864). Node 6 receives the selected width and height directly in all three modes. The ratios are approximate because dimensions use H3-friendly multiples. The Turbo path uses 4–8 steps, default 6.
+The Original method uses 20 steps by default with `res_multistep`, `simple`, CFG 1, denoise 1. The UI offers 124/175/226/294/362 frames and a practical 20–100 step input. Landscape canvas choices are 1344×768, 1280×704, 1024×576, and 864×480; Portrait transposes each pair (768×1344, 704×1280, 576×1024, 480×864). Node 6 receives the selected width and height directly in all three modes. The ratios are approximate because dimensions use H3-friendly multiples. Turbo is retired. Shared advanced configuration is resolved by web/h3/configuration.js and applied by web/h3/graph-builder.js.
 
 ## Mode branches
 
@@ -52,4 +52,4 @@ The Image workspace is separate from all H3 video branches. Both Create and Edit
 - **Profiles:** INT8 and BF16 are selectable only when every exact file in that profile has the expected size. Salad defaults to INT8.
 
 
-Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames support all four methods; References retains native/Spectrum/MotionCache (Turbo remains FL2VA-only). CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
+Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache. Turbo is retired. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.

@@ -1,5 +1,6 @@
 "use strict";
 // Server-owned project inputs, native keyframes and review actions.
+function restoredPreparationMode(value){return ['auto','ai','native'].includes(value)?value:'auto';}
 function allInputItems(){return [state.first,state.last,...state.refs,...state.guides,...Object.values(state.controlInputs||{})].filter(Boolean);}
 async function refreshLabCapabilities(){
   try{state.labCapabilities=await (await fetch(api("/h3_studio/lab/capabilities"))).json();}
@@ -127,7 +128,7 @@ async function persistProjectDraft(){
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
     configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
-    preparationMode:$("preparationMode")?.value||"ai",enableRefine:$("enableRefine").checked,
+    preparationMode:$("preparationMode")?.value||"auto",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
     controlInputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([key,value])=>[key,descriptor(value)])),
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:state.loras.filter(x=>x.enabled)};
@@ -144,7 +145,7 @@ async function hydrateProjectDraft(draft){
   if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
   if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;
-  if($("preparationMode"))$("preparationMode").value=draft.preparationMode==='native'?'native':'ai';
+  if($("preparationMode"))$("preparationMode").value=restoredPreparationMode(draft.preparationMode);
   if(window.H3ConnectedStudio)H3ConnectedStudio.restoreControl();
   if(draft.canvas){state.width=draft.canvas.width;state.height=draft.canvas.height;}
   state.prompts={text:"",frames:"",refs:"",...draft.prompts};state.promptMode=draft.promptMode||"guided";$("promptMode").value=state.promptMode;$("frameFit").value=draft.frameFit||"crop";

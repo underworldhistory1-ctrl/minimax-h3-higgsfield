@@ -155,7 +155,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             if not isinstance(body, dict): raise ValueError('Control request must be an object.')
             filename = body.get('filename', '')
             if not isinstance(filename, str) or not pathlib.PurePosixPath(filename).name.startswith('h3_studio_kf_'):
-                raise ValueError('Choose an uploaded Studio video.')
+                raise ValueError('Choose an uploaded Studio control image or video.')
             source = owned_path(input_root, filename)
             request_id = body.get('request_id') or str(uuid.uuid4())
             try: uuid.UUID(request_id)
@@ -175,15 +175,15 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             async with source_upload_lock:
                 if record['cancel_event'].is_set(): raise ValueError('Control preparation cancelled')
                 with control_tasks_lock: record['state'] = 'processing'
-                if body.get('input_type') == 'video':
+                if body.get('input_type') in ('video', 'image', 'prepared_image'):
                     from .control_preprocess import process_control
                     result = await finish_control_worker(record, process_control, source, input_root,
                         body.get('width'), body.get('height'), body.get('target_frames'),body.get('kind'),
-                        input_type='video',offset=body.get('start_seconds',0),cancel_event=record['cancel_event'],progress=progress)
+                        input_type=body['input_type'],offset=body.get('start_seconds',0),cancel_event=record['cancel_event'],progress=progress)
                 elif body.get('input_type') in (None,'prepared'):
                     result = await finish_control_worker(record, prepare_control, source, input_root,
                         body.get('width'),body.get('height'),body.get('target_frames'),start_seconds=body.get('start_seconds',0),cancel_event=record['cancel_event'])
-                else: raise ValueError('Choose ordinary video or prepared control input.')
+                else: raise ValueError('Choose a still image, ordinary video, or prepared control map.')
                 if record['cancel_event'].is_set():
                     for key in ('filename','source_file'):
                         if result.get(key): owned_path(input_root,result[key],require_file=False).unlink(missing_ok=True)

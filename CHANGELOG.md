@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.1 — 2026-10-13
+
+- Integrated current HyperAI server fixes, retaining original reference identities and projects.
+- Static image and prepared-image ControlNet inputs, exact 24fps hold-still guidance, cancellation and cleanup.
+- Excluded input previews from completed generated-video selection.
+- Preserved Automatic/AI/direct prompt preparation on project restore.
+- Fixed Original checkpoint labels after switching modes or restoring projects.
+- Added contextual Arabic guidance for controls, references and model settings.
+- Verified live server APIs, real browser access and an existing Original Ref2VA + Canny still-control video/audio output.
+
 ## 2.1.0 — 2026-10-13
 
 - Centralized model/workflow, advanced sampling, refinement and acceleration settings.
