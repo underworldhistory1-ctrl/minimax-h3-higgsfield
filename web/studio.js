@@ -141,6 +141,7 @@ function uploadMessage(message,pct=null){
   if(pct!==null)$("uploadProgressFill").style.width=Math.max(0,Math.min(100,pct))+"%";
 }
 function loraModeCompatible(name,mode){
+  if(H3Configuration.isCharacterSwap(name))return mode==='refs'&&(state.modelProfile||'original')==='original';
   if(/turbo|lightx2v/i.test(name))return false;
   if(mode==="refs"){
     if(/fl2v|fl2va|t2v/i.test(name)&&!/ref2v|r2v/i.test(name))return false;
@@ -390,6 +391,7 @@ function renderLoras() {
   renderMethodInfo();
   if(!count){const empty=document.createElement("div");empty.className="tip";empty.textContent="No LoRAs found in ComfyUI/models/loras.";list.append(empty);return;}
   state.loras.forEach(item=>{
+    const swap=H3Configuration.isCharacterSwap(item.name);
     const combat=/^H3_Combat_V2\.safetensors$/i.test(item.name);
     const realism=/^h3-realism-people-t2v-i2v-r2v\.safetensors$/i.test(item.name);
     const managed=item.name===turboName;
@@ -398,9 +400,10 @@ function renderLoras() {
     const main=document.createElement("label");main.style.cssText="display:flex;align-items:center;gap:8px;margin:0;color:var(--text)";
     const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=managed?method()==="turbo":item.enabled;toggle.disabled=managed||state.busy||incompatible||state.nodesReady?.LoraLoaderModelOnly===false;
     toggle.onchange=()=>{item.enabled=toggle.checked;renderLoras();renderEstimates();};
-    const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
+    const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
     if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply this adapter at strength 0.9.";row.append(note);}
+    if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · Original Ref2VA only · strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
     if(combat||realism){const source=document.createElement("div");source.className="tip";source.textContent=combat?"Creator tested FL2VA only · optional triggers prfight2, prfin1":"All three modes · trigger r34l1sm · 1.0 intended strength";row.append(source);}
     if(combat&&state.mode==="refs"){const warning=document.createElement("div");warning.className="tip";warning.textContent="Experimental with Ref2VA: the creator tested FL2VA only. Appearance, motion and audio may change.";row.append(warning);}
     if(incompatible&&!managed){const warning=document.createElement("div");warning.className="tip error";warning.textContent="This adapter appears to target a different H3 checkpoint.";row.append(warning);}

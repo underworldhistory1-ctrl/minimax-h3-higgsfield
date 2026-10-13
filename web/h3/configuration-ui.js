@@ -4,7 +4,24 @@
   state.sampling=state.sampling||{};state.nodeOptions=state.nodeOptions||{};state.refinement=state.refinement||{};
   const panel=document.createElement('section');panel.className='panel';panel.id='modelConfiguration';
   panel.innerHTML='<h2>Model &amp; workflow</h2><label for="modelProfile">H3 checkpoint family</label><select id="modelProfile"></select><label for="checkpoint">Installed checkpoint</label><select id="checkpoint"></select><div id="checkpointNotice" class="tip" role="status"></div><label for="hybridPreset">Tensor overlay</label><select id="hybridPreset"><option value="none">None · single FL2VA baseline</option><option value="block_range_adaln">AdaLN blocks 45–49</option><option value="all_adaln">All AdaLN · community experiment</option></select><details id="samplingControls"><summary>Advanced sampling &amp; acceleration</summary><div id="samplingFields" class="configuration-grid"></div><div id="patchFields" class="configuration-grid"></div><details><summary>Refinement pass settings</summary><div id="refinementFields" class="configuration-grid"></div></details><button id="resetSampling" type="button" class="button alt smallbtn">Restore baseline settings</button></details><details><summary>Video style transformation</summary><label for="styleDirection">Direction</label><select id="styleDirection"><option value="anime_to_realism">Anime → realism</option><option value="realism_to_anime">Realism → anime</option></select><label for="preserveAudio"><input id="preserveAudio" type="checkbox"> Reuse source soundtrack</label><button id="applyStyle" type="button" class="button alt smallbtn">Prepare selected direction</button><div class="tip">Add a source video in References. Select compatible installed style LoRAs separately. References guide a new take; review cuts and timing.</div></details>';
+  const swapPanel=document.createElement('details');
+  swapPanel.innerHTML='<summary>Character replacement · experimental</summary><label for="swapTarget">Person to replace in the source shot</label><input id="swapTarget" type="text" placeholder="e.g. the person in the red jacket"><button id="prepareSwap" type="button" class="button alt smallbtn">Prepare Character Swap</button><div class="tip">Add exactly one source video and one replacement image for this guided preset. Uses Original Ref2VA, native rendering and adapter strength 1. Other adapters are disabled. No trigger word. Start with a 4–5 second continuous shot; timing and expressions may drift. Reuse source soundtrack separately if needed.</div>';
+  panel.append(swapPanel);
   document.querySelector('.model-hero').after(panel);
+  $('prepareSwap').onclick=()=>{
+    if(state.busy)return;
+    const videos=state.refs.filter(r=>r.kind==='video'),images=state.refs.filter(r=>r.kind==='image');
+    const adapter=state.loras.find(x=>H3Configuration.isCharacterSwap(x.name));
+    const target=$('swapTarget').value.trim();
+    if(!adapter){info('Character Swap is not installed. Run the updated launcher to prepare the verified adapter.',true);return;}
+    if(videos.length!==1||images.length!==1||state.refs.length!==2||!target){info('Use exactly one source video and one replacement image for this preset, and identify the person to replace. Extra references remain attached; remove them or configure the prompt manually.',true);return;}
+    if(state.continuation){info('Clear continuation before preparing a source-video character replacement.',true);return;}
+    state.modelProfile='original';state.checkpoint=null;selectMode('refs');if(state.mode!=='refs')return;
+    $('renderMethod').value='native';state.loras.forEach(x=>x.enabled=x===adapter);adapter.strength=1;
+    videos[0].role='custom';images[0].role='custom';
+    $('prompt').value='In @'+videos[0].alias+', replace only '+target+' with the character shown in @'+images[0].alias+'. Keep the replacement identity, clothing and visual style. Retain the source camera, environment, lighting, objects and other people. Match the original position, scale, pose and action. Do not display the reference sheet.';
+    renderRefs();renderLoras();refresh();changed();info('Prepared Original Ref2VA + Character Swap at strength 1 with native rendering. Review duration, advanced settings and source soundtrack before generating.');
+  };
   for(const [value,p] of Object.entries(H3Configuration.profiles)){const o=document.createElement('option');o.value=value;o.textContent=p.label;$('modelProfile').append(o);}
   function changed(){saveDraft();updatePreviewLive();renderEstimates();}
   $('modelProfile').onchange=()=>{
@@ -46,6 +63,7 @@
   async function refresh(){
     await schemas();
     const caps=state.labCapabilities||{},profile=state.modelProfile||'original';
+    renderLoras();
     $('modelProfile').value=profile;document.body.dataset.modelAccent=H3Configuration.profiles[profile]?.accent||'original';
     document.querySelector('.model-hero h1').textContent=profile==='original'?'MiniMax H3':H3Configuration.profiles[profile]?.label||'MiniMax H3';
     document.querySelector('.model-hero .eyebrow').textContent=profile==='original'?'MODEL · H3 BASE':'MODEL · COMMUNITY CHECKPOINT';
@@ -76,7 +94,7 @@
       for(const [key,d] of Object.entries({...schema.required,...schema.optional}))if(node&&key in node.inputs&&!Array.isArray(node.inputs[key])&&(Array.isArray(d[0])||['INT','FLOAT','BOOLEAN'].includes(d[0])))field(patches,key,key.replaceAll('_',' '),state.nodeOptions[klass]?.[key]??node.inputs[key],d,value=>{state.nodeOptions[klass]=state.nodeOptions[klass]||{};state.nodeOptions[klass][key]=value;});
     }
     $('preserveAudio').checked=!!state.preserveReferenceAudio;$('styleDirection').value=state.styleDirection||'anime_to_realism';
-    for(const id of ['applyStyle','preserveAudio','styleDirection','hybridPreset','resetSampling'])$(id).disabled=state.busy;
+    for(const id of ['prepareSwap','swapTarget','applyStyle','preserveAudio','styleDirection','hybridPreset','resetSampling'])$(id).disabled=state.busy;
   }
   $('renderMethod').addEventListener('change',refresh);
   window.H3ConfigurationUI={refresh};refresh();

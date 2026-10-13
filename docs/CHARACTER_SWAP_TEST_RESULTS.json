@@ -1,0 +1,16 @@
+{
+  "python_suite": 279,
+  "javascript_suite": 133,
+  "browser": "passed with fixture APIs",
+  "gpu_rendered": false,
+  "adapter_downloaded_locally": false,
+  "source_revision": "a665bb7e3bb9804e487d2925f67744f554c8ad49",
+  "checks": [
+    "original Ref2VA gate",
+    "model ancestry and alternate loaders",
+    "reference graph links",
+    "per-pass strengths",
+    "pinned size and SHA256",
+    "guided preset Picture1/Video1 bindings and stable IDs"
+  ]
+}

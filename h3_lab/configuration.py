@@ -2,8 +2,73 @@
 FL = 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'
 REF = 'minimax_h3_ref2va_pruned_int8_convrot.safetensors'
 
+CHARACTER_SWAP = 'h3_character_swap_pro4500_1000.safetensors'
+
+
+def validate_character_swap(spec):
+    graph = spec.get('workflow', {})
+    def matches(name):
+        return isinstance(name, str) and name.replace('\\', '/').rsplit('/', 1)[-1].lower() == CHARACTER_SWAP
+    declared = any(x.get('enabled') and matches(x.get('name')) for x in spec.get('loras', []) if isinstance(x, dict))
+    loaded = [n for n in graph.values() if matches(n.get('inputs', {}).get('lora_name'))]
+    if not declared and not loaded:
+        return
+    if declared != bool(loaded):
+        raise ValueError('Character Swap selection disagrees with the submitted LoRA graph')
+    if spec.get('mode') != 'refs' or spec.get('model_profile', 'original') != 'original':
+        raise ValueError('Character Swap requires Original H3 Ref2VA; selected checkpoint is not validated')
+    if graph.get('1', {}).get('class_type') != 'UNETLoader' or graph['1'].get('inputs', {}).get('unet_name') != REF or graph.get('6', {}).get('class_type') != 'MiniMaxH3ReferenceToVideo':
+        raise ValueError('Character Swap requires the original Ref2VA loader and conditioning')
+    def model_chain(link):
+        chain = []
+        seen = set()
+        while isinstance(link, list) and len(link) == 2 and link[0] in graph:
+            key = link[0]
+            if key in seen:
+                raise ValueError('Character Swap model chain contains a cycle')
+            seen.add(key)
+            node = graph[key]
+            chain.append(node)
+            if node.get('class_type') == 'UNETLoader':
+                if node.get('inputs', {}).get('unet_name') != REF:
+                    raise ValueError('Character Swap model chain requires Original Ref2VA')
+                return chain
+            link = node.get('inputs', {}).get('model')
+        raise ValueError('Character Swap model chain is not connected to Original Ref2VA')
+    generation_chain = model_chain(graph.get('8', {}).get('inputs', {}).get('model'))
+    if not any(n is adapter for n in generation_chain for adapter in loaded):
+        raise ValueError('Character Swap is not connected to the generation sampler')
+    declarations = [x for x in spec.get('loras', []) if isinstance(x, dict) and x.get('enabled') and matches(x.get('name'))]
+    for adapter in loaded:
+        if adapter.get('class_type') != 'LoraLoaderModelOnly':
+            raise ValueError('Character Swap requires the model-only LoRA loader')
+        model_chain(adapter.get('inputs', {}).get('model'))
+        consumed = False
+        for key, sampler in graph.items():
+            if sampler.get('class_type') != 'KSampler':
+                continue
+            chain = model_chain(sampler.get('inputs', {}).get('model'))
+            if not any(node is adapter for node in chain):
+                continue
+            consumed = True
+            strength = declarations[0].get('strength', 1)
+            if key != '8':
+                strength = declarations[0].get('refinement_strength', strength)
+            if adapter.get('inputs', {}).get('strength_model') != strength:
+                raise ValueError('Character Swap strength disagrees with the selected sampler pass')
+        if not consumed:
+            raise ValueError('Character Swap adapter is not consumed by a sampler')
+    conditioning = graph['6'].get('inputs', {})
+    for prefix in ('ref_images.ref_image_', 'ref_videos.ref_video_'):
+        if not any(k.startswith(prefix) and isinstance(v, list) and len(v) == 2 and v[0] in graph for k, v in conditioning.items()):
+            raise ValueError('Character Swap requires connected source video and replacement image')
+    refs = spec.get('references', [])
+    if not isinstance(refs, list) or not any(isinstance(r, dict) and r.get('kind') == 'video' for r in refs) or not any(isinstance(r, dict) and r.get('kind') == 'image' for r in refs):
+        raise ValueError('Character Swap requires a source video and replacement character image')
+
 
 def validate_configuration(spec, capabilities):
+    validate_character_swap(spec)
     graph = spec.get('workflow', {})
     # Legacy clients have no configuration contract; ComfyUI still validates their schemas.
     if 'model_profile' not in spec and 'sampling' not in spec:

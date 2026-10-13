@@ -12,6 +12,38 @@ from h3_lab.model_catalog import discover, reference_control_supported
 
 
 class ModernizationTests(unittest.TestCase):
+    def test_character_swap_manifest_and_admission(self):
+        from h3_lab.configuration import validate_character_swap, CHARACTER_SWAP, REF
+        item = next(x for x in launcher_models.manifest(qwen_profiles='', refine=False, controlnet=False) if x.relative_path.endswith(CHARACTER_SWAP))
+        self.assertEqual(item.size, 155110320)
+        self.assertEqual(item.sha256, '4b2a3f420ae804c0aa3422761ff84dbd1bf52eef6900ffab6d2e66df63cb4e79')
+        self.assertIn('/a665bb7e3bb9804e487d2925f67744f554c8ad49/', item.url)
+        script="""const C=require('./web/h3/configuration');const spec={mode:'refs',loras:[{name:C.CHARACTER_SWAP,enabled:true,strength:1}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124},{kind:'image',alias:'replacement'}]};spec.workflow=require('./web/h3/graph-builder').buildGraph(spec,{shot:'s.mp4',replacement:'r.png'},{});console.log(JSON.stringify(spec));"""
+        spec=json.loads(subprocess.check_output(['node','-e',script],cwd=Path(__file__).resolve().parents[1],text=True))
+        validate_character_swap(spec)
+        refinement_script = script.replace("mode:'refs'", "mode:'refs',enable_refine:true").replace('strength:1}', 'strength:1,refinement_strength:.25}').replace('},{});console', '},{refine_ready:true});console')
+        refined=json.loads(subprocess.check_output(['node','-e',refinement_script],cwd=Path(__file__).resolve().parents[1],text=True))
+        validate_character_swap(refined)
+        for node in refined['workflow'].values():
+            if node.get('class_type')=='LoraLoaderModelOnly':node['inputs']['strength_model']=.25 if node['inputs']['strength_model']==1 else 1
+        with self.assertRaisesRegex(ValueError,'strength'):validate_character_swap(refined)
+        for mutation in ('wrong_chain','missing_media','wrong_strength','alternate_loader'):
+            bad=copy.deepcopy(spec)
+            adapter=next(n for n in bad['workflow'].values() if n.get('class_type')=='LoraLoaderModelOnly')
+            if mutation=='wrong_chain':
+                bad['workflow']['other']={'class_type':'UNETLoader','inputs':{'unet_name':'singularity.safetensors'}}
+                adapter['inputs']['model']=['other',0]
+            elif mutation=='missing_media':bad['workflow']['6']['inputs'].pop('ref_videos.ref_video_0')
+            elif mutation=='wrong_strength':adapter['inputs']['strength_model']=0
+            else:adapter['class_type']='LoraLoader'
+            with self.assertRaises(ValueError):validate_character_swap(bad)
+        for profile in ('singularity','hybrid_loader','hybrid_conditioning'):
+            with self.assertRaisesRegex(ValueError,'Ref2VA'):validate_character_swap({**spec,'model_profile':profile})
+        with self.assertRaisesRegex(ValueError,'replacement'):validate_character_swap({**spec,'references':[{'kind':'video'}]})
+        with self.assertRaisesRegex(ValueError,'disagrees'):validate_character_swap({**spec,'loras':[]})
+        with self.assertRaisesRegex(ValueError,'conditioning'):
+            bad=copy.deepcopy(spec);bad['workflow']['1']['inputs']['unet_name']='other.safetensors';validate_character_swap(bad)
+
     def test_backend_rejects_ui_graph_configuration_drift(self):
         from h3_lab.configuration import validate_configuration, FL
         spec={'model_profile':'original','mode':'text','sampling':{'cfg':2},'workflow':{'1':{'class_type':'UNETLoader','inputs':{'unet_name':FL}},'6':{'class_type':'MiniMaxH3ImageToVideo','inputs':{}},'8':{'inputs':{'cfg':2}}}}

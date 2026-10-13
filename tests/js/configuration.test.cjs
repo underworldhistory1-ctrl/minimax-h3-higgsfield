@@ -42,3 +42,14 @@ test('advanced accelerator widgets use live schemas and cannot overwrite MODEL l
  const g=buildGraph({render_method:'motioncache',node_options:{MiniMaxH3MotionCache:{reuse_threshold:.08}}},{},schemaCaps);assert.equal(Object.values(g).find(n=>n.class_type==='MiniMaxH3MotionCache').inputs.reuse_threshold,.08);
  for(const options of [{reuse_threshold:2},{model:['1',0]},{invented:1}])assert.throws(()=>buildGraph({render_method:'motioncache',node_options:{MiniMaxH3MotionCache:options}},{},schemaCaps));
 });
+
+test('Character Swap uses only documented Ref2VA and requires both media types',()=>{
+ const spec={mode:'refs',loras:[{name:C.CHARACTER_SWAP,enabled:true,strength:1}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124},{kind:'image',alias:'replacement',role:'custom'}]};
+ const g=buildGraph(spec,{shot:'shot.mp4',replacement:'new.png'},caps);
+ assert.equal(g['1'].inputs.unet_name,C.REF);
+ const adapter=Object.values(g).find(n=>n.class_type==='LoraLoaderModelOnly');assert.equal(adapter.inputs.lora_name,C.CHARACTER_SWAP);assert.equal(adapter.inputs.strength_model,1);
+ for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.throws(()=>buildGraph({...spec,model_profile,checkpoint:singular},{},caps),/Character Swap/);
+ for(const mode of ['text','frames'])assert.throws(()=>buildGraph({...spec,mode},{},caps),/Character Swap/);
+ for(const kind of ['image','video'])assert.throws(()=>buildGraph({...spec,references:spec.references.filter(r=>r.kind===kind)},{},caps),/source video/);
+ assert.ok(C.isCharacterSwap('folder/'+C.CHARACTER_SWAP));
+});

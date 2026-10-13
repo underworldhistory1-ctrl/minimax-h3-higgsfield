@@ -165,7 +165,8 @@
   ],
   "deploy/download_optional_loras.py": [
     "477993fb218d75e5cac3a0965970f2ae8b765be9",
-    "f859e9bc2b41fc6fa69ea9ed6fe9024b2c1aac8c"
+    "f859e9bc2b41fc6fa69ea9ed6fe9024b2c1aac8c",
+    "7661913465c7d7cb9121046c5ecd4f15da8d453b"
   ],
   "deploy/download_qwen_image_models.py": [
     "b89a65c73297b700f047317ecb6cdb44304c217c"
@@ -574,7 +575,8 @@
     "8765937b4a60d81cd6233957a15d5d19606f27d7",
     "9e2da5c145ab0428a92bc4aab5ae9d01790b5080",
     "ef4ad7e98008b89af15a004dad750276264d6339",
-    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e"
+    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
+    "4fb13b55fe38aa33f24c40e22d66368a909b4033"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -1059,7 +1061,8 @@
     "e60bb0e66cb51977f5d4633faa1ad602d30ec7e1",
     "f2b5e2265b33a7eed5d4c38967e089c6f970d7c8",
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
-    "ff233a13bdfeeab696adf484010a326f5048548e"
+    "ff233a13bdfeeab696adf484010a326f5048548e",
+    "4b0c5ee4bfa18e5b83125b81a02934c91360f589"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1107,10 +1110,12 @@
     "68038898d8b6484c8e0ceb60656cf39d09008004"
   ],
   "web/h3/configuration.js": [
-    "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af"
+    "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
+    "fbd5908d1852f16daa7328c5bb7c14c25865e36e"
   ],
   "web/h3/configuration-ui.js": [
-    "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd"
+    "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
+    "a2d27dc2d9fed1a074e6689de5810dc13a371791"
   ],
   "h3_lab/model_catalog.py": [
     "d843f94cb384026a8caa4539f1937096077cf6a4"
@@ -1122,6 +1127,7 @@
     "b9d0aa3460d947b0e6910829a191aa156c07c0c3"
   ],
   "h3_lab/configuration.py": [
-    "202a362ebd1571b9283525a309901224fdee9c3f"
+    "202a362ebd1571b9283525a309901224fdee9c3f",
+    "706050ee108f615bab84d40fa6334c868a7200e8"
   ]
 }
