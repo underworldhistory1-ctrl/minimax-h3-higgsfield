@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.1.1
+# H3 Higgsfield 2.1.2
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -6,13 +6,15 @@
 
 [Get started](docs/INSTALL.md) · [Try the Superman example](docs/demo/superman/README.md) · [Features](#built-around-the-way-you-create) · [Community](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions)
 
-The video workspace includes **1664×928** and exact **1920×1080** presets. See the [resolution, input and installation review](docs/HARDENING_REVIEW_AR.md) for validation details and performance limits.
+Generate at **Native detail · 1344×768** as the recommended upper baseline. Larger direct-generation canvases are experimental and can change the shot. **Upscale same take** enlarges a finished video and copies its audio without regenerating it. [Resolution and shot consistency](docs/RESOLUTION_AND_SAME_TAKE_AR.md).
 
 [![Superman above Earth — watch the creator-supplied excerpt](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.1.1
+## New in 2.1.2
+
+- **Preserve an approved shot:** CPU Lanczos enlargement from the existing video, verified frame count, timing and copied audio. Generation resolution and generative refinement are clearly separate.
 
 - **Live-server fixes:** static-image ControlNet sources, Arabic contextual guidance, correct final-video selection, restored Automatic preparation, and checkpoint labels that match the actual mode. [Server verification and limits](docs/SERVER_VERIFICATION_2026_10_13_AR.md).
 
@@ -24,7 +26,7 @@ The video workspace includes **1664×928** and exact **1920×1080** presets. See
 - **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
 - **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
 
-**Validation:** 289 Python tests, 139 JavaScript tests and browser fixture checks passed for version 2.1.1. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
+**Validation:** Version 2.1.2 checks are recorded in [resolution verification](docs/RESOLUTION_AND_SAME_TAKE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
 
 ![Character replacement controls](docs/modernization/character-swap.png)
 

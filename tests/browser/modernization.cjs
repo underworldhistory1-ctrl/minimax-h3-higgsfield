@@ -47,6 +47,36 @@ let browser;
  const swap=await page.evaluate(()=>{const spec=currentRenderSpec(),compiled=H3PromptCompiler.compilePrompt(spec).compiled_prompt,graph=H3GraphBuilder.buildGraph({...spec,compiled_prompt:compiled},{source:'s.mp4',replacement:'r.png'},state.labCapabilities);return {profile:state.modelProfile,method:method(),compiled,refs:spec.references.map(r=>[r.asset_id,r.alias]),checkpoint:graph['1'].inputs.unet_name,adapter:Object.values(graph).find(n=>n.class_type==='LoraLoaderModelOnly').inputs};});
  assert.equal(swap.profile,'original');assert.equal(swap.method,'native');assert.equal(swap.checkpoint,'minimax_h3_ref2va_pruned_int8_convrot.safetensors');assert.equal(swap.adapter.strength_model,1);assert.ok(swap.compiled.includes('<Picture 1>'));assert.ok(swap.compiled.includes('<Video 1>'));assert.deepEqual(swap.refs,[['replacement-id','replacement'],['source-id','source']]);
  await page.screenshot({path:path.join(out,'character-swap.png'),fullPage:false});
+ // Exports use saved media without generation or settings changes.
+ await page.evaluate(()=>{
+   window.__originalFetch=window.fetch;window.__originalAnchorClick=HTMLAnchorElement.prototype.click;
+   window.__downloads=[];HTMLAnchorElement.prototype.click=function(){window.__downloads.push(this.href);};
+   window.fetch=(url,options)=>String(url).includes('/lab/media/export')?new Promise(resolve=>{window.__export={resolve,body:JSON.parse(options.body)};}):window.__originalFetch(url,options);
+   window.__settingsBefore=JSON.stringify(captureSettings());
+   showVideo({file:{filename:'h3_studio_abcdef123456_00001_.mp4',subfolder:'video'}});
+ });
+ await page.locator('#upscaleTake').click();await page.waitForFunction(()=>window.__export);
+ assert.equal(await page.evaluate(()=>window.__export.body.target),'2x');
+ assert.equal(await page.evaluate(()=>window.__export.body.output_file),'video/h3_studio_abcdef123456_00001_.mp4');
+ await page.evaluate(()=>{setBusy(false);window.__projectTask=withProjectLoading(()=>new Promise(resolve=>window.__projectRelease=resolve));});
+ assert.equal(await page.locator('#upscaleTake').isDisabled(),true);
+ await page.evaluate(()=>window.__export.resolve(new Response(JSON.stringify({download_url:'/h3_studio/lab/exports/test.mp4',filename:'test.mp4',width:1728,height:960,frames:311}),{status:201})));
+ await page.waitForFunction(()=>!state.mediaExporting);assert.equal(await page.locator('#upscaleTake').isDisabled(),true);
+ await page.evaluate(()=>window.__projectRelease());await page.waitForFunction(()=>!state.projectLoading);
+ assert.equal(await page.locator('#upscaleTake').isDisabled(),false);
+ assert.ok((await page.locator('#upscaleStatus').innerText()).includes('1728×960'));
+ await page.screenshot({path:path.join(out,'same-take-upscale.png'),fullPage:false});
+ await page.evaluate(()=>{window.__export=null;});await page.locator('#upscaleTake').click();await page.waitForFunction(()=>window.__export);
+ await page.evaluate(()=>{
+   localStorage.setItem(baseKey,'https://new-server.invalid');
+   showVideo({file:{filename:'h3_studio_fedcba654321_00001_.mp4',subfolder:'video'}});
+   window.__export.resolve(new Response(JSON.stringify({download_url:'/h3_studio/lab/exports/second.mp4',filename:'second.mp4',width:1728,height:960,frames:311}),{status:201}));
+ });
+ await page.waitForFunction(()=>!state.mediaExporting);
+ assert.equal(await page.locator('#upscaleStatus').innerText(),'');
+ assert.ok(!(await page.evaluate(()=>window.__downloads.at(-1))).includes('new-server.invalid'));
+ await page.evaluate(()=>{localStorage.removeItem(baseKey);window.fetch=window.__originalFetch;HTMLAnchorElement.prototype.click=window.__originalAnchorClick;});
+ assert.equal(await page.evaluate(()=>JSON.stringify(captureSettings())===window.__settingsBefore),true);
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'mobile.png'),fullPage:false});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({status:'passed',checks:['740px desktop sidebar','keyboard resize persistence','multi-image upload','compact expandable references','rename and reorder bindings','Singularity loader and sampler overrides','refresh persistence','mobile overflow','Character Swap guided preset, native tags and stable IDs','zero uncaught errors'],gpu_rendered:false,fixture_backend:true},null,2));await browser.close();console.log('Browser contracts passed; no GPU inference was performed.');
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({status:'passed',checks:['740px desktop sidebar','keyboard resize persistence','multi-image upload','compact expandable references','rename and reorder bindings','Singularity loader and sampler overrides','refresh persistence','mobile overflow','Character Swap guided preset, native tags and stable IDs','same-take export keeps settings','export lifecycle and source-server/result races','zero uncaught errors'],gpu_rendered:false,fixture_backend:true},null,2));await browser.close();console.log('Browser contracts passed; no GPU inference was performed.');
 })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exitCode=1;});

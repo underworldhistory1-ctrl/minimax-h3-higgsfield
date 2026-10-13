@@ -6,6 +6,18 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildGraph, canvasFor } = require('../../web/h3/graph-builder.js');
 
+test('resolution-only retry keeps sampler, model, reference identity and duration unchanged',()=>{
+  const spec={mode:'refs',width:864,height:480,target_frames:311,seed:42,steps:20,
+    compiled_prompt:'Follow <Picture 1> with <Subject 1>.',ref_size:'max',
+    loras:[{name:'Motion_Repair_V2.safetensors',strength:.9}],
+    references:[{kind:'image',alias:'frame',asset_id:'frame-id'},{kind:'image',alias:'person',asset_id:'person-id'}]};
+  const assets={frame:'frame.png',person:'person.png'};
+  const draft=buildGraph(spec,assets),large=buildGraph({...spec,width:1664,height:928},assets);
+  const normalize=g=>{const clone=structuredClone(g);delete clone['6'].inputs.width;delete clone['6'].inputs.height;return clone;};
+  assert.deepEqual(normalize(draft),normalize(large));
+  assert.equal(large['6'].inputs.length,311);
+});
+
 test('new high resolution presets sample on the native grid and preserve selected outputs',()=>{
   assert.deepEqual(canvasFor(1920,1080),{width:1920,height:1088,outputWidth:1920,outputHeight:1080,crop:{width:1920,height:1080,x:0,y:4}});
   assert.throws(()=>canvasFor(1280,720),/multiples of 32/);

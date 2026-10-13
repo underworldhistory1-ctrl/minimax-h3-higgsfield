@@ -34,7 +34,7 @@ An image selected as **Storyboard · shot guide** remains on the same `ref_image
 ## Optional model path
 
 - User-selected style LoRAs chain through `LoraLoaderModelOnly` starting at ID 50, in displayed order and selected strength, before Sigma Shift.
-- Turbo is another `LoraLoaderModelOnly` at ID 60, strength 0.9, selected by Render method **only in Text/Frames (FL2VA)**. The installed file targets FL2VA; References uses Ref2VA and disables this Turbo choice. The UI disallows mixing Turbo with other LoRAs until that combination is validated.
+- Turbo is retired from selection, graph construction and downloads; historical metadata and existing files remain available.
 - Spectrum **or** MotionCache occupies ID 61 after Sigma Shift and before KSampler. They are exclusive. Both are experimental approximations; neither is part of Original quality.
 
 The extension's `/h3_studio/readiness` route checks model sizes and registered node names. The frontend checks mode-specific nodes and installed LoRA file names before `/prompt`. The readiness result does not prove output quality or audio sync. Keep the `web/` implementation and backend API together when deploying; copying only workflows is insufficient.
@@ -53,3 +53,7 @@ The Image workspace is separate from all H3 video branches. Both Create and Edit
 
 
 Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache. Turbo is retired. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
+
+## Generation size and same-take enlargement
+
+Native detail is 1344×768. Direct 1664×928 / Full HD choices generate a new latent canvas and are experimental; identical seeds across sizes do not lock a shot. `Upscale same take` uses the existing managed video through `/h3_studio/lab/media/export` (`upscaled_mp4`), outside the diffusion graph. CPU Lanczos resize, no crop or interpolation, preserves timing and copied audio. [Evidence and limits](RESOLUTION_AND_SAME_TAKE_AR.md).

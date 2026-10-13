@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield 2.1.1 — Create Video</title>
+<title>H3 Higgsfield 2.1.2 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -51,11 +51,11 @@
   .right{padding-bottom:18px}
 }
 </style>
-<link rel="stylesheet" href="./studio-ux.css?v=20261013-still-control-r3">
+<link rel="stylesheet" href="./studio-ux.css?v=20261014-same-take-r1">
 </head>
 <body>
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.1.1</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.1.2</div></div>
  <nav class="topnav" aria-label="Studio workspace"><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
 </header>
@@ -127,9 +127,9 @@
     <div id="loraRecommendation" class="lora-recommendation" role="note" hidden><strong>Recommended when using LoRAs</strong>For the highest quality, choose <b>Native detail (max canvas)</b> and <b>Original quality</b> under Render method. This uses the full MiniMax H3 path; the LoRA may still change the result.</div>
    </details>
    <section class="panel">
-    <h2>Output settings</h2><p>Choose the exported video size. Smaller canvases have less image detail.</p>
+    <h2>Generation settings</h2><p>Choose the canvas used to generate a new shot. Native detail is the recommended upper baseline.</p>
     <label>FORMAT</label><div class="aspect-toggle" role="group" aria-label="Video orientation"><button id="aspectLandscape" type="button" aria-pressed="true">16:9 · Landscape</button><button id="aspectPortrait" type="button" aria-pressed="false">9:16 · Portrait</button><button id="aspectSquare" type="button" aria-pressed="false">1:1 · Square</button><button id="aspect4_3" type="button" aria-pressed="false">4:3 · Classic</button><button id="aspect3_4" type="button" aria-pressed="false">3:4 · Vertical</button><button id="aspect21_9" type="button" aria-pressed="false">21:9 · Cinema</button></div><div class="tip">Canvas dimensions are rounded for H3, so the ratio is approximate.</div>
-    <label>CANVAS &amp; ESTIMATED TIME</label><div id="estimates" class="estimates"></div><div id="resolutionTip" class="tip" role="note"></div>
+    <label>GENERATION CANVAS &amp; ESTIMATED TIME</label><div id="estimates" class="estimates"></div><div id="resolutionTip" class="tip" role="note"></div>
     <label for="renderMethod">Render method</label><select id="renderMethod"><option value="native">Original quality · recommended</option><option value="spectrum" disabled>Spectrum · approximate acceleration</option><option value="motioncache" disabled>MotionCache · approximate acceleration</option></select>
     <div class="tip" id="methodAvailability">Optional methods become available when installed on your ComfyUI server.</div>
     <div class="render-controls">
@@ -141,7 +141,7 @@
     <div class="estimate" id="estimateNote"></div><div class="tip" id="estimateBasis"></div><div id="memoryNotice" class="notice hidden" role="status"></div>
    </section>
    <section class="panel">
-    <h2>Refinement</h2>
+    <h2>Generative refinement</h2><p>Another sampling pass can change details and motion. To keep an approved shot, upscale the existing video instead.</p>
     <label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input id="enableRefine" type="checkbox" style="width:auto"> Enable Refine</label>
     <div class="tip" id="refineAvailability">Requires the verified latent upscaler and its weight. Availability is checked on this server.</div>
     <div class="profile" id="refinePresetInfo" style="margin-top:8px;display:none"><strong>Quality Refine preset active</strong><br>1.25× latent upscale · 10-step refinement · denoise 0.40. Motion Repair uses strength 0.25 in this pass.</div>
@@ -154,7 +154,7 @@
   <div class="stage-top"><h2>Workspace</h2><span>Generate · review · save</span></div>
   <div class="stage" id="stage"><div class="stage-empty"><b>Your video will appear here</b>Choose a mode, describe the scene, and generate. Progress and the final clip stay in this workspace.</div></div>
   <div class="output-card"><div class="statusline"><span id="status">Connect ComfyUI to begin</span><span id="percent">—</span></div><div class="progress" id="progress"><i id="progressFill"></i></div><div class="statusline"><span id="timer">—</span><span id="remaining">Time remaining: —</span></div><div id="uploadStatus" class="queue-info" role="status" aria-live="polite" hidden></div><div id="uploadProgress" class="progress" hidden><i id="uploadProgressFill"></i></div><div id="queueInfo" class="queue-info" aria-live="polite">Queue: —</div></div>
-  <div class="output-card hidden" id="resultCard"><h2>Current video</h2><p>Videos stay on this server until deleted. Pin favorites, download a copy, or delete.</p><div class="secondary-actions" style="margin-top:11px"><button id="keep" class="button alt">Pin video</button><button id="details" class="button alt">Settings</button><button id="download" class="button">Download</button></div><details id="resultTools" class="result-tools"><summary>Reuse, extend &amp; export</summary><div class="secondary-actions" style="margin-top:10px"><select id="extendSourceMethod" aria-label="Extend source method"><option value="generated">Saved latent context</option><option value="imported">Video context · re-encode</option></select><button id="extendVideo" class="button alt" style="border-color:var(--acid);color:var(--acid)">Extend clip</button><button id="purgeContext" class="button alt">Remove extend data</button><button id="acceptTake" class="button alt">Accept take</button><button id="restoreTake" class="button alt">Use original settings</button><button id="discard" class="button alt">Delete</button></div><div class="row" style="margin-top:10px"><select id="resultRole"><option value="start_frame">Use frame as start</option><option value="end_frame">Use frame as end</option><option value="reference">Use frame as reference</option><option value="video">Use video as reference</option></select><input id="resultFrameIndex" type="number" min="0" value="0" aria-label="Video frame index"><button id="useResult" class="button alt smallbtn">Use result</button></div><div class="row" style="margin-top:8px"><select id="mediaFormat"><option value="wav">Audio WAV</option><option value="muted_mp4">Muted video</option></select><button id="exportMedia" class="button alt smallbtn">Export existing media</button></div></details></div>
+  <div class="output-card hidden" id="resultCard"><h2>Current video</h2><p>Videos stay on this server until deleted. Pin favorites, download a copy, or delete.</p><div class="secondary-actions" style="margin-top:11px"><button id="keep" class="button alt">Pin video</button><button id="details" class="button alt">Settings</button><button id="download" class="button">Download</button></div><div class="row" style="margin-top:12px"><select id="upscaleTarget" aria-label="Enlarged video size"><option value="2x">2× current dimensions</option><option value="1080">1080 px short edge</option><option value="1440">1440 px short edge</option></select><button id="upscaleTake" class="button alt smallbtn">Upscale same take</button></div><div class="tip">Enlarges existing frames with Lanczos and copies the audio. Preserves the shot; does not generate new detail. Aspect ratio is kept, with dimensions rounded to even pixels.</div><div id="upscaleStatus" class="tip" role="status" aria-live="polite"></div><details id="resultTools" class="result-tools"><summary>Reuse, extend &amp; export</summary><div class="secondary-actions" style="margin-top:10px"><select id="extendSourceMethod" aria-label="Extend source method"><option value="generated">Saved latent context</option><option value="imported">Video context · re-encode</option></select><button id="extendVideo" class="button alt" style="border-color:var(--acid);color:var(--acid)">Extend clip</button><button id="purgeContext" class="button alt">Remove extend data</button><button id="acceptTake" class="button alt">Accept take</button><button id="restoreTake" class="button alt">Use original settings</button><button id="discard" class="button alt">Delete</button></div><div class="row" style="margin-top:10px"><select id="resultRole"><option value="start_frame">Use frame as start</option><option value="end_frame">Use frame as end</option><option value="reference">Use frame as reference</option><option value="video">Use video as reference</option></select><input id="resultFrameIndex" type="number" min="0" value="0" aria-label="Video frame index"><button id="useResult" class="button alt smallbtn">Use result</button></div><div class="row" style="margin-top:8px"><select id="mediaFormat"><option value="wav">Audio WAV</option><option value="muted_mp4">Muted video</option></select><button id="exportMedia" class="button alt smallbtn">Export existing media</button></div></details></div>
   <div class="output-card hidden" id="sequenceCard">
    <div style="display:flex;align-items:center;justify-content:space-between">
     <h2 style="margin:0">Multi-Clip Sequence</h2>
@@ -173,19 +173,19 @@
  </section>
 </main>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/uuid.js?v=20261013-still-control-r3"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261013-still-control-r3"></script>
-<script src="./h3/prompt-input.js?v=20261013-still-control-r3"></script>
-<script src="./h3/prompt-compiler.js?v=20261013-still-control-r3"></script>
-<script src="./h3/configuration.js?v=20261013-still-control-r3"></script>
-<script src="./h3/graph-builder.js?v=20261013-still-control-r3"></script>
-<script src="./h3/project-controller.js?v=20261013-still-control-r3"></script>
-<script src="./lab-ui.js?v=20261013-still-control-r3"></script>
-<script src="./h3/studio-ux.js?v=20261013-still-control-r3"></script>
-<script src="./h3/queue-ui.js?v=20261013-still-control-r3"></script>
-<script src="./h3/timing-estimator.js?v=20261013-still-control-r3"></script>
-<script src="./studio.js?v=20261013-still-control-r3"></script>
-<script src="./h3/connected-studio.js?v=20261013-still-control-r3"></script>
-<script src="./h3/configuration-ui.js?v=20261013-still-control-r3"></script>
+<script src="./h3/uuid.js?v=20261014-same-take-r1"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261014-same-take-r1"></script>
+<script src="./h3/prompt-input.js?v=20261014-same-take-r1"></script>
+<script src="./h3/prompt-compiler.js?v=20261014-same-take-r1"></script>
+<script src="./h3/configuration.js?v=20261014-same-take-r1"></script>
+<script src="./h3/graph-builder.js?v=20261014-same-take-r1"></script>
+<script src="./h3/project-controller.js?v=20261014-same-take-r1"></script>
+<script src="./lab-ui.js?v=20261014-same-take-r1"></script>
+<script src="./h3/studio-ux.js?v=20261014-same-take-r1"></script>
+<script src="./h3/queue-ui.js?v=20261014-same-take-r1"></script>
+<script src="./h3/timing-estimator.js?v=20261014-same-take-r1"></script>
+<script src="./studio.js?v=20261014-same-take-r1"></script>
+<script src="./h3/connected-studio.js?v=20261014-same-take-r1"></script>
+<script src="./h3/configuration-ui.js?v=20261014-same-take-r1"></script>
 </body>
 </html>

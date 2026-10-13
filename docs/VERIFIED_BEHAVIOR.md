@@ -21,3 +21,9 @@ Version 2.1.0 passed 283 Python tests and 133 JavaScript tests. Browser fixtures
 ## Live-server verification — 2.1.1, 13 October 2026
 
 289 Python tests and 139 JavaScript tests passed. A real browser checked the live HTTPS UI without fixture APIs. The current RTX 5090 server's existing Original Ref2VA + static-image Canny ControlNet output was independently decoded and checked: 864×480,124frames,24fps,H.264/AAC. This review submitted no additional GPU render. Singularity availability is verified, but independent Singularity, Hybrid and Character Swap rendering remains untested. See [server evidence and limitations](SERVER_VERIFICATION_2026_10_13_AR.md).
+
+## Resolution and same-take export — 2.1.2, 14 October 2026
+
+296 Python tests and 140 JavaScript tests passed. Browser fixtures verified existing references/model flows plus same-take export, unchanged generation settings and export/project/server/result race recovery. Five real FFmpeg export tests also passed on the current Linux server in an isolated staging folder while preserving the active render. This feature uses CPU post-processing of existing media; no new GPU inference is claimed. Direct high-resolution diffusion remains experimental and is not guaranteed to reproduce a successful draft. [Details](RESOLUTION_AND_SAME_TAKE_AR.md).
+
+A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311 frames at24fps, approximately12.96seconds. Original SHA-256 was unchanged; copied audio framemd5, including packet timing, matched exactly. The isolated test took26.55CPU seconds and did not modify the live runtime or submit a GPU job.
