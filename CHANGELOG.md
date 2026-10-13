@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.4 — 2026-10-14
+
+- Visible Options and Delete actions on every generated video card.
+- Shared video-options dialog with per-video upscale, download, playback and settings.
+- Move current-video deletion out of collapsed tools.
+- Explicit generated-video deletion endpoint also handles pinned outputs, preserves leased files and reports failures without removing the card.
+- Protect library actions against server switching, repeated deletion and concurrent export.
+
 ## 2.1.3 — 2026-10-14
 
 - Remove hidden global CK/Sage attention from H3 launch paths; explicitly request the official PyTorch dense baseline.

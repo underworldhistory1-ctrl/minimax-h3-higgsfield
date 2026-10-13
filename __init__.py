@@ -498,11 +498,18 @@ def secure_wipe(path, passes=3):
         scratch = os.path.join(os.path.dirname(path), uuid.uuid4().hex + ".tmp")
         os.replace(path, scratch)
         os.unlink(scratch)
-        dir_fd = os.open(os.path.dirname(path), os.O_RDONLY)
-        try:
-            os.fsync(dir_fd)
-        finally:
-            os.close(dir_fd)
+        # Windows does not support opening a directory for POSIX fsync.
+        # Once unlink succeeds, a durability warning must not report the file
+        # as retained or prevent removal of its library metadata.
+        if os.name != "nt":
+            try:
+                dir_fd = os.open(os.path.dirname(path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except OSError as error:
+                print(f"[h3_studio] deleted file; directory sync unavailable: {error!r}")
         return True
     except FileNotFoundError:
         return False
@@ -511,10 +518,10 @@ def secure_wipe(path, passes=3):
         return False
 
 
-def _discard(filename):
+def _discard(filename, output_only=False):
     if globals().get("_lab_assets") and (not _lab_assets.can_discard_input(filename) or _lab_jobs.is_file_leased(filename)):
         return False
-    path = _resolve(filename)
+    path = _safe_path(filename) if output_only else _resolve(filename)
     if not path:
         return False
     wiped = secure_wipe(path)
@@ -857,6 +864,25 @@ async def delete_image(request):
         return web.json_response({"error": "bad request"}, status=400)
     ok = await asyncio.to_thread(delete_image_output, _image_dir(), data.get("filename"))
     return web.json_response({"ok": ok}, status=200 if ok else 404)
+
+
+@PromptServer.instance.routes.post("/h3_studio/delete_video")
+async def delete_video(request):
+    """Explicit user deletion, including pinned outputs; never uploaded references."""
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid deletion request."}, status=400)
+    name = data.get("filename") if isinstance(data, dict) else None
+    path = _safe_path(name) if isinstance(name, str) else None
+    if not path:
+        return web.json_response({"error": "Only generated library videos can be deleted."}, status=400)
+    if not os.path.isfile(path):
+        return web.json_response({"error": "Video no longer exists. Refresh the library."}, status=404)
+    wiped = await asyncio.to_thread(_discard, name, output_only=True)
+    if not wiped:
+        return web.json_response({"error": "Video could not be deleted. It may be in use or protected; retry after the job finishes."}, status=409)
+    return web.json_response({"ok": True, "filename": name})
 
 
 @PromptServer.instance.routes.post("/h3_studio/delete_saved")

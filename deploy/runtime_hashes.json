@@ -21,7 +21,8 @@
   ],
   "CHANGELOG.md": [
     "00af951fb2c730f900730a288f5bb3d3e147d477",
-    "ca254cbb0c110cf450ad4e2f8881e3f793e255fd"
+    "ca254cbb0c110cf450ad4e2f8881e3f793e255fd",
+    "e7da4c2105ddd4e877c1184f1751897db10b15ce"
   ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
@@ -62,7 +63,8 @@
     "621a57313c103dde1970919d4f8c709c2dc09eed",
     "41a1698ef88875aa3da52238c2c5de4d0b3a1594",
     "8e71747e6a522f9b0c6b7fb1cc3bfdff743de79c",
-    "ecc064af805ccfd8f1bd71a4429ce85f68fbdbe8"
+    "ecc064af805ccfd8f1bd71a4429ce85f68fbdbe8",
+    "1bd3ec0aca317585d59fc32f2a5c76371a0e66fb"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -75,7 +77,8 @@
   ],
   "VERSION": [
     "3e3c2f1e5edb083aab93646ac7b076daa38516dd",
-    "eca07e4c1a8cbc603e5d5c2885dc0f0f9b1eef8d"
+    "eca07e4c1a8cbc603e5d5c2885dc0f0f9b1eef8d",
+    "ac2cdeba0137a6c2cbca06867b7ab994a913e294"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -126,7 +129,8 @@
     "455e7864c541067977be043c16461191607103c9",
     "6420ca5b37255d6a28079d5753ec0ba51bbfdcb9",
     "6a7cc7a45074f7b90918b1ee6c9831227e3ebff4",
-    "7de48cf0394aaaec4db876651f5b53952345acc0"
+    "7de48cf0394aaaec4db876651f5b53952345acc0",
+    "861a5ff862c0e36713a6a75a3f779548db63191f"
   ],
   "deploy/backup_h3_library.py": [
     "ba132bf302505d3c6333900902ce548ae13b4afb"
@@ -163,13 +167,15 @@
   ],
   "deploy/comfyui.service": [
     "4a8a9dc4024484f87c767b3b77dcdb88a69b50b3",
-    "ddadd735eff2bc5293067788f63abe4090f91d1a"
+    "ddadd735eff2bc5293067788f63abe4090f91d1a",
+    "9fb56f3f0202144a3dac85035d40fb49e4fb9ac6"
   ],
   "deploy/compatibility.json": [
     "5de415084f059ab3ea6329c0d94c604f105eb00d",
     "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
     "bd477a0724846314a7d72d60170f011d964d9c78",
-    "d22e66d3be05f69fb5f90f8597ab67b1ef0c126f"
+    "d22e66d3be05f69fb5f90f8597ab67b1ef0c126f",
+    "5b609a177dd7ca1b65c94813211636ef270366fb"
   ],
   "deploy/download_control_models.py": [
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
@@ -222,7 +228,8 @@
     "c469f55cbbdfd9cf3be4a08c0b8ea185f05f7019",
     "f050e7feb9eef962479bd889a97c9f25a4c86db0",
     "f06b2bd057c1bae1435fc632f55507a8ba505e0e",
-    "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0"
+    "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0",
+    "5bde83ce77650fc0bfd3e10210b79eea31f9268a"
   ],
   "deploy/launcher.py": [
     "1972ff3b516a9f156b7bcf51394be62f949f6bda",
@@ -231,7 +238,8 @@
     "3122ffb24f4c99d925c49f65b27c06fdc42f5259",
     "68a9bc1119629ee13312921ab6d9a9d53506ccfb",
     "b83cfac1043261cf1d040c7b61d3eee25836d3fe",
-    "18e4aab4200e382db92a6c51b1ee9aebffd0878d"
+    "18e4aab4200e382db92a6c51b1ee9aebffd0878d",
+    "40cc6e68829fb8afb86904553b44222f6c15b9f5"
   ],
   "deploy/launcher_models.py": [
     "2bf41f0300ee0682fb25a78e502c0e249d39daaa",
@@ -256,11 +264,13 @@
     "56a6229b4d427e654e9999d298e6260709616b4f",
     "5e9318c7bcf52fad9c7c8313f555e108d43d8c60",
     "db5b1ca80348232d2b20278c987d80e720b41061",
-    "fcb48b693e3e8ba4845868240e87ae23ecd7a3a1"
+    "fcb48b693e3e8ba4845868240e87ae23ecd7a3a1",
+    "6780850593c4ff428e257e57a24d8ba237a252ef"
   ],
   "deploy/openbayes_h3_supervisor.py": [
     "190a4986fb9f8e6777413819d383d8b36f2c8529",
-    "ac4150cc22a035aaa080805a6b2614cff619be37"
+    "ac4150cc22a035aaa080805a6b2614cff619be37",
+    "80c3ddb735690fb61aa0b8bf0ebeb724aad6a753"
   ],
   "deploy/openbayes_prepare_bf16.py": [
     "aee66532bdccc483f2dcf33c19facad2a6d6ba2a"
@@ -281,7 +291,8 @@
     "8240b726a7f73d107ad9b93c024f04122d7d2078",
     "e32d30019f5958877dce09cd82ff6df0c256dedc",
     "60b71c81781a1a45cb198d193dfea025e5b57bf3",
-    "36dbd4b80d2434c3bb9f542fe0a7320dd28675a1"
+    "36dbd4b80d2434c3bb9f542fe0a7320dd28675a1",
+    "e60e154229ad11610c8f77c295cc1d59c613aa0c"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -295,7 +306,8 @@
     "6e7cf772cbf0d8e6a4eb26ce6e7d3581ecd188dd",
     "a114dd447d565a891e103098c3133eef7193ce42",
     "a156560095da44077b4244c12b170bbd05867783",
-    "e810487734ba200fc769439304ee2df9075242d9"
+    "e810487734ba200fc769439304ee2df9075242d9",
+    "73994609feee4f8b126c1ac14af257594a6ac805"
   ],
   "deploy/salad/nginx.conf.template": [
     "72ac6056df96bfc7e33ebfa9370a8852d9943d75",
@@ -323,7 +335,8 @@
     "e28bf07aa1c8a3b36145c6d766824f0a7ad25fc9",
     "f66324215314e8d41b42a424c0c8b0b44cd34dd3",
     "f6bc3da6261b982d6025d3c981497335660dafd5",
-    "ff02fe5fcd4bc33da9c156697f0e1138e29308f9"
+    "ff02fe5fcd4bc33da9c156697f0e1138e29308f9",
+    "ceafb8198c2cf72b3524f8215243d26b4cad66d9"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -354,7 +367,8 @@
     "a965e2b7be0632bc5433814ed46c12ebc67d0ecc",
     "ec5ba33c421faa8f1737fae0cf6080c7f4d5f1a2",
     "72298ad028d4eed9965d86a31940f0d144b5ad90",
-    "688f8598b727ffecab803bf6b2289f6fc1b7def6"
+    "688f8598b727ffecab803bf6b2289f6fc1b7def6",
+    "f0956ae04e07ed60d2307652ccbb2a9a16e1cfa7"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -430,7 +444,8 @@
     "0e7df303d7d97ca3e6267d9033c5c9c5584af991"
   ],
   "docs/RESOLUTION_AND_SAME_TAKE_AR.md": [
-    "17eb38b983738b60dcfe749710ad85259012e301"
+    "17eb38b983738b60dcfe749710ad85259012e301",
+    "4b0eb9c9d892f09565f1177cb4fdf8299a98a2d4"
   ],
   "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
     "817177d474bfb9b9994fda0a18229d55f9bc73e8"
@@ -457,7 +472,8 @@
     "ef704715b380eb66f18aa89d88946aea87224dde",
     "df2908dd4b64257bd3b47d52895a19782b101038",
     "b499ccd108892b1eb8eabed95a2b49adb184f828",
-    "05af2eb7bb878cf9dc92f9393a804cf51ae95b2f"
+    "05af2eb7bb878cf9dc92f9393a804cf51ae95b2f",
+    "9f043d9e19c118ddd0f784538fa6e3a70f917f9c"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -633,7 +649,8 @@
     "69ade784037928547f1075d7f2a6027873074f65",
     "75c09918565fff1afbeb1e380da89dc0ae2776a8",
     "e94aa629f0822ed7767d014a4db3d02059d5ea71",
-    "efcf0f37ee55612b433de3d700a13b04552e2177"
+    "efcf0f37ee55612b433de3d700a13b04552e2177",
+    "dbc71fac3184c4620999054b976ec646459bdc7c"
   ],
   "h3_lab/configuration.py": [
     "202a362ebd1571b9283525a309901224fdee9c3f",
@@ -757,7 +774,8 @@
     "f65c00ce9d32fefdd879256c0670015b151909e6",
     "8c504b78c67d74b96d95c7d88841fe45fe0af54c",
     "d4c9f2480d942f8872bfb33387ca5cae76c99562",
-    "1a3f4eaeede3a98ea1d78dd8b8dc5b90817cb6af"
+    "1a3f4eaeede3a98ea1d78dd8b8dc5b90817cb6af",
+    "e81d4fc901b7adab623007752a37645969cb57fe"
   ],
   "lab/dependencies.lock.json": [
     "22788ffee953a94668f47b31454f716166fa8659"
@@ -809,7 +827,8 @@
   ],
   "tests/browser/modernization.cjs": [
     "2ebc99cb4b1680431b1a8af5d4729f0b93ef9411",
-    "41421a50749e77e39780645c04795b7f6da3822c"
+    "41421a50749e77e39780645c04795b7f6da3822c",
+    "6628e540b79bfea5f21a733897f414d74234b247"
   ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
@@ -914,7 +933,8 @@
   ],
   "tests/js/timing-estimator.test.cjs": [
     "0c49d6779f56a3b8bdd7d7210bb8d65df227d6d9",
-    "a990c38a19b07a2756f50ac90cc1aa338315bb86"
+    "a990c38a19b07a2756f50ac90cc1aa338315bb86",
+    "6d4cb98d2bcb88424e73024132449f9f99b6f533"
   ],
   "tests/js/uuid.test.cjs": [
     "61a6be4bae13e251207949930fb655f8aa1bd353"
@@ -1098,7 +1118,8 @@
   "web/h3/configuration-ui.js": [
     "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
     "a2d27dc2d9fed1a074e6689de5810dc13a371791",
-    "1a077cf100a515f4ef9bcd76e9204545bbcfeee7"
+    "1a077cf100a515f4ef9bcd76e9204545bbcfeee7",
+    "92d42dc260622d8db2784afa79574cda1fac2d63"
   ],
   "web/h3/configuration.js": [
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
@@ -1243,7 +1264,8 @@
     "05653d005f02b7b8836f9348da8c0f5417b71078",
     "4fad3fcd5161d25e28ab9fc7e1de8947ff9699bd",
     "a26cf50432070e84e39a32d121854f1d124f1b9a",
-    "23c54db0241db3f41c77d61cd2d86468b464ddb9"
+    "23c54db0241db3f41c77d61cd2d86468b464ddb9",
+    "858f067df4c139cb8775217cff0d0534e47db34e"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1304,7 +1326,8 @@
     "ff233a13bdfeeab696adf484010a326f5048548e",
     "4b0c5ee4bfa18e5b83125b81a02934c91360f589",
     "176e91ac2a1219fe6de27ae8d88ea0c201fa8cb8",
-    "d19ad3d4f575b7f3c302cbea79cf0bcc5f0a2b63"
+    "d19ad3d4f575b7f3c302cbea79cf0bcc5f0a2b63",
+    "b5f247bc647977d2f605d31b857d80b43cdb7782"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1321,5 +1344,11 @@
   "workflows/h3_t2v_ui.json": [
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945"
+  ],
+  "h3_lab/runtime_attention.py": [
+    "97a09539da24f0c69464d63759f79df8271ab6d2"
+  ],
+  "tests/test_runtime_attention.py": [
+    "2e7e8a1cbd1f43ccf28131230f15632d7781797f"
   ]
 }
