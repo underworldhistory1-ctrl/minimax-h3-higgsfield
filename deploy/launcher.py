@@ -712,7 +712,9 @@ def main():
             return result
         try:
             # Cached success flags never substitute for current validation.
-            state.update(files_prepared=False, api_ready=False, gpu_validated=False)
+            state.update(files_prepared=False, api_ready=False, gpu_validated=False,
+                         gpu_validation_scope='original_baseline_only',
+                         optional_profiles_gpu_validated=False)
             stage("prerequisites", lambda: prerequisites(runner))
             api = ComfyAPI(url)
             # A saved costly job is followed first, never rebooted or resubmitted.
