@@ -92,6 +92,7 @@ let browser;
    };
  });
  assert.equal(await page.locator('.result-actions').count(),2);
+ assert.equal(await page.locator('.result').first().evaluate(card=>{const label=card.querySelector('.result-label').getBoundingClientRect(),actions=card.querySelector('.result-actions').getBoundingClientRect(),bounds=card.getBoundingClientRect();return label.top>=bounds.top&&label.bottom<=actions.top+1&&label.height>=35;}),true);
  assert.equal(await page.locator('#discard').isVisible(),true);
  await page.locator('.result-actions').first().getByRole('button',{name:'Options'}).click();
  assert.equal(await page.locator('#videoActionsDialog').isVisible(),true);

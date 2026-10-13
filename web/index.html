@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield 2.1.4 — Create Video</title>
+<title>H3 Higgsfield 2.1.5 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -18,8 +18,8 @@
 .button{border:1px solid transparent;background:var(--acid);color:#151515;border-radius:8px;font-weight:800;padding:10px 13px}.button:hover{filter:brightness(1.08)}.button.alt{background:#252525;border-color:#3b3b3b;color:var(--text)}.button.alt:hover{border-color:#777}.button.smallbtn{padding:5px 8px;font-size:10px}.actiondock{position:sticky;bottom:0;background:#171717;border-top:1px solid #353535;padding:12px 16px;z-index:10}.generate{width:100%;font-size:13px;padding:12px}.actiondock .smallprint{font-size:10px;color:var(--quiet);margin:7px 0 0;text-align:center}.secondary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.settings-dialog{width:min(540px,calc(100vw - 24px));max-height:min(78vh,calc(100dvh - 24px));overflow:auto;border:1px solid #555;border-radius:14px;background:#1b1b1b;color:var(--text);padding:20px;box-shadow:0 22px 80px #000c}.settings-dialog::backdrop{background:#000b}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.settings-head h2{margin:0;font-size:18px}.settings-head button{flex:0 0 auto}.settings-grid{display:grid;grid-template-columns:minmax(105px,32%) minmax(0,1fr);gap:0;margin-top:14px}.settings-grid dt,.settings-grid dd{border-bottom:1px solid #383838;padding:8px 4px;margin:0;font-size:12px;overflow-wrap:anywhere}.settings-grid dt{color:var(--muted)}.settings-grid dd{white-space:pre-line}.settings-dialog h3{font-size:12px;margin:16px 0 6px}.detail-prompt{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;background:#252525;border:1px solid #3a3a3a;border-radius:8px;padding:10px;font-size:12px}
 .stage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.stage-top h2{font-size:17px;margin:0}.stage-top span{font-size:11px;color:var(--muted)}.stage{width:100%;aspect-ratio:16/9;min-height:320px;max-height:70vh;border:1px solid #333;background:radial-gradient(circle at 50% 40%,#1d1d1d 0,#151515 60%,#111 100%);border-radius:12px;display:grid;place-items:center;overflow:hidden}.stage video,.stage img{width:100%;height:100%;object-fit:contain}.stage-empty{text-align:center;color:var(--muted);max-width:320px;padding:20px;font-size:13px}.stage-empty b{display:block;font-size:20px;color:var(--text);margin-bottom:7px;letter-spacing:-.7px}.stage-empty:before{content:"▶";display:grid;place-items:center;width:55px;height:55px;margin:0 auto 16px;border:1px solid #6f7e27;border-radius:50%;color:var(--acid);font-size:19px;padding-left:3px}.output-card{border:1px solid #303030;background:#1a1a1a;border-radius:10px;padding:15px;margin:12px 0}.output-card h2{font-size:13px;margin:0 0 5px}.output-card p{font-size:11px;color:var(--muted);margin:0}.statusline{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);margin-top:7px}.progress{height:7px;border-radius:8px;background:#303030;overflow:hidden;margin:12px 0 3px}.progress i{display:block;height:100%;width:0;background:var(--acid);transition:width .3s}.progress.busy i{width:35%!important;background:linear-gradient(90deg,transparent,var(--acid),transparent);animation:sweep 1.3s ease-in-out infinite}@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(350%)}}.secondary-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.secondary-actions button{min-width:0;padding:9px 6px}@media(max-width:760px){.secondary-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .history-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 10px;border-top:1px solid #303030;padding-top:18px}.history-head h2{font-size:15px;margin:0}.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px}.result{aspect-ratio:16/10;border:1px solid #383838;border-radius:9px;background:#202020;overflow:hidden;color:var(--muted);padding:0;margin:0;text-align:center}.result:hover{border-color:var(--acid)}.result img{width:100%;height:100%;object-fit:cover}.empty-history{padding:30px;border:1px dashed #393939;border-radius:9px;text-align:center;color:var(--quiet);font-size:12px}.queue-info{font-size:11px;color:var(--muted);margin-top:8px}
-.result{display:grid;grid-template-rows:minmax(0,1fr) auto;aspect-ratio:16/12;text-align:left}.result-media{position:relative;min-height:0;overflow:hidden;background:#252525;display:grid;place-items:center}.result-media img{width:100%;height:100%;object-fit:cover}.result-fallback{font-size:22px;color:var(--acid)}.result-label{padding:7px 9px;min-height:41px;font-size:10px;line-height:1.35;color:var(--text)}.result-label small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.result.pinned{border-color:#647327}
-.result{position:relative;aspect-ratio:auto;grid-template-rows:auto auto}.result-media{aspect-ratio:16/9}.result-actions{display:flex;gap:6px;padding:7px;border-top:1px solid #383838}.result-actions button{flex:1;min-width:0;padding:6px;font-size:12px}.danger{color:#ffb4aa!important}.video-options-name{overflow-wrap:anywhere;color:var(--muted)}.result-open{display:grid;grid-template-rows:minmax(0,1fr) auto;width:100%;height:100%;border:0;background:transparent;color:inherit;text-align:left;padding:0;cursor:pointer;min-width:0;min-height:0}.result-details{position:absolute;top:7px;right:7px;border:1px solid #888;background:#1b1b1be8;color:#fff;border-radius:6px;padding:4px 7px;font-size:10px;cursor:pointer}.result-details:hover,.result-details:focus-visible{border-color:var(--acid);color:var(--acid)}
+.result{display:grid;grid-template-rows:minmax(0,1fr) auto;aspect-ratio:16/12;text-align:left}.result-media{position:relative;min-height:0;overflow:hidden;background:#252525;display:grid;place-items:center}.result-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.result-fallback{font-size:22px;color:var(--acid)}.result-label{padding:7px 9px;min-height:41px;font-size:10px;line-height:1.35;color:var(--text)}.result-label small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.result.pinned{border-color:#647327}
+.result.video-result{position:relative;aspect-ratio:auto;grid-template-rows:auto auto}.result-media{aspect-ratio:16/9}.result-actions{display:flex;gap:6px;padding:7px;border-top:1px solid #383838}.result-actions button{flex:1;min-width:0;padding:6px;font-size:12px}.danger{color:#ffb4aa!important}.video-options-name{overflow-wrap:anywhere;color:var(--muted)}.result-open{display:block;width:100%;height:auto;border:0;background:transparent;color:inherit;text-align:left;padding:0;cursor:pointer;min-width:0;min-height:0}.result-details{position:absolute;top:7px;right:7px;border:1px solid #888;background:#1b1b1be8;color:#fff;border-radius:6px;padding:4px 7px;font-size:10px;cursor:pointer}.result-details:hover,.result-details:focus-visible{border-color:var(--acid);color:var(--acid)}
 @media(max-width:900px){.shell{grid-template-columns:330px minmax(0,1fr)}.right{padding:18px}.stage{min-height:250px}}@media(max-width:720px){.top{height:58px;padding:0 14px}.topnav{display:none}.connection #connectionText{max-width:115px}.shell{height:auto;display:flex;flex-direction:column}.left{border-right:0;border-bottom:1px solid #2b2b2b;max-height:none;overflow:visible}.right{overflow:visible;padding-bottom:110px}.stage{min-height:230px}.actiondock{position:fixed;bottom:0;left:0;right:0;box-shadow:0 -12px 28px #0009}.sidebar-scroll{padding:14px}.mode strong{font-size:10px}.mode span{font-size:9px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* Keep reference cards inside the creation rail at every viewport width. */
@@ -51,11 +51,11 @@
   .right{padding-bottom:18px}
 }
 </style>
-<link rel="stylesheet" href="./studio-ux.css?v=20261014-library-r1">
+<link rel="stylesheet" href="./studio-ux.css?v=20261014-library-r2">
 </head>
 <body>
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.1.4</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.1.5</div></div>
  <nav class="topnav" aria-label="Studio workspace"><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
 </header>
@@ -174,19 +174,19 @@
 </main>
 <dialog id="videoActionsDialog" class="settings-dialog" aria-labelledby="videoActionsTitle"><div class="settings-head"><h2 id="videoActionsTitle">Video options</h2><button id="videoActionsClose" class="button alt smallbtn" type="button">Close</button></div><p id="videoActionsName" class="video-options-name"></p><div class="secondary-actions"><button id="videoActionsPreview" class="button alt">Play video</button><button id="videoActionsSettings" class="button alt">Settings</button><button id="videoActionsDownload" class="button">Download</button><button id="videoActionsDelete" class="button alt danger">Delete video</button></div><h3>Upscale same take</h3><p>Enlarge this existing video without regenerating it. Keeps the shot and copies its audio; does not generate new detail.</p><label for="videoActionsTarget">Export size · original aspect ratio is kept</label><div class="row"><select id="videoActionsTarget"><option value="2x">2× current dimensions</option><option value="1080">1080 px short edge</option><option value="1440">1440 px short edge</option></select><button id="videoActionsUpscale" class="button">Upscale &amp; download</button></div><p id="videoActionsStatus" class="tip" role="status" aria-live="polite"></p></dialog>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/uuid.js?v=20261014-library-r1"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261014-library-r1"></script>
-<script src="./h3/prompt-input.js?v=20261014-library-r1"></script>
-<script src="./h3/prompt-compiler.js?v=20261014-library-r1"></script>
-<script src="./h3/configuration.js?v=20261014-library-r1"></script>
-<script src="./h3/graph-builder.js?v=20261014-library-r1"></script>
-<script src="./h3/project-controller.js?v=20261014-library-r1"></script>
-<script src="./lab-ui.js?v=20261014-library-r1"></script>
-<script src="./h3/studio-ux.js?v=20261014-library-r1"></script>
-<script src="./h3/queue-ui.js?v=20261014-library-r1"></script>
-<script src="./h3/timing-estimator.js?v=20261014-library-r1"></script>
-<script src="./studio.js?v=20261014-library-r1"></script>
-<script src="./h3/connected-studio.js?v=20261014-library-r1"></script>
-<script src="./h3/configuration-ui.js?v=20261014-library-r1"></script>
+<script src="./h3/uuid.js?v=20261014-library-r2"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261014-library-r2"></script>
+<script src="./h3/prompt-input.js?v=20261014-library-r2"></script>
+<script src="./h3/prompt-compiler.js?v=20261014-library-r2"></script>
+<script src="./h3/configuration.js?v=20261014-library-r2"></script>
+<script src="./h3/graph-builder.js?v=20261014-library-r2"></script>
+<script src="./h3/project-controller.js?v=20261014-library-r2"></script>
+<script src="./lab-ui.js?v=20261014-library-r2"></script>
+<script src="./h3/studio-ux.js?v=20261014-library-r2"></script>
+<script src="./h3/queue-ui.js?v=20261014-library-r2"></script>
+<script src="./h3/timing-estimator.js?v=20261014-library-r2"></script>
+<script src="./studio.js?v=20261014-library-r2"></script>
+<script src="./h3/connected-studio.js?v=20261014-library-r2"></script>
+<script src="./h3/configuration-ui.js?v=20261014-library-r2"></script>
 </body>
 </html>

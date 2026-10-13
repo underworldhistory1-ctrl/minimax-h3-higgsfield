@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.5 — 2026-10-14
+
+- Keep each card's video label and generation dimensions visible above the new actions; remove circular percentage height from its preview button.
+- Add browser geometry checks to prevent labels being clipped behind card actions.
+
 ## 2.1.4 — 2026-10-14
 
 - Visible Options and Delete actions on every generated video card.
