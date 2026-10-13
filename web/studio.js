@@ -890,6 +890,7 @@ function setBusy(value) {
   for(const id of ["upscaleTake","upscaleTarget","extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
   document.querySelectorAll("#stepPresets button").forEach(button=>button.disabled=value);
   $("upscaleTake").disabled=!!(value||state.projectLoading||state.mediaExporting);
+  refreshVideoActions();
   updateCapabilities();
   renderLoras();renderRefs();renderGuides();renderEstimates();
   refreshLabControls();
@@ -1402,6 +1403,7 @@ function findVideoOutput(output){
 }
 function thumbnailURL(file){return api("/h3_studio/thumbnail?"+new URLSearchParams({filename:file.filename}));}
 function renderResults(){
+  const renderOrigin=api("");
   $("results").replaceChildren();
   $("videoCount").textContent="("+state.results.length+" on server)";
   $("wipe").classList.toggle("hidden",!state.results.some(e=>!e.kept));
@@ -1423,11 +1425,14 @@ function renderResults(){
     detail.textContent=[settings?.canvas,settings?.render_method==="native"?"Original":settings?.render_method].filter(Boolean).join(" · ")||"Settings unavailable";
     label.append(detail);b.append(media,label);
     b.setAttribute("aria-label",label.textContent);
-    b.onclick=()=>{showVideo(entry);openDetails(entry,b);};
-    const details=document.createElement("button");details.className="result-details";details.type="button";
-    details.textContent="Details";details.setAttribute("aria-label","Settings for video "+(index+1));
-    details.onclick=()=>openDetails(entry,details);
-    card.append(b,details);$("results").append(card);
+    b.onclick=()=>{if(api("")===renderOrigin)showVideo(entry);};
+    const actions=document.createElement("div");actions.className="result-actions";
+    const options=document.createElement("button");options.className="button alt";options.type="button";options.textContent="Options";
+    options.setAttribute("aria-label","Options for video "+(index+1));options.onclick=()=>{if(api("")===renderOrigin)openVideoActions(entry,options);};
+    const remove=document.createElement("button");remove.className="button alt danger";remove.type="button";remove.textContent="Delete";
+    remove.setAttribute("aria-label","Delete video "+(index+1));remove.disabled=videoDeletionPending(entry)||!!state.mediaExporting;
+    remove.onclick=()=>deleteVideoEntry(entry,renderOrigin);
+    actions.append(options,remove);card.append(b,actions);$("results").append(card);
   });
 }
 $("showMoreVideos").onclick=()=>{state.visibleResults+=8;renderResults();};
@@ -1499,14 +1504,14 @@ $("settingsDialog").addEventListener("click",event=>{if(event.target===$("settin
 $("settingsDialog").addEventListener("close",()=>{if(settingsTrigger?.isConnected)settingsTrigger.focus();settingsTrigger=null;});
 function showVideo(entry){
   $("upscaleStatus").replaceChildren();
-  state.current=entry;$("stage").replaceChildren();
+  state.current=entry;state.currentVideoOrigin=api("");$("stage").replaceChildren();
   const v=document.createElement("video");
   v.src=videoURL(entry.file);v.controls=true;v.autoplay=true;v.loop=true;
   $("stage").append(v);$("resultCard").classList.remove("hidden");
   $("download").textContent="Download";
   $("keep").textContent=entry.kept?"Pinned":"Pin video";
   $("keep").disabled=entry.kept;
-  const imported=entry.file.subfolder&&entry.file.subfolder!=="video";$("keep").hidden=!!imported;$("discard").hidden=!!imported;
+  const imported=entry.file.subfolder&&entry.file.subfolder!=="video";$("keep").hidden=!!imported;$("discard").hidden=false;$("discard").disabled=!!imported||videoDeletionPending(entry)||!!state.mediaExporting;
 }
 async function complete(file){
   if(state.completing)return;state.completing=true;
@@ -1581,20 +1586,58 @@ async function completeImpl(file){
   await loadHistorySamples();
   renderEstimates();
 }
+const videoDeletions=new Set();
+let videoActionsEntry=null,videoActionsOrigin=null,videoActionsTrigger=null;
+function videoIdentity(entry){return (entry?.file?.subfolder||"video")+"/"+entry?.file?.filename;}
+function videoDeletionPending(entry){return videoDeletions.has(api("")+"|"+videoIdentity(entry));}
+function refreshVideoActions(){
+  const blocked=!!(state.busy||state.projectLoading||state.mediaExporting);
+  if($("videoActionsUpscale"))$("videoActionsUpscale").disabled=blocked||!videoActionsEntry||videoDeletionPending(videoActionsEntry)||api("")!==videoActionsOrigin;
+  if($("videoActionsTarget"))$("videoActionsTarget").disabled=blocked;
+  if($("wipe"))$("wipe").disabled=!!state.mediaExporting||videoDeletions.size>0;
+  if($("videoActionsDelete"))$("videoActionsDelete").disabled=!!state.mediaExporting||!videoActionsEntry||videoDeletionPending(videoActionsEntry)||api("")!==videoActionsOrigin;
+  if($("discard"))$("discard").disabled=!!state.mediaExporting||!state.current||videoDeletionPending(state.current)||!!(state.current.file.subfolder&&state.current.file.subfolder!=="video");
+}
+function downloadVideoEntry(entry){if(!entry)return;const a=document.createElement("a");a.href=videoURL(entry.file);a.download=entry.file.filename;document.body.append(a);a.click();a.remove();}
+function openVideoActions(entry,trigger){
+  videoActionsEntry=entry;videoActionsOrigin=api("");videoActionsTrigger=trigger;
+  $("videoActionsName").textContent=entry.file.filename+(entry.kept?" · Pinned":"");$("videoActionsStatus").replaceChildren();
+  refreshVideoActions();$("videoActionsDialog").showModal();
+}
+$("videoActionsClose").onclick=()=>$("videoActionsDialog").close();
+$("videoActionsDialog").addEventListener("close",()=>{videoActionsEntry=null;videoActionsTrigger?.isConnected&&videoActionsTrigger.focus();});
+$("videoActionsPreview").onclick=()=>{if(api("")!==videoActionsOrigin)return;showVideo(videoActionsEntry);$("videoActionsDialog").close();$("resultCard").scrollIntoView({block:"center"});};
+$("videoActionsSettings").onclick=()=>{const entry=videoActionsEntry,trigger=videoActionsTrigger;$("videoActionsDialog").close();openDetails(entry,trigger);};
+$("videoActionsDownload").onclick=()=>{if(api("")===videoActionsOrigin)downloadVideoEntry(videoActionsEntry);};
+$("videoActionsDelete").onclick=()=>deleteVideoEntry(videoActionsEntry,videoActionsOrigin);
 async function discardEntry(entry,includeSaved=false){
   if(!entry||entry.kept&&!includeSaved)return false;
-  const result=await post(entry.kept?"/h3_studio/delete_saved":"/h3_studio/discard",{filename:entry.file.filename});
-  if(!result.ok)throw Error("Server did not confirm deletion.");
+  const result=await post(includeSaved?"/h3_studio/delete_video":"/h3_studio/discard",{filename:entry.file.filename});
+  if(!result.ok||result.skipped)throw Error("Server did not confirm deletion.");
   return true;
 }
+async function deleteVideoEntry(entry,origin=api("")){
+  if(!entry||origin!==api("")||state.mediaExporting||videoDeletionPending(entry))return;
+  const identity=videoIdentity(entry),key=origin+"|"+identity;
+  if(!confirm("Delete "+(entry.kept?"this pinned video":"this video")+" from the server?\n"+entry.file.filename+"\nThis cannot be undone."))return;
+  videoDeletions.add(key);renderResults();refreshVideoActions();
+  try{
+    await discardEntry(entry,true);
+    if(api("")!==origin)return;
+    state.results=state.results.filter(e=>videoIdentity(e)!==identity);
+    if(videoIdentity(state.current)===identity){state.current=null;$("resultCard").classList.add("hidden");$("stage").innerHTML="<div class='stage-empty'>Video deleted.</div>";}
+    if(videoIdentity(videoActionsEntry)===identity)$("videoActionsDialog").close();
+    info("Video deleted from the server.");
+  }catch(e){if(api("")===origin){info("Could not delete the video: "+e.message,true);if(videoIdentity(videoActionsEntry)===identity)$("videoActionsStatus").textContent="Could not delete: "+e.message;}}
+  finally{videoDeletions.delete(key);renderResults();refreshVideoActions();}
+}
+
 $("keep").onclick=async()=>{
   const entry=state.current;if(!entry)return;
   try{await post("/h3_studio/keep",{filename:entry.file.filename});entry.kept=true;showVideo(entry);renderResults();}catch(e){info("Could not keep the video on the server: "+e.message,true);}
 };
-$("download").onclick=()=>{
-  const entry=state.current;if(!entry)return;
-  const a=document.createElement("a");a.href=videoURL(entry.file);a.download=entry.file.filename;document.body.append(a);a.click();a.remove();
-};
+$("download").onclick=()=>downloadVideoEntry(state.current);
+
 if($("extendVideo")) $("extendVideo").onclick=async()=>{
   const entry=state.current;if(!entry||state.busy||state.projectLoading)return;
   try{
@@ -1623,23 +1666,24 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
     });
   }catch(e){info(e.message,true);}
 };
-$("discard").onclick=async()=>{
-  const entry=state.current;if(!entry)return;
-  if(!confirm("Delete this video from the server? This cannot be undone."))return;
-  try{await discardEntry(entry,true);}catch(e){info("Could not delete the video: "+e.message,true);return;}
-  state.results=state.results.filter(e=>e!==entry);state.current=null;renderResults();
-  $("resultCard").classList.add("hidden");$("stage").innerHTML="<div class='stage-empty'>Video deleted.</div>";
-};
+$("discard").onclick=()=>deleteVideoEntry(state.current,state.currentVideoOrigin);
+
 $("wipe").onclick=async()=>{
-  const count=state.results.filter(e=>!e.kept).length;
-  if(!count||!confirm("Delete "+count+" unpinned video(s) from this server? This cannot be undone."))return;
-  const failed=[];
-  await Promise.all(state.results.filter(e=>!e.kept).map(async entry=>{try{await discardEntry(entry);}catch{failed.push(entry);}}));
-  state.results=state.results.filter(e=>e.kept||failed.includes(e));state.current=null;renderResults();
-  if(failed.length)info(failed.length+" unpinned video(s) could not be deleted. Retry after reconnecting.",true);
-  $("resultCard").classList.add("hidden");$("stage").innerHTML="<div class='stage-empty'>Selected videos deleted.</div>";
-  await loadLibrary(true);
+  if(state.mediaExporting||videoDeletions.size)return;
+  const origin=api(""),entries=state.results.filter(e=>!e.kept);
+  if(!entries.length||!confirm("Delete "+entries.length+" unpinned video(s) from this server? This cannot be undone."))return;
+  const keys=entries.map(e=>origin+"|"+videoIdentity(e)),deleted=new Set(),failed=[];
+  keys.forEach(k=>videoDeletions.add(k));renderResults();refreshVideoActions();
+  try{
+    await Promise.all(entries.map(async entry=>{try{if(!await discardEntry(entry))throw Error("Protected video");deleted.add(videoIdentity(entry));}catch{failed.push(entry);}}));
+    if(api("")!==origin)return;
+    state.results=state.results.filter(e=>!deleted.has(videoIdentity(e)));
+    if(state.current&&deleted.has(videoIdentity(state.current))){state.current=null;$("resultCard").classList.add("hidden");$("stage").innerHTML="<div class='stage-empty'>Selected videos deleted.</div>";}
+    if(videoActionsEntry&&deleted.has(videoIdentity(videoActionsEntry)))$("videoActionsDialog").close();
+    if(failed.length)info(failed.length+" video(s) were retained: pinned, protected or unavailable. Refresh the library before retrying.",true);
+  }finally{keys.forEach(k=>videoDeletions.delete(k));renderResults();refreshVideoActions();}
 };
+
 
 function showPreview(blob){
   if(!state.running)return;

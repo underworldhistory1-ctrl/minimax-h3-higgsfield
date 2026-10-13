@@ -31,3 +31,7 @@ A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311
 ## Explicit attention baseline — 2.1.3, 14 October 2026
 
 300 Python tests and 141 JavaScript tests passed; browser fixtures verify visible/saved backend and timing isolation. On the current RTX 5090, the pinned ComfyUI PyTorch attention function matched PyTorch SDPA with finite outputs on packed non-contiguous head layouts (widths 96/128, 37 query and 41 key tokens). No model render or quality A/B was performed for the backend change. An intentionally misaligned storage-buffer stress case is unsupported by native CUDA attention and was excluded from the H3-layout check; it is not an H3 production graph reproduction. Existing externally launched workers can retain prior arguments; new project launch paths request PyTorch explicitly.
+
+## Library actions — 2.1.4, 14 October 2026
+
+307 Python tests, 141 JavaScript tests and expanded browser fixtures passed. Visible Options and Delete actions on each generated-video card share an export dialog. Explicit pinned deletion is distinct from unpinned-only bulk cleanup. Browser fixtures cover card-specific export, failure retention, pin protection and server-switch races. Seven backend tests cover the real route, output-only path scope, lease/failure reporting and real secure wipe; the Windows directory-sync branch is simulated rather than run on native Windows. Export tests remain separate from GPU inference.
