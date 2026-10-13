@@ -14,16 +14,15 @@
 
 (function(root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('./configuration.js'));
   } else {
-    root.H3GraphBuilder = factory();
+    root.H3GraphBuilder = factory(root.H3Configuration);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(Configuration) {
   'use strict';
 
   const MODEL_FL = "minimax_h3_fl2va_pruned_int8_convrot.safetensors";
   const MODEL_REF = "minimax_h3_ref2va_pruned_int8_convrot.safetensors";
-  const TURBO_NAME = "experimental/minimax_h3_fl2v_lightx2v_turbo_4to8step_v0.1-v1.0_768p_v4_step600_dareties.safetensors";
 
   // 1080p is an output size, not a valid native H3 sampling height.
   function canvasFor(width, height) {
@@ -51,6 +50,7 @@
   }
 
   function buildGraph(renderSpec, resolvedAssets = {}, capabilities = {}) {
+    const config = Configuration.resolve(renderSpec, capabilities);
     const mode = renderSpec.mode || 'text';
     const isRefs = mode === 'refs';
     const token = renderSpec.token || '000000000000';
@@ -73,7 +73,7 @@
       const sourceWidth = cont.type === 'generated' ? width : canvas.outputWidth;
       const sourceHeight = cont.type === 'generated' ? height : canvas.outputHeight;
       if(cont.source_canvas&&(Number(cont.source_canvas.width)!==sourceWidth||Number(cont.source_canvas.height)!==sourceHeight))throw new Error("Continuation canvas must match its source.");
-      if(cont.type==='generated'&&cont.source_model&&cont.source_model!==(isRefs?MODEL_REF:MODEL_FL))throw new Error("Changing the continuation checkpoint requires the explicit video re-encode path.");
+      if(cont.type==='generated'&&cont.source_model&&cont.source_model!==config.checkpoint)throw new Error("Changing the continuation checkpoint requires the explicit video re-encode path.");
       if (!["generated", "imported"].includes(cont.type)) throw new Error("Unknown continuation type.");
       if (!(cont.type === "generated" ? cont.source_token : cont.source_file)) throw new Error("Continuation source is missing.");
       if (!Number.isInteger(contextLength) || contextLength < 39 || (contextLength - 39) % 51 !== 0 || contextLength >= length) throw new Error("Continuation context must be an exact shared AV boundary shorter than the target.");
@@ -85,7 +85,8 @@
     const control = renderSpec.control?.enabled ? renderSpec.control : null;
     if (control) {
       if (capabilities.controlnet_ready !== true) throw new Error('ControlNet is unavailable: verified native nodes and model patch weights are required.');
-      if (isRefs || renderSpec.continuation || enableRefine) throw new Error('ControlNet requires FL2VA without references, continuation or refine.');
+      if (renderSpec.continuation || enableRefine) throw new Error('ControlNet with continuation or refine has not been validated.');
+      if (isRefs && capabilities.controlnet_references_ready !== true) throw new Error('References with ControlNet require the verified ComfyUI PR #16020 implementation.');
       if (!['pose','depth','canny','hed','mlsd','scribble','layout','gray','inpaint'].includes(control.kind)) throw new Error('Unknown prepared control kind.');
       if (control.model_name !== 'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors') throw new Error('Unknown ControlNet model patch.');
       if (Number(control.fps) !== 24 || Number(control.frame_count) !== length || Number(control.width) !== width || Number(control.height) !== height) throw new Error('Prepared control metadata must match 24 fps, target frames and canvas exactly.');
@@ -97,16 +98,20 @@
       }
       if (Number(control.start_percent ?? 0) >= Number(control.end_percent ?? 1)) throw new Error('Control start must precede its end.');
     }
-    const steps = Number(renderSpec.steps ?? (renderSpec.render_method === 'turbo' ? 6 : 20));
+    const steps = Number(renderSpec.steps ?? 20);
     if (!Number.isInteger(steps) || steps < 1 || steps > 100) throw new Error('Steps must be an integer between 1 and 100.');
     const method = renderSpec.render_method || 'native';
-    if (!['native','turbo','spectrum','motioncache'].includes(method)) throw new Error('Unknown render method.');
-    if (isRefs && method === 'turbo') throw new Error('Turbo requires FL2VA.');
+    if (!['native','spectrum','motioncache'].includes(method)) throw new Error('Unknown render method.');
     if (enableRefine && (!Number.isFinite(Number(renderSpec.refine_scale ?? 1.25)) || Number(renderSpec.refine_scale ?? 1.25) < 1 || Number(renderSpec.refine_scale ?? 1.25) > 1.25)) throw new Error('This server supports refinement up to 1.25x.');
+    const refinement={steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple',...renderSpec.refinement};
+    if(enableRefine){
+      if(!Number.isInteger(refinement.steps)||refinement.steps<1||refinement.steps>100||!Number.isFinite(refinement.denoise)||refinement.denoise<0||refinement.denoise>1||!Number.isFinite(refinement.cfg)||refinement.cfg<0||refinement.cfg>100)throw Error('Invalid refinement sampling settings.');
+      Configuration.resolve({...renderSpec,sampling:{...renderSpec.sampling,sampler_name:refinement.sampler_name,scheduler:refinement.scheduler}},capabilities);
+    }
 
     const g = {
-      "1": { class_type: "UNETLoader", inputs: { unet_name: isRefs ? MODEL_REF : MODEL_FL, weight_dtype: "default" } },
-      "2": { class_type: "MiniMaxH3SigmaShift", inputs: { model: ["1", 0], shift_video: 12, shift_audio: 3 } },
+      "1": { class_type: config.loader, inputs: config.loader === 'UnetLoaderGGUF' ? {unet_name:config.checkpoint} : {unet_name:config.checkpoint,weight_dtype:config.settings.weight_dtype} },
+      "2": { class_type: "MiniMaxH3SigmaShift", inputs: { model: ["1", 0], shift_video: config.settings.shift_video, shift_audio: config.settings.shift_audio } },
       "3": { class_type: "CLIPLoader", inputs: { clip_name: "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", type: "minimax" } },
       "4": { class_type: "VAELoader", inputs: { vae_name: "minimax_h3_video_vae_fp16.safetensors" } },
       "5": { class_type: "VAELoader", inputs: { vae_name: "minimax_h3_audio_vae_fp32.safetensors" } },
@@ -128,13 +133,13 @@
           model: ["2", 0],
           seed: seed,
           steps: steps,
-          cfg: 1,
-          sampler_name: "res_multistep",
-          scheduler: "simple",
+          cfg: config.settings.cfg,
+          sampler_name: config.settings.sampler_name,
+          scheduler: config.settings.scheduler,
           positive: ["6", 0],
           negative: ["7", 0],
           latent_image: ["6", 1],
-          denoise: 1
+          denoise: config.settings.denoise
         }
       },
       "13": { class_type: "H3ReleaseForDecode", inputs: { samples: ["8", 0], token: token } },
@@ -143,6 +148,7 @@
       "11": { class_type: "CreateVideo", inputs: { images: ["9", 0], fps: 24, audio: ["10", 0] } },
       "12": { class_type: "H3SaveVideo", inputs: { video: ["11", 0], filename_prefix: "video/h3_studio_" + token } },
     };
+    if(config.profile==='hybrid_loader')g['1']={class_type:'MinimaxH3_HybridLoader',inputs:{base_model:MODEL_FL,overlay_model:config.hybrid_preset==='none'?'':MODEL_REF,overlay_preset:config.hybrid_preset}};
 
     const allocate = (start) => { let id = start; while (g[String(id)]) id++; return String(id); };
 
@@ -159,14 +165,6 @@
       modelLink = [loraId, 0];
     });
 
-    if (method === "turbo" && !isRefs) {
-      const turboId = allocate(60);
-      g[turboId] = {
-        class_type: "LoraLoaderModelOnly",
-        inputs: { model: modelLink, lora_name: TURBO_NAME, strength_model: 0.9 }
-      };
-      modelLink = [turboId, 0];
-    }
     g["2"].inputs.model = modelLink;
     let samplingModelLink = ["2", 0];
     if (control) {
@@ -274,6 +272,11 @@
             const audioId = allocate(nextNodeId++);
             g[audioId] = {class_type:'TrimAudioDuration',inputs:{audio:[splitId,1],start_index:0,duration:used/24}};
             g["6"].inputs[`ref_video_audios.ref_video_audio_${currentSlot}`] = [audioId, 0];
+            if(renderSpec.preserve_reference_audio === (ref.asset_id||ref.alias)) {
+              if(renderSpec.continuation)throw Error('Source soundtrack reuse with continuation has not been validated.');
+              if(used!==length)throw Error('Source soundtrack must cover the full output duration; choose a shorter output.');
+              g['11'].inputs.audio=[audioId,0];
+            }
           }
         } else if (ref.kind === 'audio') {
           const loadId = allocate(nextNodeId++);
@@ -281,7 +284,9 @@
           g["6"].inputs[`ref_audios.ref_audio_${audSlot++}`] = [loadId, 0];
         }
       }
+      if(renderSpec.preserve_reference_audio&&!ordered.some(ref=>ref.kind==='video'&&ref.use_audio&&(ref.asset_id||ref.alias)===renderSpec.preserve_reference_audio))throw Error('Select a source video with its soundtrack enabled before reusing audio.');
     }
+    if(renderSpec.preserve_reference_audio&&!isRefs)throw Error('Source soundtrack reuse requires References mode.');
 
     // Native temporal guides (MiniMaxH3AddGuide)
     let currentPositive = ["6", 0];
@@ -337,7 +342,7 @@
       const contextId = allocate(85);
       const sourceId = allocate(Number(contextId) + 1);
       if (cont.type === 'generated') {
-        g[sourceId] = { class_type: 'H3LabLoadContext', inputs: { token: cont.source_token, model_id: isRefs ? MODEL_REF : MODEL_FL, width, height, fps: 24 } };
+        g[sourceId] = { class_type: 'H3LabLoadContext', inputs: { token: cont.source_token, model_id: config.checkpoint, width, height, fps: 24 } };
         g[contextId] = { class_type: 'MiniMaxH3GeneratedAVMaskedContext', inputs: { latent: ['6', 1], source_latent: [sourceId, 0], context_length: contextLength, audio_feather_ticks: Number(cont.audio_feather_ticks ?? 8) } };
       } else {
         g[sourceId] = { class_type: 'LoadVideo', inputs: { file: canonicalFile(cont.source_file) } };
@@ -362,8 +367,7 @@
           g[id] = {class_type:'LoraLoaderModelOnly',inputs:{model:stageLink,lora_name:lora.name,strength_model:Number(lora.refinement_strength ?? (/Motion[_ -]Repair[_ -]V2/i.test(lora.name) ? .25 : lora.strength ?? 1))}};
           stageLink = [id,0];
         }
-        if (method === 'turbo') {const id = allocate(150);g[id]={class_type:'LoraLoaderModelOnly',inputs:{model:stageLink,lora_name:TURBO_NAME,strength_model:.9}};stageLink=[id,0];}
-        const shiftId = allocate(150);g[shiftId]={class_type:'MiniMaxH3SigmaShift',inputs:{model:stageLink,shift_video:12,shift_audio:3}};
+        const shiftId = allocate(150);g[shiftId]={class_type:'MiniMaxH3SigmaShift',inputs:{model:stageLink,shift_video:config.settings.shift_video,shift_audio:config.settings.shift_audio}};
         refinementModel = [shiftId,0];
       }
       const separateId = allocate(100);
@@ -406,14 +410,14 @@
         inputs: {
           model: refinementModel,
           seed: (seed + 1) > 18446744073709551615 ? seed : (seed + 1),
-          steps: 10,
-          cfg: 1,
-          sampler_name: "res_multistep",
-          scheduler: "simple",
+          steps: refinement.steps,
+          cfg: refinement.cfg,
+          sampler_name: refinement.sampler_name,
+          scheduler: refinement.scheduler,
           positive: g["8"].inputs.positive,
           negative: g["8"].inputs.negative,
           latent_image: [concatId, 0],
-          denoise: 0.4
+          denoise: refinement.denoise
         }
       };
 
@@ -433,6 +437,7 @@
       g[cropId] = {class_type:'ImageCrop',inputs:{image:g['11'].inputs.images,...canvas.crop}};
       g['11'].inputs.images = [cropId,0];
     }
+    for(const node of Object.values(g))if(['SpectrumApplyMiniMaxH3','MiniMaxH3MotionCache'].includes(node.class_type))Configuration.patchOptions(node,renderSpec.node_options?.[node.class_type],capabilities);
     return g;
   }
 

@@ -761,7 +761,7 @@ async def readiness(request):
         "ConditioningZeroOut", "KSampler", "VAEDecode", "VAEDecodeAudio",
         "CreateVideo", "H3SaveVideo", "H3ReleaseForDecode", "H3LoadSavedLatent",
         "SaveVideo", "LoadImage", "LoadVideo", "ImageCrop", "ImageScale",
-        "GetVideoComponents", "LoadAudio", "LoraLoaderModelOnly",
+        "GetVideoComponents", "ImageFromBatch", "TrimAudioDuration", "LoadAudio", "LoraLoaderModelOnly",
         "SpectrumApplyMiniMaxH3", "MiniMaxH3MotionCache",
     )
     available = {name: name in nodes.NODE_CLASS_MAPPINGS for name in node_names}

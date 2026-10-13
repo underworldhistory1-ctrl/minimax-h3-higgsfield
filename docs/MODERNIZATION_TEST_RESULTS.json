@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-13",
+  "base_revision": "15102365e08cb061c299b1f071a1570351f50f96",
+  "branch": "dev/h3-modernization",
+  "gpu_rendered": false,
+  "weights_downloaded": false,
+  "production_modified": false,
+  "python": {
+    "command": "python -m unittest discover -s tests",
+    "passed": 278,
+    "failed": 0
+  },
+  "javascript": {
+    "command": "node --test tests/js/*.test.cjs",
+    "passed": 132,
+    "failed": 0
+  },
+  "browser": {
+    "status": "passed",
+    "checks": [
+      "740px desktop sidebar",
+      "keyboard resize persistence",
+      "multi-image upload",
+      "compact expandable references",
+      "rename and reorder bindings",
+      "Singularity loader and sampler overrides",
+      "refresh persistence",
+      "mobile overflow",
+      "zero uncaught errors"
+    ],
+    "gpu_rendered": false,
+    "fixture_backend": true
+  },
+  "reviews": {
+    "critical": 0,
+    "high": 0,
+    "notes": "Independent Python/architecture and JavaScript reviews; reported control, context, readiness, legacy-draft and timing defects repaired."
+  },
+  "pending": [
+    "GPU smoke on target runtime",
+    "Singularity/Hybrid/ControlNet visual and audio acceptance",
+    "quantization/GGUF/W4A8 integration evidence",
+    "automatic shot segmentation",
+    "full transitive wheel lock for every OS/CUDA"
+  ]
+}

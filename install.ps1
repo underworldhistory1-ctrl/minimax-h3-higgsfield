@@ -7,6 +7,7 @@ param(
     [switch]$Preflight,
     [switch]$NoStart,
     [switch]$NoUpdate,
+    [ValidateSet("latest", "notify", "verified")][string]$UpdatePolicy = "latest",
     [switch]$ControlNet,
     [switch]$Refine,
     [switch]$SkipRefine,
@@ -77,7 +78,7 @@ if (-not $hostPython) {
     }
     if (-not $hostPython) { throw "Python 3 was not found and automatic provisioning was unavailable. Use ComfyUI Portable or install Python 3.13, then rerun." }
 }
-$arguments = @($installer, "--port", "$Port", "--bind", $Bind)
+$arguments = @($installer, "--port", "$Port", "--bind", $Bind, "--update-policy", $UpdatePolicy)
 if ($ComfyRoot) { $arguments += @("--comfy-root", $ComfyRoot) }
 if ($ComfyPython) { $arguments += @("--comfy-python", $ComfyPython) }
 if ($Preflight) { $arguments += "--preflight" }

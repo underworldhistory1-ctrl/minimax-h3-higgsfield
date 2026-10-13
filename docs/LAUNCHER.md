@@ -26,11 +26,12 @@ Multiple installations require `--comfy-root`; ambiguous environments are preser
 ## Defaults and optional profiles
 
 Default preparation includes H3 Text/Frames/References, MotionCache and Spectrum,
-Realism People, Combat V2, Motion Repair V2, Refine, ControlNet with CPU pose/depth
+Realism People, Combat V2, Motion Repair V2, Character Swap, Refine, ControlNet with CPU pose/depth
 preprocessors, and Qwen Image INT8. Original remains the default rendering method.
 The launcher's short validation render also uses Original.
 
-Turbo is opt-in: `--turbo` / `-Turbo`. Existing Turbo files are retained.
+Turbo is retired. Existing files are retained but are not selected or downloaded.
+Character Swap requires Original Ref2VA; the studio Hybrid and Singularity profiles are not validated for this adapter.
 Use `--video-only` / `-VideoOnly` to omit Qwen weights, `--no-controlnet` /
 `-SkipControlNet`, or `--no-refine` / `-SkipRefine` to omit optional features.
 Omitting a feature never deletes previously installed files.
@@ -126,7 +127,7 @@ the full settings are excluded; new renders build the calibrated history.
 
 ## Update 2026-10-12
 
-Launch from an official Git clone on `main`: the launcher fetches and fast-forwards to the latest repository version before installing. It preserves local edits and rejects divergent commits. `--no-update` is an explicit offline/custom-checkout option; `--preflight` and `--status` remain read-only. ZIP copies must be downloaded again for source updates. Verified ComfyUI and acceleration-node revisions remain pinned.
+Default `--update-policy latest` fetches and fast-forwards official `main` before installation. It waits for an idle queue, records `refs/h3-launcher/previous-source`, preserves local edits and rejects divergent commits. `--update-policy notify` reports only; `--update-policy verified` applies manifest-approved commits. Windows accepts `-UpdatePolicy`. `--no-update` is an explicit offline/custom-checkout option; `--preflight` and `--status` remain read-only. ZIP copies must be downloaded again for source updates. Verified ComfyUI and acceleration-node revisions remain pinned.
 
 The installer now includes the shared queue/cancellation/stage observer, bounded H3 MLP scratch allocations, CPU MotionCache residual storage, a 3 GB VRAM reserve for newly started workers, and the narrowly scoped public Studio document navigation fix. H3 Studio rejects oversized unsupported graphs before submission. Model weights, projects, inputs, and generated outputs are preserved.
 
@@ -135,4 +136,4 @@ Qwen image references persist as original files in this browser's IndexedDB, inc
 Validation: 115 JavaScript tests, CPU stage/core patch tests, and real-browser refresh checks. No AI render was submitted for this update. These checks do not prove zero OOMs for every GPU workload.
 
 
-Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames support all four methods; References retains native/Spectrum/MotionCache (Turbo remains FL2VA-only). CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
+Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache; Turbo is retired. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.

@@ -369,6 +369,13 @@ def environment_ready(python, args):
     return result.returncode == 0
 
 
+def audit_environment(python):
+    probe = subprocess.run([str(python), str(PROJECT/'deploy/environment_audit.py')], capture_output=True, text=True, timeout=90)
+    if probe.returncode:
+        raise RuntimeError('Environment audit could not complete; services were not started.')
+    return json.loads(probe.stdout)
+
+
 def optional_nodes_ready(root, args):
     from importlib import import_module
     installer = import_module("deploy.install_windows") if __package__ else import_module("install_windows")
@@ -607,7 +614,10 @@ def parser():
     result.add_argument("--port", type=int, default=8188)
     result.add_argument("--bind", choices=("127.0.0.1", "0.0.0.0"), default="127.0.0.1")
     result.add_argument("--url", help="Current ComfyUI URL; credentials come from environment variables")
-    result.add_argument("--turbo", action="store_true", help="Opt in to Turbo; already installed files are always retained")
+    result.add_argument("--turbo", action="store_true", help=argparse.SUPPRESS)
+    result.add_argument("--checkpoint", choices=('singularity-int8',), help="Explicit opt-in to an optional 20.97 GB community checkpoint")
+    result.add_argument("--hybrid", action="store_true", help="Prepare the pinned community hybrid loader (no new model downloads)")
+    result.add_argument("--update-policy", choices=('latest','notify','verified'), default='latest', help="Automatically update official main (default), notify only, or apply manifest-approved commits")
     result.add_argument("--video-only", action="store_true", help="Omit Qwen Image weights")
     result.add_argument("--qwen-image-profiles", choices=("", "int8", "bf16", "int8,bf16"), default=os.environ.get("QWEN_IMAGE_PROFILES", "int8"))
     result.add_argument("--no-controlnet", action="store_true")
@@ -627,12 +637,20 @@ def parser():
 
 def main():
     args = parser().parse_args()
+    if args.turbo:
+        raise RuntimeError('Turbo has been removed. Existing files are preserved but not loaded or downloaded.')
     if not (args.no_update or args.status or args.plan):
         if __package__:
             from .update_source import update_source
         else:
             from update_source import update_source
-        if update_source(PROJECT):
+        def guard_source_update():
+            if __package__:
+                from .launcher_smoke import ComfyAPI
+            else:
+                from launcher_smoke import ComfyAPI
+            wait_for_install_idle(ComfyAPI(args.url or f'http://127.0.0.1:{args.port}'), args.queue_timeout)
+        if update_source(PROJECT, args.update_policy, before_update=guard_source_update):
             os.execv(sys.executable, [sys.executable, str(PROJECT / "deploy/launcher.py"), *sys.argv[1:]])
     if not 1 <= args.port <= 65535 or min(args.queue_timeout, args.start_timeout, args.smoke_timeout) <= 0:
         raise RuntimeError("Port and timeouts must be positive and valid")
@@ -654,7 +672,7 @@ def main():
         from launcher_models import manifest, plan_models, prepare_models
         from launcher_smoke import ComfyAPI, run_smoke
     artifacts = manifest(turbo=args.turbo, refine=not args.no_refine,
-                         controlnet=not args.no_controlnet, qwen_profiles=args.qwen_image_profiles)
+                         controlnet=not args.no_controlnet, qwen_profiles=args.qwen_image_profiles, checkpoint=args.checkpoint)
     artifacts, overlay = model_overlay(root, artifacts)
     if args.plan:
         plan = plan_models(root, roots, artifacts, directory)
@@ -667,6 +685,7 @@ def main():
     if "?" in url or "@" in url:
         raise RuntimeError("Supply an HTTP(S) URL without credentials or query tokens; set H3_ACCESS_TOKEN/H3_INSTANCE_PASSWORD instead")
     config = {"root": str(root), "url": url, "turbo": args.turbo,
+              "checkpoint": args.checkpoint, "hybrid": args.hybrid, "update_policy": args.update_policy,
               "bind": args.bind, "environment_id": environment_identity(),
               "refine": not args.no_refine, "controlnet": not args.no_controlnet,
               "qwen": args.qwen_image_profiles, "source_version": source_version()}
@@ -693,7 +712,9 @@ def main():
             return result
         try:
             # Cached success flags never substitute for current validation.
-            state.update(files_prepared=False, api_ready=False, gpu_validated=False)
+            state.update(files_prepared=False, api_ready=False, gpu_validated=False,
+                         gpu_validation_scope='original_baseline_only',
+                         optional_profiles_gpu_validated=False)
             stage("prerequisites", lambda: prerequisites(runner))
             api = ComfyAPI(url)
             # A saved costly job is followed first, never rebooted or resubmitted.
@@ -727,6 +748,28 @@ def main():
                 python = stage("runtime", lambda: setup_runtime(args, root, python, runner))
             else:
                 runner.emit("Runtime source and Python imports unchanged; reusing installation.")
+            if args.hybrid:
+                def prepare_hybrid():
+                    item = json.loads((PROJECT/'deploy/compatibility.json').read_text(encoding='utf-8'))['optional_nodes']['hybrid']
+                    path = root/'custom_nodes'/item['directory']
+                    if not path.exists():
+                        mark_reload()
+                        runner.run(['git','clone',item['repository'],path])
+                        runner.run(['git','-C',path,'checkout',item['commit']])
+                    else:
+                        revision = subprocess.check_output(['git','-C',str(path),'rev-parse','HEAD'],text=True).strip()
+                        origin = subprocess.check_output(['git','-C',str(path),'remote','get-url','origin'],text=True).strip()
+                        dirty = subprocess.check_output(['git','-C',str(path),'status','--porcelain'],text=True).strip()
+                        if revision != item['commit'] or origin != item['repository'] or dirty:
+                            raise RuntimeError('Hybrid checkout differs from the audited pin; preserve local edits and resolve it before launch.')
+                stage('optional_hybrid', prepare_hybrid)
+            def runtime_audit():
+                report = audit_environment(python)
+                state['environment'] = report
+                save()
+                if not report['ready']:
+                    raise RuntimeError('; '.join(report['issues']))
+            stage('environment_audit', runtime_audit)
             def patch_runtime():
                 if __package__:
                     from .runtime_patches import apply_patches

@@ -125,33 +125,8 @@ for path in "${FILES[@]}"; do
 done
 
 if [[ "$WITH_SPEED_LORA" -eq 1 ]]; then
-    SPEED_REPO="silveroxides/MiniMax-H3_tests"
-    SPEED_REVISION="e71f383b8b520c13388edb6d7c405803db3c357d"
-    SPEED_FILE="experimental/minimax_h3_fl2v_lightx2v_turbo_4to8step_v0.1-v1.0_768p_v4_step600_dareties.safetensors"
-    SPEED_TARGET="$COMFY_ROOT/models/loras/$SPEED_FILE"
-    mkdir -p "$(dirname "$SPEED_TARGET")"
-    SPEED_EXPECTED_SHA="e14c9e78834f5fac9195cb022baf2bc83372140da5142a8c999a1f568cb4915d"
-    if [[ -f "$SPEED_TARGET" && "$(stat -c '%s' "$SPEED_TARGET")" -eq 2116726792 ]] \
-            && [[ "$(sha256sum "$SPEED_TARGET" | cut -d' ' -f1)" == "$SPEED_EXPECTED_SHA" ]]; then
-        echo "Verified cached H3 Turbo LoRA."
-    else
-        if [[ "$OFFLINE_CHECK" -eq 1 ]]; then
-            echo "Missing or invalid cached H3 Turbo LoRA." >&2
-            exit 1
-        fi
-        ensure_hf
-        SPEED_FLAGS=()
-        if [[ -e "$SPEED_TARGET" ]]; then SPEED_FLAGS+=(--force-download); fi
-        echo "Downloading the optional H3 Turbo LoRA..."
-        "${HF[@]}" download "$SPEED_REPO" "$SPEED_FILE" --revision "$SPEED_REVISION" --local-dir "$COMFY_ROOT/models/loras" "${SPEED_FLAGS[@]}"
-        [[ -f "$SPEED_TARGET" && "$(stat -c '%s' "$SPEED_TARGET")" -eq 2116726792 ]] || {
-            echo "Turbo LoRA is absent or incomplete: $SPEED_TARGET" >&2; exit 1;
-        }
-        [[ "$(sha256sum "$SPEED_TARGET" | cut -d' ' -f1)" == "$SPEED_EXPECTED_SHA" ]] || {
-            echo "Turbo LoRA hash mismatch: $SPEED_TARGET" >&2; exit 1;
-        }
-    fi
-    echo "Verified optional H3 Turbo LoRA."
+    echo "Turbo has been retired; no speed LoRA will be downloaded." >&2
+    exit 2
 fi
 
 COMFY_ROOT="$COMFY_ROOT" REQUESTED_FILES="${FILES[*]}" "$PYTHON" - <<'PY'

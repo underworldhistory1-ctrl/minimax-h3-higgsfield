@@ -12,6 +12,12 @@ import urllib.request
 
 LORAS = (
     (
+        "h3_character_swap_pro4500_1000.safetensors",
+        "https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA/resolve/a665bb7e3bb9804e487d2925f67744f554c8ad49/h3_character_swap_pro4500_1000.safetensors",
+        "4b2a3f420ae804c0aa3422761ff84dbd1bf52eef6900ffab6d2e66df63cb4e79",
+        155110320,
+    ),
+    (
         "Motion_Repair_V2.safetensors",
         "https://huggingface.co/JOKER141/MiniMax-H3-General-Motion-Continuity-Repair/resolve/8a5126beb17b7de5642ee056ff5a7b60ae0915c7/Motion_Repair_V2.safetensors",
         "edfa0e2858caeba7be9108883f61da8525d3c58af998c94ac7a449d9603d7574",

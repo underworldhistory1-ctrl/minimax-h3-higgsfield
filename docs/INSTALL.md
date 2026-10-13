@@ -3,8 +3,8 @@
 ## One-command launcher
 
 The normal Windows and Linux commands now use the [automatic launcher](LAUNCHER.md).
-It prepares H3, the three style/motion LoRAs, MotionCache/Spectrum, Qwen INT8,
-Refine and ControlNet; Turbo is opt-in. It discovers attached model storage,
+It prepares H3, Realism People, Combat V2, Motion Repair V2 and Character Swap LoRAs,
+MotionCache/Spectrum, Qwen INT8, Refine and ControlNet. Turbo is retired. It discovers attached model storage,
 verifies/reuses files, resumes sequential downloads, saves progress and validates
 a short video with audio before reporting full readiness. Existing data is retained.
 

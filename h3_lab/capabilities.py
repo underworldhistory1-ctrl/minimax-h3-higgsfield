@@ -98,7 +98,9 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
             pass
     if not refine_weight:
         refine_missing.append('Exact named refine upscaler weight is missing or structurally incomplete.')
-    base_fl_ready = bool(models_status) and all(models_status.get(k, False) for k in ('fl2va', 'text_encoder', 'video_vae', 'audio_vae'))
+    from .model_catalog import discover, reference_control_supported
+    discovered = discover(folder_paths_module, registered_nodes)
+    base_fl_ready = bool(models_status) and all(models_status.get(k, False) for k in ('text_encoder', 'video_vae', 'audio_vae')) and (models_status.get('fl2va') or models_status.get('ref2va') or bool(discovered['model_catalog']))
     if not base_fl_ready:
         control_missing.append('FL2VA base models are unavailable.')
         refine_missing.append('FL2VA base models are unavailable.')
@@ -126,6 +128,8 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
     from .control_preprocess import preprocessor_status
     preprocessors = preprocessor_status()
     return {
+        **discovered,
+        "controlnet_references_ready": not control_missing and reference_control_supported(),
         "control_preprocessors": preprocessors,
         "controlnet_ready": not control_missing,
         "controlnet_missing_reasons": control_missing,
@@ -135,10 +139,10 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
         "ffmpeg": {"ffmpeg": ffmpeg_ok, "ffprobe": ffprobe_ok},
         "native_nodes": native_status,
         "add_guide": add_guide_ready,
-        "guides_ready": add_guide_ready and all(native_status.values()) and bool(models_status) and all(models_status.values()),
+        "guides_ready": add_guide_ready and all(native_status.values()) and bool(base_fl_ready),
         "continuation_nodes": continuation_status,
         "models": models_status,
-        "continuation_ready": all(continuation_status.values()) and all(native_status.values()) and bool(models_status) and all(models_status.values()),
+        "continuation_ready": all(continuation_status.values()) and all(native_status.values()) and bool(base_fl_ready),
         "ready": len(missing_reasons) == 0,
         "missing_reasons": missing_reasons,
     }

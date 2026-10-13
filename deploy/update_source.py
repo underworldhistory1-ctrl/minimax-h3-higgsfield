@@ -1,8 +1,9 @@
 """Fetch official main before installing; preserve local edits and local commits."""
 import subprocess
+import json
 
 
-def update_source(project):
+def update_source(project, policy='latest', before_update=None):
     if not (project / '.git').exists():
         print('Source archive: download the latest archive for updates, or use a Git clone.')
         return False
@@ -21,8 +22,21 @@ def update_source(project):
     before, target = git('rev-parse', 'HEAD'), git('rev-parse', 'origin/main')
     if before == target:
         return False
+    if policy not in ('latest', 'notify', 'verified'):
+        raise RuntimeError('Unknown source update policy')
+    try:
+        manifest = json.loads((project / 'deploy/compatibility.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        manifest = {}
+    if policy == 'notify' or policy == 'verified' and target not in manifest.get('approved_source_commits', []):
+        print('New source candidate ' + target[:12] + '; current checkout retained. Only manifest-approved commits may update automatically.')
+        return False
     if subprocess.run(['git', '-C', str(project), 'merge-base', '--is-ancestor', before, target]).returncode:
         raise RuntimeError('Local commits diverge from official main; reconcile them or use --no-update.')
+    if before_update is not None:
+        before_update()
+    # A named backup ref provides a reversible code-only rollback point.
+    subprocess.run(['git', '-C', str(project), 'update-ref', 'refs/h3-launcher/previous-source', before], check=True)
     subprocess.run(['git', '-C', str(project), 'merge', '--ff-only', 'origin/main'], check=True)
     print('Updated H3 source to ' + target[:12])
     return True

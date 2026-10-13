@@ -54,7 +54,9 @@ H3_HASHES = (
 )
 
 
-def manifest(turbo=False, refine=True, controlnet=True, qwen_profiles='int8'):
+def manifest(turbo=False, refine=True, controlnet=True, qwen_profiles='int8', checkpoint=None):
+    if turbo:
+        raise ValueError('Turbo has been retired and will not be downloaded.')
     result = [Artifact('models/'+name,
                        f'https://huggingface.co/{h3.MODEL_REPO}/resolve/{h3.MODEL_REVISION}/{name}', size, digest)
               for (name, size), digest in zip(h3.MODELS, H3_HASHES)]
@@ -63,9 +65,13 @@ def manifest(turbo=False, refine=True, controlnet=True, qwen_profiles='int8'):
     result.extend(Artifact('models/loras/'+name,
                           url.replace('/resolve/main/', '/resolve/233a183fb7d28b3b10d777b00d9b3ed3c691af81/'),
                           size, digest) for name, url, digest, size in loras.LORAS)
-    if turbo:
-        result.append(Artifact('models/loras/'+h3.TURBO_FILE,
-            f'https://huggingface.co/{h3.TURBO_REPO}/resolve/{h3.TURBO_REVISION}/{h3.TURBO_FILE}', h3.TURBO_SIZE, h3.TURBO_SHA256))
+    if checkpoint:
+        catalog = json.loads((Path(__file__).parent/'compatibility.json').read_text(encoding='utf-8'))['optional_checkpoints']
+        if checkpoint not in catalog:
+            raise ValueError('Unknown optional checkpoint')
+        item = catalog[checkpoint]
+        result.append(Artifact('models/diffusion_models/'+item['filename'],
+            f"https://huggingface.co/{item['repository']}/resolve/{item['revision']}/{item['filename']}", item['size'], item['sha256']))
     for enabled, module, folder in ((refine, refine_models, 'latent_upscale_models'), (controlnet, control_models, 'model_patches')):
         if enabled:
             result.append(Artifact(f'models/{folder}/{module.MODEL_NAME}', module.MODEL_URL, module.MODEL_SIZE, module.MODEL_SHA256))
