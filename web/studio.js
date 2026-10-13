@@ -1412,7 +1412,7 @@ function renderResults(){
   $("showMoreVideos").classList.toggle("hidden",remaining===0);
   $("showMoreVideos").textContent="Show "+Math.min(8,remaining)+" more · "+remaining+" remaining";
   state.results.slice(0,state.visibleResults).forEach((entry,index)=>{
-    const card=document.createElement("div");card.className="result"+(entry.kept?" pinned":"");
+    const card=document.createElement("div");card.className="result video-result"+(entry.kept?" pinned":"");
     const b=document.createElement("button");b.className="result-open";b.type="button";
 
     const media=document.createElement("div");media.className="result-media";
