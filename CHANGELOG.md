@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.2 — 2026-10-14
+
+- Separate generation resolution from enlargement of an accepted take.
+- Rename misleading High detail / Full HD generation labels as experimental; explain H3 native canvas and seed limitations.
+- Add CPU Lanczos export of an existing take, copied audio, frame/timing/aspect verification and atomic failure cleanup.
+- Preserve project settings and correctly track export progress through project, server and result changes.
+- Regression tests for resolution-only graph changes, export cancellation, malformed targets, real media and browser interactions.
+
 ## 2.1.1 — 2026-10-13
 
 - Integrated current HyperAI server fixes, retaining original reference identities and projects.

@@ -68,6 +68,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     source_upload_lock = asyncio.Lock()
     preparation_lock = asyncio.Lock()
     quality_lock = asyncio.Lock()
+    media_export_lock = asyncio.Lock()
     quality_cache = {}
     control_tasks = {}
     control_tasks_lock = threading.Lock()
@@ -730,13 +731,17 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
 
     async def handle_media_export(request):
         try:
+            if media_export_lock.locked():
+                return web.json_response({"error": "Another media export is running. Retry when it finishes."}, status=409)
             if output_root is None:
                 return web.json_response({"error": "Canonical output root unavailable"}, status=503)
             body = await request.json()
+            if not isinstance(body, dict):
+                raise ValueError("Export request must be an object")
             source = await asyncio.to_thread(owned_video, output_root, body.get("output_file") or "video/" + str(body.get("filename", "")))
             format_name = body.get("format")
-            if format_name not in ("wav", "muted_mp4"):
-                raise ValueError("format must be wav or muted_mp4")
+            if format_name not in ("wav", "muted_mp4", "upscaled_mp4"):
+                raise ValueError("format must be wav, muted_mp4 or upscaled_mp4")
             from .assembly import get_ffmpeg_path
             name = uuid.uuid4().hex + (".wav" if format_name == "wav" else ".mp4")
             destination = services["storage_root"] / "exports" / name
@@ -744,13 +749,21 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             cmd = [get_ffmpeg_path(), "-nostdin", "-v", "error", "-i", str(source)]
             cmd += ["-vn", "-c:a", "pcm_s16le"] if format_name == "wav" else ["-an", "-c:v", "copy"]
             cmd.append(str(destination))
+            metadata = {}
             try:
-                await asyncio.to_thread(subprocess.run, cmd, capture_output=True, check=True, timeout=180)
-            except Exception:
+                if media_export_lock.locked():
+                    return web.json_response({"error": "Another media export is running. Retry when it finishes."}, status=409)
+                async with media_export_lock:
+                    if format_name == "upscaled_mp4":
+                        from .media_export import upscale_take
+                        metadata = await _finish_source_worker(upscale_take, source, destination, body.get("target", "2x"))
+                    else:
+                        await _finish_source_worker(subprocess.run, cmd, capture_output=True, check=True, timeout=180)
+            except (Exception, asyncio.CancelledError):
                 destination.unlink(missing_ok=True)
                 raise
-            return web.json_response({"download_url": "/h3_studio/lab/exports/" + name, "filename": name}, status=201)
-        except (ValueError, FileNotFoundError, subprocess.SubprocessError) as err:
+            return web.json_response({"download_url": "/h3_studio/lab/exports/" + name, "filename": name, **metadata}, status=201)
+        except (ValueError, OSError, subprocess.SubprocessError) as err:
             return web.json_response({"error": str(err)}, status=400)
 
     async def handle_export_file(request):

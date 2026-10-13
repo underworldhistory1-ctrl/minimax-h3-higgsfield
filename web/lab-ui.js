@@ -195,6 +195,19 @@ function initLabUI(){
       await projectCtrl.saveCurrentProject({accepted_take_ids:next,takes:proj.takes.map(t=>invalid.has(t.take_id)?{...t,invalidated_by:take.take_id}:t)});info("Take accepted into the sequence.");}catch(e){info(e.message,true);}};
   $("useResult").onclick=async()=>{const entry=state.current;if(!entry||state.busy||state.projectLoading)return;try{const role=$("resultRole").value;if(role==="video"){if(state.continuation?.type==="generated"&&state.continuation.source_model!==modelRef)throw Error("Use the Active continuation References action to re-encode this source first.");const response=await fetch(videoURL(entry.file));if(!response.ok)throw Error("Result unavailable");const blob=await response.blob();selectMode("refs");if(state.mode!=="refs")throw Error("References mode is unavailable.");state.refs.push({file:new File([blob],entry.file.filename,{type:blob.type}),kind:"video",alias:aliasName(entry.file.filename),role:"custom",previewUrl:URL.createObjectURL(blob),useAudio:false,trimEnabled:true,trimStart:0,trimDuration:15});renderRefs();}else{const index=Number($("resultFrameIndex").value);const result=await post("/h3_studio/lab/media/frame",{filename:entry.file.filename,output_file:resultOutputPath(entry),frame_index:index,project_id:state.activeProjectId});await applyQwenHandoff(result.asset,role);} }catch(e){info(e.message,true);}};
   $("exportMedia").onclick=async()=>{if(!state.current||state.busy)return;try{const result=await post("/h3_studio/lab/media/export",{filename:state.current.file.filename,output_file:resultOutputPath(state.current),format:$("mediaFormat").value});const a=document.createElement("a");a.href=api(result.download_url);a.download=result.filename;a.click();}catch(e){info(e.message,true);}};
+  $("upscaleTake").onclick=async()=>{
+    if(!state.current||state.busy||state.projectLoading||state.mediaExporting)return;
+    const entry=state.current,button=$("upscaleTake"),status=$("upscaleStatus"),originBase=api("");
+    const stillCurrent=()=>state.current===entry&&api("")===originBase;
+    state.mediaExporting=true;button.disabled=true;status.textContent="Enlarging this video on the CPU…";
+    try{
+      const result=await post("/h3_studio/lab/media/export",{filename:entry.file.filename,output_file:resultOutputPath(entry),format:"upscaled_mp4",target:$("upscaleTarget").value});
+      const link=document.createElement("a");link.href=originBase+result.download_url;link.download=result.filename;link.textContent="Download enlarged video";
+      if(stillCurrent())status.replaceChildren(document.createTextNode(`${result.width}×${result.height} · ${result.frames} frames · same take. `),link);
+      link.click();
+    }catch(e){if(stillCurrent())status.textContent=e.message;info(e.message,true);}
+    finally{state.mediaExporting=false;button.disabled=!!(state.busy||state.projectLoading);}
+  };
   $("restoreTake").onclick=async()=>{if(state.busy)return;const t=state.currentProject?.takes?.find(t=>t.take_id===state.current?.takeId);if(!t?.draft){info("Original inputs are not stored for this older result.",true);return;}await withProjectLoading(async()=>{state.currentClipId=t.clip_id;await hydrateProjectDraft(t.draft);});info("Original take settings and inputs restored. Change the seed for a retry.");};
   refreshLabControls();renderGuides();
 }
@@ -217,6 +230,6 @@ function appendProjectResults(project){
 
 async function withProjectLoading(action){
   if(state.busy||state.projectLoading)throw Error("Wait for the current operation to finish.");
-  state.projectLoading=true;const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","restoreTake","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
-  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=state.busy||previous[i]);renderEstimates();refreshLabControls();}
+  state.projectLoading=true;const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","restoreTake","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
+  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();}
 }

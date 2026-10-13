@@ -47,7 +47,7 @@ def inspect_media(path: str) -> dict:
     ffprobe = get_ffprobe_path()
     cmd = [
         ffprobe, "-v", "error",
-        "-show_entries", "stream=codec_type,nb_frames,nb_read_frames,duration,width,height,r_frame_rate:format=duration", "-count_frames",
+        "-show_entries", "stream=codec_type,nb_frames,nb_read_frames,duration,width,height,r_frame_rate,sample_aspect_ratio:stream_side_data=rotation:stream_tags=rotate:format=duration", "-count_frames",
         "-of", "json", str(path)
     ]
     res = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=60)

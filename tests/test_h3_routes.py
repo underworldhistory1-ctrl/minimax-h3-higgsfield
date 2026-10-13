@@ -138,6 +138,31 @@ class TestH3LabRoutes(AioHTTPTestCase):
         self.assertEqual(response.status, 400)
         self.assertEqual(self.services["projects"].get_project(project["project_id"])["assets"], [])
 
+    async def test_cancelled_export_waits_for_worker_and_removes_published_file(self):
+        import threading
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        entered, release = threading.Event(), threading.Event()
+        def export(source, destination, target):
+            entered.set()
+            release.wait(5)
+            destination.write_bytes(b"finished export")
+            return {}
+        async def body():
+            return {"output_file": "video/h3_studio_abcdef123456.mp4", "format": "upscaled_mp4"}
+        route = next(r for r in self.app.router.routes() if r.method == "POST" and r.resource.canonical == "/h3_studio/lab/media/export")
+        with patch("h3_lab.routes.owned_video", return_value=self.storage_root / "source.mp4"), patch("h3_lab.media_export.upscale_take", side_effect=export):
+            task = asyncio.create_task(route.handler(SimpleNamespace(json=body)))
+            try:
+                self.assertTrue(await asyncio.to_thread(entered.wait, 5))
+                task.cancel()
+                await asyncio.sleep(0)
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        self.assertEqual(list((self.services["storage_root"] / "exports").glob("*.mp4")), [])
+
     async def test_asset_upload_read_and_resolve(self):
         import aiohttp
         import io
@@ -308,6 +333,28 @@ class TestH3LabRoutes(AioHTTPTestCase):
         self.assertEqual((await response.json())["job"]["state"], "cancelled")
         response = await self.client.get("/h3_studio/lab/jobs/by_request/delayed-cancel")
         self.assertEqual((await response.json())["state"], "cancelled")
+
+
+    async def test_upscale_export_uses_existing_take_and_never_submits_generation(self):
+        import subprocess
+        from h3_lab.assembly import get_ffmpeg_path
+        source = self.storage_root / "video" / "h3_studio_abcdef123456_00001_.mp4"
+        source.parent.mkdir(exist_ok=True)
+        subprocess.run([get_ffmpeg_path(), "-v", "error", "-f", "lavfi", "-i",
+            "testsrc2=size=96x64:rate=24:duration=0.5", "-c:v", "libx264", str(source)],
+            check=True, capture_output=True)
+        request = {"output_file": "video/" + source.name, "format": "upscaled_mp4", "target": "2x"}
+        response = await self.client.post("/h3_studio/lab/media/export", json=request)
+        self.assertEqual(response.status, 201)
+        result = await response.json()
+        self.assertEqual((result["width"], result["height"], result["frames"]), (192, 128, 12))
+        self.assertFalse(result["generation_performed"])
+        download = await self.client.get(result["download_url"])
+        self.assertEqual(download.status, 200)
+        self.assertGreater(len(await download.read()), 100)
+        self.assertEqual(self.queue.submissions, [])
+        response = await self.client.post("/h3_studio/lab/media/export", json={**request, "output_file": "../source.mp4"})
+        self.assertEqual(response.status, 400)
 
 
 class TestUnavailableQueueBridge(AioHTTPTestCase):

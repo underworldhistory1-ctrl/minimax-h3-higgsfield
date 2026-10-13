@@ -19,6 +19,9 @@
     "9bf99edf0b98ab6748c88094a09c8b73f558c808",
     "a4459f64908dcf9e6424f96a3e15d72658d1c877"
   ],
+  "CHANGELOG.md": [
+    "00af951fb2c730f900730a288f5bb3d3e147d477"
+  ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
     "5f2470da35c25896c8743112012a2f257cec3453",
@@ -67,6 +70,9 @@
     "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d",
     "bb51374dc1fc6ad03f0cb5d03873b640374edaa7",
     "9d8b0440ab2856f5a26965e56d2ac20a83f6ab60"
+  ],
+  "VERSION": [
+    "3e3c2f1e5edb083aab93646ac7b076daa38516dd"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -156,6 +162,11 @@
     "4a8a9dc4024484f87c767b3b77dcdb88a69b50b3",
     "ddadd735eff2bc5293067788f63abe4090f91d1a"
   ],
+  "deploy/compatibility.json": [
+    "5de415084f059ab3ea6329c0d94c604f105eb00d",
+    "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
+    "bd477a0724846314a7d72d60170f011d964d9c78"
+  ],
   "deploy/download_control_models.py": [
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
   ],
@@ -183,6 +194,12 @@
   ],
   "deploy/download_refine_models.py": [
     "144db293003cea45f1dfc452f3f913dca7a51ff2"
+  ],
+  "deploy/environment_audit.py": [
+    "b9d0aa3460d947b0e6910829a191aa156c07c0c3"
+  ],
+  "deploy/install_python_dependencies.py": [
+    "e2fa5ee12ca211304d4e05a8bb3d447eaf2fe6a2"
   ],
   "deploy/install_windows.py": [
     "01dc648d06cc8ea3d87bef0db1ef294ed7af63c1",
@@ -258,7 +275,11 @@
   "deploy/runtime_hashes.json": [
     "429208a2a6437b9eb4af34916d2ede0e077e1dad",
     "8240b726a7f73d107ad9b93c024f04122d7d2078",
-    "e32d30019f5958877dce09cd82ff6df0c256dedc"
+    "e32d30019f5958877dce09cd82ff6df0c256dedc",
+    "60b71c81781a1a45cb198d193dfea025e5b57bf3"
+  ],
+  "deploy/runtime_patches.py": [
+    "fb8d8c860573f7c39507206decefe3aeffa76cea"
   ],
   "deploy/salad/entrypoint.sh": [
     "049718276b48bf4ccb5ca22d306977843ac010e8",
@@ -278,6 +299,11 @@
   "deploy/uninstall_h3.py": [
     "12959d641e39caed3e87d1287e68a189fb36f6be",
     "559761620bd7fe4fc5309cf2314aa486db4101c6"
+  ],
+  "deploy/update_source.py": [
+    "1c4b48de0930d9dac111700132631cf74a601b0a",
+    "5c9d9573982539bcad986ec06101ec383b241683",
+    "595a1d9e7af8c7f42e42e9efec1f7842f13ed79a"
   ],
   "deploy/v2_runtime_files.txt": [
     "0bbf3b82a02b0c42e5bb5f0735bc5ca52c6c43c9",
@@ -305,6 +331,12 @@
     "f6c79d6d3c7ccd413c7fe5c657823280a99d170a",
     "fdcabbf7dc9ecb511a4c2a64408e3b534f22e53f",
     "86d71972ba89f45135d2774c775dbc313cdf43d5"
+  ],
+  "docs/CHARACTER_SWAP_AR.md": [
+    "3272007c4ae92f812e8f3959ccd867cca7e8b6eb"
+  ],
+  "docs/CHARACTER_SWAP_TEST_RESULTS.json": [
+    "da619f049743e87a6cc157865be510d9d773b5c1"
   ],
   "docs/COMPATIBILITY_MATRIX_AR.md": [
     "022efd9d67aa3ed3f7d48417742d49e4a962ccfe",
@@ -347,6 +379,10 @@
     "cc55ccdf31229fc749e3c5e299ff40f9cde600f6",
     "3e9b113f824903c107c8e3603eb158f0997d21a0"
   ],
+  "docs/HARDENING_REVIEW_AR.md": [
+    "00debd2b49d217e4ea939e028096022ba99ee465",
+    "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e"
+  ],
   "docs/INSTALL.md": [
     "ae0b468c80d24fe422510ffbbcc3daf5c980c60f",
     "e2651f3e5d821ee5f772024648bab091718dd958",
@@ -357,6 +393,12 @@
     "a2116468f44f2165358bdc545132aa5fa12d8c44",
     "dfcf270726520d23979f4356705bc6a40c6e7568",
     "d72bf517bd69bbb15af6973aed6272db0dee3147"
+  ],
+  "docs/MODERNIZATION_2026_10_13_AR.md": [
+    "a8d13687abee4323ab4fe9695001473a80c12f77"
+  ],
+  "docs/MODERNIZATION_TEST_RESULTS.json": [
+    "890d3f4e8b10db6539ef818893954a26bbb1e889"
   ],
   "docs/OPENBAYES.md": [
     "18ef7d19bc42681c9081c51f4c282b7684cc4e02",
@@ -375,6 +417,12 @@
   ],
   "docs/README.md": [
     "713c0a3d91cfa97c1958ad3dc11b2afa7febbc70"
+  ],
+  "docs/RENDER_RECOVERY.md": [
+    "0e7df303d7d97ca3e6267d9033c5c9c5584af991"
+  ],
+  "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
+    "817177d474bfb9b9994fda0a18229d55f9bc73e8"
   ],
   "docs/UNINSTALL.md": [
     "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba"
@@ -511,6 +559,27 @@
   "docs/lab/workflow-examples/salad-image.yml": [
     "38a3e301cb36d7d429bb60012400865a4f359852"
   ],
+  "docs/modernization/browser-results.json": [
+    "6bd6c4b1bec15089a2e907e77369577af2e0232d"
+  ],
+  "docs/modernization/character-swap.png": [
+    "35368db66f0b6cb1a54e13297fadf98fa459fc2a"
+  ],
+  "docs/modernization/mobile.png": [
+    "854dd43e20ae060376522520a9dbf8d739ceb236"
+  ],
+  "docs/modernization/references-desktop.png": [
+    "c7c3ea9c42d91c709d27dcb345c71e383932e9d5"
+  ],
+  "docs/modernization/server-browser-verification.json": [
+    "42e20d23a171d068707377e4e25efa039db09bae"
+  ],
+  "docs/modernization/server-interface-desktop.png": [
+    "3b593858d8a3f8963b6b1b84aa1a5320e92d719b"
+  ],
+  "docs/modernization/singularity-settings.png": [
+    "0e3291e610ee5000a681049e6a76132fb133131c"
+  ],
   "docs/screenshot.webp": [
     "668a98b793ede9486caf3de7d6e5b472aeb5c671"
   ],
@@ -520,6 +589,9 @@
   ],
   "docs/superpowers/plans/2026-09-28-qwen-image-studio.md": [
     "94862c2c6c86ced065bcbb8ab17b420f91718263"
+  ],
+  "docs/superpowers/plans/2026-10-12-high-resolution-hardening.md": [
+    "4c62f6a5888ef4e1da65ef1346399bf8c155aa2a"
   ],
   "docs/superpowers/plans/2026-10-12-launcher.md": [
     "535d1f1670bbc68543d5c58d366b7065091edfde"
@@ -550,6 +622,10 @@
     "e94aa629f0822ed7767d014a4db3d02059d5ea71",
     "efcf0f37ee55612b433de3d700a13b04552e2177"
   ],
+  "h3_lab/configuration.py": [
+    "202a362ebd1571b9283525a309901224fdee9c3f",
+    "706050ee108f615bab84d40fa6334c868a7200e8"
+  ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
     "da8eb87edb39d134606f6ae1321e7dd24fb48e0a"
@@ -578,6 +654,9 @@
     "a1893a39fef0fef5e256b8b839fe7750186897fa",
     "fb324184ac230b83ca7b4fc7406a3bf084d41c4e",
     "53bdf713f8d26df9773d9454c71efe47d1c8b202"
+  ],
+  "h3_lab/model_catalog.py": [
+    "d843f94cb384026a8caa4539f1937096077cf6a4"
   ],
   "h3_lab/paths.py": [
     "fb9fde3caadbf8848824d8969db9c898b948003e"
@@ -612,6 +691,12 @@
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
+  ],
+  "h3_lab/shared_timing.py": [
+    "45733c82bd7d8cde590ef8bda0551202fedf3a32"
+  ],
+  "h3_lab/storage.py": [
+    "68038898d8b6484c8e0ceb60656cf39d09008004"
   ],
   "h3_lab/timing.py": [
     "2b268de01992cd31ed3f38eb0e318551ca12a436",
@@ -705,6 +790,9 @@
   "tests/__init__.py": [
     "8b137891791fe96927ad78e64b0aad7bded08bdc"
   ],
+  "tests/browser/modernization.cjs": [
+    "2ebc99cb4b1680431b1a8af5d4729f0b93ef9411"
+  ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
     "0a7a09befcea487eb7f5582104191502d5bd2f52",
@@ -737,12 +825,28 @@
   "tests/e2e/image-browser-acceptance.cjs": [
     "9cc8707e194a6ea9fc0b9e623d16fbcd58966ec0"
   ],
+  "tests/e2e/resolution-browser-acceptance.cjs": [
+    "967def05226b11b04aae042a2f6d0f573929fcc5"
+  ],
   "tests/js/cancellation.test.cjs": [
     "8c6507b18a28b699bf3d81d346a8afb0f8c06a43"
+  ],
+  "tests/js/checkpoint-display.test.cjs": [
+    "05a0407c820c8c7fcff59e0883daeaa5b04387a1"
+  ],
+  "tests/js/configuration.test.cjs": [
+    "87eb28097eb61eb1ca0800bbf8d1a2f9040211f4"
   ],
   "tests/js/connected-graph.test.cjs": [
     "61d007733c406886b7715a6d5d884e3905a20652",
     "0a6998c3dd1dfbc51ec5d65ee59cb3f32c407c7e"
+  ],
+  "tests/js/control-upload.test.cjs": [
+    "8b5c0edeb0bf4e827b041c9f7aa1716051ec707f"
+  ],
+  "tests/js/fullhd-methods.test.cjs": [
+    "e7d5f3c036989ae38430e74118c0a5c91e1676e5",
+    "f5f967f88b55e206abbe43339cb6a50b8771b58f"
   ],
   "tests/js/graph-builder.test.cjs": [
     "485e547bfde1d42c95caa2d06d1bc78b9e1e5a9f",
@@ -751,6 +855,12 @@
     "e2259e17a54dc8a04170295f80f4e46e0864eceb",
     "e7f8cbb1d79040e99f4d8b54bae51241b6164372",
     "11617214cc01df2368b903e4fb7889273eebbea4"
+  ],
+  "tests/js/grouped-reference-definitions.test.cjs": [
+    "7dd14769976da9dc89966ac4f185448c8c95b681"
+  ],
+  "tests/js/preparation-restore.test.cjs": [
+    "3c546ddb9a61619ed7ebdd0ff6cf3bb2efe9eb5a"
   ],
   "tests/js/project-controller.test.cjs": [
     "7bbd79d0407ef51a818e6793a1137b93216add2d"
@@ -774,8 +884,14 @@
   "tests/js/reference-role-matrix.test.cjs": [
     "f9160730c7efbbbdb7b15f8e89ad40489461a24d"
   ],
+  "tests/js/resolution-studio.test.cjs": [
+    "19a3cbbd5fa693fe7d9715638486afdb51ae43ea"
+  ],
   "tests/js/studio-ux.test.cjs": [
     "7385236e9f97b883874ebcee7ad7004f89771895"
+  ],
+  "tests/js/subject-binding-repair.test.cjs": [
+    "d20ff18dc2141f66170bd8d89dfe0aaa4539412c"
   ],
   "tests/js/timing-estimator.test.cjs": [
     "0c49d6779f56a3b8bdd7d7210bb8d65df227d6d9",
@@ -817,6 +933,9 @@
   "tests/test_control_prompt_context.py": [
     "9208f21a00b62badf89678ec105621666a169f4a"
   ],
+  "tests/test_control_still.py": [
+    "738664c063d397ba9abbdc3ce64655a07a69a8c3"
+  ],
   "tests/test_deployment_contract.py": [
     "18fef3ed627e8dcd3d993bb83d9750a3f3679973",
     "ade0e1edd6783869278647f05290146e8da83281",
@@ -839,6 +958,9 @@
     "d8a7e5cf141b1c8a72d8f9534359e88f9de3d6e8",
     "1fc8159696d85e807d65bb7b47e76c0057b07da7",
     "1f43d75f4f9754b8b12640567ac6fcc104f3e5f0"
+  ],
+  "tests/test_h3_landing.py": [
+    "e849a96a4b59178861e58093accf216508e06264"
   ],
   "tests/test_h3_projects.py": [
     "266f1a7eee0b3bfcdc5bd53e5135362d006034e5",
@@ -878,6 +1000,15 @@
   "tests/test_launcher_smoke.py": [
     "46ec348a962de86adb21879a75a3f53f614dc7fe"
   ],
+  "tests/test_modernization.py": [
+    "021a5edea8b0d8d2351204ddd3b28cdb639d77de"
+  ],
+  "tests/test_optional_dependencies.py": [
+    "fd916b3642c6472e76f6c3931d933c642e008551"
+  ],
+  "tests/test_portrait_resource_contract.py": [
+    "ad5011897f1e6f62592418a5ef0128951f054d13"
+  ],
   "tests/test_prompt_context.py": [
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f",
@@ -894,6 +1025,18 @@
   "tests/test_qwen_routes.py": [
     "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0"
   ],
+  "tests/test_runtime_patches.py": [
+    "c9b4242c86149ba5a8f8d4bcc9967e6932ae5624"
+  ],
+  "tests/test_shared_timing.py": [
+    "f01a50a7cf32e175df5f6662a047837142bf7731"
+  ],
+  "tests/test_source_update.py": [
+    "ad13f5a8aef7a52a00e65b60c02e6aafd6410e36"
+  ],
+  "tests/test_storage.py": [
+    "858b909080eadf33dd3ebc6333aa8cbe4379dbd4"
+  ],
   "tests/test_timing_progress.py": [
     "656f8038a3a138cc05c55b5226cb5c9af5f38993"
   ],
@@ -906,6 +1049,10 @@
   ],
   "tests/test_v2_standby.py": [
     "1225fdefbb75b4c72398cfbced8a4b8736eeb07a"
+  ],
+  "tests/test_video_source_padding.py": [
+    "2947a0670b2eecf83ceeee0eef4773ff6810828c",
+    "c24130adaa52d4219ac2fcdaa9527fe0803ed165"
   ],
   "tools/prompt-parsers/build.cjs": [
     "982ee77b92199e4c2c166f952694a364540898e2"
@@ -924,6 +1071,15 @@
   ],
   "uninstall.sh": [
     "84a03e050f9abd7b76743abe2fd919ab068100cd"
+  ],
+  "web/h3/configuration-ui.js": [
+    "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
+    "a2d27dc2d9fed1a074e6689de5810dc13a371791",
+    "1a077cf100a515f4ef9bcd76e9204545bbcfeee7"
+  ],
+  "web/h3/configuration.js": [
+    "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
+    "fbd5908d1852f16daa7328c5bb7c14c25865e36e"
   ],
   "web/h3/connected-studio.js": [
     "19c62c6ecb84b4011dde3673ff67fc35517df1ea",
@@ -944,6 +1100,9 @@
     "af81cd2d54805782b35410e4679fa54211030f4b",
     "bfb02d735bcb32c6ac0e2092fab258736599ccbe",
     "f985627acb68c4bcbe56026c3080ed823427fc0d"
+  ],
+  "web/h3/image-reference-store.js": [
+    "2d72e1ebdcec94f37ddf4f889092cac297e4a680"
   ],
   "web/h3/project-controller.js": [
     "77ccbd811ba7ff87bbf7e06a8f02f0325a743d0a",
@@ -1136,61 +1295,5 @@
   "workflows/h3_t2v_ui.json": [
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945"
-  ],
-  "tests/js/fullhd-methods.test.cjs": [
-    "e7d5f3c036989ae38430e74118c0a5c91e1676e5",
-    "f5f967f88b55e206abbe43339cb6a50b8771b58f"
-  ],
-  "tests/test_video_source_padding.py": [
-    "2947a0670b2eecf83ceeee0eef4773ff6810828c",
-    "c24130adaa52d4219ac2fcdaa9527fe0803ed165"
-  ],
-  "docs/HARDENING_REVIEW_AR.md": [
-    "00debd2b49d217e4ea939e028096022ba99ee465",
-    "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e"
-  ],
-  "deploy/install_python_dependencies.py": [
-    "e2fa5ee12ca211304d4e05a8bb3d447eaf2fe6a2"
-  ],
-  "web/h3/image-reference-store.js": [
-    "2d72e1ebdcec94f37ddf4f889092cac297e4a680"
-  ],
-  "h3_lab/shared_timing.py": [
-    "45733c82bd7d8cde590ef8bda0551202fedf3a32"
-  ],
-  "deploy/runtime_patches.py": [
-    "fb8d8c860573f7c39507206decefe3aeffa76cea"
-  ],
-  "deploy/update_source.py": [
-    "1c4b48de0930d9dac111700132631cf74a601b0a",
-    "5c9d9573982539bcad986ec06101ec383b241683",
-    "595a1d9e7af8c7f42e42e9efec1f7842f13ed79a"
-  ],
-  "h3_lab/storage.py": [
-    "68038898d8b6484c8e0ceb60656cf39d09008004"
-  ],
-  "web/h3/configuration.js": [
-    "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
-    "fbd5908d1852f16daa7328c5bb7c14c25865e36e"
-  ],
-  "web/h3/configuration-ui.js": [
-    "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
-    "a2d27dc2d9fed1a074e6689de5810dc13a371791",
-    "1a077cf100a515f4ef9bcd76e9204545bbcfeee7"
-  ],
-  "h3_lab/model_catalog.py": [
-    "d843f94cb384026a8caa4539f1937096077cf6a4"
-  ],
-  "deploy/compatibility.json": [
-    "5de415084f059ab3ea6329c0d94c604f105eb00d",
-    "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
-    "bd477a0724846314a7d72d60170f011d964d9c78"
-  ],
-  "deploy/environment_audit.py": [
-    "b9d0aa3460d947b0e6910829a191aa156c07c0c3"
-  ],
-  "h3_lab/configuration.py": [
-    "202a362ebd1571b9283525a309901224fdee9c3f",
-    "706050ee108f615bab84d40fa6334c868a7200e8"
   ]
 }

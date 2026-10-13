@@ -20,15 +20,15 @@ const aspectPresets = {
   "16:9": [
     [1280,704,"Near 720p"],
     [1344,768,"Native detail"],
-    [1664,928,"High detail · 1.54 MP"],
-    [1920,1080,"Full HD · 2.07 MP"],
+    [1664,928,"Large generation · experimental"],
+    [1920,1080,"Full HD generation · experimental"],
     [1024,576,"Compact"],
     [864,480,"Draft"],
   ],
   "9:16": [
     [704,1280,"Vertical 720p"],
-    [768,1344,"Vertical max"],
-    [1080,1920,"Vertical Full HD · 2.07 MP"],
+    [768,1344,"Vertical native"],
+    [1080,1920,"Vertical Full HD generation · experimental"],
     [576,1024,"Vertical compact"],
     [480,864,"Vertical draft"],
   ],
@@ -375,9 +375,9 @@ function renderEstimates() {
   $("estimateNote").textContent = "Estimated " + sizeKey() + ": " + estimateText(state.estimated);
   $("estimateBasis").textContent = state.estimated.basis + ". Execution time includes model load, video and audio; queue/upload time is separate.";
   const canvas=samplingCanvas();
-  $("resolutionTip").textContent=canvas.crop
-    ?`Full HD samples at ${canvas.width}×${canvas.height}, then removes 4 pixels from ${canvas.crop.x?"the left and right":"the top and bottom"} to export ${state.width}×${state.height}. These large presets use more memory and time; quality settings stay selected.`
-    :state.width===1664&&state.height===928?"This large preset uses more memory and time. Quality settings stay selected.":"";
+  $("resolutionTip").textContent=(canvas.width*canvas.height>1344*768
+    ?"Above H3’s native canvas: detail and reference adherence can degrade. " : "")
+    +"Changing generation size can change the entire shot, even with the same seed. To enlarge a successful clip, use Upscale same take below its preview.";
   const risk=refMemoryRisk();
   $("memoryNotice").classList.toggle("hidden",!risk);
   $("memoryNotice").textContent=risk?`This server has ${state.ramLimit} GB system RAM. Long Ref2VA renders at this canvas may run out of system RAM during video decoding. You can still render; a shorter duration, smaller canvas, or 64 GB RAM server lowers that risk.`:"";
@@ -887,8 +887,9 @@ function setBusy(value) {
   state.busy=value;
   $("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);
   document.querySelectorAll(".mode").forEach(b=>b.disabled=value);
-  for(const id of ["extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
+  for(const id of ["upscaleTake","upscaleTarget","extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
   document.querySelectorAll("#stepPresets button").forEach(button=>button.disabled=value);
+  $("upscaleTake").disabled=!!(value||state.projectLoading||state.mediaExporting);
   updateCapabilities();
   renderLoras();renderRefs();renderGuides();renderEstimates();
   refreshLabControls();
@@ -1496,6 +1497,7 @@ $("settingsClose").onclick=()=>$("settingsDialog").close();
 $("settingsDialog").addEventListener("click",event=>{if(event.target===$("settingsDialog"))$("settingsDialog").close();});
 $("settingsDialog").addEventListener("close",()=>{if(settingsTrigger?.isConnected)settingsTrigger.focus();settingsTrigger=null;});
 function showVideo(entry){
+  $("upscaleStatus").replaceChildren();
   state.current=entry;$("stage").replaceChildren();
   const v=document.createElement("video");
   v.src=videoURL(entry.file);v.controls=true;v.autoplay=true;v.loop=true;
