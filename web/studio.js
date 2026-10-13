@@ -294,7 +294,7 @@ function timingConfiguration(w=state.width,h=state.height){
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
   if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
-  return {version:2,gpu:state.gpu,model:selectedCheckpoint(),sampling:state.sampling||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
+  return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:state.sampling||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
     width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
     sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
@@ -309,7 +309,7 @@ function captureSettings(){
   const adapters=state.loras.filter(item=>item.enabled).map(item=>({name:item.name,strength:item.strength,refinement_strength:$("enableRefine").checked?(item.refinement_strength??(/Motion_Repair_V2/i.test(item.name)?.25:item.strength)):undefined}));
   if(method()==="turbo")adapters.push({name:"H3 Turbo",strength:0.9});
   return {
-    timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
+    server_attention:state.labCapabilities?.server_attention||null,timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
     canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
     steps:Number($("steps").value),seed:Number($("seed").value),render_method:method(),
@@ -1454,6 +1454,7 @@ function openDetails(entry,trigger){
     const methodNames={native:"Original quality",spectrum:"Spectrum",motioncache:"MotionCache",turbo:"Turbo LoRA"};
     row("Mode",modeNames[settings.mode]||settings.mode);
     row("Model",settings.configuration?.checkpoint||settings.model);
+    if(settings.server_attention)row("Server dense attention",settings.server_attention.label);
     if(settings.configuration?.settings){const c=settings.configuration.settings;row('Sampler',c.sampler_name+' · '+c.scheduler);row('CFG / denoise',c.cfg+' / '+c.denoise);row('Video / audio shift',c.shift_video+' / '+c.shift_audio);row('Weight precision',c.weight_dtype);}
     row("Canvas",[settings.quality,settings.canvas].filter(Boolean).join(" · "));
     if(settings.sampling_canvas&&settings.sampling_canvas!==settings.canvas)row("Sampling canvas",settings.sampling_canvas+" · final output "+settings.canvas);

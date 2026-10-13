@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.3 — 2026-10-14
+
+- Remove hidden global CK/Sage attention from H3 launch paths; explicitly request the official PyTorch dense baseline.
+- Report the actual server dense backend in the UI and saved settings, with native checkpoint overrides distinguished.
+- Separate measured timing observations by attention backend so earlier accelerated timings do not predict the new baseline.
+- Preserve the 2.1.2 same-take enlargement and existing graph/LoRA choices.
+
 ## 2.1.2 — 2026-10-14
 
 - Separate generation resolution from enlargement of an accepted take.

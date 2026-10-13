@@ -574,7 +574,7 @@ def start_server(api, root, python, args, runner, state, save):
         save()
     else:
         previous_instance = None
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0"]
+        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0", "--use-pytorch-cross-attention"]
         if python.parent.name.lower() == "python_embeded":
             command.append("--windows-standalone-build")
         else:

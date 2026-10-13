@@ -16,6 +16,12 @@ test('size frames and steps variants are similar actual observations without sca
 test('methods models GPUs and modes never borrow measurements',()=>{
  for(const [key,value] of [['method','turbo'],['mode','frames'],['model','Ref2VA'],['gpu','RTX 6000']]){const c=config();assert.equal(E.estimate({...c,[key]:value},[sample(c)]).seconds,null);}
 });
+
+test('attention backends never borrow timing from a different or unrecorded backend',()=>{
+ const legacy=config(),pytorch={...legacy,attention_backend:'attention_pytorch'},ck={...legacy,attention_backend:'attention_comfy_kitchen_int8'};
+ assert.equal(E.estimate(pytorch,[sample(ck),sample(legacy)]).seconds,null);
+ assert.equal(E.estimate(pytorch,[sample(pytorch,175)]).seconds,175);
+});
 test('ordered adapter chains and strengths isolate variants',()=>{
  const c={...config(),adapters:[{name:'A',strength:.5},{name:'B',strength:1}]};
  assert.equal(E.estimate({...c,adapters:[...c.adapters].reverse()},[sample(c)]).seconds,null);

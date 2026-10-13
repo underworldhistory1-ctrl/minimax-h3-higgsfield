@@ -20,7 +20,8 @@
     "a4459f64908dcf9e6424f96a3e15d72658d1c877"
   ],
   "CHANGELOG.md": [
-    "00af951fb2c730f900730a288f5bb3d3e147d477"
+    "00af951fb2c730f900730a288f5bb3d3e147d477",
+    "ca254cbb0c110cf450ad4e2f8881e3f793e255fd"
   ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
@@ -60,7 +61,8 @@
     "f980c9d0581c8cc1fc30b9c77b086e994bb3cc2e",
     "621a57313c103dde1970919d4f8c709c2dc09eed",
     "41a1698ef88875aa3da52238c2c5de4d0b3a1594",
-    "8e71747e6a522f9b0c6b7fb1cc3bfdff743de79c"
+    "8e71747e6a522f9b0c6b7fb1cc3bfdff743de79c",
+    "ecc064af805ccfd8f1bd71a4429ce85f68fbdbe8"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -72,7 +74,8 @@
     "9d8b0440ab2856f5a26965e56d2ac20a83f6ab60"
   ],
   "VERSION": [
-    "3e3c2f1e5edb083aab93646ac7b076daa38516dd"
+    "3e3c2f1e5edb083aab93646ac7b076daa38516dd",
+    "eca07e4c1a8cbc603e5d5c2885dc0f0f9b1eef8d"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -165,7 +168,8 @@
   "deploy/compatibility.json": [
     "5de415084f059ab3ea6329c0d94c604f105eb00d",
     "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
-    "bd477a0724846314a7d72d60170f011d964d9c78"
+    "bd477a0724846314a7d72d60170f011d964d9c78",
+    "d22e66d3be05f69fb5f90f8597ab67b1ef0c126f"
   ],
   "deploy/download_control_models.py": [
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
@@ -276,7 +280,8 @@
     "429208a2a6437b9eb4af34916d2ede0e077e1dad",
     "8240b726a7f73d107ad9b93c024f04122d7d2078",
     "e32d30019f5958877dce09cd82ff6df0c256dedc",
-    "60b71c81781a1a45cb198d193dfea025e5b57bf3"
+    "60b71c81781a1a45cb198d193dfea025e5b57bf3",
+    "36dbd4b80d2434c3bb9f542fe0a7320dd28675a1"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -317,7 +322,8 @@
     "c779d45d005f330c6de22db51d70181581072a7d",
     "e28bf07aa1c8a3b36145c6d766824f0a7ad25fc9",
     "f66324215314e8d41b42a424c0c8b0b44cd34dd3",
-    "f6bc3da6261b982d6025d3c981497335660dafd5"
+    "f6bc3da6261b982d6025d3c981497335660dafd5",
+    "ff02fe5fcd4bc33da9c156697f0e1138e29308f9"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -347,7 +353,8 @@
     "7cc942db6e534095befef6f7dc593b0f80917018",
     "a965e2b7be0632bc5433814ed46c12ebc67d0ecc",
     "ec5ba33c421faa8f1737fae0cf6080c7f4d5f1a2",
-    "72298ad028d4eed9965d86a31940f0d144b5ad90"
+    "72298ad028d4eed9965d86a31940f0d144b5ad90",
+    "688f8598b727ffecab803bf6b2289f6fc1b7def6"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -377,7 +384,8 @@
     "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3",
     "43eb545390b492eeb82d51eda527905875933717",
     "cc55ccdf31229fc749e3c5e299ff40f9cde600f6",
-    "3e9b113f824903c107c8e3603eb158f0997d21a0"
+    "3e9b113f824903c107c8e3603eb158f0997d21a0",
+    "eb1597e49c6b0d862979bf40c438da645249e27a"
   ],
   "docs/HARDENING_REVIEW_AR.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
@@ -421,6 +429,9 @@
   "docs/RENDER_RECOVERY.md": [
     "0e7df303d7d97ca3e6267d9033c5c9c5584af991"
   ],
+  "docs/RESOLUTION_AND_SAME_TAKE_AR.md": [
+    "17eb38b983738b60dcfe749710ad85259012e301"
+  ],
   "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
     "817177d474bfb9b9994fda0a18229d55f9bc73e8"
   ],
@@ -445,7 +456,8 @@
     "b7fed3b8f37a77fefb3776ecb40b5a6a369fdca6",
     "ef704715b380eb66f18aa89d88946aea87224dde",
     "df2908dd4b64257bd3b47d52895a19782b101038",
-    "b499ccd108892b1eb8eabed95a2b49adb184f828"
+    "b499ccd108892b1eb8eabed95a2b49adb184f828",
+    "05af2eb7bb878cf9dc92f9393a804cf51ae95b2f"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -608,7 +620,8 @@
   ],
   "h3_lab/assembly.py": [
     "79475d27cf0e4f772f5f3c7cb05b489de4a39804",
-    "982133fe51ee0f696e548f67a16eca0c34c04286"
+    "982133fe51ee0f696e548f67a16eca0c34c04286",
+    "cf891cd794e15aa190afe5c226fad52c21fc9479"
   ],
   "h3_lab/assets.py": [
     "0e9fc8696c022521708df91a10a75c146d7faebe",
@@ -655,6 +668,9 @@
     "fb324184ac230b83ca7b4fc7406a3bf084d41c4e",
     "53bdf713f8d26df9773d9454c71efe47d1c8b202"
   ],
+  "h3_lab/media_export.py": [
+    "784cdd8a9108be5eb3e9e9593b6479d7cc465316"
+  ],
   "h3_lab/model_catalog.py": [
     "d843f94cb384026a8caa4539f1937096077cf6a4"
   ],
@@ -687,7 +703,8 @@
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
     "4fb13b55fe38aa33f24c40e22d66368a909b4033",
-    "9d16262f3a78214045a4e44975c931e08808e091"
+    "9d16262f3a78214045a4e44975c931e08808e091",
+    "584b8cca53864bac4014d462fe93f207c6b96427"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -791,7 +808,8 @@
     "8b137891791fe96927ad78e64b0aad7bded08bdc"
   ],
   "tests/browser/modernization.cjs": [
-    "2ebc99cb4b1680431b1a8af5d4729f0b93ef9411"
+    "2ebc99cb4b1680431b1a8af5d4729f0b93ef9411",
+    "41421a50749e77e39780645c04795b7f6da3822c"
   ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
@@ -854,7 +872,8 @@
     "bdd5ac6e0143a4d1280c261441d96262f367091b",
     "e2259e17a54dc8a04170295f80f4e46e0864eceb",
     "e7f8cbb1d79040e99f4d8b54bae51241b6164372",
-    "11617214cc01df2368b903e4fb7889273eebbea4"
+    "11617214cc01df2368b903e4fb7889273eebbea4",
+    "a9dbf03ffae1d565eb74c2ce1ec9ad8d77144481"
   ],
   "tests/js/grouped-reference-definitions.test.cjs": [
     "7dd14769976da9dc89966ac4f185448c8c95b681"
@@ -973,7 +992,8 @@
   "tests/test_h3_routes.py": [
     "177d107eee42f20cc7a317375842060c10ce9373",
     "22c23ab28b3f7ef16465853d3fb090d4cae7ac8e",
-    "89eaf2d672f62974bbae3b982eb0fb728d4b36e8"
+    "89eaf2d672f62974bbae3b982eb0fb728d4b36e8",
+    "101662b5c5c894443c7c99085e2341dce02555a4"
   ],
   "tests/test_h3_runtime_contract.py": [
     "278df5d0d4e89763261d827be814940099541cc9",
@@ -999,6 +1019,9 @@
   ],
   "tests/test_launcher_smoke.py": [
     "46ec348a962de86adb21879a75a3f53f614dc7fe"
+  ],
+  "tests/test_media_export.py": [
+    "8022ee26d5cc71fbd87782a1500f613988ecb6c7"
   ],
   "tests/test_modernization.py": [
     "021a5edea8b0d8d2351204ddd3b28cdb639d77de"
@@ -1219,7 +1242,8 @@
     "f99b331526ef9639ba5cdcba42678f0938b64578",
     "05653d005f02b7b8836f9348da8c0f5417b71078",
     "4fad3fcd5161d25e28ab9fc7e1de8947ff9699bd",
-    "a26cf50432070e84e39a32d121854f1d124f1b9a"
+    "a26cf50432070e84e39a32d121854f1d124f1b9a",
+    "23c54db0241db3f41c77d61cd2d86468b464ddb9"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1229,7 +1253,8 @@
     "579655bde957bb866648dca8ed564ff407a863e3",
     "aa0f71c31418e546c8ab52c3e4f673bb6d3132ae",
     "d5d189925031a018dfa0ccc38f79c33212c5f679",
-    "7c9fb32fecc4bbdf08bc9fb380c4a4fdb59df779"
+    "7c9fb32fecc4bbdf08bc9fb380c4a4fdb59df779",
+    "d0d70e1332f07ebdfe8284e44bb410132125c331"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
@@ -1278,7 +1303,8 @@
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
     "ff233a13bdfeeab696adf484010a326f5048548e",
     "4b0c5ee4bfa18e5b83125b81a02934c91360f589",
-    "176e91ac2a1219fe6de27ae8d88ea0c201fa8cb8"
+    "176e91ac2a1219fe6de27ae8d88ea0c201fa8cb8",
+    "d19ad3d4f575b7f3c302cbea79cf0bcc5f0a2b63"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
