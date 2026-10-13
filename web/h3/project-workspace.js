@@ -10,7 +10,7 @@ function workspaceLocked(){return state.busy||state.projectLoading||workspaceCat
 function projectCatalogItems(){
   return (state.currentProject?.assets||[]).filter(asset=>asset.asset_id&&asset.alias).map(asset=>({
     ...asset,assetId:asset.asset_id,label:asset.name||asset.alias,tag:state.currentProject.asset_categories?.find(c=>c.id===asset.category)?.name||'Custom',
-    previewUrl:asset.kind==='audio'?null:projectCtrl.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(asset.asset_id)}/file`),catalog:true,
+    previewUrl:asset.kind!=='image'?null:projectCtrl.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(asset.asset_id)}/thumbnail`),catalog:true,
   }));
 }
 async function workspaceMutation(operation,project=state.currentProject){
@@ -39,17 +39,17 @@ async function saveWorkspaceDraft(){
 async function openProjectWorkspace(id){
   if(workspaceLocked())throw Error('Wait for the current operation before changing projects.');
   await withProjectLoading(async()=>{
-    if(projectCtrl.currentProject&&projectCtrl.currentProject.project_id!==id)await saveWorkspaceDraft();
+    if(projectCtrl.currentProject)await saveWorkspaceDraft();
     const project=await projectCtrl.loadProject(id);state.currentClipId=null;
     await hydrateProjectDraft(project.draft||{mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});
     state.current=null;state.visibleResults=16;$('videoActionsDialog').close();$('upscaleStatus').textContent='';showStageMessage('Project workspace',project.name);renderResults();
   });
-  document.body.classList.remove('project-hub-open');renderProjectCatalog();refreshLabControls();
+  document.body.classList.remove('project-hub-open');setWorkspaceView('studio');renderProjectCatalog();refreshLabControls();
 }
 async function showProjectHub(save=true){
   if(workspaceLocked())throw Error('Wait for the current operation before leaving this project.');
   if(save&&projectCtrl?.currentProject)await withProjectLoading(saveWorkspaceDraft);
-  document.body.classList.add('project-hub-open');await renderProjectHub();
+  document.body.classList.add('project-hub-open');setWorkspaceView('projects');await renderProjectHub();
 }
 async function renderProjectHub(){
   const controller=projectCtrl,list=$('projectHubList');if(!controller||!list)return;
@@ -110,32 +110,30 @@ function renderProjectCatalog(){
   const list=$('projectAssetList');if(!list)return;list.replaceChildren();
   const project=state.currentProject;
   $('workspaceName').textContent=project?.name||'Choose a project';
-  $('assetUpload').disabled=!project||workspaceLocked();$('addAssetCategory').disabled=!project||workspaceLocked();
+  if($('workspaceProjectLabel'))$('workspaceProjectLabel').textContent=project?.name||'Choose a project';
+  for(const id of ['assetUpload','addAssetCategory','renameAssetCategory','assetDropzone'])$(id).disabled=!project||workspaceLocked();
   if(!project)return;
   const selected=$('assetCategory').value;
   $('assetCategory').replaceChildren();
   for(const category of project.asset_categories||[]){const option=workspaceElement('option',category.name);option.value=category.id;$('assetCategory').append(option);}
   if([...$('assetCategory').options].some(option=>option.value===selected))$('assetCategory').value=selected;
   const search=$('assetSearch').value.toLocaleLowerCase();
-  for(const category of project.asset_categories||[]){
-    const group=workspaceElement('details',undefined,'asset-group');group.open=true;
-    const items=projectCatalogItems().filter(item=>item.category===category.id&&[item.label,item.alias,item.notes||''].some(value=>value.toLocaleLowerCase().includes(search)));
-    const summary=workspaceElement('summary',category.name+' · '+items.length);
-    const rename=workspaceButton('Rename',()=>{const name=prompt('Category name',category.name);if(name?.trim())return workspaceMutation({action:'rename_category',category:category.id,name});});
-    rename.setAttribute('aria-label','Rename '+category.name+' category');rename.disabled=workspaceLocked();rename.style.marginLeft='12px';
-    rename.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();});summary.append(rename);group.append(summary);
-    if(!items.length)group.append(workspaceElement('p','No matching assets. Choose this category and upload files.','tip'));
-    for(const item of items){
-      const row=workspaceElement('div',undefined,'catalog-asset');
-      if(item.kind==='image'){const image=workspaceElement('img');image.src=item.previewUrl;image.alt=item.label;image.loading='lazy';row.append(image);}
-      else row.append(workspaceElement('span',item.kind==='audio'?'♫':'▶','asset-kind'));
-      const description=workspaceElement('div',undefined,'catalog-description');description.append(workspaceElement('strong',item.label),workspaceElement('small','@'+item.alias+' · '+item.kind));row.append(description);
-      const actions=workspaceElement('div',undefined,'catalog-actions');
-      const use=workspaceButton('Use',()=>insertProjectMention(item));use.disabled=workspaceLocked();
-      const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(use,edit);row.append(actions);group.append(row);
-    }
-    list.append(group);
+  const requestedFilter=$('assetFilter')?.value||'all',filter=project.asset_categories.some(c=>c.id===requestedFilter)?requestedFilter:'all',kind=$('assetKindFilter')?.value||'all';
+  const filterNode=$('assetFilter');if(filterNode){filterNode.replaceChildren();for(const category of [{id:'all',name:'All categories'},...project.asset_categories]){const option=workspaceElement('option',category.name);option.value=category.id;filterNode.append(option);}filterNode.value=project.asset_categories.some(c=>c.id===filter)?filter:'all';}
+  const items=projectCatalogItems().filter(item=>(filter==='all'||item.category===filter)&&(kind==='all'||item.kind===kind)&&[item.label,item.alias,item.notes||''].some(value=>value.toLocaleLowerCase().includes(search)));
+  $('assetLibraryCount').textContent=items.length+' shown · '+project.assets.length+' in project';
+  for(const item of items){
+    const row=workspaceElement('article',undefined,'catalog-asset');
+    if(item.kind==='image'){const image=workspaceElement('img');image.src=item.previewUrl;image.alt=item.label;image.loading='lazy';image.decoding='async';image.onerror=()=>image.replaceWith(workspaceElement('span','Image','asset-kind'));row.append(image);}
+    else row.append(workspaceElement('span',item.kind==='audio'?'♫':'▶','asset-kind'));
+    const description=workspaceElement('div',undefined,'catalog-description');description.append(workspaceElement('strong',item.label),workspaceElement('small','@'+item.alias+' · '+item.tag+' · '+item.kind));row.append(description);
+    const actions=workspaceElement('div',undefined,'catalog-actions');
+    const use=workspaceButton('Use',()=>insertProjectMention(item).then(()=>setWorkspaceView('studio')));use.disabled=workspaceLocked();
+    const preview=workspaceButton('Preview',()=>previewProjectAsset(item));preview.disabled=workspaceLocked();
+    const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(preview,use,edit);row.append(actions);list.append(row);
   }
+  if(!items.length){const empty=workspaceElement('div','No assets here yet. Choose an upload category and add your files, or change the filters.','asset-library-empty');list.append(empty);}
+
 }
 function editProjectAsset(item){
   const dialog=$('assetEditDialog');dialog.dataset.assetId=item.assetId;
@@ -151,14 +149,16 @@ function initProjectWorkspace(){
   $('projectHubCreate').onclick=async()=>{
     if(workspaceLocked()||!projectCtrl)return;
     const name=$('newProjectName').value.trim();if(!name){$('newProjectName').focus();return;}
-    try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const project=await projectCtrl.createProject(name,{width:state.width,height:state.height});state.currentClipId=null;state.current=null;await hydrateProjectDraft({mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});updateProjectUI(project);});document.body.classList.remove('project-hub-open');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';}
+    try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const project=await projectCtrl.createProject(name,{width:state.width,height:state.height});state.currentClipId=null;state.current=null;await hydrateProjectDraft({mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});updateProjectUI(project);});document.body.classList.remove('project-hub-open');setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';}
     catch(error){$('projectHubStatus').textContent=error.message;}
   };
   $('assetSearch').oninput=renderProjectCatalog;
+  $('assetFilter').onchange=renderProjectCatalog;
+  $('renameAssetCategory').onclick=()=>{const id=$('assetCategory').value,category=state.currentProject?.asset_categories.find(c=>c.id===id);if(!category)return;const name=prompt('Category name',category.name);if(name?.trim())workspaceMutation({action:'rename_category',category:id,name}).catch(error=>info(error.message,true));};$('assetKindFilter').onchange=renderProjectCatalog;
   $('addAssetCategory').onclick=()=>{const name=prompt('New asset category');if(name?.trim())workspaceMutation({action:'add_category',name}).catch(error=>info(error.message,true));};
   $('assetUpload').onclick=()=>{if(!workspaceLocked())$('projectAssetFiles').click();};
-  $('projectAssetFiles').onchange=async()=>{
-    const controller=projectCtrl,pid=state.activeProjectId,category=$('assetCategory').value,files=[...$('projectAssetFiles').files];
+  async function uploadCatalogFiles(files){
+    const controller=projectCtrl,pid=state.activeProjectId,category=$('assetCategory').value;
     if(!pid||workspaceLocked())return;workspaceCatalogBusy=true;renderProjectCatalog();
     try{
       let done=0;for(const file of files){
@@ -169,6 +169,8 @@ function initProjectWorkspace(){
     }catch(error){$('assetUploadStatus').textContent=error.message;}
     finally{workspaceCatalogBusy=false;$('projectAssetFiles').value='';if(controller===projectCtrl&&pid===state.activeProjectId)await controller.loadProject(pid);renderProjectCatalog();}
   };
+  $('projectAssetFiles').onchange=()=>uploadCatalogFiles([...$('projectAssetFiles').files]);
+  const drop=$('assetDropzone');drop.ondragover=event=>{event.preventDefault();drop.classList.add('dragging');};drop.ondragleave=()=>drop.classList.remove('dragging');drop.ondrop=event=>{event.preventDefault();drop.classList.remove('dragging');uploadCatalogFiles([...event.dataTransfer.files]).catch(error=>info(error.message,true));};drop.onclick=()=>$('assetUpload').click();
   $('assetEditSave').onclick=async()=>{
     try{await workspaceMutation({action:'edit_asset',asset_id:$('assetEditDialog').dataset.assetId,name:$('assetEditName').value,category:$('assetEditCategory').value,notes:$('assetEditNotes').value});$('assetEditDialog').close();}
     catch(error){$('assetEditStatus').textContent=error.message;}
@@ -178,4 +180,61 @@ function initProjectWorkspace(){
   $('projectSelect').onchange=()=>{if($('projectSelect').value)openProjectWorkspace($('projectSelect').value).catch(error=>info(error.message,true));};
   renderProjectCatalog();renderProjectHub().catch(error=>{$('projectHubStatus').textContent=error.message;});
 }
+
+let workspaceView='projects';
+function setWorkspaceView(view,{history=true}={}){
+  if(!['projects','studio','elements','generations','favorites','activity'].includes(view))view='projects';
+  if(!state.currentProject&&view==='elements')view='projects';
+  workspaceView=view;document.body.dataset.workspaceView=view;
+  document.querySelector('.topnav a[href="index.html"]')?.classList.toggle('active',view==='studio');
+  document.body.classList.toggle('project-hub-open',view==='projects');
+  document.querySelectorAll('[data-workspace-nav]').forEach(button=>{const active=button.dataset.workspaceNav===view;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false');});
+  $('workspaceProjectLabel').textContent=state.currentProject?.name||'Choose a project';
+  $('workspacePageTitle').textContent=({projects:'Projects',studio:'Production',elements:'Project elements',generations:'Generations',favorites:'Favorites',activity:'Activity'})[view];
+  if(history&&location.hash!=='#'+view)window.history.pushState(null,'','#'+view);
+  if(view==='elements')renderProjectCatalog();
+  if(view==='generations'||view==='favorites')renderResults();
+}
+async function navigateWorkspace(view){
+  if(view==='projects')return showProjectHub();
+  setWorkspaceView(view);
+}
+function previewProjectAsset(item){
+  const dialog=$('assetPreviewDialog'),content=$('assetPreviewContent');content.replaceChildren();
+  $('assetPreviewTitle').textContent=item.label;
+  $('assetPreviewInfo').textContent='@'+item.alias+' · '+item.tag+' · '+item.role;
+  const media=document.createElement(item.kind==='image'?'img':item.kind==='video'?'video':'audio');
+  media.src=projectCtrl.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(item.assetId)}/file`);
+  if(item.kind==='image')media.alt=item.label;else{media.controls=true;media.preload='metadata';}
+  content.append(media);$('assetPreviewUse').onclick=()=>insertProjectMention(item).then(()=>{dialog.close();setWorkspaceView('studio');}).catch(error=>info(error.message,true));
+  dialog.showModal();
+}
+function initWorkspaceNavigation(){
+  const createLink=document.querySelector('.topnav a[href="index.html"]');if(createLink)createLink.onclick=event=>{event.preventDefault();setWorkspaceView('studio');};
+  const projectPicker=$('projectSelect').parentElement;const pickerLabel=document.querySelector('label[for=projectSelect]');const hubControls=workspaceElement('details',undefined,'project-hub-tools');hubControls.append(workspaceElement('summary','Open or import an existing project'),pickerLabel,projectPicker,$('projectBundleFile'));$('projectHubStatus').before(hubControls);
+  const rail=workspaceElement('nav',undefined,'workspace-rail');rail.setAttribute('aria-label','Production navigation');
+  const project=workspaceElement('div',undefined,'rail-project');project.append(workspaceElement('small','Current project'),workspaceElement('strong','Choose a project'));project.lastChild.id='workspaceProjectLabel';rail.append(project);
+  for(const [view,label,icon] of [['projects','Projects','▦'],['studio','Production','◉'],['elements','Elements','▧'],['generations','Generations','▶'],['favorites','Favorites','☆'],['activity','Activity','◷']]){
+    const button=workspaceButton(label,()=>navigateWorkspace(view));button.className='workspace-nav';button.dataset.workspaceNav=view;
+    button.prepend(workspaceElement('span',icon,'nav-icon'));rail.append(button);
+  }
+  const hint=workspaceElement('p','Upload once in Elements. Use @ names in your shot.','rail-hint');rail.append(hint);document.body.append(rail);
+  const page=workspaceElement('section',undefined,'workspace-page');page.id='workspacePage';
+  const heading=workspaceElement('div',undefined,'workspace-page-heading');const title=workspaceElement('h1','Projects');title.id='workspacePageTitle';heading.append(title);page.append(heading);document.body.append(page);
+  const elements=workspaceElement('div');elements.id='elementsWorkspace';elements.append($('projectAssetsPanel'));page.append(elements);
+  const generations=workspaceElement('div');generations.id='generationsWorkspace';
+  const head=document.querySelector('.history-head');let node=head;while(node){const next=node.nextElementSibling;generations.append(node);node=next;}page.append(generations);
+  const activity=workspaceElement('div');activity.id='activityWorkspace';const queue=workspaceElement('section',undefined,'output-card');queue.append(workspaceElement('h2','Render queue'));const queueMirror=workspaceElement('div');queueMirror.id='activityQueue';queue.append(queueMirror);activity.append(queue,$('mediaExportsPanel'));
+  const mirrorQueue=()=>{queueMirror.replaceChildren(...[...$('queueInfo').childNodes].map(node=>node.cloneNode(true)));};new MutationObserver(mirrorQueue).observe($('queueInfo'),{childList:true,subtree:true,characterData:true});mirrorQueue();page.append(activity);
+  const activityButton=rail.querySelector('[data-workspace-nav=activity]');const activityBadge=workspaceElement('span','','activity-badge');activityButton.append(activityBadge);const syncActivity=()=>{const jobs=state.sharedExportsOrigin===api('')?state.sharedExports||[]:[],operations=state.sharedExportsOrigin===api('')?state.sharedMediaOperations||[]:[];const count=jobs.filter(job=>['queued','preparing','encoding','verifying'].includes(job.status)).length+operations.filter(operation=>operation!=='media_export'||!jobs.some(job=>['queued','preparing','encoding','verifying'].includes(job.status))).length;activityBadge.textContent=count?String(count):'';activityBadge.hidden=!count;};new MutationObserver(syncActivity).observe($('mediaExportsList'),{childList:true});syncActivity();
+  const shortcut=workspaceButton('Open project elements →',()=>navigateWorkspace('elements'));shortcut.id='openProjectElements';shortcut.classList.add('elements-shortcut');$('projectPanel').after(shortcut);
+  const library=workspaceButton('Browse all generations →',()=>navigateWorkspace('generations'));document.querySelector('.right').append(library);
+  const exports=workspaceButton('Exports & preparation activity →',()=>navigateWorkspace('activity'));document.querySelector('.right').append(exports);
+  $('assetPreviewClose').onclick=()=>$('assetPreviewDialog').close();
+  $('assetPreviewDialog').addEventListener('close',()=>{$('assetPreviewContent').querySelectorAll('video,audio').forEach(media=>media.pause());$('assetPreviewContent').replaceChildren();});
+  window.addEventListener('popstate',()=>setWorkspaceView(location.hash.slice(1),{history:false}));
+  setWorkspaceView('projects',{history:false});
+}
+
+initWorkspaceNavigation();
 initProjectWorkspace();

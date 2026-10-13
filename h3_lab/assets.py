@@ -114,6 +114,39 @@ class AssetService:
                 return None
             return dict(rec)
 
+    def image_thumbnail(self, asset_id: str) -> pathlib.Path:
+        """Bounded cached preview; never modifies the source or its reference identity."""
+        from PIL import Image, ImageOps
+        with self._lock:
+            record = self.get_asset(asset_id)
+            if not record or record.get("kind") != "image":
+                raise ValueError("Image asset not found")
+            source = (self.storage_root / record["server_path"]).resolve()
+            if not source.is_relative_to(self.assets_dir.resolve()):
+                raise ValueError("Asset path is outside owned storage")
+            stat = source.stat()
+            key = hashlib.sha256(f"{record['content_hash']}:{stat.st_size}:{stat.st_mtime_ns}:320:v1".encode()).hexdigest()
+            directory = self.storage_root / "thumbnails"
+            directory.mkdir(exist_ok=True)
+            target = directory / (key + ".jpg")
+            if target.is_file():
+                return target
+            with Image.open(source) as image:
+                if image.width * image.height > 40_000_000:
+                    raise ValueError("Image exceeds preview pixel limit")
+                image = ImageOps.exif_transpose(image)
+                image.thumbnail((320, 240), Image.Resampling.LANCZOS)
+                rgba = image.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (24, 26, 21))
+                background.paste(rgba, mask=rgba.getchannel("A"))
+                temporary = target.with_suffix(".tmp")
+                try:
+                    background.save(temporary, format="JPEG", quality=80)
+                    os.replace(temporary, target)
+                finally:
+                    temporary.unlink(missing_ok=True)
+            return target
+
     def attach_project(self, asset_id: str, project_id: str):
         with self._lock:
             record = self._assets.get(asset_id)

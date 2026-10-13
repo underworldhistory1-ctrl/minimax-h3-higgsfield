@@ -1407,7 +1407,8 @@ function findVideoOutput(output){
 function thumbnailURL(file){return api("/h3_studio/thumbnail?"+new URLSearchParams({filename:file.filename}));}
 function projectVisibleResults(){
   const project=state.currentProject,owned=new Set((project?.takes||[]).map(take=>take.output_file));
-  return project&&$("libraryScope")?.value!=="all"?state.results.filter(entry=>owned.has(resultOutputPath(entry))||entry.meta?.project_id===project.project_id):state.results;
+  const entries=project&&$("libraryScope")?.value!=="all"?state.results.filter(entry=>owned.has(resultOutputPath(entry))||entry.meta?.project_id===project.project_id):state.results;
+  return document.body.dataset.workspaceView==="favorites"?entries.filter(entry=>entry.kept):entries;
 }
 function renderResults(){
   const renderOrigin=api("");
@@ -1511,6 +1512,7 @@ $("settingsClose").onclick=()=>$("settingsDialog").close();
 $("settingsDialog").addEventListener("click",event=>{if(event.target===$("settingsDialog"))$("settingsDialog").close();});
 $("settingsDialog").addEventListener("close",()=>{if(settingsTrigger?.isConnected)settingsTrigger.focus();settingsTrigger=null;});
 function showVideo(entry){
+  if(typeof setWorkspaceView==="function")setWorkspaceView("studio");
   $("upscaleStatus").replaceChildren();
   state.current=entry;state.currentVideoOrigin=api("");showKnownVideoExport(entry,$("upscaleStatus"));$("stage").replaceChildren();
   const v=document.createElement("video");
@@ -2029,7 +2031,7 @@ async function initProjectController() {
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(location.hash.slice(1)||"projects",{history:false});}}
 }
 
 function updateProjectUI(proj) {

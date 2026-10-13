@@ -42,3 +42,14 @@ A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311
 321 Python tests and 141 JavaScript tests passed. Existing browser contracts passed. A browser used real local project and asset routes to create/open/rename projects, upload multiple images, edit category/name/notes, add a custom category, insert project @ references, preserve edits during delayed media loading and restore drafts/catalogs after switching and reload. Backend tests cover concurrent attachment, immutable historical identity, conflicts, unused-asset bundles and completed-job recovery without repeatedly probing already attached videos.
 
 A real CPU export enlarged a synthetic 13-second 864×480 video to 1728×960, 312 frames at24fps. A separate browser context observed actual encoding frames after the initiating page closed, reloaded and recovered verified completion and its download. Full decoding, source audio preservation and SHA256 passed. HTTP cancellation regressions cover both durable admission and duplicate synchronous waiters. Launcher idle checks include CPU exports. GPU readiness fixtures are explicitly simulated in these browser tests; no new GPU render was performed.
+
+
+## Off-queue operation readiness — 2.2.1
+
+The shared status reports media export, prompt/source preparation, control work and quality analysis. The installer refuses idle while any are active, including a blocked muted-video export with an otherwise empty render queue. Three new tests cover real concurrent HTTP visibility, all operation categories and malformed status. This is an operation-aware guard, not an atomic admission gate for every external ComfyUI client.
+
+## 2.3.0 workspace navigation
+
+Actual local project/asset API browser coverage: separate pages, stable reference aliases, multi-upload, editing, custom categories, preview dialog, browser back/forward, preserving prompt edits during delayed asset fetches, project switching/reload and mobile Generate hit-testing. Thumbnail tests exercise concurrent cache requests, bounded dimensions, EXIF rotation, transparency and unchanged originals. Legacy recovered jobs use their saved target_frames, without inventing a124-frame length. GPU rendering quality for the new UI is not claimed from these checks.
+
+Final 2.3.0 checks:327 Python tests and141 JavaScript tests passed; actual local project/asset browser navigation and the existing production UI regressions passed. Actual CPU upscale preserved312 frames at24fps and audio, produced1728×960 from864×480, and survived closing the submitting browser and refreshing a second independent browser context. Library image fixture:228890 original bytes vs9484 cached thumbnail bytes; this measures image transfer reduction, not whole-app speed.

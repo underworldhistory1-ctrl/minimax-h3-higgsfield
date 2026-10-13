@@ -85,3 +85,11 @@ class ProjectWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(self.projects.get_project(self.pid)['takes']),2)
         job['take_id']=['invalid']
         with self.assertRaises(ValueError):self.projects.attach_completed_job(job)
+
+    def test_legacy_completed_job_recovers_frame_count_without_default(self):
+        from unittest.mock import patch
+        self.projects.output_root=self.root
+        job={'state':'completed','project_id':self.pid,'take_id':'legacy','output':{'filename':'h3_studio_123abc456def_00001_.mp4','subfolder':'video'},'render_spec':{'target_frames':362,'frames':{'first':'input.png'}}}
+        with patch('h3_lab.projects.owned_video',return_value=self.root/'video.mp4'):
+            self.projects.attach_completed_job(job)
+        self.assertEqual(self.projects.get_project(self.pid)['takes'][0]['unique_frames'],362)

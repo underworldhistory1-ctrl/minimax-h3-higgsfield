@@ -107,7 +107,10 @@ class ComfyAPI:
             raise
         if not isinstance(data, dict) or not isinstance(data.get('jobs'), list):
             raise APIError('Invalid media export response; refusing to assume the server is idle')
-        return any(job.get('status') in ('queued','preparing','encoding','verifying') for job in data['jobs'])
+        operations = data.get('active_operations', [])
+        if not isinstance(operations, list):
+            raise APIError('Invalid Studio operation response; refusing to assume the server is idle')
+        return bool(operations) or any(job.get('status') in ('queued','preparing','encoding','verifying') for job in data['jobs'])
 
     def wait_idle(self, timeout):
         deadline = time.monotonic() + max(0, timeout)

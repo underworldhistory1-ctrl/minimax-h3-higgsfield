@@ -575,6 +575,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             return web.json_response({"error": "Asset not found"}, status=404)
         return web.FileResponse(owned_path(services["storage_root"], rec["server_path"]))
 
+    async def handle_asset_thumbnail(request):
+        try:
+            path = await asyncio.to_thread(assets.image_thumbnail, request.match_info["id"])
+            return web.FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})
+        except (ValueError, OSError) as error:
+            return web.json_response({"error": str(error)}, status=404)
+
     async def handle_resolve_asset(request):
         if input_root is None:
             return web.json_response({"error": "Canonical input directory is unavailable"}, status=503)
@@ -760,7 +767,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             return web.json_response({"error": str(error)}, status=400)
 
     async def handle_export_jobs(request):
-        return web.json_response({"jobs": await asyncio.to_thread(exports.list)})
+        operations = [name for name, lock in (
+            ('media_export', media_export_lock), ('prompt_preparation', preparation_lock),
+            ('source_preparation', source_upload_lock), ('quality_analysis', quality_lock)) if lock.locked()]
+        with control_tasks_lock:
+            if any(record['state'] in ('waiting', 'processing') for record in control_tasks.values()):
+                operations.append('control_preparation')
+        return web.json_response({"jobs": await asyncio.to_thread(exports.list), "active_operations": operations})
 
     async def handle_export_job(request):
         record = await asyncio.to_thread(exports.get, request.match_info["id"])
@@ -893,6 +906,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/assets", handle_upload_asset),
         ("GET", "/h3_studio/lab/assets/{id}", handle_get_asset),
         ("GET", "/h3_studio/lab/assets/{id}/file", handle_asset_file),
+        ("GET", "/h3_studio/lab/assets/{id}/thumbnail", handle_asset_thumbnail),
         ("POST", "/h3_studio/lab/assets/{id}/resolve", handle_resolve_asset),
         ("GET", "/h3_studio/lab/capabilities", handle_capabilities),
         ("GET", "/h3_studio/lab/prompt/status", handle_prompt_status),

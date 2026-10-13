@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield 2.2.0 — Create Video</title>
+<title>H3 Higgsfield 2.3.0 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -51,11 +51,11 @@
   .right{padding-bottom:18px}
 }
 </style>
-<link rel="stylesheet" href="./studio-ux.css?v=20261014-projects-r2">
+<link rel="stylesheet" href="./studio-ux.css?v=20261014-workspaces-r1">
 </head>
 <body class="project-hub-open">
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.2.0</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.3.0</div></div>
  <nav class="topnav" aria-label="Studio workspace"><button type="button" class="button alt smallbtn" id="projectsHome">Projects</button><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
 </header>
@@ -85,10 +85,11 @@
    </section>
    <section class="panel" id="projectAssetsPanel">
  <h2 id="workspaceName">Project assets</h2><p>Reusable assets for this project. Use a file or mention it with @ to attach it to the current shot.</p>
+ <div class="elements-filters"><select id="assetFilter" aria-label="Filter by category"><option value="all">All categories</option></select><select id="assetKindFilter" aria-label="Filter by media type"><option value="all">All media</option><option value="image">Images</option><option value="video">Videos</option><option value="audio">Audio</option></select></div>
  <input id="assetSearch" aria-label="Search project assets" placeholder="Search names, aliases or notes">
- <div class="row"><select id="assetCategory" aria-label="Asset category"></select><button id="assetUpload" class="button alt smallbtn">Upload files</button><button id="addAssetCategory" class="button alt smallbtn">+ Category</button></div>
+ <div class="row"><select id="assetCategory" aria-label="Asset category"></select><button id="assetUpload" class="button alt smallbtn">Upload files</button><button id="renameAssetCategory" class="button alt smallbtn">Rename category</button><button id="addAssetCategory" class="button alt smallbtn">+ Category</button></div>
  <input id="projectAssetFiles" type="file" accept=".png,.jpg,.jpeg,.webp,.mp4,.mov,.webm,.wav,.mp3,.flac,.m4a" multiple hidden>
- <div class="tip" id="assetUploadStatus" role="status"></div><div id="projectAssetList"></div>
+ <button type="button" id="assetDropzone" class="asset-dropzone">Drop images, videos or audio here · or choose files</button><p id="assetLibraryCount" class="tip"></p><div class="tip" id="assetUploadStatus" role="status"></div><div id="projectAssetList"></div>
  <p class="tip">Storyboards guide composition and shot plans; panels do not automatically become timed shots. The catalog can hold more files than H3 accepts in one shot.</p>
 </section>
 <div class="modes" role="tablist" aria-label="Generation mode">
@@ -187,23 +188,24 @@
   <div class="results" id="results"></div><button id="showMoreVideos" type="button" class="button alt hidden" style="display:block;margin:14px auto 0">Show more</button><div id="emptyHistory" class="empty-history">Your renders will appear here. Videos remain on this server until you delete them.</div>
  </section>
 </main>
+<dialog id="assetPreviewDialog" class="settings-dialog"><div class="settings-head"><h2 id="assetPreviewTitle">Asset preview</h2><button id="assetPreviewClose" class="button alt">Close</button></div><p id="assetPreviewInfo" class="tip"></p><div id="assetPreviewContent"></div><button id="assetPreviewUse" class="button">Use in current shot</button></dialog>
 <dialog id="videoActionsDialog" class="settings-dialog" aria-labelledby="videoActionsTitle"><div class="settings-head"><h2 id="videoActionsTitle">Video options</h2><button id="videoActionsClose" class="button alt smallbtn" type="button">Close</button></div><p id="videoActionsName" class="video-options-name"></p><div class="secondary-actions"><button id="videoActionsPreview" class="button alt">Play video</button><button id="videoActionsSettings" class="button alt">Settings</button><button id="videoActionsDownload" class="button">Download</button><button id="videoActionsDelete" class="button alt danger">Delete video</button></div><h3>Upscale same take</h3><p>Enlarge this existing video without regenerating it. Keeps the shot and copies its audio; does not generate new detail.</p><label for="videoActionsTarget">Export size · original aspect ratio is kept</label><div class="row"><select id="videoActionsTarget"><option value="2x">2× current dimensions</option><option value="1080">1080 px short edge</option><option value="1440">1440 px short edge</option></select><button id="videoActionsUpscale" class="button">Upscale &amp; download</button></div><p id="videoActionsStatus" class="tip" role="status" aria-live="polite"></p></dialog>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/uuid.js?v=20261014-projects-r2"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261014-projects-r2"></script>
+<script src="./h3/uuid.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261014-workspaces-r1"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
-<script src="./h3/prompt-input.js?v=20261014-projects-r2"></script>
-<script src="./h3/prompt-compiler.js?v=20261014-projects-r2"></script>
-<script src="./h3/configuration.js?v=20261014-projects-r2"></script>
-<script src="./h3/graph-builder.js?v=20261014-projects-r2"></script>
-<script src="./h3/project-controller.js?v=20261014-projects-r2"></script>
-<script src="./lab-ui.js?v=20261014-projects-r2"></script>
-<script src="./h3/studio-ux.js?v=20261014-projects-r2"></script>
-<script src="./h3/queue-ui.js?v=20261014-projects-r2"></script>
-<script src="./h3/timing-estimator.js?v=20261014-projects-r2"></script>
-<script src="./studio.js?v=20261014-projects-r2"></script>
-<script src="./h3/connected-studio.js?v=20261014-projects-r2"></script>
-<script src="./h3/configuration-ui.js?v=20261014-projects-r2"></script>
-<script src="./h3/project-workspace.js?v=20261014-projects-r2"></script>
+<script src="./h3/prompt-input.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/prompt-compiler.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/configuration.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/graph-builder.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/project-controller.js?v=20261014-workspaces-r1"></script>
+<script src="./lab-ui.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/studio-ux.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/queue-ui.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/timing-estimator.js?v=20261014-workspaces-r1"></script>
+<script src="./studio.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/connected-studio.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/configuration-ui.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/project-workspace.js?v=20261014-workspaces-r1"></script>
 </body>
 </html>
