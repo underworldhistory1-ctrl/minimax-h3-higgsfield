@@ -35,3 +35,10 @@ A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311
 ## Library actions — 2.1.4, 14 October 2026
 
 307 Python tests, 141 JavaScript tests and expanded browser fixtures passed. Visible Options and Delete actions on each generated-video card share an export dialog. Explicit pinned deletion is distinct from unpinned-only bulk cleanup. Browser fixtures cover card-specific export, failure retention, pin protection and server-switch races. Seven backend tests cover the real route, output-only path scope, lease/failure reporting and real secure wipe; the Windows directory-sync branch is simulated rather than run on native Windows. Export tests remain separate from GPU inference.
+
+
+## Project workspace and shared exports — 2.2.0, 14 October 2026
+
+321 Python tests and 141 JavaScript tests passed. Existing browser contracts passed. A browser used real local project and asset routes to create/open/rename projects, upload multiple images, edit category/name/notes, add a custom category, insert project @ references, preserve edits during delayed media loading and restore drafts/catalogs after switching and reload. Backend tests cover concurrent attachment, immutable historical identity, conflicts, unused-asset bundles and completed-job recovery without repeatedly probing already attached videos.
+
+A real CPU export enlarged a synthetic 13-second 864×480 video to 1728×960, 312 frames at24fps. A separate browser context observed actual encoding frames after the initiating page closed, reloaded and recovered verified completion and its download. Full decoding, source audio preservation and SHA256 passed. HTTP cancellation regressions cover both durable admission and duplicate synchronous waiters. Launcher idle checks include CPU exports. GPU readiness fixtures are explicitly simulated in these browser tests; no new GPU render was performed.

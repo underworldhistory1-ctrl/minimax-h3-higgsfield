@@ -4,13 +4,18 @@ import os
 import pathlib
 import subprocess
 import uuid
+import tempfile
+import threading
+import hashlib
 from fractions import Fraction
 
 from .assembly import get_ffmpeg_path, inspect_media
 
 
-def upscale_take(source, destination, target="2x"):
+def upscale_take(source, destination, target="2x", progress=None):
     """Keep frame order/timing, aspect ratio and compressed audio; verify before publish."""
+    report = progress or (lambda **fields: None)
+    report(status="preparing", progress_percent=0)
     targets = {"2x": None, "1080": 1080, "1440": 1440}
     if not isinstance(target, str) or target not in targets:
         raise ValueError("Upscale target must be 2x, 1080 or 1440")
@@ -44,9 +49,32 @@ def upscale_take(source, destination, target="2x"):
         "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p",
         "-fps_mode", "passthrough", "-c:a", "copy", "-movflags", "+faststart", str(temporary)]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=600)
-        if result.returncode:
-            raise ValueError("Video upscale failed: " + result.stderr[-1200:])
+        report(status="encoding", frames_total=count, frames_done=0, progress_percent=0)
+        command[1:1] = ["-progress", "pipe:1", "-nostats", "-stats_period", "0.5"]
+        with tempfile.TemporaryFile(mode="w+b") as errors:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, text=True)
+            timed_out = threading.Event()
+            def timeout():
+                timed_out.set(); process.kill()
+            timer = threading.Timer(600, timeout); timer.daemon = True; timer.start()
+            fields = {}
+            try:
+                for line in process.stdout:
+                    key, separator, value = line.strip().partition("=")
+                    if separator: fields[key] = value
+                    if key == "progress":
+                        done = min(count, max(0, int(fields.get("frame", 0))))
+                        fps = float(fields.get("fps", 0))
+                        report(status="encoding", frames_done=done, frames_total=count, progress_percent=round(95 * done / count, 1),
+                            eta_seconds=round((count-done)/fps, 1) if fps > 0 and done < count else None)
+                process.wait()
+            finally:
+                timer.cancel(); process.stdout.close()
+                if process.poll() is None: process.kill(); process.wait()
+            if timed_out.is_set(): raise ValueError("Video upscale timed out after 600 seconds")
+            if process.returncode:
+                errors.seek(0); raise ValueError("Video upscale failed: " + errors.read().decode(errors="replace")[-1200:])
+        report(status="verifying", progress_percent=97, frames_done=count, frames_total=count, eta_seconds=None)
         media = inspect_media(str(temporary))
         output = next((s for s in media.get("streams", []) if s.get("codec_type") == "video"), {})
         if (output.get("width"), output.get("height")) != (out_width, out_height):
@@ -71,8 +99,11 @@ def upscale_take(source, destination, target="2x"):
             raise ValueError("Upscale changed the audio duration")
         subprocess.run([get_ffmpeg_path(), "-nostdin", "-v", "error", "-threads", "2",
             "-i", str(temporary), "-f", "null", "-"], capture_output=True, check=True, timeout=600)
+        digest = hashlib.sha256()
+        with temporary.open('rb') as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b''): digest.update(chunk)
         os.replace(temporary, destination)
-        return {"width": out_width, "height": out_height, "frames": count,
+        return {"sha256": digest.hexdigest(), "verified": True, "verification": "dimensions_frames_fps_duration_aspect_audio_and_full_decode","width": out_width, "height": out_height, "frames": count,
             "fps": video["r_frame_rate"], "audio_preserved": bool(source_audio),
             "method": "lanczos_existing_take", "generation_performed": False}
     finally:

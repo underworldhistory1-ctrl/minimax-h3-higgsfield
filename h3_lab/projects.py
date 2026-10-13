@@ -25,6 +25,32 @@ _LOG = logging.getLogger("h3_lab.projects")
 
 MAX_BUNDLE_UNCOMPRESSED_BYTES = 500 * 1024 * 1024  # 500 MB safety limit
 
+ASSET_CATEGORIES = [
+    {"id": "characters", "name": "Characters", "role": "character identity"},
+    {"id": "locations", "name": "Locations", "role": "location"},
+    {"id": "props", "name": "Props", "role": "object"},
+    {"id": "styles", "name": "Style", "role": "visual style"},
+    {"id": "audio", "name": "Audio", "role": "voice"},
+    {"id": "storyboards", "name": "Storyboards", "role": "storyboard"},
+    {"id": "custom", "name": "Custom", "role": "custom"},
+]
+
+def workspace_name(value):
+    if not isinstance(value, str) or not value.strip() or len(value.strip()) > 160:
+        raise ValueError("Name must contain between 1 and 160 characters")
+    return value.strip()
+
+def reference_alias(name, used):
+    base = re.sub(r"[^\w-]+", "_", name, flags=re.UNICODE).strip("_")[:32] or "reference"
+    candidate, suffix = base, 1
+    while candidate.casefold() in used:
+        suffix += 1
+        candidate = base[:32-len(str(suffix))-1] + "_" + str(suffix)
+    return candidate
+
+def image_category_role(category):
+    return category['role'] if category['role'] in ('character identity', 'location', 'object', 'visual style', 'storyboard', 'custom') else 'custom'
+
 
 class ProjectService:
     def __init__(self, storage_root: str, asset_service=None, output_root=None):
@@ -56,6 +82,7 @@ class ProjectService:
             "fps": 24,
             "canvas": canvas or {"width": 1280, "height": 704, "aspect_ratio": "16:9"},
             "assets": [],
+            "asset_categories": copy.deepcopy(ASSET_CATEGORIES),
             "clips": [],
             "accepted_take_ids": [],
             "exports": [],
@@ -73,7 +100,89 @@ class ProjectService:
             return None
         with self._lock:
             with open(manifest_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return self._workspace_manifest(json.load(f))
+
+    def _workspace_manifest(self, project):
+        """Add catalog fields in memory without rewriting historical takes or IDs."""
+        project.setdefault("asset_categories", copy.deepcopy(ASSET_CATEGORIES))
+        refs = {item.get("assetId"): item for item in project.get("draft", {}).get("refs", [])}
+        used = {item.get("alias", "").casefold() for item in project.get("assets", []) if item.get("alias")}
+        for item in project.get("assets", []):
+            ref = refs.get(item.get("asset_id"), {})
+            asset = self.asset_service.get_asset(item.get("asset_id")) if self.asset_service else None
+            item.setdefault("kind", (asset or {}).get("kind", ref.get("kind", "image")))
+            item.setdefault("name", ref.get("alias") or (asset or {}).get("original_name") or item.get("alias") or "Reference")
+            item.setdefault("alias", ref.get("alias") or reference_alias(item["name"], used))
+            used.add(item["alias"].casefold())
+            item.setdefault("role", ref.get("role", "voice" if item["kind"] == "audio" else "custom"))
+            item.setdefault("category", next((c["id"] for c in ASSET_CATEGORIES if c["role"] == item["role"]), "custom"))
+            item.setdefault("notes", "")
+        return project
+
+    def attach_asset(self, project_id, asset, category=None, name=None):
+        """Serialize simultaneous uploads against the latest manifest revision."""
+        with self._lock:
+            project = self.get_project(project_id)
+            if not project:
+                raise ValueError("Project not found")
+            categories = project["asset_categories"]
+            category = category or ("audio" if asset["kind"] == "audio" else "custom")
+            selected = next((c for c in categories if c["id"] == category), None)
+            if not selected:
+                raise ValueError("Unknown asset category")
+            existing = next((a for a in project["assets"] if a["asset_id"] == asset["asset_id"]), None)
+            if not existing:
+                label = workspace_name(name or asset.get("original_name") or "Reference")
+                alias = reference_alias(pathlib.Path(label).stem, {a["alias"].casefold() for a in project["assets"]})
+                role = "voice" if asset["kind"] == "audio" else "motion" if asset["kind"] == "video" else image_category_role(selected)
+                project["assets"].append({"asset_id": asset["asset_id"], "kind": asset["kind"], "server_path": asset["server_path"],
+                    "name": label, "alias": alias, "category": category, "role": role, "notes": ""})
+            return self.save_project(project_id, project, project["revision"])
+
+    def update_workspace(self, project_id, operation, expected_revision):
+        with self._lock:
+            project = self.get_project(project_id)
+            if not project:
+                raise KeyError("Project not found")
+            if not isinstance(operation, dict):
+                raise ValueError("Workspace operation must be an object")
+            action = operation.get("action")
+            if action == "rename_project":
+                project["name"] = workspace_name(operation.get("name"))
+            elif action == "add_category":
+                name = workspace_name(operation.get("name"))
+                if any(c["name"].casefold() == name.casefold() for c in project["asset_categories"]):
+                    raise ValueError("A category with this name already exists")
+                project["asset_categories"].append({"id": "custom_" + uuid.uuid4().hex[:12], "name": name, "role": "custom"})
+            elif action == "rename_category":
+                category = next((c for c in project['asset_categories'] if c['id'] == operation.get('category')), None)
+                name = workspace_name(operation.get('name'))
+                if not category:
+                    raise ValueError('Unknown asset category')
+                if any(c['id'] != category['id'] and c['name'].casefold() == name.casefold() for c in project['asset_categories']):
+                    raise ValueError('A category with this name already exists')
+                category['name'] = name
+            elif action == "edit_asset":
+                item = next((a for a in project["assets"] if a["asset_id"] == operation.get("asset_id")), None)
+                if not item:
+                    raise ValueError("Asset is not in this project")
+                if "name" in operation:
+                    item["name"] = workspace_name(operation["name"])
+                if "notes" in operation:
+                    if not isinstance(operation["notes"], str) or len(operation["notes"]) > 4000:
+                        raise ValueError("Notes must contain at most 4000 characters")
+                    item["notes"] = operation["notes"]
+                if "category" in operation:
+                    category = next((c for c in project["asset_categories"] if c["id"] == operation["category"]), None)
+                    if not category:
+                        raise ValueError("Unknown asset category")
+                    item["category"] = category["id"]
+                    if item["kind"] == "image":
+                        item["role"] = image_category_role(category)
+                # Display names can change freely. Stable aliases keep drafts and historical graphs intact.
+            else:
+                raise ValueError("Unknown workspace operation")
+            return self.save_project(project_id, project, expected_revision)
 
     def list_projects(self) -> list:
         results = []
@@ -91,6 +200,8 @@ class ProjectService:
                                 "revision": data.get("revision"),
                                 "canvas": data.get("canvas"),
                                 "updated_at": data.get("updated_at"),
+                                "asset_count": len(data.get("assets", [])),
+                                "take_count": len(data.get("takes", [])),
                             })
                         except Exception:
                             pass
@@ -148,6 +259,44 @@ class ProjectService:
             project.setdefault("takes", []).append(take)
             return self.save_project(project_id, project, project["revision"])
 
+    def attach_completed_job(self, job):
+        """Recover project ownership after the initiating browser closes."""
+        if job.get('state') != 'completed' or not job.get('project_id') or not job.get('output'):
+            return
+        token = job.get('take_id') or job.get('request_id')
+        if not isinstance(token, str) or not token:
+            raise ValueError('Completed job has no valid take identity')
+        with self._lock:
+            project = self.get_project(job['project_id'])
+            if not project or any(take.get('take_id') == token for take in project.get('takes', [])):
+                return
+        output = job['output']
+        if not isinstance(output, dict) or not isinstance(output.get('filename'), str) or not isinstance(output.get('subfolder', 'video'), str):
+            raise ValueError('Completed job output is malformed')
+        relative = str(pathlib.PurePosixPath(output.get('subfolder') or 'video') / output.get('filename', ''))
+        owned_video(self.output_root, relative)
+        with self._lock:
+            project = self.get_project(job['project_id'])
+            if not project:
+                return
+            if any(take.get('take_id') == token for take in project.get('takes', [])):
+                return
+            spec = job.get('render_spec')
+            spec = spec if isinstance(spec, dict) else {}
+            snapshot = spec.get('project_snapshot')
+            snapshot = snapshot if isinstance(snapshot, dict) else {}
+            settings = snapshot.get('settings')
+            settings = settings if isinstance(settings, dict) else {}
+            take = {'take_id': token, 'clip_id': snapshot.get('clip_id') or 'clip_' + token[:8],
+                'output_file': relative, 'effective_settings': settings,
+                'parent_take_id': snapshot.get('parent_take_id'), 'overlap_frames': 0,
+                'unique_frames': settings.get('frames', 124), 'context_token': token,
+                'created_at': job.get('created_at', time.time()), 'status': 'completed'}
+            if isinstance(snapshot.get('draft'), dict):
+                take['draft'] = snapshot['draft']
+            project.setdefault('takes', []).append(take)
+            return self.save_project(project['project_id'], project, project['revision'])
+
     def duplicate_project(self, project_id: str, new_name: str = None) -> dict:
         current = self.get_project(project_id)
         if not current:
@@ -195,7 +344,7 @@ class ProjectService:
                 declared = {item.get("asset_id") for item in snapshot.get("assets", [])}
                 if not referenced_assets.issubset(declared):
                     raise ValueError("Project references an asset missing from its manifest")
-                snapshot["assets"] = [item for item in snapshot.get("assets", []) if item.get("asset_id") in referenced_assets]
+                # The project catalog is reusable beyond the current draft: bundle all its assets.
             if include_takes:
                 bundled_contexts = set()
                 for take in snapshot.get("takes", []):

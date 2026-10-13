@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.1.5
+# H3 Higgsfield 2.2.0
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,7 +12,13 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.1.5
+## New in 2.2.0
+
+- **Projects first:** create, name and open a production project. Its reusable catalog includes Characters, Locations, Props, Style, Audio, Storyboards, Custom and additional named categories. Multi-file uploads, editable names, notes and @ suggestions use the existing native reference compiler. Display-name edits preserve stable prompt aliases.
+- **Project isolation:** the default gallery shows the project's takes. Older unassigned videos remain accessible under All server videos. Exported project bundles retain unused catalog assets, and durable job ownership recovers completed project takes after the initiating browser closes.
+- **Shared export progress:** CPU upscale jobs are owned by the server. Every connected browser sees queue, encoding frames, verification, failures and completed downloads after refresh. Closing the initiating tab does not cancel the job. Launcher installation waits for both renders and exports to finish.
+
+[Project workspace and shared exports](docs/PROJECT_WORKSPACE_AR.md).
 
 - **Video library actions:** every generated video has visible Options and Delete buttons. Options opens per-video enlargement, download, playback and settings; pinned deletion requires explicit confirmation.
 
@@ -30,7 +36,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 - **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
 - **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
 
-**Validation:** Version 2.1.5 checks are recorded in [resolution verification](docs/RESOLUTION_AND_SAME_TAKE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
+**Validation:** Version 2.2.0 checks are recorded in [resolution verification](docs/RESOLUTION_AND_SAME_TAKE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
 
 ![Character replacement controls](docs/modernization/character-swap.png)
 
