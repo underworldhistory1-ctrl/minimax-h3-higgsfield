@@ -130,6 +130,7 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
     return {
         **discovered,
         "controlnet_references_ready": not control_missing and reference_control_supported(),
+        "control_still_ready": not control_missing and ffmpeg_ok and ffprobe_ok,
         "control_preprocessors": preprocessors,
         "controlnet_ready": not control_missing,
         "controlnet_missing_reasons": control_missing,

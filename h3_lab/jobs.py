@@ -39,7 +39,7 @@ def video_output(outputs):
     for node_output in outputs.values():
         for key in ("videos", "gifs", "images"):
             for item in node_output.get(key, []) or []:
-                if not isinstance(item, dict):
+                if not isinstance(item, dict) or item.get('type') != 'output':
                     continue
                 filename = item.get("filename", "")
                 if isinstance(filename, str) and filename.lower().endswith(".mp4") and not any(character in filename for character in ("/", "\\", ":")):

@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.1.0
+# H3 Higgsfield 2.1.1
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,7 +12,9 @@ The video workspace includes **1664×928** and exact **1920×1080** presets. See
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.1.0
+## New in 2.1.1
+
+- **Live-server fixes:** static-image ControlNet sources, Arabic contextual guidance, correct final-video selection, restored Automatic preparation, and checkpoint labels that match the actual mode. [Server verification and limits](docs/SERVER_VERIFICATION_2026_10_13_AR.md).
 
 - **Shared settings:** checkpoint, sampler, scheduler, shifts, precision, refinement and supported acceleration widgets stay synchronized with the submitted graph. Valid user overrides and project presets remain available.
 - **Model choices:** Original H3, independent Singularity, FL2VA reference conditioning and a separate tensor-overlay Hybrid loader. Availability depends on installed models and required nodes.
@@ -22,7 +24,7 @@ The video workspace includes **1664×928** and exact **1920×1080** presets. See
 - **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
 - **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
 
-**Validation:** 283 Python tests, 133 JavaScript tests and browser fixture checks passed for version 2.1.0. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Singularity, Hybrid, Character Swap and all adapter/acceleration combinations have not been GPU-validated locally.
+**Validation:** 289 Python tests, 139 JavaScript tests and browser fixture checks passed for version 2.1.1. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
 
 ![Character replacement controls](docs/modernization/character-swap.png)
 
@@ -34,7 +36,7 @@ The workspace brings generation, reference handling, progress, projects and fini
 
 ![Creator-supplied H3 production workspace](docs/demo/superman/production-workspace-preview.jpg)
 
-*Production capture from the Superman example. Historical production example; version 2.1.0 adds the capabilities described below.*
+*Production capture from the Superman example. Historical production example; version 2.1.1 adds the capabilities described below.*
 
 ## Built around the way you create
 
@@ -81,7 +83,7 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 
 ## Get started
 
-Version **2.1.0** adds shared model/workflow settings, independent Singularity and distinct Hybrid profiles, References + ControlNet readiness checks, Character Swap, compact multi-image references and a resizable desktop sidebar. Turbo is retired. See the [compatibility/deployment guide](docs/MODERNIZATION_2026_10_13_AR.md) and [Character Swap guide](docs/CHARACTER_SWAP_AR.md). New configurations have code/browser coverage; GPU rendering acceptance remains pending.
+Version **2.1.1** adds shared model/workflow settings, independent Singularity and distinct Hybrid profiles, References + ControlNet readiness checks, Character Swap, compact multi-image references and a resizable desktop sidebar. Turbo is retired. See the [compatibility/deployment guide](docs/MODERNIZATION_2026_10_13_AR.md) and [Character Swap guide](docs/CHARACTER_SWAP_AR.md). New configurations have code/browser coverage; GPU rendering acceptance remains pending.
 
 **Windows or NVIDIA Linux:** follow the [installation guide](docs/INSTALL.md). It covers existing ComfyUI installations, first-time setup and verified model reuse. Once installed, open the studio page at your ComfyUI server address.
 

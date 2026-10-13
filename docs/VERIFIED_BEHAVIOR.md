@@ -17,3 +17,7 @@ This evidence does not guarantee every prompt, LoRA combination, speed method, o
 ## Current software checks — 2.1.0, 13 October 2026
 
 Version 2.1.0 passed 283 Python tests and 133 JavaScript tests. Browser fixtures cover the sidebar, reference aliases/order, model/sampling persistence and Character Swap native tag bindings. Release checks additionally exercise automatic source updates and rollback ordering. No new GPU render was performed for this release; Singularity, Hybrid and Character Swap quality remain unverified locally. Historical GPU results do not certify those profiles.
+
+## Live-server verification — 2.1.1, 13 October 2026
+
+289 Python tests and 139 JavaScript tests passed. A real browser checked the live HTTPS UI without fixture APIs. The current RTX 5090 server's existing Original Ref2VA + static-image Canny ControlNet output was independently decoded and checked: 864×480,124frames,24fps,H.264/AAC. This review submitted no additional GPU render. Singularity availability is verified, but independent Singularity, Hybrid and Character Swap rendering remains untested. See [server evidence and limitations](SERVER_VERIFICATION_2026_10_13_AR.md).

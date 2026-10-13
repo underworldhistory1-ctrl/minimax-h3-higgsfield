@@ -13,7 +13,7 @@ import time
 import uuid
 import threading
 from .assembly import get_ffmpeg_path
-from .control import canvas, prepare_control, run_control_ffmpeg, video_metadata
+from .control import canvas, prepare_control, prepare_still_control, run_control_ffmpeg, video_metadata
 from .paths import owned_path
 
 AUX_REVISION = '0cd290477128d42cdc3e76a826a402d866e8c684'
@@ -261,10 +261,14 @@ def _cpu_model(kind, root):
 def process_control(source, input_root, width, height, length, kind, *, input_type='video', offset=0,
                     cancel_event=None, progress=None, aux_root=None):
     canvas(width, height, length)
-    if input_type not in ('video', 'prepared') or kind not in ('canny', 'gray', 'pose', 'depth', 'inpaint', 'hed', 'mlsd', 'scribble', 'layout'):
+    if input_type not in ('video', 'prepared', 'image', 'prepared_image') or kind not in ('canny', 'gray', 'pose', 'depth', 'inpaint', 'hed', 'mlsd', 'scribble', 'layout'):
         raise ValueError('Unknown control input type or kind')
-    if input_type == 'video' and kind not in ('canny', 'gray', 'pose', 'depth'):
+    still = input_type in ('image', 'prepared_image')
+    automatic = input_type in ('video', 'image')
+    if automatic and kind not in ('canny', 'gray', 'pose', 'depth'):
         raise ValueError('This control kind requires an advanced prepared map')
+    if still and (kind == 'inpaint' or float(offset) != 0):
+        raise ValueError('Still guidance uses the whole image without a video offset; masked editing requires a video')
     def check():
         if cancel_event is not None and cancel_event.is_set():
             raise ValueError('Control preparation cancelled')
@@ -278,27 +282,32 @@ def process_control(source, input_root, width, height, length, kind, *, input_ty
     source_path = owned_path(input_root, source_name)
     if source_path.stat().st_size > SOURCE_MAX_BYTES:
         raise ValueError('Control source exceeds the 500 MB preparation limit')
-    source_metadata = video_metadata(source_path)
+    source_metadata = None if still else video_metadata(source_path)
     check()
-    if input_type == 'video':
+    if automatic:
         status = preprocessor_status(aux_root)[kind]
         if not status['ready']:
             raise ValueError('Control preprocessor unavailable: ' + '; '.join(status['reasons']))
     cache_root = owned_path(input_root, '.h3_control_cache', require_file=False)
-    key = _cache_key(source_path, kind, input_type, offset, width, height, length, check) if input_type == 'video' else None
+    key = _cache_key(source_path, kind, input_type, offset, width, height, length, check) if automatic else None
     expected = {'width': width, 'height': height, 'fps': 24.0, 'frame_count': length}
     normalized = None
     output = None
     model = transform = capture = None
     try:
         report(0, 'normalize')
-        normalized = prepare_control(source_name, input_root, width, height, length,
-                                     start_seconds=offset, cancel_event=cancel_event)
+        if still:
+            normalized = prepare_still_control(source_name, input_root, width, height, length, cancel_event=cancel_event)
+            source_metadata = normalized['source_metadata']
+        else:
+            normalized = prepare_control(source_name, input_root, width, height, length,
+                                         start_seconds=offset, cancel_event=cancel_event)
         aligned = owned_path(input_root, normalized['filename'])
-        if input_type == 'prepared':
+        if not automatic:
             report(length, 'verify')
             return dict(normalized, source_metadata=source_metadata, kind=kind, input_type=input_type,
-                        source_file=normalized['filename'], provenance={'preprocessor': 'user_prepared', 'device': 'none', 'cache_hit': False})
+                        source_file=normalized['filename'], provenance={'preprocessor': 'user_prepared', 'device': 'none', 'cache_hit': False,
+                        'temporal_mode': 'hold_still' if still else 'source_video'})
         filename = 'h3_studio_kf_control_' + uuid.uuid4().hex + '.mp4'
         output = owned_path(input_root, filename, require_file=False)
         cache_hit = _cache_read(cache_root, key, output, expected, check) if cache_root.is_dir() else False
@@ -320,6 +329,7 @@ def process_control(source, input_root, width, height, length, kind, *, input_ty
                 capture = cv2.VideoCapture(str(aligned))
                 deadline = time.monotonic() + 1800
                 with tempfile.TemporaryDirectory(prefix='h3-control-') as temporary:
+                    still_map = None
                     for index in range(length):
                         check()
                         if time.monotonic() > deadline:
@@ -327,10 +337,11 @@ def process_control(source, input_root, width, height, length, kind, *, input_ty
                         ok, frame = capture.read()
                         if not ok:
                             raise ValueError('Aligned source could not be decoded completely')
-                        mapped = transform(frame)
+                        mapped = still_map if still_map is not None else transform(frame)
                         if mapped is None or getattr(mapped, 'size', 0) == 0:
                             raise ValueError('Control preprocessor returned no map')
                         mapped = cv2.resize(mapped, (width, height), interpolation=cv2.INTER_LINEAR)
+                        if still: still_map = mapped
                         if not cv2.imwrite(str(Path(temporary) / f'{index:04d}.png'), mapped):
                             raise ValueError('Control map could not be saved')
                         report(index + 1, 'process')
@@ -349,7 +360,7 @@ def process_control(source, input_root, width, height, length, kind, *, input_ty
                     provenance={'preprocessor': {'canny': 'opencv_canny_100_200', 'gray': 'ffmpeg_gray',
                         'pose': 'dwpose', 'depth': 'depth_anything_v2_small'}[kind], 'device': 'cpu',
                         'aux_revision': AUX_REVISION if kind in ('pose', 'depth') else None, 'cache_hit': cache_hit,
-                        'algorithm_version': CACHE_VERSION})
+                        'algorithm_version': CACHE_VERSION, 'temporal_mode': 'hold_still' if still else 'source_video'})
     except Exception:
         if capture:
             capture.release()

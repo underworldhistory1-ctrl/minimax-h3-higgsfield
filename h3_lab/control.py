@@ -87,6 +87,34 @@ def prepare_control(source, input_root, width, height, length, *, start_seconds=
     return dict(aligned, filename=filename, source_filename=source, length=length)
 
 
+def prepare_still_control(source, input_root, width, height, length, *, cancel_event=None):
+    """Hold one verified image for the requested span; never infer motion or panels."""
+    canvas(width, height, length)
+    source_path = owned_path(input_root, source)
+    with Image.open(source_path) as image:
+        if getattr(image, 'n_frames', 1) != 1:
+            raise ValueError('Choose a single still image, not an animation or storyboard sequence')
+        if image.width * image.height > 32 * 1024 * 1024:
+            raise ValueError('Control image exceeds the 32 megapixel preparation limit')
+        image.load()
+        original = {'width': image.width, 'height': image.height, 'frame_count': 1}
+    filename = 'h3_studio_kf_control_' + uuid.uuid4().hex + '.mp4'
+    output = owned_path(input_root, filename, require_file=False)
+    try:
+        run_control_ffmpeg([get_ffmpeg_path(), '-nostdin', '-v', 'error', '-loop', '1',
+            '-framerate', '24', '-i', str(source_path), '-an', '-vf',
+            f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1',
+            '-frames:v', str(length), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-threads', '2',
+            '-y', str(output)], cancel_event=cancel_event)
+        aligned = video_metadata(output)
+        if aligned != {'width': width, 'height': height, 'fps': 24.0, 'frame_count': length}:
+            raise ValueError('Still control failed exact frame alignment')
+    except Exception:
+        output.unlink(missing_ok=True)
+        raise
+    return dict(aligned, filename=filename, source_filename=source, source_metadata=original, length=length)
+
+
 def validate_control_graph(spec, input_root, caps):
     render = spec.get('render_spec', spec)
     graph = spec.get('workflow', spec.get('graph', {}))

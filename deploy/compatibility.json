@@ -27,5 +27,5 @@
     "lightx2v"
   ],
   "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations.",
-  "project_version": "2.1.0"
+  "project_version": "2.1.1"
 }

@@ -153,6 +153,14 @@ class TestH3JobService(unittest.TestCase):
         reconciled = asyncio.run(self.job_service.reconcile_submission_gap(job["job_id"], self.mock_comfy))
         self.assertNotEqual(reconciled["state"], "completed")
 
+    def test_control_input_preview_cannot_become_the_completed_video(self):
+        from h3_lab.jobs import video_output
+        source = {"filename": "control.mp4", "subfolder": "", "type": "input"}
+        final = {"filename": "generated.mp4", "subfolder": "video", "type": "output"}
+        outputs = {"111": {"images": [source], "animated": [True]}, "12": {"videos": [final]}}
+        self.assertEqual(video_output(outputs), final)
+        self.assertIsNone(video_output({"111": {"images": [source]}}))
+
     def test_terminal_outcomes_survive_late_queue_acknowledgements(self):
         from unittest.mock import patch
         for terminal in ("cancelled", "completed", "failed"):

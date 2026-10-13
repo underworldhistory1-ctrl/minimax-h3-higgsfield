@@ -54,14 +54,16 @@
     "dfed319b44dff2b3d11047ebb6c4e4246d69ed2e",
     "ef26b35853a7cb5ac6b2d915f98f6788136579e9",
     "f980c9d0581c8cc1fc30b9c77b086e994bb3cc2e",
-    "621a57313c103dde1970919d4f8c709c2dc09eed"
+    "621a57313c103dde1970919d4f8c709c2dc09eed",
+    "41a1698ef88875aa3da52238c2c5de4d0b3a1594"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
     "5fa4a7c9484d5f9d38a2d75cbb8819f768dd6afc",
     "7531c90419f2adcec37e4caa8ba77f0355ac8f30",
     "ab7c83b9ccc8f7b2a222723b83de3583566de43a",
-    "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d"
+    "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d",
+    "bb51374dc1fc6ad03f0cb5d03873b640374edaa7"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -300,7 +302,8 @@
     "3bb9f32aca71027654a53d301e6a4563d53b0a31",
     "7cc942db6e534095befef6f7dc593b0f80917018",
     "a965e2b7be0632bc5433814ed46c12ebc67d0ecc",
-    "ec5ba33c421faa8f1737fae0cf6080c7f4d5f1a2"
+    "ec5ba33c421faa8f1737fae0cf6080c7f4d5f1a2",
+    "72298ad028d4eed9965d86a31940f0d144b5ad90"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -327,7 +330,9 @@
     "668504a3a71edb80f421fafaa4f3f35719ad6941",
     "88ceb96f5900e1907181c6f2b40732f71e8ca566",
     "bf2aa3b9fa290525d3891560704e2333181eb5c9",
-    "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3"
+    "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3",
+    "43eb545390b492eeb82d51eda527905875933717",
+    "cc55ccdf31229fc749e3c5e299ff40f9cde600f6"
   ],
   "docs/INSTALL.md": [
     "ae0b468c80d24fe422510ffbbcc3daf5c980c60f",
@@ -368,14 +373,17 @@
     "4a198393c04837c3b9a7e504d66b1e00c377fd8d",
     "4a399ff5d8bb584908d80747ed5f9dee0ebd4b76",
     "5a6561fed95a1486b11dba2e7bf16a7f1756fe6b",
-    "fd24f5ace2e6c91b90254c57e82799ea41978ea5"
+    "fd24f5ace2e6c91b90254c57e82799ea41978ea5",
+    "1b13a398842e7bd172a2c40961cfd7eceb74db8b",
+    "eafc89e497b0d31bdf89232f898215f506d253b9"
   ],
   "docs/V2_UPGRADE_AR.md": [
     "4ec03e3185d7b08f3f6ce34ac007bad3972043bd"
   ],
   "docs/VERIFIED_BEHAVIOR.md": [
     "b7fed3b8f37a77fefb3776ecb40b5a6a369fdca6",
-    "ef704715b380eb66f18aa89d88946aea87224dde"
+    "ef704715b380eb66f18aa89d88946aea87224dde",
+    "df2908dd4b64257bd3b47d52895a19782b101038"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -525,7 +533,8 @@
     "4da7a7bc04fa06b49b32773afc33e07f4dcb2cf3",
     "69ade784037928547f1075d7f2a6027873074f65",
     "75c09918565fff1afbeb1e380da89dc0ae2776a8",
-    "e94aa629f0822ed7767d014a4db3d02059d5ea71"
+    "e94aa629f0822ed7767d014a4db3d02059d5ea71",
+    "efcf0f37ee55612b433de3d700a13b04552e2177"
   ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
@@ -538,10 +547,12 @@
     "49c969b65bfd2b88ed321aaf104ca68060c68203",
     "4a7a408883ad902eb0e0b3d7ed0050f9745fb7de",
     "5f96b7d48df66ce907cabb0a49c3fc9f1346346a",
-    "6edaa06471c9baed9fbd4451ece4c3495e3008a8"
+    "6edaa06471c9baed9fbd4451ece4c3495e3008a8",
+    "75e84fa3cb95e5e17348ab7a3c41fc1dcc3bec71"
   ],
   "h3_lab/control_preprocess.py": [
-    "6489a6e2416f6d9a951fd9232fe4917a96a833cf"
+    "6489a6e2416f6d9a951fd9232fe4917a96a833cf",
+    "182ee70fd54ea324db4d3a002382eb2bd151dbdf"
   ],
   "h3_lab/images.py": [
     "7c2c9ef584c9629a380346c09f57ce33ea32d940"
@@ -551,7 +562,8 @@
     "0ff1a8f6ae83159b58f07bd24781d114e6b56d48",
     "935968fe91b2e85b626cdc538d8166bab7245708",
     "a1893a39fef0fef5e256b8b839fe7750186897fa",
-    "fb324184ac230b83ca7b4fc7406a3bf084d41c4e"
+    "fb324184ac230b83ca7b4fc7406a3bf084d41c4e",
+    "53bdf713f8d26df9773d9454c71efe47d1c8b202"
   ],
   "h3_lab/paths.py": [
     "fb9fde3caadbf8848824d8969db9c898b948003e"
@@ -581,7 +593,8 @@
     "9e2da5c145ab0428a92bc4aab5ae9d01790b5080",
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
-    "4fb13b55fe38aa33f24c40e22d66368a909b4033"
+    "4fb13b55fe38aa33f24c40e22d66368a909b4033",
+    "9d16262f3a78214045a4e44975c931e08808e091"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -770,7 +783,8 @@
     "27b5d1942b96c8ab0e6b541653180008a0d3a006"
   ],
   "tests/test_control_prepare_routes.py": [
-    "cf7266c667fc80942e380e4c8d6c9623d2f1d850"
+    "cf7266c667fc80942e380e4c8d6c9623d2f1d850",
+    "4ff9ce46ac7f6ead4c958de4767eef61de91960c"
   ],
   "tests/test_control_preprocess.py": [
     "951f42b7930766c47f24e554b18b773c699825ea"
@@ -801,7 +815,8 @@
     "011f495a92d3bf0c0a2810e54e4eb3a164407236",
     "4fedd34bbf31351ee53092e2089778f8377bc704",
     "9b0c9d8aac3019da62ed4bf7872fcd1de3bc3e7e",
-    "d8a7e5cf141b1c8a72d8f9534359e88f9de3d6e8"
+    "d8a7e5cf141b1c8a72d8f9534359e88f9de3d6e8",
+    "1fc8159696d85e807d65bb7b47e76c0057b07da7"
   ],
   "tests/test_h3_projects.py": [
     "266f1a7eee0b3bfcdc5bd53e5135362d006034e5",
@@ -813,7 +828,8 @@
   ],
   "tests/test_h3_routes.py": [
     "177d107eee42f20cc7a317375842060c10ce9373",
-    "22c23ab28b3f7ef16465853d3fb090d4cae7ac8e"
+    "22c23ab28b3f7ef16465853d3fb090d4cae7ac8e",
+    "89eaf2d672f62974bbae3b982eb0fb728d4b36e8"
   ],
   "tests/test_h3_runtime_contract.py": [
     "278df5d0d4e89763261d827be814940099541cc9"
@@ -889,7 +905,8 @@
     "586b63de5414de877f30809ebeee0b0a20178e42",
     "745aa08bad246120094b12bdb7b4ff7d0d256d9d",
     "8d5949c7c25f7ec7cb0d9b6f0a8b1b839b7ed94d",
-    "ab2fd65e3b4595b1f8208201a597f1d251f46310"
+    "ab2fd65e3b4595b1f8208201a597f1d251f46310",
+    "d061f6487143dd358cb8fad1e7bab3d861bddaf0"
   ],
   "web/h3/graph-builder.js": [
     "27cd2088cda9beb1354be53672a268d29ecad423",
@@ -1013,7 +1030,9 @@
     "e904a86939cd62f9d262a249c3ebb5e8045c27fb",
     "f2044d26b96d07013b7ae5bfbc482570cb17963b",
     "f99b331526ef9639ba5cdcba42678f0938b64578",
-    "05653d005f02b7b8836f9348da8c0f5417b71078"
+    "05653d005f02b7b8836f9348da8c0f5417b71078",
+    "4fad3fcd5161d25e28ab9fc7e1de8947ff9699bd",
+    "a26cf50432070e84e39a32d121854f1d124f1b9a"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1022,13 +1041,15 @@
     "1f3ff9ca45d77c3d7fc1101be4f9e008747132ad",
     "579655bde957bb866648dca8ed564ff407a863e3",
     "aa0f71c31418e546c8ab52c3e4f673bb6d3132ae",
-    "d5d189925031a018dfa0ccc38f79c33212c5f679"
+    "d5d189925031a018dfa0ccc38f79c33212c5f679",
+    "7c9fb32fecc4bbdf08bc9fb380c4a4fdb59df779"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
     "527fcf0b879e210a6d952348e37adc3a87394707",
     "8c89f3168b59e774fc1a3b52f9c735dc294181cd",
-    "9d8c91fcff3b9bb79ec02f820b634a4e30ace8e3"
+    "9d8c91fcff3b9bb79ec02f820b634a4e30ace8e3",
+    "93cda709700ee81322d4a4fe460e73d676c7e64a"
   ],
   "web/studio.js": [
     "00fb9696bfa52a4699497ce3205ead9aab724735",
@@ -1069,7 +1090,8 @@
     "f2b5e2265b33a7eed5d4c38967e089c6f970d7c8",
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
     "ff233a13bdfeeab696adf484010a326f5048548e",
-    "4b0c5ee4bfa18e5b83125b81a02934c91360f589"
+    "4b0c5ee4bfa18e5b83125b81a02934c91360f589",
+    "176e91ac2a1219fe6de27ae8d88ea0c201fa8cb8"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1123,14 +1145,16 @@
   ],
   "web/h3/configuration-ui.js": [
     "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
-    "a2d27dc2d9fed1a074e6689de5810dc13a371791"
+    "a2d27dc2d9fed1a074e6689de5810dc13a371791",
+    "1a077cf100a515f4ef9bcd76e9204545bbcfeee7"
   ],
   "h3_lab/model_catalog.py": [
     "d843f94cb384026a8caa4539f1937096077cf6a4"
   ],
   "deploy/compatibility.json": [
     "5de415084f059ab3ea6329c0d94c604f105eb00d",
-    "166da551b0a3448add8584c7b1ef4ad9cd524ef4"
+    "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
+    "bd477a0724846314a7d72d60170f011d964d9c78"
   ],
   "deploy/environment_audit.py": [
     "b9d0aa3460d947b0e6910829a191aa156c07c0c3"

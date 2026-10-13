@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "fixture_backend": false,
+  "gpu_job_submitted": false,
+  "apiStatus": 200,
+  "info": {
+    "mode": "refs",
+    "checkpoint": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+    "loras": [
+      "H3_Combat_V2.safetensors",
+      "Motion_Repair_V2.safetensors",
+      "h3-realism-people-t2v-i2v-r2v.safetensors",
+      "h3_character_swap_pro4500_1000.safetensors"
+    ],
+    "stillReady": true,
+    "singularity": true,
+    "help": "صورة واحدة تثبّت الوضعية أو العمق أو الحواف أو الإضاءة طوال المقطع؛ لا تستخرج حركة. اختَر لوحة واحدة من الستوري بورد. الورقة متعددة اللوحات مكانها References بدور Storyboard، وللتوقيت استخدم Temporal keyframes.",
+    "preparation": "auto"
+  },
+  "uncaughtErrors": []
+}
