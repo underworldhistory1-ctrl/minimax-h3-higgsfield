@@ -94,3 +94,5 @@ h3_lab/model_catalog.py
 deploy/compatibility.json
 deploy/environment_audit.py
 h3_lab/configuration.py
+h3_lab/export_jobs.py
+web/h3/project-workspace.js

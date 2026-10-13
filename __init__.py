@@ -519,6 +519,8 @@ def secure_wipe(path, passes=3):
 
 
 def _discard(filename, output_only=False):
+    if globals().get("_lab_exports") and _lab_exports.is_source_active(filename):
+        return False
     if globals().get("_lab_assets") and (not _lab_assets.can_discard_input(filename) or _lab_jobs.is_file_leased(filename)):
         return False
     path = _safe_path(filename) if output_only else _resolve(filename)
@@ -1072,6 +1074,7 @@ _lab_services = register_lab_routes(
 )
 _lab_assets = _lab_services["assets"]
 _lab_jobs = _lab_services["jobs"]
+_lab_exports = _lab_services["exports"]
 
 _metadata.update(_load_metadata())
 _registered_jobs.update(_load_jobs())

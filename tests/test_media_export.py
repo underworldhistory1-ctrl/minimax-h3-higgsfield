@@ -29,7 +29,11 @@ class TestSameTakeUpscale(unittest.TestCase):
     def test_real_export_keeps_audio_packets_timing_frames_and_original(self):
         before = hashlib.sha256(self.source.read_bytes()).hexdigest()
         output = self.root / "result.mp4"
-        result = upscale_take(self.source, output)
+        events = []
+        result = upscale_take(self.source, output, progress=lambda **fields: events.append(fields))
+        self.assertTrue(result["verified"])
+        self.assertEqual([events[0]["status"], events[-1]["status"]], ["preparing", "verifying"])
+        self.assertTrue(any(e["status"]=="encoding" and e["frames_done"]>0 for e in events))
         self.assertEqual((result["width"], result["height"], result["frames"]), (192, 128, 12))
         self.assertTrue(result["audio_preserved"])
         self.assertFalse(result["generation_performed"])

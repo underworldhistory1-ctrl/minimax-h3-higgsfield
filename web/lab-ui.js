@@ -2,6 +2,14 @@
 // Server-owned project inputs, native keyframes and review actions.
 function restoredPreparationMode(value){return ['auto','ai','native'].includes(value)?value:'auto';}
 function allInputItems(){return [state.first,state.last,...state.refs,...state.guides,...Object.values(state.controlInputs||{})].filter(Boolean);}
+function mergeProjectAssetDescriptors(assets,items){
+  const merged=new Map(assets.map(asset=>[asset.asset_id,{...asset}]));
+  for(const item of items.filter(item=>item.assetId)){
+    const existing=merged.get(item.assetId)||{asset_id:item.assetId};
+    merged.set(item.assetId,{...existing,...(!existing.alias&&item.alias?{alias:item.alias}:{}),...(!existing.role&&item.role?{role:item.role}:{}),kind:existing.kind||item.kind||'image'});
+  }
+  return [...merged.values()];
+}
 async function refreshLabCapabilities(){
   try{state.labCapabilities=await (await fetch(api("/h3_studio/lab/capabilities"))).json();}
   catch{state.labCapabilities={add_guide:false,continuation_ready:false,missing_reasons:["Lab readiness unavailable"]};}
@@ -13,7 +21,7 @@ async function refreshLabCapabilities(){
 }
 function refreshLabControls(){
   const paused=state.labCapabilities?.inference_enabled===false;
-  $("generate").disabled=state.busy||state.projectLoading||paused;
+  $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject;
   let banner=$("v2StandbyBanner");
   if(!banner){banner=document.createElement("div");banner.id="v2StandbyBanner";banner.setAttribute("role","status");banner.style.cssText="padding:12px 20px;background:#352d12;color:#ffe69a;border-bottom:1px solid #695922;font-size:13px";document.querySelector(".top").after(banner);}
   banner.hidden=!paused;
@@ -167,6 +175,7 @@ async function refreshProjectList(){
 }
 function initLabUI(){
   state.hydrationEpoch=0;
+  refreshMediaExports();setInterval(refreshMediaExports,2000);
   $("uploadContinuation").onclick=()=>{if(!state.busy&&!state.projectLoading)$("continuationFile").click();};
   $("continuationFile").onchange=async()=>{const file=$("continuationFile").files[0];try{if(file)await startUploadedContinuation(file);}catch(e){$("sourceUploadStatus").textContent=e.message;info(e.message,true);}finally{$("continuationFile").value="";}};
   $("continuationReferences").onclick=()=>useContinuationReferences().catch(e=>info(e.message,true));
@@ -204,17 +213,80 @@ function initLabUI(){
   refreshLabControls();renderGuides();
 }
 
+const mediaExportSubmissions=new Map();
+const activeMediaExportStates=new Set(["queued","preparing","encoding","verifying"]);
+function syncMediaExportBusy(){
+  const active=state.sharedExportsOrigin===api("")&&(state.sharedExports||[]).some(job=>activeMediaExportStates.has(job.status));
+  state.mediaExporting=!!(active||([...mediaExportSubmissions.values()].includes(api(""))));
+  $("upscaleTake").disabled=!!(state.mediaExporting||state.busy||state.projectLoading);refreshVideoActions();
+}
+function exportStatusText(job){
+  const labels={queued:"Queued",preparing:"Checking source",encoding:"Enlarging video",verifying:"Verifying video and audio",completed:"Completed · verified",failed:"Failed",interrupted:"Interrupted",missing:"File unavailable"};
+  return (labels[job.status]||job.status)+(job.status==='encoding'?` · ${job.progress_percent}% · ${job.frames_done}/${job.frames_total} frames`:'')+(job.status==='encoding'&&job.eta_seconds>0?` · about ${Math.ceil(job.eta_seconds)}s encoding remaining`:'');
+}
+function showKnownVideoExport(entry,status){
+  if(state.sharedExportsOrigin!==api("")||!entry)return;
+  const job=(state.sharedExports||[]).find(j=>j.source_output===resultOutputPath(entry));
+  if(!job)return;
+  status.replaceChildren(document.createTextNode(exportStatusText(job)+(job.error?' · '+job.error:'')));
+  if(job.status==='completed'&&job.result){const link=document.createElement('a');link.href=api(job.result.download_url);link.download=job.result.filename;link.textContent=` Download ${job.result.width}×${job.result.height}`;status.append(link);}
+}
+function renderMediaExports(){
+  const list=$("mediaExportsList");list.replaceChildren();
+  const jobs=state.sharedExportsOrigin===api("")?state.sharedExports||[]:[];
+  for(const job of jobs.filter(j=>activeMediaExportStates.has(j.status)).concat(jobs.filter(j=>!activeMediaExportStates.has(j.status)).slice(0,5))){
+    const item=document.createElement('div');item.style.cssText='padding:10px 0;border-top:1px solid #343434;overflow-wrap:anywhere';
+    const heading=document.createElement('div');heading.textContent=job.source_filename+' · '+job.target;
+    const detail=document.createElement('div');detail.className='tip';detail.textContent=exportStatusText(job)+(job.error?' · '+job.error:'');item.append(heading,detail);
+    if(activeMediaExportStates.has(job.status)){const bar=document.createElement('progress');bar.max=100;bar.value=job.progress_percent||0;bar.style.width='100%';bar.setAttribute('aria-label',exportStatusText(job));item.append(bar);}
+    if(job.status==='completed'&&job.result){const link=document.createElement('a');link.href=state.sharedExportsOrigin+job.result.download_url;link.download=job.result.filename;link.textContent=`Download ${job.result.width}×${job.result.height} · ${job.result.frames} frames`;item.append(link);}
+    list.append(item);
+  }
+  showKnownVideoExport(state.current,$("upscaleStatus"));
+  if($("videoActionsDialog").open)showKnownVideoExport(videoActionsEntry,$("videoActionsStatus"));
+}
+let mediaExportPoll=null;
+async function fetchExportJSON(url,controller=new AbortController(),options={}){
+  const timer=setTimeout(()=>controller.abort(),options.method==='POST'?660000:15000);
+  try{
+    const response=await fetch(url,{...options,cache:'no-store',signal:controller.signal});
+    if(!response.ok)throw Error(response.status===404?'This older server does not report shared export progress.':(await response.text()).slice(0,300)||'Export request temporarily unavailable.');
+    return await response.json();
+  }finally{clearTimeout(timer);}
+}
+async function refreshMediaExports(){
+  const origin=api("");if(mediaExportPoll?.origin===origin)return;
+  mediaExportPoll?.controller.abort();const poll={origin,controller:new AbortController()};mediaExportPoll=poll;
+  try{
+    const data=await fetchExportJSON(origin+'/h3_studio/lab/media/exports',poll.controller);if(api("")!==origin)return;
+    state.sharedExports=data.jobs||[];state.sharedExportsOrigin=origin;
+    $("mediaExportsStatus").textContent=state.sharedExports.length?'':'No exports recorded yet.';
+    const wasBusy=state.mediaExporting;syncMediaExportBusy();renderMediaExports();if(wasBusy!==state.mediaExporting)renderResults();
+  }catch(error){if(api("")===origin)$("mediaExportsStatus").textContent=error.name==='AbortError'?'Export status timed out. Retrying; server jobs continue.':error.message;}
+  finally{if(mediaExportPoll===poll)mediaExportPoll=null;}
+}
+
 async function upscaleVideoEntry(entry,target,status,selectedEntry){
   if(!entry||state.busy||state.projectLoading||state.mediaExporting||videoDeletionPending(entry))return;
   const originBase=api(""),stillCurrent=()=>selectedEntry()===entry&&api("")===originBase;
-  state.mediaExporting=true;$("upscaleTake").disabled=true;refreshVideoActions();renderResults();status.textContent="Enlarging this video on the CPU…";
+  const submission=Symbol();mediaExportSubmissions.set(submission,originBase);syncMediaExportBusy();renderResults();status.textContent="Submitting this video's export to the server…";
   try{
-    const result=await post("/h3_studio/lab/media/export",{filename:entry.file.filename,output_file:resultOutputPath(entry),format:"upscaled_mp4",target});
+    let result=await fetchExportJSON(originBase+"/h3_studio/lab/media/export",new AbortController(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:entry.file.filename,output_file:resultOutputPath(entry),format:"upscaled_mp4",target,background:true})});
+    if(result.job){
+      const id=result.job.job_id;await refreshMediaExports();
+      while(true){
+        const job=(await fetchExportJSON(originBase+'/h3_studio/lab/media/exports/'+encodeURIComponent(id))).job;
+        if(stillCurrent())status.textContent=exportStatusText(job);
+        if(job.status==='completed'){result=job.result;break;}
+        if(!activeMediaExportStates.has(job.status))throw Error(job.error||'Export did not complete');
+        await new Promise(resolve=>setTimeout(resolve,1000));
+      }
+    }
     const link=document.createElement("a");link.href=originBase+result.download_url;link.download=result.filename;link.textContent="Download enlarged video";
     if(stillCurrent())status.replaceChildren(document.createTextNode(`${result.width}×${result.height} · ${result.frames} frames · same take. `),link);
     link.click();
   }catch(e){if(stillCurrent()){status.textContent=e.message;info(e.message,true);}}
-  finally{state.mediaExporting=false;$("upscaleTake").disabled=!!(state.busy||state.projectLoading);refreshVideoActions();renderResults();}
+  finally{mediaExportSubmissions.delete(submission);await refreshMediaExports();syncMediaExportBusy();renderResults();}
 }
 
 function resultOutputPath(entry){return [entry.file.subfolder||"video",entry.file.filename].join("/");}

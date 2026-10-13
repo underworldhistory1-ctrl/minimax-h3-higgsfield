@@ -664,12 +664,13 @@ function mentionItems(){
     const items=[];
     if(state.first)items.push({alias:"start",kind:"image",previewUrl:state.first.url,tag:"Picture 1",label:"Start frame"});
     if(state.last)items.push({alias:"end",kind:"image",previewUrl:state.last.url,tag:"Picture "+(state.first?2:1),label:"End frame"});
-    return items;
+    return items.concat(typeof projectCatalogItems==='function'?projectCatalogItems():[]);
   }
-  if(state.mode!=="refs")return [];
+  if(state.mode!=="refs")return typeof projectCatalogItems==='function'?projectCatalogItems():[];
   let bindings=[];
   try{bindings=H3PromptCompiler.compilePrompt({mode:"refs",source_prompt:state.refs.map(r=>"@"+r.alias).join(" "),references:currentRenderSpec().references}).bindings||[];}catch{}
-  return orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),label:ref.kind}));
+  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),label:ref.kind}));
+  return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias)):[]);
 }
 function mentionPreview(item){
   if(!item.previewUrl||item.kind==="audio")return null;
@@ -684,13 +685,13 @@ function mentionPreview(item){
 function renderPromptAssets(){
   const wrap=$("promptAssets");wrap.replaceChildren();
   const prompt=$("prompt").value;
-  const items=mentionItems();
+  const items=mentionItems().filter(item=>!item.catalog);
   for(const item of items){
     const chip=document.createElement("button");chip.type="button";chip.className="prompt-asset";
     if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt))chip.classList.add("used");
     chip.disabled=state.busy;
     chip.title="Insert @"+item.alias+" into the prompt";
-    chip.onclick=()=>insertReferenceMention(item.alias,false);
+    chip.onclick=()=>item.catalog?insertProjectMention(item).catch(error=>info(error.message,true)):insertReferenceMention(item.alias,false);
     const preview=mentionPreview(item);if(preview)chip.append(preview);
     const name=document.createElement("span");name.textContent="@"+item.alias;
     const tag=document.createElement("small");tag.textContent=item.tag;
@@ -707,15 +708,16 @@ function mentionState() {
   const input=$("prompt"),before=input.value.slice(0,input.selectionStart);
   const match=before.match(/@([\p{L}\p{N}_-]*)$/u);
   if(!match){$("mentionMenu").classList.add("hidden");renderPromptAssets();return;}
-  const names=mentionItems().filter(item=>item.alias.toLocaleLowerCase().startsWith(match[1].toLocaleLowerCase()));
+  const names=mentionItems().filter(item=>[item.alias,item.label||''].some(value=>value.toLocaleLowerCase().includes(match[1].toLocaleLowerCase()))).slice(0,30);
   const menu=$("mentionMenu");menu.replaceChildren();
   names.forEach(item=>{
     const b=document.createElement("button");b.type="button";
     const preview=mentionPreview(item);if(preview){preview.alt="";b.append(preview);}
-    const label=document.createElement("span");label.textContent="@"+item.alias+" · "+item.tag;b.append(label);
+    const label=document.createElement("span");label.textContent=(item.catalog?item.label+" · ":"")+"@"+item.alias+" · "+item.tag;b.append(label);
     b.onmousedown=e=>{
       e.preventDefault();
       const start=input.selectionStart-match[0].length,end=input.selectionStart;
+      if(item.catalog){insertProjectMention(item,{start,end}).catch(error=>info(error.message,true));return;}
       input.setRangeText("@"+item.alias+" ",start,end,"end");
       menu.classList.add("hidden");input.focus();renderPromptAssets();saveDraft();
     };
@@ -1150,6 +1152,7 @@ function usePromptAI() {
 
 async function generate() {
   if(state.busy)return;
+  if(!state.currentProject){info("Open or create a project before generating.",true);return;}
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.restoreMissing?.length){info("Reattach missing inputs and Save the project before rendering: "+state.restoreMissing.join(", "),true);return;}
@@ -1324,7 +1327,7 @@ async function generate() {
     const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps})),project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     state.runMeta=submittedMeta;
-    const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId},asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
+    const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,clip_id:state.currentClipId,parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
     state.runMeta.request_id=token;state.runMeta.submission=submission;state.running="request:"+token;saveSession();
     const r=await fetch(api("/h3_studio/lab/jobs"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(submission)});
     const response=await r.json();
@@ -1402,16 +1405,21 @@ function findVideoOutput(output){
   return null;
 }
 function thumbnailURL(file){return api("/h3_studio/thumbnail?"+new URLSearchParams({filename:file.filename}));}
+function projectVisibleResults(){
+  const project=state.currentProject,owned=new Set((project?.takes||[]).map(take=>take.output_file));
+  return project&&$("libraryScope")?.value!=="all"?state.results.filter(entry=>owned.has(resultOutputPath(entry))||entry.meta?.project_id===project.project_id):state.results;
+}
 function renderResults(){
   const renderOrigin=api("");
+  const project=state.currentProject,visible=projectVisibleResults();
   $("results").replaceChildren();
-  $("videoCount").textContent="("+state.results.length+" on server)";
-  $("wipe").classList.toggle("hidden",!state.results.some(e=>!e.kept));
-  $("emptyHistory").classList.toggle("hidden",!!state.results.length);
-  const remaining=Math.max(0,state.results.length-state.visibleResults);
+  $("videoCount").textContent="("+visible.length+(project&&$("libraryScope")?.value!=="all"?" in project)":" on server)");
+  $("wipe").classList.toggle("hidden",!visible.some(e=>!e.kept));
+  $("emptyHistory").classList.toggle("hidden",!!visible.length);
+  const remaining=Math.max(0,visible.length-state.visibleResults);
   $("showMoreVideos").classList.toggle("hidden",remaining===0);
   $("showMoreVideos").textContent="Show "+Math.min(8,remaining)+" more · "+remaining+" remaining";
-  state.results.slice(0,state.visibleResults).forEach((entry,index)=>{
+  visible.slice(0,state.visibleResults).forEach((entry,index)=>{
     const card=document.createElement("div");card.className="result video-result"+(entry.kept?" pinned":"");
     const b=document.createElement("button");b.className="result-open";b.type="button";
 
@@ -1504,7 +1512,7 @@ $("settingsDialog").addEventListener("click",event=>{if(event.target===$("settin
 $("settingsDialog").addEventListener("close",()=>{if(settingsTrigger?.isConnected)settingsTrigger.focus();settingsTrigger=null;});
 function showVideo(entry){
   $("upscaleStatus").replaceChildren();
-  state.current=entry;state.currentVideoOrigin=api("");$("stage").replaceChildren();
+  state.current=entry;state.currentVideoOrigin=api("");showKnownVideoExport(entry,$("upscaleStatus"));$("stage").replaceChildren();
   const v=document.createElement("video");
   v.src=videoURL(entry.file);v.controls=true;v.autoplay=true;v.loop=true;
   $("stage").append(v);$("resultCard").classList.remove("hidden");
@@ -1602,7 +1610,7 @@ function downloadVideoEntry(entry){if(!entry)return;const a=document.createEleme
 function openVideoActions(entry,trigger){
   videoActionsEntry=entry;videoActionsOrigin=api("");videoActionsTrigger=trigger;
   $("videoActionsName").textContent=entry.file.filename+(entry.kept?" · Pinned":"");$("videoActionsStatus").replaceChildren();
-  refreshVideoActions();$("videoActionsDialog").showModal();
+  refreshVideoActions();showKnownVideoExport(entry,$("videoActionsStatus"));$("videoActionsDialog").showModal();
 }
 $("videoActionsClose").onclick=()=>$("videoActionsDialog").close();
 $("videoActionsDialog").addEventListener("close",()=>{videoActionsEntry=null;videoActionsTrigger?.isConnected&&videoActionsTrigger.focus();});
@@ -1670,7 +1678,7 @@ $("discard").onclick=()=>deleteVideoEntry(state.current,state.currentVideoOrigin
 
 $("wipe").onclick=async()=>{
   if(state.mediaExporting||videoDeletions.size)return;
-  const origin=api(""),entries=state.results.filter(e=>!e.kept);
+  const origin=api(""),entries=projectVisibleResults().filter(e=>!e.kept);
   if(!entries.length||!confirm("Delete "+entries.length+" unpinned video(s) from this server? This cannot be undone."))return;
   const keys=entries.map(e=>origin+"|"+videoIdentity(e)),deleted=new Set(),failed=[];
   keys.forEach(k=>videoDeletions.add(k));renderResults();refreshVideoActions();
@@ -2013,8 +2021,9 @@ async function initProjectController() {
   try{
     const pid=localStorage.getItem(controller._storageKey("active_project_id"));
     let project;
-    if(pid){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;project=await controller.createProject("Default Project",{width:state.width,height:state.height});}}
-    else project=await controller.createProject("Default Project",{width:state.width,height:state.height});
+    if(pid){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;localStorage.removeItem(controller._storageKey("active_project_id"));}}
+    if(controller!==projectCtrl)return;
+    if(!project){state.currentProject=null;state.activeProjectId=null;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
     if(controller!==projectCtrl)return;
     await hydrateProjectDraft(project.draft||{mode:"text",prompts:{text:$("prompt").value,frames:"",refs:""},refs:[],guides:[]});
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
@@ -2030,6 +2039,7 @@ function updateProjectUI(proj) {
   if ($("projectNameDisplay")) $("projectNameDisplay").textContent = `${proj.name || 'Project'} (${proj.project_id.slice(0, 8)})`;
   if ($("projectRevision")) $("projectRevision").textContent = `Rev ${proj.revision || 1}`;
   appendProjectResults(proj);renderResults();renderSequenceCard();
+  if(typeof renderProjectCatalog==='function'){renderProjectCatalog();renderProjectHub().catch(()=>{});}
   refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));
 }
 
@@ -2102,16 +2112,14 @@ if ($("btnNewProject")) {
 }
 if ($("btnSaveProject")) {
   $("btnSaveProject").onclick = async () => {
-    if (!projectCtrl || !projectCtrl.currentProject) {
-      await projectCtrl.createProject("Default Project", { width: state.width, height: state.height });
-    }
+    if (!projectCtrl?.currentProject) {info("Open or create a project first.",true);return;}
     try {
       const currentTakeId = state.current?.takeId;
       const updates = {
         canvas: { width: state.width, height: state.height },
         fps: 24,
         draft:await persistProjectDraft(),
-        assets:[...new Map([...(projectCtrl.currentProject.assets||[]),...allInputItems().filter(x=>x.assetId).map(x=>({asset_id:x.assetId,alias:x.alias,role:x.role}))].map(x=>[x.asset_id,x])).values()],
+        assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems()),
       };
       await projectCtrl.saveCurrentProject(updates);
       state.restoreMissing=[];info("Project saved successfully.");

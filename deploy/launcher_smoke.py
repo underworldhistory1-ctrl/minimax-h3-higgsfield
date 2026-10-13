@@ -56,7 +56,8 @@ class ComfyAPI:
         try:
             return self.opener.open(urllib.request.Request(self.url + path, data=data, headers=headers or {}), timeout=30)
         except urllib.error.HTTPError as exc:
-            raise APIError('Server returned HTTP ' + str(exc.code)) from None
+            error = APIError('Server returned HTTP ' + str(exc.code)); error.status_code = exc.code
+            raise error from None
         except urllib.error.URLError as exc:
             if isinstance(exc.reason, ConnectionRefusedError) or getattr(exc.reason, 'errno', None) == errno.ECONNREFUSED:
                 raise ConnectionRefusedError('ComfyUI connection refused') from None
@@ -97,13 +98,24 @@ class ComfyAPI:
             raise APIError('Invalid queue response; refusing to assume the server is idle')
         return result
 
+    def has_active_exports(self):
+        try:
+            data = self.request('/h3_studio/lab/media/exports')
+        except APIError as error:
+            if getattr(error, 'status_code', None) == 404:
+                return False  # Older workers have no server-owned export API.
+            raise
+        if not isinstance(data, dict) or not isinstance(data.get('jobs'), list):
+            raise APIError('Invalid media export response; refusing to assume the server is idle')
+        return any(job.get('status') in ('queued','preparing','encoding','verifying') for job in data['jobs'])
+
     def wait_idle(self, timeout):
         deadline = time.monotonic() + max(0, timeout)
         while True:
             queue = self.queue()
             if queue.get('status') == 'offline':
                 raise APIError('ComfyUI is offline; start it before rendering')
-            if not queue['queue_running'] and not queue['queue_pending']:
+            if not queue['queue_running'] and not queue['queue_pending'] and not self.has_active_exports():
                 return True
             if time.monotonic() >= deadline:
                 return False

@@ -47,11 +47,14 @@ def create_lab_services(storage_root: str, output_root=None):
     jobs = JobService(str(root), asset_service=assets, output_root=output_root)
     projects = ProjectService(str(root), asset_service=assets, output_root=output_root)
     contexts = ContextService(str(root))
+    from .export_jobs import ExportJobs
+    exports = ExportJobs(root)
     return {
         "assets": assets,
         "jobs": jobs,
         "projects": projects,
         "contexts": contexts,
+        "exports": exports,
         "storage_root": root,
     }
 
@@ -69,6 +72,9 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     preparation_lock = asyncio.Lock()
     quality_lock = asyncio.Lock()
     media_export_lock = asyncio.Lock()
+    export_admission_lock = asyncio.Lock()
+    exports = services["exports"]
+    export_tasks = {}
     quality_cache = {}
     control_tasks = {}
     control_tasks_lock = threading.Lock()
@@ -250,6 +256,19 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
 
     async def handle_get_project(request):
         pid = request.match_info["id"]
+        # Recover completed outputs from durable job ownership, independently of browser storage.
+        for record in await asyncio.to_thread(jobs.project_jobs, pid):
+            if record.get('state') not in ('completed', 'failed', 'cancelled') and comfy_client:
+                if await asyncio.to_thread(jobs._saved_video, record):
+                    try:
+                        record = await jobs.reconcile_submission_gap(record['job_id'], comfy_client)
+                    except Exception:
+                        continue
+            if record.get('state') == 'completed':
+                try:
+                    await asyncio.to_thread(projects.attach_completed_job, record)
+                except (ValueError, FileNotFoundError, OSError):
+                    pass  # Deleted media remains a historical take; never fabricate a replacement.
         proj = await asyncio.to_thread(projects.get_project, pid)
         if not proj:
             return web.json_response({"error": "Project not found"}, status=404)
@@ -525,13 +544,24 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                     await asyncio.to_thread(stream.write, chunk)
             rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], field.filename, pid)
             if pid:
-                project = await asyncio.to_thread(projects.get_project, pid)
-                project.setdefault("assets", []).append({"asset_id": rec["asset_id"], "kind": rec["kind"],
-                    "server_path": rec["server_path"], "alias": temporary.stem})
-                await asyncio.to_thread(projects.save_project, pid, project, project["revision"])
+                await asyncio.to_thread(projects.attach_asset, pid, rec, request.query.get("category"), request.query.get("name"))
             return web.json_response({"asset": rec}, status=201)
+        except ValueError as error:
+            return web.json_response({"error": str(error)}, status=400)
         finally:
             temporary.unlink(missing_ok=True)
+
+    async def handle_workspace_update(request):
+        try:
+            body = await request.json()
+            if not isinstance(body, dict) or not isinstance(body.get('expected_revision'), int):
+                raise ValueError('Workspace updates require an expected revision')
+            project = await asyncio.to_thread(projects.update_workspace, request.match_info['id'], body.get('operation'), body['expected_revision'])
+            return web.json_response(project)
+        except ValueError as error:
+            return web.json_response({'error': str(error)}, status=getattr(error, 'status_code', 400))
+        except KeyError:
+            return web.json_response({'error': 'Project not found'}, status=404)
 
     async def handle_get_asset(request):
         rec = await asyncio.to_thread(assets.get_asset, request.match_info["id"])
@@ -729,10 +759,49 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         except (ValueError, FileNotFoundError, subprocess.SubprocessError) as error:
             return web.json_response({"error": str(error)}, status=400)
 
+    async def handle_export_jobs(request):
+        return web.json_response({"jobs": await asyncio.to_thread(exports.list)})
+
+    async def handle_export_job(request):
+        record = await asyncio.to_thread(exports.get, request.match_info["id"])
+        return web.json_response({"job": record}) if record else web.json_response({"error": "Export job not found"}, status=404)
+
+    async def run_upscale_job(record, source, destination):
+        try:
+            async with media_export_lock:
+                await asyncio.to_thread(exports.update, record['job_id'], started_at=__import__('time').time())
+                from .media_export import upscale_take
+                metadata = await _finish_source_worker(upscale_take, source, destination, record['target'],
+                    progress=lambda **fields: exports.update(record['job_id'], **fields))
+                result = {"download_url": "/h3_studio/lab/exports/" + destination.name, "filename": destination.name, **metadata}
+                await asyncio.to_thread(exports.update, record['job_id'], status='completed', progress_percent=100,
+                    eta_seconds=None, finished_at=__import__('time').time(), result=result)
+                return result
+        except (Exception, asyncio.CancelledError) as error:
+            destination.unlink(missing_ok=True)
+            await asyncio.to_thread(exports.update, record['job_id'], status='interrupted' if isinstance(error, asyncio.CancelledError) else 'failed',
+                error='Export interrupted before completion.' if isinstance(error, asyncio.CancelledError) else str(error), finished_at=__import__('time').time())
+            raise
+
+    def completed_export_task(task):
+        if not task.cancelled(): task.exception()  # Record failures without unhandled task warnings.
+
+    async def admit_upscale(source, destination, target):
+        # Admission and worker registration belong to the server, not an HTTP waiter.
+        async with export_admission_lock:
+            record, duplicate = await asyncio.to_thread(exports.submit, source.relative_to(output_root).as_posix(), target)
+            task = export_tasks.get(record['job_id'])
+            if not duplicate:
+                task = asyncio.create_task(run_upscale_job(record, source, destination))
+                export_tasks[record['job_id']] = task
+                task.add_done_callback(completed_export_task)
+                task.add_done_callback(lambda finished, key=record['job_id']: export_tasks.pop(key, None))
+            if task is None:
+                raise ValueError('Existing export is unavailable; refresh its status')
+            return record, duplicate, task
+
     async def handle_media_export(request):
         try:
-            if media_export_lock.locked():
-                return web.json_response({"error": "Another media export is running. Retry when it finishes."}, status=409)
             if output_root is None:
                 return web.json_response({"error": "Canonical output root unavailable"}, status=503)
             body = await request.json()
@@ -746,6 +815,16 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             name = uuid.uuid4().hex + (".wav" if format_name == "wav" else ".mp4")
             destination = services["storage_root"] / "exports" / name
             destination.parent.mkdir(exist_ok=True)
+            if format_name == "upscaled_mp4":
+                target = body.get("target", "2x")
+                if not isinstance(target, str) or target not in ("2x", "1080", "1440"):
+                    raise ValueError("Upscale target must be 2x, 1080 or 1440")
+                admission = asyncio.create_task(admit_upscale(source, destination, target))
+                admission.add_done_callback(completed_export_task)
+                record, duplicate, task = await asyncio.shield(admission)
+                if body.get("background") is True:
+                    return web.json_response({"job": record, "is_duplicate": duplicate}, status=202)
+                return web.json_response(await asyncio.shield(task), status=201)
             cmd = [get_ffmpeg_path(), "-nostdin", "-v", "error", "-i", str(source)]
             cmd += ["-vn", "-c:a", "pcm_s16le"] if format_name == "wav" else ["-an", "-c:v", "copy"]
             cmd.append(str(destination))
@@ -808,6 +887,8 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/media/import_video", handle_import_video),
         ("POST", "/h3_studio/lab/media/upload_continuation", handle_upload_continuation),
         ("POST", "/h3_studio/lab/media/export", handle_media_export),
+        ("GET", "/h3_studio/lab/media/exports", handle_export_jobs),
+        ("GET", "/h3_studio/lab/media/exports/{id}", handle_export_job),
         ("GET", "/h3_studio/lab/exports/{name}", handle_export_file),
         ("POST", "/h3_studio/lab/assets", handle_upload_asset),
         ("GET", "/h3_studio/lab/assets/{id}", handle_get_asset),
@@ -824,6 +905,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/projects", handle_create_project),
         ("GET", "/h3_studio/lab/projects/{id}", handle_get_project),
         ("POST", "/h3_studio/lab/projects/{id}", handle_save_project),
+        ("POST", "/h3_studio/lab/projects/{id}/workspace", handle_workspace_update),
         ("POST", "/h3_studio/lab/projects/{id}/duplicate", handle_duplicate_project),
         ("GET", "/h3_studio/lab/projects/{id}/export", handle_export_project),
         ("POST", "/h3_studio/lab/projects/{id}/assemble", handle_assemble_project),

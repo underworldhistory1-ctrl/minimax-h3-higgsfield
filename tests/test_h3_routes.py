@@ -138,12 +138,12 @@ class TestH3LabRoutes(AioHTTPTestCase):
         self.assertEqual(response.status, 400)
         self.assertEqual(self.services["projects"].get_project(project["project_id"])["assets"], [])
 
-    async def test_cancelled_export_waits_for_worker_and_removes_published_file(self):
+    async def test_cancelled_waiter_does_not_cancel_server_owned_export(self):
         import threading
         from types import SimpleNamespace
         from unittest.mock import patch
         entered, release = threading.Event(), threading.Event()
-        def export(source, destination, target):
+        def export(source, destination, target, progress=None):
             entered.set()
             release.wait(5)
             destination.write_bytes(b"finished export")
@@ -161,7 +161,11 @@ class TestH3LabRoutes(AioHTTPTestCase):
                 release.set()
             with self.assertRaises(asyncio.CancelledError):
                 await task
-        self.assertEqual(list((self.services["storage_root"] / "exports").glob("*.mp4")), [])
+        for _ in range(100):
+            if self.services["exports"].list()[0]["status"] == "completed": break
+            await asyncio.sleep(.02)
+        self.assertEqual(self.services["exports"].list()[0]["status"], "completed")
+        self.assertEqual(len(list((self.services["storage_root"] / "exports").glob("*.mp4"))), 1)
 
     async def test_asset_upload_read_and_resolve(self):
         import aiohttp

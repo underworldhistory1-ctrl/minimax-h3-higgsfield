@@ -48,6 +48,11 @@ def video_output(outputs):
 
 
 class JobService:
+    def project_jobs(self, project_id):
+        with self._lock:
+            return copy.deepcopy(sorted((job for job in self._jobs.values() if job.get('project_id') == project_id),
+                key=lambda job: job.get('created_at', 0), reverse=True))
+
     def __init__(self, storage_root: str, asset_service=None, server_instance_id: str = None, output_root=None):
         self.storage_root = pathlib.Path(storage_root).resolve()
         self.jobs_dir = self.storage_root / "jobs"

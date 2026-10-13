@@ -22,6 +22,7 @@ let browser;
  if(data!==undefined)return route.fulfill({json:data});return route.continue();
  });
  await page.goto(process.env.H3_TEST_URL||'http://127.0.0.1:18923/web/index.html');await page.waitForFunction(()=>window.H3ConfigurationUI&&document.getElementById('modelProfile').options.length===4);
+ await page.evaluate(()=>document.body.classList.remove('project-hub-open'));
  await page.waitForFunction(()=>!document.querySelector('[data-mode="refs"]').disabled);
  assert.ok((await page.locator('#serverAttention').innerText()).includes('PyTorch dense'));
  assert.equal(await page.evaluate(()=>captureSettings().server_attention.implementation),'attention_pytorch');
@@ -39,7 +40,7 @@ let browser;
  await page.locator('#samplingControls > summary').click();await page.locator('[data-setting="sampler_name"]').selectOption('euler');await page.locator('[data-setting="shift_video"]').fill('9');await page.locator('[data-setting="shift_video"]').dispatchEvent('change');
  const sampler=await page.evaluate(()=>{const spec=currentRenderSpec();const graph=H3GraphBuilder.buildGraph(spec,Object.fromEntries(spec.references.map(r=>[r.alias,r.alias+'.png'])),state.labCapabilities);return{model:graph['1'].inputs.unet_name,sampler:graph['8'].inputs.sampler_name,shift:graph['2'].inputs.shift_video};});assert.deepEqual(sampler,{model:singular,sampler:'euler',shift:9});
  await page.screenshot({path:path.join(out,'singularity-settings.png'),fullPage:false});
- await page.reload();await page.waitForFunction(()=>window.H3ConfigurationUI&&state.sampling?.shift_video===9);assert.equal(await page.locator('#modelProfile').inputValue(),'singularity');assert.equal(await page.locator('[data-setting="sampler_name"]').inputValue(),'euler');
+ await page.reload();await page.evaluate(()=>document.body.classList.remove('project-hub-open'));await page.waitForFunction(()=>window.H3ConfigurationUI&&state.sampling?.shift_video===9);assert.equal(await page.locator('#modelProfile').inputValue(),'singularity');assert.equal(await page.locator('[data-setting="sampler_name"]').inputValue(),'euler');
  await page.locator('.sidebar-resizer').focus();await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('.left').evaluate(e=>Math.round(e.getBoundingClientRect().width)),720);
  await page.evaluate(async()=>{await hydrateProjectDraft({mode:'text',settings:{renderMethod:'turbo',steps:6}});});assert.equal(await page.locator('#renderMethod').inputValue(),'native');assert.equal(await page.locator('#steps').inputValue(),'20');
  const refine=await page.evaluate(()=>{state.refinement={steps:80,denoise:.25,sampler_name:'euler',scheduler:'normal',cfg:2};state.refineScale=1;$('enableRefine').checked=true;return refinementSettings();});assert.deepEqual(refine,{scale:1,steps:80,denoise:.25,cfg:2,sampler_name:'euler',scheduler:'normal'});
@@ -53,7 +54,7 @@ let browser;
  await page.evaluate(()=>{
    window.__originalFetch=window.fetch;window.__originalAnchorClick=HTMLAnchorElement.prototype.click;
    window.__downloads=[];HTMLAnchorElement.prototype.click=function(){window.__downloads.push(this.href);};
-   window.fetch=(url,options)=>String(url).includes('/lab/media/export')?new Promise(resolve=>{window.__export={resolve,body:JSON.parse(options.body)};}):window.__originalFetch(url,options);
+   window.fetch=(url,options)=>String(url).endsWith('/lab/media/export')&&options?.method==='POST'?new Promise(resolve=>{window.__export={resolve,body:JSON.parse(options.body)};}):window.__originalFetch(url,options);
    window.__settingsBefore=JSON.stringify(captureSettings());
    showVideo({file:{filename:'h3_studio_abcdef123456_00001_.mp4',subfolder:'video'}});
  });
@@ -115,7 +116,7 @@ let browser;
  // The card's export uses that card even when another preview is selected.
  await page.evaluate(()=>{
    state.current=window.__libraryA;window.__cardBefore=JSON.stringify(captureSettings());window.__cardExport=null;
-   window.fetch=(url,options)=>String(url).includes('/lab/media/export')?new Promise(resolve=>window.__cardExport={resolve,body:JSON.parse(options.body)}):window.__libraryFetch(url,options);
+   window.fetch=(url,options)=>String(url).endsWith('/lab/media/export')&&options?.method==='POST'?new Promise(resolve=>window.__cardExport={resolve,body:JSON.parse(options.body)}):window.__libraryFetch(url,options);
    window.__cardAnchor=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){};
  });
  await page.locator('#videoActionsTarget').selectOption('1080');await page.locator('#videoActionsUpscale').click();await page.waitForFunction(()=>window.__cardExport);
