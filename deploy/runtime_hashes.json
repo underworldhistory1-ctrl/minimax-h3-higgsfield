@@ -69,7 +69,9 @@
     "1bd3ec0aca317585d59fc32f2a5c76371a0e66fb",
     "ebffc5e0ab0a28e847a962d9cb09633aed1b870f",
     "5feaebe511a02f97dd164f51639198a38e9865b7",
-    "f0263dc3c1539709ec5dea9f5cf4f283d11cbd4b"
+    "f0263dc3c1539709ec5dea9f5cf4f283d11cbd4b",
+    "4ec03a6a31d5bc6f09679b4210a380cac2acb3a1",
+    "713eb4c4937ef76ce4f3a12dc832e0428cef514a"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -311,7 +313,8 @@
     "36dbd4b80d2434c3bb9f542fe0a7320dd28675a1",
     "e60e154229ad11610c8f77c295cc1d59c613aa0c",
     "c0501a0f5bb2aba87b9720ad0a09c4a992e4b14a",
-    "24cd32f1c64b235d6276104bebca84e79fbd4e0e"
+    "24cd32f1c64b235d6276104bebca84e79fbd4e0e",
+    "ef3fada2187f9e2104e134aec4acb40f92f01946"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -356,7 +359,8 @@
     "f6bc3da6261b982d6025d3c981497335660dafd5",
     "ff02fe5fcd4bc33da9c156697f0e1138e29308f9",
     "ceafb8198c2cf72b3524f8215243d26b4cad66d9",
-    "e6a3cae8226f74de5abb517e9f3cbba5dade0410"
+    "e6a3cae8226f74de5abb517e9f3cbba5dade0410",
+    "dfa62d1381d90940097e32a7d7cbc78801218c12"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -391,7 +395,9 @@
     "f0956ae04e07ed60d2307652ccbb2a9a16e1cfa7",
     "7e0c73cded76dc358beb7c9a80689f77fa88102c",
     "895f1046282892fcfd71a9a86a2a94f12a2f8c0f",
-    "b884022aaf147ca96ed30607a2c218ec8dd7fea3"
+    "b884022aaf147ca96ed30607a2c218ec8dd7fea3",
+    "cf83bf1cdb0ecb217568669741cabddfcefbebd6",
+    "90f119a316cc85d85494a48775a95708ebd926a6"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -422,7 +428,8 @@
     "43eb545390b492eeb82d51eda527905875933717",
     "cc55ccdf31229fc749e3c5e299ff40f9cde600f6",
     "3e9b113f824903c107c8e3603eb158f0997d21a0",
-    "eb1597e49c6b0d862979bf40c438da645249e27a"
+    "eb1597e49c6b0d862979bf40c438da645249e27a",
+    "684b8ede4b2d60e5a7312d1e8b16db36fa730e1e"
   ],
   "docs/HARDENING_REVIEW_AR.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
@@ -485,7 +492,8 @@
     "5a6561fed95a1486b11dba2e7bf16a7f1756fe6b",
     "fd24f5ace2e6c91b90254c57e82799ea41978ea5",
     "1b13a398842e7bd172a2c40961cfd7eceb74db8b",
-    "eafc89e497b0d31bdf89232f898215f506d253b9"
+    "eafc89e497b0d31bdf89232f898215f506d253b9",
+    "6ff01941b00034d8891731a661d60fa65e85f3b8"
   ],
   "docs/V2_UPGRADE_AR.md": [
     "4ec03e3185d7b08f3f6ce34ac007bad3972043bd"
@@ -499,7 +507,8 @@
     "9f043d9e19c118ddd0f784538fa6e3a70f917f9c",
     "4b379d11fd52bc9e3c4e2a93451aaedf46400687",
     "816ae3f5ad9bc13e5ccc326b4577b2124d4f68cb",
-    "ecce4158567733086087f1d072189212aeaa7325"
+    "ecce4158567733086087f1d072189212aeaa7325",
+    "4a1d75f4cc4adf0839a1ba27f07611d90a271b36"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -711,7 +720,8 @@
     "a1893a39fef0fef5e256b8b839fe7750186897fa",
     "fb324184ac230b83ca7b4fc7406a3bf084d41c4e",
     "53bdf713f8d26df9773d9454c71efe47d1c8b202",
-    "133b5a469fd792692125fe12ffde7a4cbe2454b0"
+    "133b5a469fd792692125fe12ffde7a4cbe2454b0",
+    "26039c1522704ba0efb3a056eb9e3f91bb6efe18"
   ],
   "h3_lab/media_export.py": [
     "784cdd8a9108be5eb3e9e9593b6479d7cc465316",
@@ -734,7 +744,8 @@
   "h3_lab/prompt_context.py": [
     "54853c23f48b96ad9c87d3ea4695fdaf3dd810dc",
     "673f820e8e7d0682a842ad5b2114bcccde5d5261",
-    "d825f0ec0a3c9f3316bd0d7094626c4d9e6856d1"
+    "d825f0ec0a3c9f3316bd0d7094626c4d9e6856d1",
+    "620aa06ecbb239ba48bd5d8e47ab6c0c88a558e6"
   ],
   "h3_lab/quality.py": [
     "a4a859a6b6bd643674b592a061002b4a13a8733f"
@@ -833,7 +844,8 @@
     "39c43800ac290bcd10159ad5212c2edd50709750",
     "3f81fc6de241402b743dd7f0fe1563703a273f7e",
     "52beeba80c3a60f9dbe2d8dacd5c9bcaf8770b12",
-    "688b49099164447f263da6fd20a77ef0bede331c"
+    "688b49099164447f263da6fd20a77ef0bede331c",
+    "40ac0dc1861f9cb98a8b62a42bfbb87f10dcdb37"
   ],
   "scripts/build_corpus.py": [
     "93357dfa682a7a052c714075087d20586fa67721"
@@ -1171,7 +1183,8 @@
     "745aa08bad246120094b12bdb7b4ff7d0d256d9d",
     "8d5949c7c25f7ec7cb0d9b6f0a8b1b839b7ed94d",
     "ab2fd65e3b4595b1f8208201a597f1d251f46310",
-    "d061f6487143dd358cb8fad1e7bab3d861bddaf0"
+    "d061f6487143dd358cb8fad1e7bab3d861bddaf0",
+    "2e887ffa0dbe3308c993650ef0055d938d600e8c"
   ],
   "web/h3/graph-builder.js": [
     "27cd2088cda9beb1354be53672a268d29ecad423",
@@ -1182,14 +1195,16 @@
     "9a968066a064a2995abdff1c6ccd23b921d2d90b",
     "af81cd2d54805782b35410e4679fa54211030f4b",
     "bfb02d735bcb32c6ac0e2092fab258736599ccbe",
-    "f985627acb68c4bcbe56026c3080ed823427fc0d"
+    "f985627acb68c4bcbe56026c3080ed823427fc0d",
+    "49a3daefd7f85904541a8f2875b2e2379252adb6"
   ],
   "web/h3/image-reference-store.js": [
     "2d72e1ebdcec94f37ddf4f889092cac297e4a680"
   ],
   "web/h3/project-controller.js": [
     "77ccbd811ba7ff87bbf7e06a8f02f0325a743d0a",
-    "e73081e71b7bcd97869c33e78b9c2419fa81fe53"
+    "e73081e71b7bcd97869c33e78b9c2419fa81fe53",
+    "6383a9e2de0f117d384db71ff7d39d83df666b6c"
   ],
   "web/h3/prompt-compiler.js": [
     "19683249836c69fcebd128f1c34b52e0c81c100f",
@@ -1241,7 +1256,8 @@
     "ca2a16fd402efce634e623f0ff9afb453ba2a70b",
     "cccba039c92aed51358d28774462da5059c01824",
     "d9cbc7ca9341296b62ec49ebab31c2381f19266a",
-    "86b50e4cfe64aa8a0f70765532c61252cf7cc2df"
+    "86b50e4cfe64aa8a0f70765532c61252cf7cc2df",
+    "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",
@@ -1253,7 +1269,8 @@
     "9c9eb0aa7867c34645653abf4292fc54e01afcec",
     "cecc54f1e7f40b91cd7e4dab17b9b4f531593161",
     "d510237645f7c3fd80959b0fd1bf6327b1f075cf",
-    "de856112b57055737f3efc592ace8a32aa486421"
+    "de856112b57055737f3efc592ace8a32aa486421",
+    "c96b4e40c1f19579d875ea1afdfe532b0b0fa3f8"
   ],
   "web/index.html": [
     "089178e1b9bbdce9eaff135d605ea400b9d23875",
@@ -1307,7 +1324,9 @@
     "858f067df4c139cb8775217cff0d0534e47db34e",
     "89a5e7d56dbf8787e64675af1356f1a8f7f69176",
     "fdca5f4655f9445045fd4dd366543bd51bfd721a",
-    "300e7b05c9b7d7247e569a1b37b99761c37a921a"
+    "300e7b05c9b7d7247e569a1b37b99761c37a921a",
+    "2b89e13e3401dc5b0cc7e0f0c353bbc130f56d42",
+    "e4fc077a5182a3dbea463770b812f085a713e543"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1321,7 +1340,8 @@
     "d0d70e1332f07ebdfe8284e44bb410132125c331",
     "e56b0fa046ccaae824e763b2c8d7140879ac896f",
     "0034a31c4d87689cb67bd0209ea8555cc6cb2a41",
-    "060097344935a7eda4e8c2beec4443bbfb480a4d"
+    "060097344935a7eda4e8c2beec4443bbfb480a4d",
+    "fb4e6a66c6a317b5db929ae06d91fadda1f8a53f"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
@@ -1377,7 +1397,9 @@
     "b5f247bc647977d2f605d31b857d80b43cdb7782",
     "b9f19df6438213a2cac70e6854f58d8bbc955c2b",
     "8c78a54f617a003c74712c0e92d8a7a4e60b5e85",
-    "a3c9b854c2109d4aa900faf6982a336b8812c5c2"
+    "a3c9b854c2109d4aa900faf6982a336b8812c5c2",
+    "67f34a4c6dc3ba98b2113eeef3f1799769f55833",
+    "0fcf68245610734439f83e333c0cd70555b678f4"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1428,5 +1450,11 @@
   "web/h3/project-workspace.js": [
     "6680ea888acc5f33cd33d7676820dfd90f31be98",
     "71071c6f6b1d256cf03967cb11ef04b5c12f967c"
+  ],
+  "web/h3/render-values.js": [
+    "acb042c276e6faed20c7b25de70e8696b662a49f"
+  ],
+  "h3_lab/render_values.py": [
+    "e842d8afd60d55a9c25dedeec196f8cc9f559939"
   ]
 }

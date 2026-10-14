@@ -1,6 +1,6 @@
 # Verified behavior and production boundaries
 
-## 2.3.1 seed and short-duration repair
+## 2.3.2 seed and short-duration repair
 
 331 Python tests and 148 JavaScript tests passed. The actual browser Generate path captured Text, Frames and References submissions at73frames/3.042seconds without enqueueing GPU work. A real local project/asset API verified saving/reloading the exact uint64 maximum, invalid saved fractional seed repair, Random resolution before submission and refinement seed rollover. Native node schemas permit5+17kframes; the UI and prompt preparation no longer impose124frames as a minimum. Below124frames remains outside the usual trained range and GPU output quality is unverified in this repair. Video-reference trim and continuation-context minimums remain genuine constraints. [Behavior and limits](SEED_AND_DURATION_AR.md).
 

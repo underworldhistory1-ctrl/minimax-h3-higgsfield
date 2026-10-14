@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.3.1
+# H3 Higgsfield 2.3.2
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,7 +12,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.3.1
+## New in 2.3.2
 
 - **Reliable seeds:** default 42, visible repair of invalid saved values such as 1.25, exact native 64-bit seeds, and Random with an empty field or -1. A seed controls reproducibility; no seed is universally best for quality.
 - **Short clips:** enter 0.2–15.1 seconds in Text, Frames or References. Studio shows the actual duration on H3's native 5+17k frame grid. Below 124 frames is outside the usual trained range and remains GPU-quality unverified. Prompt preparation and control-source planning use the same frame count.
@@ -50,7 +50,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 - **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
 - **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
 
-**Validation:** Version 2.3.1 checks are recorded in [verified behavior](docs/VERIFIED_BEHAVIOR.md) and [project workspace](docs/PROJECT_WORKSPACE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
+**Validation:** Version 2.3.2 checks are recorded in [verified behavior](docs/VERIFIED_BEHAVIOR.md) and [project workspace](docs/PROJECT_WORKSPACE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
 
 ![Character replacement controls](docs/modernization/character-swap.png)
 

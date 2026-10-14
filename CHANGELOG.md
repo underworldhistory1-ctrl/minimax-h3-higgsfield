@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2 — 2026-10-14
+
+- Complete known runtime fingerprints for both the original installer files and V2 additions, allowing unmodified2.3.0/2.3.1 releases to upgrade safely. Preserve refusal for customized runtime files.
+- Include the seed/short-duration2.3.1 fixes and the full tested package.
+
+
 ## 2.3.1 — 2026-10-14
 
 - Repair invalid saved fractional seeds to the reproducible default 42 with visible feedback. Preserve valid user overrides; no seed promises better quality.
