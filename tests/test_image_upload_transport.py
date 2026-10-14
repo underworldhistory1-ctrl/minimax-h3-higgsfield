@@ -21,6 +21,18 @@ class ImageUploadTransportTests(AioHTTPTestCase):
   result=await self.client.post('/upload',json=body);self.assertEqual(result.status,200);self.assertEqual((await result.json())['data'],body['data'])
   form=FormData();form.add_field('file',data,filename='reference.png',content_type='image/png')
   result=await self.client.post('/upload',data=form);self.assertEqual(result.status,200);self.assertEqual((await result.json())['bytes'],len(data))
+ async def test_binary_stream_preserves_images_videos_audio_and_rejects_bad_headers(self):
+  data=b'\x00binary-media\xff'
+  for kind,ext in [('image','jpg'),('video','mp4'),('audio','wav')]:
+   response=await self.client.post('/upload?kind='+kind+'&filename=ref.'+ext,data=data,headers={'Content-Type':'application/octet-stream'})
+   self.assertEqual(response.status,200);self.assertEqual((await response.json())['data'],base64.b64encode(data).decode())
+  for query,payload in [('filename=',data),('filename=..%2Fx.jpg',data),('filename=x.jpg',b'x'*33)]:
+   self.assertEqual((await self.client.post('/upload?'+query,data=payload,headers={'Content-Type':'application/octet-stream'})).status,400)
+  self.assertEqual((await self.client.post('/upload',data='text')).status,400)
+  async def chunks():
+   yield b'a'*20
+   yield b'b'*20
+  self.assertEqual((await self.client.post('/upload?filename=x.mp4&kind=video',data=chunks(),headers={'Content-Type':'application/octet-stream'})).status,400)
  async def test_rejects_invalid_and_oversized_images_before_file_creation(self):
   for body in ({},[],{'filename':'x.png','data':'not base64!'},{'filename':'x.png','data':''},{'filename':'x.png','data':base64.b64encode(b'x'*33).decode()},{'filename':'x.png','data':'x'*5000},{'filename':'../x.png','data':'eA=='},{'filename':'a\\x.png','data':'eA=='},{'filename':'a\x00.png','data':'eA=='}):
    with self.subTest(body=body):self.assertEqual((await self.client.post('/upload',json=body)).status,400)
@@ -45,6 +57,7 @@ class ReferenceUploadRouteTests(AioHTTPTestCase):
   data=(Path(__file__).resolve().parents[1]/'docs/demo/superman/character-reference-preview.jpg').read_bytes()
   result=await self.client.post('/upload?kind=image&resize=1',json={'filename':'hero.jpg','data':base64.b64encode(data).decode()})
   self.assertEqual(result.status,200);meta=await result.json();self.assertEqual((meta['width'],meta['height']),(1600,900));self.assertEqual((self.root/meta['name']).read_bytes(),data)
+  result=await self.client.post('/upload?kind=image&filename=hero.jpg',data=data,headers={'Content-Type':'application/octet-stream'});self.assertEqual(result.status,200);self.assertEqual((self.root/(await result.json())['name']).read_bytes(),data)
   form=FormData();form.add_field('file',data,filename='hero.jpg',content_type='image/jpeg');result=await self.client.post('/upload?kind=image',data=form);self.assertEqual(result.status,200)
   count=len(list(self.root.iterdir()))
   for body in ({'filename':'bad.png','data':base64.b64encode(b'not an image').decode()},{'filename':'bad.exe','data':base64.b64encode(data).decode()}):

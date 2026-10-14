@@ -10,6 +10,7 @@ import zipfile
 
 
 SOURCE_FILES = (
+    "docs/VIDEO_REFERENCE_UPLOAD_AR.md",
     "docs/IMAGE_WORKSPACE_FIX_AR.md", "docs/images/canvas-refresh.png",
     "docs/ANIME_TO_REALISM_AR.md", "docs/anime/anime-realism-prepared.png",
     "docs/TAB_PERSISTENCE_AR.md", "docs/tabs/tab-restored.png", "docs/tabs/tab-browser-verification.json",

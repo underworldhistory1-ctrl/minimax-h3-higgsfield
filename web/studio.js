@@ -909,13 +909,14 @@ function setBusy(value) {
 }
 function uploadOne(file,kind,onProgress=()=>{},onSent=()=>{},options={}) {
   return new Promise((resolve,reject)=>{
-    const data=new FormData();data.append("file",file);
     const xhr=new XMLHttpRequest();
     const signal=state.abortController?.signal;
     const abort=()=>xhr.abort();
     const finish=()=>signal?.removeEventListener("abort",abort);
-    const query=new URLSearchParams({kind});if(options.resize)query.set("resize","1");if((kind==="video"||kind==="audio")&&options.trimEnabled){query.set("trim_start",String(options.trimStart||0));query.set("trim_duration",String(options.trimDuration));}
+    const query=new URLSearchParams({kind,filename:file.name});if(options.resize)query.set("resize","1");if((kind==="video"||kind==="audio")&&options.trimEnabled){query.set("trim_start",String(options.trimStart||0));query.set("trim_duration",String(options.trimDuration));}
     xhr.open("POST",api("/h3_studio/upload_ref?"+query));
+    xhr.setRequestHeader("Content-Type","application/octet-stream");
+    xhr.timeout=300000;
     xhr.responseType="json";
     xhr.upload.onprogress=event=>onProgress(Math.min(event.loaded,file.size),file.size);
     xhr.upload.onload=onSent;
@@ -928,10 +929,11 @@ function uploadOne(file,kind,onProgress=()=>{},onSent=()=>{},options={}) {
       resolve(value);
     };
     xhr.onerror=()=>{finish();reject(Error("Upload connection failed. Check the server and retry."));};
+    xhr.ontimeout=()=>{finish();reject(Error("Reference upload timed out. Check the connection and retry; your inputs are retained."));};
     xhr.onabort=()=>{finish();reject(new DOMException("Upload cancelled","AbortError"));};
     if(signal?.aborted){reject(new DOMException("Upload cancelled","AbortError"));return;}
     signal?.addEventListener("abort",abort,{once:true});
-    xhr.send(data);
+    xhr.send(file);
   });
 }
 async function cleanupUploads(capturedNames=null) {

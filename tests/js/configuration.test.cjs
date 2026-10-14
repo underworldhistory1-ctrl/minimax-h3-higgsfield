@@ -63,3 +63,10 @@ test('Character Swap uses only documented Ref2VA and requires both media types',
  for(const kind of ['image','video'])assert.throws(()=>buildGraph({...spec,references:spec.references.filter(r=>r.kind===kind)},{},caps),/source video/);
  assert.ok(C.isCharacterSwap('folder/'+C.CHARACTER_SWAP));
 });
+test('Anime plus Combat with image/video references and timed keyframes stays connected for every renderer',()=>{
+ for(const render_method of ['native','motioncache','spectrum']){
+ const spec={mode:'refs',render_method,target_frames:124,loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8},{name:'H3_Combat_V2.safetensors',enabled:true,strength:.6}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124,use_audio:true},{kind:'image',alias:'hero'}],guides:[{kind:'image',file:'start.jpg',frame_idx:0},{kind:'image',file:'end.jpg',frame_idx:123}]};
+ const g=buildGraph(spec,{shot:'shot.mp4',hero:'hero.png'},caps),l=Object.entries(g).filter(([id,n])=>n.class_type==='LoraLoaderModelOnly'),guides=Object.entries(g).filter(([id,n])=>n.class_type==='MiniMaxH3AddGuide');
+ assert.equal(g['1'].inputs.unet_name,C.REF);assert.equal(l.length,2);assert.deepEqual(l[1][1].inputs.model,[l[0][0],0]);assert.deepEqual(g['2'].inputs.model,[l[1][0],0]);assert.equal(guides.length,2);assert.deepEqual(guides[0][1].inputs.positive,['6',0]);assert.deepEqual(guides[1][1].inputs.positive,[guides[0][0],0]);assert.deepEqual(g['8'].inputs.positive,[guides[1][0],0]);assert.ok(g['6'].inputs['ref_images.ref_image_0']);assert.ok(g['6'].inputs['ref_videos.ref_video_0']);assert.ok(g['6'].inputs['ref_video_audios.ref_video_audio_0']);
+ }
+});

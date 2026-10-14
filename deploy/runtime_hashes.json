@@ -78,7 +78,8 @@
     "61dee734a40bcb8d213160c9f8c8dfcb2a177cf3",
     "78aaf1e940c55d03f97cb2ab412e879369954d68",
     "7d4bbcbd23afefb472b7fc1f67a9ccb73f8e6bf3",
-    "dd7d4f77b514b311acaf11e2645527560afba2d8"
+    "dd7d4f77b514b311acaf11e2645527560afba2d8",
+    "c1d8534192b08a5bb1a074a7e2d02324db6bbdc9"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -99,7 +100,8 @@
     "ccbccc3dc62631f22ff358ac418e52401ec770b4",
     "437459cd94c9fa59d82c61c0bc8aa36e293b735e",
     "73462a5a13445f66009e00988279d30e55aa8363",
-    "f225a78adf0534ad898ee7521a19aa40897f53ba"
+    "f225a78adf0534ad898ee7521a19aa40897f53ba",
+    "aedc15bb0c6e24f27eedf7684532f8039cabb92c"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -124,7 +126,8 @@
     "f87f3081e1e4bb4e550b8f063b2e47642052a153",
     "ea4a6905600ae144415c793d8cf9828579dbbaf0",
     "8403f063040668c39fd08313dc9b7196a74ecc65",
-    "6361929506be187d62f163dd17c1eb0761156442"
+    "6361929506be187d62f163dd17c1eb0761156442",
+    "5be66a2af1104f35b7adae02e569335c9f46b40f"
   ],
   "corpus/h3_ref_style_rules.md": [
     "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7"
@@ -187,7 +190,8 @@
     "2ecc64d933bbbcc2fb5790a1bc64d72d7b229f41",
     "50a62e8c4493effc83910ffb784b0057b09b7b06",
     "1dfd6a203fe2f17f6b856557291eb62e81b32511",
-    "c1c7ac950bfea35493f6eca5702531eb41a0db3d"
+    "c1c7ac950bfea35493f6eca5702531eb41a0db3d",
+    "98288b8efb056f9a62f7a50bd59e375bc64871f2"
   ],
   "deploy/comfyui-vram.service": [
     "498fc21e35a0f59e91fddd6c64f7dee55c567fa0"
@@ -336,7 +340,8 @@
     "42b4c8d35908df2dae6a1a1c6ed5ee94a41892c5",
     "3ca8162c322b5fd6b8ff13d8edecf44188995a2e",
     "0f49f304ca16302d5fb70ce962075cf6598020ac",
-    "1fbdec45c14affba57885efaa8ea1fafff940b4d"
+    "1fbdec45c14affba57885efaa8ea1fafff940b4d",
+    "57f43f3af263e7350da1b463028b43111eb70b48"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -384,7 +389,8 @@
     "e6a3cae8226f74de5abb517e9f3cbba5dade0410",
     "dfa62d1381d90940097e32a7d7cbc78801218c12",
     "430119ba4cd8b3e55828fd037a0379ebd3a4fc73",
-    "99dc6b7dddf7d9b4028ee1e7b9782c23b0842859"
+    "99dc6b7dddf7d9b4028ee1e7b9782c23b0842859",
+    "aaee3392b082084e601d4094d6c26a9bf76116f9"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -397,7 +403,8 @@
     "d8dbbf569cd67483ba56c119bffedec1660b25ea",
     "f6c79d6d3c7ccd413c7fe5c657823280a99d170a",
     "fdcabbf7dc9ecb511a4c2a64408e3b534f22e53f",
-    "86d71972ba89f45135d2774c775dbc313cdf43d5"
+    "86d71972ba89f45135d2774c775dbc313cdf43d5",
+    "cda47e5b1fd184382073a2e77f134f1c1a0618d2"
   ],
   "docs/AUDIO_ENHANCEMENT_AR.md": [
     "80c1a550085be650eea6ba0a7e054d61d063e3d4"
@@ -925,7 +932,8 @@
     "3f81fc6de241402b743dd7f0fe1563703a273f7e",
     "52beeba80c3a60f9dbe2d8dacd5c9bcaf8770b12",
     "688b49099164447f263da6fd20a77ef0bede331c",
-    "40ac0dc1861f9cb98a8b62a42bfbb87f10dcdb37"
+    "40ac0dc1861f9cb98a8b62a42bfbb87f10dcdb37",
+    "97135399fa25496f7f7c53b50807593b374a8681"
   ],
   "scripts/build_corpus.py": [
     "93357dfa682a7a052c714075087d20586fa67721"
@@ -1217,7 +1225,8 @@
   "tests/test_qwen_image.py": [
     "144935ca3e837895688a850b20d385a926b79f24",
     "339060786d565e3ccaee59a08d27ca8c58e85978",
-    "5a9b8945af7558546ccab8bd2c8f1347849efdf8"
+    "5a9b8945af7558546ccab8bd2c8f1347849efdf8",
+    "ed9046891c618ca890192000ca372fdc3bb66e77"
   ],
   "tests/test_qwen_routes.py": [
     "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0"
@@ -1395,7 +1404,8 @@
     "86b50e4cfe64aa8a0f70765532c61252cf7cc2df",
     "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d",
     "3a29f68d27546ed880eac572d5cb8ba93fabffe9",
-    "d63f32928fc8aa51164b3c00c28990ae0cf33568"
+    "d63f32928fc8aa51164b3c00c28990ae0cf33568",
+    "34be922ade06dc4ff1cc4aa492ae7c6839f8755a"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",
@@ -1412,7 +1422,8 @@
     "39caa1df18e09fcd1fcb50c7a1b9de1e6667ab5c",
     "7b1ce70c5c49af23db5beff63aac436fce56d428",
     "bb87b774388e936f28837699e47c4ff700eae139",
-    "3cb0756a7cd8f6b41a132a292e4bcdcacee82853"
+    "3cb0756a7cd8f6b41a132a292e4bcdcacee82853",
+    "5a13aa47dcf9852c4379eae524ee71d5d0712c53"
   ],
   "web/index.html": [
     "089178e1b9bbdce9eaff135d605ea400b9d23875",
@@ -1473,7 +1484,8 @@
     "620c72c20fb03ac1ef3052bd60cba7e6f3dfaaa3",
     "b3ae4c8d8295ae9bb762a8e77edea34cf7a3d325",
     "d19178503671372420c80e59b5b87bcc8fde9398",
-    "2350e7aa2befde5e93b552a62ce915f7c8f56096"
+    "2350e7aa2befde5e93b552a62ce915f7c8f56096",
+    "f93169a8b3359f220d5c3a2fa0e02b483817f05b"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1573,5 +1585,7 @@
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945"
   ],
-  "h3_lab/reference_upload.py": []
+  "h3_lab/reference_upload.py": [
+    "085087cdac33b1c8166bb397167b6c90e898c6a8"
+  ]
 }
