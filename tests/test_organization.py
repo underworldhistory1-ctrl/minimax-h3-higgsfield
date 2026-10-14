@@ -117,3 +117,13 @@ class OrganizationTests(unittest.TestCase):
         (self.root/'video/.h3-studio-metadata.json').write_text(json.dumps(metadata))
         prepared=self.service.prepare_reuse(take['output_file'])
         self.assertFalse(prepared['complete']);self.assertIn('Unrecorded advanced inputs',prepared['missing'])
+
+    def test_legacy_audio_enhancement_settings_survive_reuse(self):
+        take=self.take();self.source['takes']=[]
+        self.source=self.service.save_project(self.source['project_id'],self.source,self.source['revision'])
+        audio={'enabled':True,'steps':7,'denoise':.4,'sampler_name':'euler','scheduler':'simple'}
+        metadata={'h3_studio_123abc456def_00001_.mp4':{'settings':{'prompt':'A shot','timingConfiguration':{'audio_refinement':audio,'preserve_reference_audio':True}}}}
+        (self.root/'video/.h3-studio-metadata.json').write_text(json.dumps(metadata))
+        prepared=self.service.prepare_reuse(take['output_file'])
+        self.assertEqual(prepared['draft']['configuration']['audioRefinement'],audio)
+        self.assertTrue(prepared['draft']['configuration']['preserveReferenceAudio'])

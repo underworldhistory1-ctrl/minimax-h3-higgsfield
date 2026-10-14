@@ -31,6 +31,7 @@ import folder_paths
 import nodes
 from server import PromptServer
 from .h3_video_save import H3LoadSavedLatent, H3ReleaseForDecode, H3SaveVideo
+from .h3_audio_refine import NODE_CLASS_MAPPINGS as AUDIO_NODE_CLASS_MAPPINGS
 from .h3_lab.routes import register_lab_routes
 from .h3_lab.runtime_fingerprint import runtime_fingerprint
 
@@ -55,6 +56,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {"H3SaveVideo": "H3 Save Video", "H3ReleaseForDecod
                               "H3LoadSavedLatent": "H3 Load Saved Latent"}
 NODE_CLASS_MAPPINGS.update(QWEN_NODE_CLASS_MAPPINGS)
 NODE_CLASS_MAPPINGS.update(LAB_NODE_CLASS_MAPPINGS)
+NODE_CLASS_MAPPINGS.update(AUDIO_NODE_CLASS_MAPPINGS)
 NODE_DISPLAY_NAME_MAPPINGS.update(QWEN_NODE_DISPLAY_NAME_MAPPINGS)
 WEB_DIRECTORY = "./web"
 

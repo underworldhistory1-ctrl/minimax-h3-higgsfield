@@ -130,6 +130,7 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
     from .runtime_attention import runtime_attention
     return {
         **discovered,
+        'audio_refine_ready': all(name in registered_nodes for name in ('H3StudioAudioRefineMask', 'H3StudioAudioRestoreVideo')),
         "server_attention": runtime_attention(),
         "controlnet_references_ready": not control_missing and reference_control_supported(),
         "control_still_ready": not control_missing and ffmpeg_ok and ffprobe_ok,

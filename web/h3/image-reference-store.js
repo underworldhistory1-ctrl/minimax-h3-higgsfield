@@ -12,6 +12,7 @@
     return database;
   }
   async function load(){
+    if(root.H3TabDraftStore)return await root.H3TabDraftStore.load('image.references')||[];
     const db=await open();
     return new Promise((resolve,reject)=>{
       const transaction=db.transaction('draft','readonly');
@@ -21,6 +22,7 @@
     });
   }
   async function save(references){
+    if(root.H3TabDraftStore)return root.H3TabDraftStore.save('image.references',references.map(ref=>({id:ref.id,file:ref.file,name:ref.name,width:ref.width,height:ref.height})));
     const snapshot=references.map(ref=>({id:ref.id,file:ref.file,name:ref.name,width:ref.width,height:ref.height}));
     const db=await open();
     return new Promise((resolve,reject)=>{

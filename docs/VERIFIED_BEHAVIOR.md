@@ -1,5 +1,11 @@
 # Verified behavior and production boundaries
 
+## 2.5.0 tab working setups and native audio enhancement
+
+Per-tab browser checks additionally cover unsaved media, two tabs for one project, copied-session isolation, image BF16 preservation, explicit Clear, no-project media, lease renewal, injected quota failure, missing-blob protection, valid-project recovery and delayed-restore rejection. [Working setup boundaries](TAB_PERSISTENCE_AR.md).
+
+353 Python tests and151 JavaScript tests passed, including72 graph combinations. CPU tensors verify bit-exact final video restoration and continuation audio-prefix protection. Browser tests with the real local project API verify audio controls, Save/reload, Reuse, actual Generate capture, source soundtrack bypass and mobile layout. The previous organization/transfer browser regression passed. Reviewers approved backend and frontend changes. Published upstream quality evidence uses low-step Turbo Original H3 followed by undistilled audio refinement; it does not prove improvement across Studio native20-step, community checkpoints or adapters. No new GPU render was run. [Sources, compatibility, screenshot, deployment and rollback](AUDIO_ENHANCEMENT_AR.md).
+
 ## 2.4.0 project organization and Reuse
 
 346 Python tests and 148 JavaScript tests passed. A real local project/asset API and Playwright verified naming, project/asset folders, search, transfer copy/move, immutable original takes and Reuse into another project. Actual Generate captured the exact uint64 maximum seed, 73 frames, aliases and sampler shifts before any GPU submission. Save/reload keeps missing LoRAs blocked; delayed transfer lookup locks server/project switching. Browser screenshots cover desktop and 390px layouts. Durable interrupted transfers recover on restart; legacy clip dependencies prevent unsafe asset moves. [Evidence, compatibility and rollback](ORGANIZATION_AND_REUSE_AR.md).

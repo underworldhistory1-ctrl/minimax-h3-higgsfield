@@ -57,3 +57,7 @@ Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 an
 ## Generation size and same-take enlargement
 
 Native detail is 1344×768. Direct 1664×928 / Full HD choices generate a new latent canvas and are experimental; identical seeds across sizes do not lock a shot. `Upscale same take` uses the existing managed video through `/h3_studio/lab/media/export` (`upscaled_mp4`), outside the diffusion graph. CPU Lanczos resize, no crop or interpolation, preserves timing and copied audio. [Evidence and limits](RESOLUTION_AND_SAME_TAKE_AR.md).
+
+## Optional native audio refinement (2.5.0)
+
+After the final image KSampler, graph-builder allocates H3StudioAudioRefineMask → KSampler → H3StudioAudioRestoreVideo. Video noise mask is0; audio is1 except the protected continuation prefix. The audio sampler uses shifted/LoRA model node2, existing positive/negative conditioning, CFG1, six Euler/Simple steps and denoise0.5 by default. It bypasses acceleration/ControlNet model patches and uses base LoRA strengths. Exact source video is restored, prefix audio copied, and node13 receives the restored packed latent before both decoders. Source soundtrack reuse bypasses the stage. Server admission checks declared settings, source/final-image branch, model, conditioning, seed rollover and both decoder links.

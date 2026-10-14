@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "audit_date": "2026-10-13",
+  "audit_date": "2026-10-15",
   "source_update_policy": "latest",
   "approved_source_commits": [],
   "comfyui_commit": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
@@ -27,5 +27,19 @@
     "lightx2v"
   ],
   "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations.",
-  "project_version": "2.3.0"
+  "project_version": "2.5.0",
+  "audio_enhancement": {
+    "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
+    "source_commit": "d78d34f2f1100b0422047e9d784a3bdb4e1061d3",
+    "implementation": "local_exact_mask_and_restore_no_cache",
+    "status": "cpu_tensor_graph_browser_verified_gpu_quality_untested",
+    "default_enabled": false
+  },
+  "tab_working_setup": {
+    "metadata": "per_tab_session_storage",
+    "media": "immutable_indexeddb_files_with_active_leases",
+    "storage_limit_bytes": 1073741824,
+    "inactive_file_retention_days": 7,
+    "status": "real_local_api_browser_verified"
+  }
 }

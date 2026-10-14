@@ -238,6 +238,8 @@ class OrganizationMixin:
                 draft[name] = {'assetId':ref.get('asset_id'), 'alias':str(ref.get('name',name)).lstrip('@')}
             warnings.append('Legacy settings recovered. Advanced inputs not recorded in this video must be checked manually.')
             timing = settings.get('timingConfiguration') or {}
+            draft['configuration']['audioRefinement'] = copy.deepcopy(timing.get('audio_refinement') or {})
+            draft['configuration']['preserveReferenceAudio'] = bool(timing.get('preserve_reference_audio', False))
             if settings.get('refine') or settings.get('control') or settings.get('continuation') or timing.get('guides') or timing.get('continuation'):
                 warnings.append('Control/refinement/continuation source data was not saved completely. Reattach and verify before rendering.')
         missing = []

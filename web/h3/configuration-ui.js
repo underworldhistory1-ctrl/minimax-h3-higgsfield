@@ -4,6 +4,10 @@
   state.sampling=state.sampling||{};state.nodeOptions=state.nodeOptions||{};state.refinement=state.refinement||{};
   const panel=document.createElement('section');panel.className='panel';panel.id='modelConfiguration';
   panel.innerHTML='<h2>Model &amp; workflow</h2><div class="workflow-help" lang="ar" dir="rtl">ابدأ بـOriginal. اختَر الموديل هنا، ثم نوع المدخل أسفل: Text للوصف، Frames لبداية/نهاية، References للشخصية والمكان والستوري بورد. خيارات غير مثبتة تظهر معطلة؛ تغيير الموديل لا يغيّر مقاسك أو خطواتك تلقائيًا.</div><label for="modelProfile">H3 checkpoint family</label><select id="modelProfile"></select><label for="checkpoint">Installed checkpoint</label><select id="checkpoint"></select><div id="checkpointNotice" class="tip" role="status"></div><div id="serverAttention" class="tip" role="note"></div><label for="hybridPreset">Tensor overlay</label><select id="hybridPreset"><option value="none">None · single FL2VA baseline</option><option value="block_range_adaln">AdaLN blocks 45–49</option><option value="all_adaln">All AdaLN · community experiment</option></select><details id="samplingControls"><summary>Advanced sampling &amp; acceleration</summary><div class="workflow-help workflow-help-warning" lang="ar" dir="rtl">هذه إعدادات الرندر الفعلية، وتُحفظ مع المشروع. اترك الإعدادات الأصلية كبداية؛ التسريع قد يغيّر النتيجة. Restore baseline settings يرجع إعدادات العينة الأصلية.</div><div id="samplingFields" class="configuration-grid"></div><div id="patchFields" class="configuration-grid"></div><details><summary>Refinement pass settings</summary><div id="refinementFields" class="configuration-grid"></div></details><button id="resetSampling" type="button" class="button alt smallbtn">Restore baseline settings</button></details><details><summary>Video style transformation</summary><div class="workflow-help" lang="ar" dir="rtl">ارفع فيديو المصدر في References، واختَر اتجاه التحويل، ثم Prepare. هذه إعادة توليد مسترشدة بالفيديو؛ ليست تحويلًا مطابقًا لكل فريم. Reuse source soundtrack يستخدم الصوت الأصلي إذا كان طوله كافيًا.</div><label for="styleDirection">Direction</label><select id="styleDirection"><option value="anime_to_realism">Anime → realism</option><option value="realism_to_anime">Realism → anime</option></select><label for="preserveAudio"><input id="preserveAudio" type="checkbox"> Reuse source soundtrack</label><button id="applyStyle" type="button" class="button alt smallbtn">Prepare selected direction</button><div class="tip">Add a source video in References. Select compatible installed style LoRAs separately. References guide a new take; review cuts and timing.</div></details>';
+  const audioPanel=document.createElement('details');audioPanel.id='audioEnhancementPanel';
+  audioPanel.innerHTML='<summary>Audio enhancement · preserve the picture</summary><label><input id="enhanceAudio" type="checkbox"> Enhance generated audio</label><div id="audioEnhancementNotice" class="tip" role="status"></div><div id="audioEnhancementFields" class="configuration-grid"></div>';
+  panel.append(audioPanel);
+  audioPanel.querySelector('#enhanceAudio').onchange=()=>{state.audioRefinement={...state.audioRefinement,enabled:$('enhanceAudio').checked};refresh();changed();};
   const swapPanel=document.createElement('details');
   swapPanel.innerHTML='<summary>Character replacement · experimental</summary><div class="workflow-help workflow-help-warning" lang="ar" dir="rtl">ارفع فيديو واحدًا وصورة الشخصية الجديدة في References، وحدد الشخص المراد تبديله. Prepare يربط Ref2VA مع Character Swap ويوقف اللورات الأخرى؛ راجع المدة والإعدادات قبل Generate. النتيجة تجريبية، وقد يتغير التوقيت أو التعبير.</div><label for="swapTarget">Person to replace in the source shot</label><input id="swapTarget" type="text" placeholder="e.g. the person in the red jacket"><button id="prepareSwap" type="button" class="button alt smallbtn">Prepare Character Swap</button><div class="tip">Add exactly one source video and one replacement image for this guided preset. Uses Original Ref2VA, native rendering and adapter strength 1. Other adapters are disabled. No trigger word. Start with a 4–5 second continuous shot; timing and expressions may drift. Reuse source soundtrack separately if needed.</div>';
   panel.append(swapPanel);
@@ -32,7 +36,7 @@
   $('checkpoint').onchange=()=>{if(state.busy)return;state.checkpoint=$('checkpoint').value;changed();updateCapabilities();};
   $('hybridPreset').onchange=()=>{state.hybridPreset=$('hybridPreset').value;changed();};
   $('resetSampling').onclick=()=>{state.sampling={};state.nodeOptions={};state.refinement={};state.refineScale=1.25;refresh();changed();};
-  $('preserveAudio').onchange=()=>{state.preserveReferenceAudio=$('preserveAudio').checked;changed();};
+  $('preserveAudio').onchange=()=>{state.preserveReferenceAudio=$('preserveAudio').checked;refresh();changed();};
   $('applyStyle').onclick=()=>{
     if(state.busy)return;
     const refs=state.refs.filter(r=>r.kind==='video');if(refs.length!==1){info('Add one source video in References to prepare this transformation.',true);return;}
@@ -41,7 +45,7 @@
     state.styleDirection=$('styleDirection').value;
     const direction=state.styleDirection==='anime_to_realism'?'live-action photorealism with natural skin, practical lighting and realistic materials':'anime with clean linework, cel shading and deliberately stylized materials';
     $('prompt').value='Transform @'+ref.alias+' into '+direction+'. Preserve the source action, camera intent, composition and event order. '+($('preserveAudio').checked?'Keep the source soundtrack.':'Generate synchronized native audio matching the scene.');
-    state.preserveReferenceAudio=$('preserveAudio').checked;renderRefs();changed();
+    state.preserveReferenceAudio=$('preserveAudio').checked;renderRefs();refresh();changed();
   };
   function field(parent,key,label,value,descriptor,onchange){
     const wrap=document.createElement('label');wrap.textContent=label;const [type,limits={}]=descriptor;
@@ -86,6 +90,12 @@
     const refineDescriptors={steps:['INT',{min:1,max:100}],denoise:['FLOAT',{min:0,max:1}],cfg:['FLOAT',{min:0,max:100}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler};
     for(const [key,d] of Object.entries(refineDescriptors))field(refineFields,'refine_'+key,key.replaceAll('_',' '),state.refinement?.[key]??refineDefaults[key],d,value=>{state.refinement=state.refinement||{};state.refinement[key]=value;});
     field(refineFields,'refine_scale','Latent upscale',state.refineScale??1.25,['FLOAT',{min:1,max:1.25,step:.05}],value=>state.refineScale=value);
+    const audioOptions={steps:6,denoise:.5,sampler_name:'euler',scheduler:'simple',...state.audioRefinement};
+    $('enhanceAudio').checked=!!audioOptions.enabled;$('enhanceAudio').disabled=state.busy||!caps.audio_refine_ready||!!state.preserveReferenceAudio;
+    $('audioEnhancementNotice').textContent=state.preserveReferenceAudio?'Original reference soundtrack is preserved; generated-audio enhancement is bypassed.':!caps.audio_refine_ready?'Update the Studio runtime to enable this audio pass.':'An extra native pass refines audio only. Exact video latents are restored. Adds render time; no disk cache. Published evidence uses Original H3; other checkpoints/adapters can change audio quality.';
+    const audioFields=$('audioEnhancementFields');audioFields.replaceChildren();
+    for(const [key,d] of Object.entries({steps:['INT',{min:1,max:20}],denoise:['FLOAT',{min:.01,max:1,step:.01}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler}))field(audioFields,'audio_'+key,key.replaceAll('_',' '),audioOptions[key],d,value=>{state.audioRefinement={...state.audioRefinement,[key]:value};});
+    for(const input of audioFields.querySelectorAll('input,select'))input.disabled=state.busy||!audioOptions.enabled||!caps.audio_refine_ready||!!state.preserveReferenceAudio;
     const patches=$('patchFields');patches.replaceChildren();
     const klass=method()==='spectrum'?'SpectrumApplyMiniMaxH3':method()==='motioncache'?'MiniMaxH3MotionCache':null;
     if(klass&&caps.node_schemas?.[klass]){

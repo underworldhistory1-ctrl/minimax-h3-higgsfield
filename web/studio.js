@@ -76,13 +76,14 @@ function selectedModelReady(mode=state.mode){
 }
 const storeKey = "h3studio.render.v2";
 const baseKey = "h3studio.comfyBase";
+if(sessionStorage.getItem(baseKey)===null)sessionStorage.setItem(baseKey,localStorage.getItem(baseKey)||"");
 const draftKey = "h3studio.draft.v3";
 const sessionKey = "h3studio.session.v3";
 const sessionIdKey = "h3studio.session.id.v3";
 const sessionId = sessionStorage.getItem(sessionIdKey)||crypto.randomUUID();
 sessionStorage.setItem(sessionIdKey,sessionId);
 sessionStorage.setItem("h3studio.client.id.v1",state.clientId);
-const api = path => (localStorage.getItem(baseKey) || "").replace(/\/$/,"") + path;
+const api = path => (sessionStorage.getItem(baseKey) || "").replace(/\/$/,"") + path;
 const seconds = () => Number($("duration").value) / 24;
 const refMemoryRisk = () => state.ramLimit && state.ramLimit < 56 && state.mode === "refs"
   && state.width*state.height >= 1280*704 && Number($("duration").value) >= 294;
@@ -248,15 +249,15 @@ function selectMode(mode, internal=false) {
 document.querySelectorAll(".mode").forEach(b => b.onclick = () => selectMode(b.dataset.mode));
 
 function saveDraft(){
-  try{localStorage.setItem(draftKey,JSON.stringify({
-    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
+  try{sessionStorage.setItem(draftKey,JSON.stringify({
+    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
     duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method(),enableRefine:$("enableRefine")?$("enableRefine").checked:false
   }));}catch{}
 }
 function restoreDraft(){
-  let draft;try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
+  let draft;try{draft=JSON.parse(sessionStorage.getItem(draftKey)||"null");}catch{}
   if(!draft)return false;
-  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
+  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.audioRefinement=draft.audioRefinement||{};state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
   state.promptMode=["guided","structured"].includes(draft.promptMode)?draft.promptMode:"guided";
   $("promptMode").value=state.promptMode;
   if(["text","frames","refs"].includes(draft.mode))state.mode=draft.mode;
@@ -298,7 +299,7 @@ function timingConfiguration(w=state.width,h=state.height){
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
   if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
-  return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:state.sampling||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
+  return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:state.sampling||{},audio_refinement:state.audioRefinement||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
     width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
     sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
@@ -306,7 +307,7 @@ function timingConfiguration(w=state.width,h=state.height){
     guides:state.guides.map(x=>({...timingMedia(x),frame_idx:x.frame_idx,strength:x.strength??null})),
     control:state.control?.enabled?{kind:state.control.kind,input_type:state.control.input_type,start_seconds:state.control.start_seconds??0,source_span:state.control.source_span??null,mask_alignment:state.control.mask_alignment??null,model:state.control.model_name??"minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors",strength:state.control.strength,start_percent:state.control.start_percent,end_percent:state.control.end_percent,preprocessor:state.control.preprocessor??null,inputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([k,v])=>[k,v?timingMedia(v):null]))}:null,
     continuation:state.continuation?{type:state.continuation.type,context_length:state.continuation.context_length,audio_feather_ticks:state.continuation.audio_feather_ticks,source_model:state.continuation.source_model??null,source_canvas:state.continuation.source_canvas??null}:null,
-    passes:refine?[refinementSettings()]:[]};
+    preserve_reference_audio:!!state.preserveReferenceAudio,passes:refine?[refinementSettings()]:[]};
 }
 function captureSettings(){
   const refs=state.mode==="refs";
@@ -737,7 +738,7 @@ $("prompt").addEventListener("blur",()=>setTimeout(()=>$("mentionMenu").classLis
 function currentRenderSpec() {
   const refs = state.mode === "refs";
   return {
-    model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:state.sampling||{},node_options:state.nodeOptions||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
+    model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:state.sampling||{},node_options:state.nodeOptions||{},audio_refinement:state.audioRefinement||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
     mode: state.mode,
     prompt_mode: state.promptMode || "guided",
     source_prompt: $("prompt").value.trim(),
@@ -961,7 +962,7 @@ async function cancelPromptId(id){
   return false;
 }
 async function loadLibrary(force=false){
-  const key=(localStorage.getItem(baseKey)||location.origin);
+  const key=(sessionStorage.getItem(baseKey)||location.origin);
   if(state.libraryLoadedFor===key&&!force)return;
   try{
     const r=await fetch(api("/h3_studio/library"));if(!r.ok)throw Error("library unavailable");
@@ -1028,7 +1029,7 @@ async function loadHistorySamples(){
 function saveSession(){
   try{
     sessionStorage.setItem(sessionKey,JSON.stringify({
-      server:localStorage.getItem(baseKey)||location.origin,
+      server:sessionStorage.getItem(baseKey)||location.origin,
       results:state.results.filter(e=>!e.kept&&isStudioOutputName(e.file?.filename)).map(e=>({file:e.file,meta:e.meta})),
       active:state.running?{id:state.running,started:state.started,renderStarted:state.renderStarted,meta:state.runMeta,
         uploads:state.uploads.slice(),estimated:state.estimated,lastStep:state.lastStep,samplerNode:state.samplerNode,samplerMax:state.samplerMax,
@@ -1037,7 +1038,7 @@ function saveSession(){
   }catch{}
 }
 async function restoreSession(){
-  const key=localStorage.getItem(baseKey)||location.origin;
+  const key=sessionStorage.getItem(baseKey)||location.origin;
   if(state.sessionRecoveredFor===key)return;
   let saved;
   try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||"null");}catch{}
@@ -1140,11 +1141,11 @@ async function checkConnection() {
   }
 }
 $("retry").onclick=checkConnection;
-$("server").value=localStorage.getItem(baseKey)||"";
+$("server").value=sessionStorage.getItem(baseKey)||"";
 $("saveServer").onclick=()=>{
   if(state.busy)return;
   const v=$("server").value.trim().replace(/\/$/,"");
-  if(v)localStorage.setItem(baseKey,v);else localStorage.removeItem(baseKey);
+  if(v)sessionStorage.setItem(baseKey,v);else sessionStorage.setItem(baseKey,"");
   state.libraryLoadedFor=null;state.sessionRecoveredFor=null;state.results=[];state.current=null;state.loras=[];state.lorasLoaded=false;state.modelsReady=null;state.nodesReady=null;
   renderResults();initProjectController();connectSocket();checkConnection();
 };
@@ -1159,6 +1160,7 @@ async function generate() {
   if(!state.currentProject){info("Open or create a project before generating.",true);return;}
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
+  if(state.tabDraftRestoreError){info("Restore this tab’s setup or explicitly clear it before rendering: "+state.tabDraftRestoreError,true);return;}
   if(state.restoreMissing?.length){info("Reattach missing inputs and Save the project before rendering: "+state.restoreMissing.join(", "),true);return;}
   if($("preparationMode")?.value==="auto"&&state.promptProviderCheck)await state.promptProviderCheck;
   if(state.busy||state.running)return;
@@ -1328,7 +1330,7 @@ async function generate() {
     const units=workUnits(),sample_key=sampleKey();
     await post("/h3_studio/register_job",{token,settings,units,sample_key});
     const draft=await persistProjectDraft();
-    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps})),project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
+    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title})),project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     state.runMeta=submittedMeta;
     const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,clip_id:state.currentClipId,parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
@@ -1484,6 +1486,8 @@ function openDetails(entry,trigger){
     row("LoRAs",Array.isArray(settings.loras)?settings.loras.length?settings.loras.map(x=>x.name+" · "+x.strength+(x.refinement_strength!==undefined?" / refinement "+x.refinement_strength:"")).join(" · "):"None":"Not recorded");
     if(settings.reference_detail)row("Reference detail",settings.reference_detail);
     if(settings.refine)row("Refinement",settings.refine.scale+"× · "+settings.refine.steps+" steps · denoise "+settings.refine.denoise);
+    const audioPass=settings.timingConfiguration?.audio_refinement;
+    if(audioPass?.enabled)row("Audio enhancement",settings.timingConfiguration?.preserve_reference_audio?"Bypassed · source soundtrack preserved":(audioPass.steps??6)+" steps · denoise "+(audioPass.denoise??.5)+" · exact video preserved");
     if(settings.control?.enabled)row("Control","Fun-ControlNet 2.0 · "+settings.control.kind+" · strength "+settings.control.strength+" · range "+settings.control.start_percent+"–"+settings.control.end_percent);
     if(settings.preparation)row("Prompt preparation",settings.preparation.model||"AI context");
   }else{
@@ -1708,11 +1712,11 @@ function showPreview(blob){
 }
 function currentSamplerNodes(fallback=Number(state.runMeta?.settings?.steps)||20){
   const nodes=state.runMeta?.samplerNodes;
-  return Array.isArray(nodes)?nodes.filter(n=>n&&typeof n.id==='string'&&Number.isFinite(n.steps)&&n.steps>=2):[{id:"8",steps:fallback}];
+  return Array.isArray(nodes)?nodes.filter(n=>n&&typeof n.id==='string'&&Number.isFinite(n.steps)&&n.steps>=1):[{id:"8",steps:fallback}];
 }
 function samplerProgress(value,max,node="8"){
   const now=Date.now(),step=Math.round(value),total=Math.round(max);
-  if(!Number.isFinite(step)||!Number.isFinite(total)||total<2||step<0)return;
+  if(!Number.isFinite(step)||!Number.isFinite(total)||total<1||step<0)return;
   const nodes=currentSamplerNodes(total);
   const index=nodes.findIndex(n=>n.id===String(node));if(index<0||index<nodes.findIndex(n=>n.id===state.samplerNode))return;
   if(state.samplerNode===String(node)&&step<state.lastStep)return;
@@ -1723,7 +1727,7 @@ function samplerProgress(value,max,node="8"){
   const avg=state.stepDurations.length>=2?state.stepDurations.reduce((a,b)=>a+b,0)/state.stepDurations.length:null;
   const baseline=estimateMidpoint(),remaining=baseline?Math.max(0,baseline-(now-(state.renderStarted||now))/1000):index===nodes.length-1&&avg&&step<total?avg*(total-step):null;
   const previous=nodes.slice(0,index).reduce((sum,n)=>sum+n.steps,0),all=nodes.reduce((sum,n)=>sum+n.steps,0);
-  setProgress((index?"H3 refinement":"H3 sampling")+" · "+step+"/"+total,10+Math.min(80,80*(previous+Math.min(step,total))/all),remaining);
+  setProgress((nodes[index]?.label||(index?"H3 refinement":"H3 sampling"))+" · "+step+"/"+total,10+Math.min(80,80*(previous+Math.min(step,total))/all),remaining);
   saveSession();
 }
 async function restoreLinkedJob(){
@@ -1742,7 +1746,7 @@ async function restoreLinkedJob(){
   state.labJobId=id;state.running=job.prompt_id;state.started=Number(job.created_at)*1000;
   state.renderStarted=state.started;state.lastStep=0;state.stepDurations=[];
   state.runMeta={...meta,request_id:job.request_id,lab_job_id:id,project_id:job.project_id,
-    samplerNodes:Object.entries(spec.workflow||{}).filter(([,n])=>n.class_type==='KSampler').map(([id,n])=>({id,steps:n.inputs.steps}))};
+    samplerNodes:Object.entries(spec.workflow||{}).filter(([,n])=>n.class_type==='KSampler').map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title}))};
   setBusy(true);setProgress('Restoring render progress',4,null,true);saveSession();
   await pollHistory();await pollQueue();
 }
@@ -1818,7 +1822,7 @@ function onSocket(event){
 function connectSocket(){
   const epoch=++state.socketEpoch;
   if(state.socket){try{state.socket.close();}catch{}}
-  const base=localStorage.getItem(baseKey)||location.origin;
+  const base=sessionStorage.getItem(baseKey)||location.origin;
   const url=base.replace(/^http/,"ws").replace(/\/$/,"")+"/ws?clientId="+state.clientId;
   try{
     const ws=new WebSocket(url);state.socket=ws;ws.binaryType="arraybuffer";
@@ -2022,21 +2026,22 @@ addEventListener("pagehide",event=>{
 let projectCtrl = null;
 async function initProjectController() {
   state.projectLoading=true;++state.hydrationEpoch;
-  const apiBase=localStorage.getItem(baseKey)||"";
+  const apiBase=sessionStorage.getItem(baseKey)||"";
   let controller;controller=new H3ProjectController.ProjectController({apiBase,serverKey:apiBase||location.origin,onProjectChanged:p=>{if(controller===projectCtrl)updateProjectUI(p);}});
   projectCtrl=controller;
   try{
-    const pid=localStorage.getItem(controller._storageKey("active_project_id"));
+    let pid=sessionStorage.getItem(controller._storageKey("active_project_id"));
+    const migrationKey=controller._storageKey('tab_migration_v1');
+    if(!pid&&!localStorage.getItem(migrationKey)){pid=localStorage.getItem(controller._storageKey('active_project_id'));localStorage.setItem(migrationKey,'done');}
     let project;
-    if(pid){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;localStorage.removeItem(controller._storageKey("active_project_id"));}}
+    if(pid){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;
-    if(!project){state.currentProject=null;state.activeProjectId=null;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
-    if(controller!==projectCtrl)return;
-    await hydrateProjectDraft(project.draft||{mode:"text",prompts:{text:$("prompt").value,frames:"",refs:""},refs:[],guides:[]});
+    if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
+    if(!await hydrateWorkspaceDraft(project))return;
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(location.hash.slice(1)||"projects",{history:false});}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(state.tabRestoredView||location.hash.slice(1)||"projects",{history:false});}}
 }
 
 function updateProjectUI(proj) {

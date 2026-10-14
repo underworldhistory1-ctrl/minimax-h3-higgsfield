@@ -41,7 +41,7 @@ async function openProjectWorkspace(id){
   await withProjectLoading(async()=>{
     if(projectCtrl.currentProject)await saveWorkspaceDraft();
     const project=await projectCtrl.loadProject(id);state.currentClipId=null;
-    await hydrateProjectDraft(project.draft||{mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});
+    await hydrateWorkspaceDraft(project);
     state.current=null;state.visibleResults=16;$('videoActionsDialog').close();$('upscaleStatus').textContent='';showStageMessage('Project workspace',project.name);renderResults();
   });
   document.body.classList.remove('project-hub-open');setWorkspaceView('studio');renderProjectCatalog();refreshLabControls();

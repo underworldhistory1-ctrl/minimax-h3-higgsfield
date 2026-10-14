@@ -5,6 +5,59 @@ REF = 'minimax_h3_ref2va_pruned_int8_convrot.safetensors'
 CHARACTER_SWAP = 'h3_character_swap_pro4500_1000.safetensors'
 
 
+def validate_audio_refinement(spec, capabilities):
+    import math
+    graph = spec.get('workflow', {})
+    options = spec.get('audio_refinement') or {}
+    if not isinstance(options, dict) or set(options) - {'enabled', 'steps', 'denoise', 'sampler_name', 'scheduler'}:
+        raise ValueError('Invalid audio enhancement declaration')
+    if 'enabled' in options and type(options['enabled']) is not bool:
+        raise ValueError('Audio enhancement enabled must be boolean')
+    masks = [(key, node) for key, node in graph.items() if node.get('class_type') == 'H3StudioAudioRefineMask']
+    restores = [(key, node) for key, node in graph.items() if node.get('class_type') == 'H3StudioAudioRestoreVideo']
+    if not options.get('enabled') or spec.get('preserve_reference_audio'):
+        if masks or restores:
+            raise ValueError('Audio enhancement conflicts with disabled enhancement or preserved source audio')
+        return None
+    if not capabilities.get('audio_refine_ready') or len(masks) != 1 or len(restores) != 1:
+        raise ValueError('Audio enhancement runtime is unavailable or its graph is incomplete')
+    values = {'steps': 6, 'denoise': .5, 'sampler_name': 'euler', 'scheduler': 'simple', **options}
+    if type(values['steps']) is not int or not 1 <= values['steps'] <= 20 or type(values['denoise']) not in (float, int) or not math.isfinite(values['denoise']) or not .01 <= values['denoise'] <= 1:
+        raise ValueError('Invalid audio enhancement steps/denoise')
+    mask_id, mask = masks[0]; restore_id, restore = restores[0]
+    original = mask.get('inputs', {}).get('latent')
+    preserve = (spec.get('continuation') or {}).get('context_length', 39) if spec.get('continuation') else 0
+    if not isinstance(original, list) or len(original) != 2 or original[1] != 0 or graph.get(original[0], {}).get('class_type') != 'KSampler':
+        raise ValueError('Audio enhancement must follow a completed sampling pass')
+    if mask.get('inputs') != {'latent': original, 'preserve_frames': preserve}:
+        raise ValueError('Audio enhancement continuation preservation disagrees')
+    link = restore.get('inputs', {}).get('refined')
+    if not isinstance(link, list) or len(link) != 2 or link[1] != 0 or link[0] == original[0]:
+        raise ValueError('Audio enhancement sampler link is invalid')
+    sampler_id = link[0]
+    sampler = graph.get(sampler_id, {})
+    from .render_values import seed_value
+    expected = {'model': ['2', 0], 'positive': graph['8']['inputs']['positive'], 'negative': graph['8']['inputs']['negative'],
+        'latent_image': [mask_id, 0], 'seed': (seed_value(graph['8']['inputs']['seed']) + 2) % (2**64),
+        'steps': values['steps'], 'cfg': 1, 'sampler_name': values['sampler_name'], 'scheduler': values['scheduler'], 'denoise': values['denoise']}
+    actual = dict(sampler.get('inputs', {}))
+    if 'seed' in actual: actual['seed'] = seed_value(actual['seed'])
+    if sampler.get('class_type') != 'KSampler' or actual != expected:
+        raise ValueError('Audio enhancement settings/model/conditioning disagree')
+    if restore.get('inputs') != {'source': original, 'refined': link, 'preserve_frames': preserve} or graph.get('13', {}).get('inputs', {}).get('samples') != [restore_id, 0]:
+        raise ValueError('Audio enhancement must restore exact video before release/decode')
+    if original[0] != '8' and not (spec.get('enable_refine') or spec.get('refine')):
+        raise ValueError('Unexpected image refinement before audio enhancement')
+    if spec.get('enable_refine') or spec.get('refine'):
+        image_samplers = [key for key, node in graph.items() if key not in ('8', sampler_id) and node.get('class_type') == 'KSampler']
+        if len(image_samplers) != 1 or original != [image_samplers[0], 0]:
+            raise ValueError('Audio enhancement must follow the final image refinement sampler')
+    for node_id in ('9', '10'):
+        if graph.get(node_id, {}).get('inputs', {}).get('samples') != ['13', 0]:
+            raise ValueError('Both decoders must receive the protected AV output')
+    return sampler_id
+
+
 def validate_character_swap(spec):
     graph = spec.get('workflow', {})
     def matches(name):
@@ -52,7 +105,9 @@ def validate_character_swap(spec):
                 continue
             consumed = True
             strength = declarations[0].get('strength', 1)
-            if key != '8':
+            latent_link = sampler.get('inputs', {}).get('latent_image', [])
+            audio_pass = isinstance(latent_link, list) and len(latent_link) == 2 and graph.get(latent_link[0], {}).get('class_type') == 'H3StudioAudioRefineMask'
+            if key != '8' and not audio_pass:
                 strength = declarations[0].get('refinement_strength', strength)
             if adapter.get('inputs', {}).get('strength_model') != strength:
                 raise ValueError('Character Swap strength disagrees with the selected sampler pass')
@@ -68,6 +123,7 @@ def validate_character_swap(spec):
 
 
 def validate_configuration(spec, capabilities):
+    audio_sampler = validate_audio_refinement(spec, capabilities)
     validate_character_swap(spec)
     graph = spec.get('workflow', {})
     # Legacy clients have no configuration contract; ComfyUI still validates their schemas.
@@ -114,7 +170,7 @@ def validate_configuration(spec, capabilities):
     if spec.get('steps') is not None and graph.get('8', {}).get('inputs', {}).get('steps') != spec['steps']:
         raise ValueError('Submitted step count disagrees with the selected settings')
     if spec.get('enable_refine') or spec.get('refine'):
-        refiners = [node for key, node in graph.items() if key != '8' and node.get('class_type') == 'KSampler']
+        refiners = [node for key, node in graph.items() if key not in ('8', audio_sampler) and node.get('class_type') == 'KSampler']
         if len(refiners) != 1:
             raise ValueError('Refinement requires one explicit second sampler')
         refinement = spec.get('refinement') or {}
