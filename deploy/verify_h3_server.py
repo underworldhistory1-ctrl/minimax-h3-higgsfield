@@ -23,7 +23,7 @@ REQUIRED_NODES = (
 REQUIRED_IMAGE_NODES = (
     "UNETLoader", "CLIPLoader", "VAELoader", "TextEncodeQwenImage21",
     "QwenImage21Cache", "EmptyLatentImage", "KSampler", "VAEDecode",
-    "ImageScale", "QwenStudioSaveImage",
+    "ImageScale", "ImageScaleToTotalPixels", "QwenStudioSaveImage",
 )
 
 
