@@ -93,3 +93,8 @@ bash launcher.sh --no-update --comfy-root /path/to/ComfyUI --video-only --checkp
 - [Earlier hybrid loader analysis](https://github.com/scottmudge/ComfyUI_MinimaxH3HybridLoader)
 - [Anime-Motion publisher](https://huggingface.co/prithivMLmods/MiniMax-H3-I2V-Anime-Motion-LoRA)
 - [GGUF H3 architecture PR](https://github.com/city96/ComfyUI-GGUF/pull/476)
+
+
+## تصحيح 2.5.2 — 2026-10-15
+
+المراجعة الأصلية أغفلت LiseTY Anime2Realism المخصصة لـRef2VA، وهي مختلفة عن Anime-Motion المذكورة أعلاه. أصبحت الآن ضمن manifest اللانشر بملف مثبت وبصمة SHA-256، وPrepare يربطها بـOriginal References مع `LumiReal` وذكر كل الصور الإضافية. الاتجاه العكسي يظل prompt-guided. [تفاصيل التوافق والتحقق](ANIME_TO_REALISM_AR.md).

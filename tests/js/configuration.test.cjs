@@ -2,6 +2,16 @@ const {test}=require('node:test');const assert=require('node:assert/strict');
 const C=require('../../web/h3/configuration');const {buildGraph}=require('../../web/h3/graph-builder');
 const singular='Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors';
 const caps={model_catalog:[{name:singular,profiles:['singularity']},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader']}],hybrid_loader_ready:true,controlnet_ready:true,controlnet_references_ready:true,continuation_ready:true,sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple','normal'],weight_dtypes:['default','fp8_e4m3fn']}};
+test('Anime → Realism binds the dedicated adapter only to Original Ref2VA video conditioning',()=>{
+ const spec={mode:'refs',loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124},{kind:'image',alias:'hero'}],sampling:{sampler_name:'euler',shift_video:9}};
+ const g=buildGraph(spec,{shot:'shot.mp4',hero:'hero.png'},caps);
+ assert.equal(g['1'].inputs.unet_name,C.REF);assert.equal(g['8'].inputs.sampler_name,'euler');assert.equal(g['2'].inputs.shift_video,9);
+ const adapter=Object.values(g).find(n=>n.class_type==='LoraLoaderModelOnly');assert.equal(adapter.inputs.lora_name,C.ANIME_TO_REALISM);assert.equal(adapter.inputs.strength_model,.8);
+ assert.ok(C.isAnimeToRealism('styles/'+C.ANIME_TO_REALISM.toUpperCase()));
+ for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.throws(()=>buildGraph({...spec,model_profile,checkpoint:singular},{},caps),/Ref2VA/);
+ for(const mode of ['text','frames'])assert.throws(()=>buildGraph({...spec,mode},{},caps),/Ref2VA/);
+ assert.throws(()=>buildGraph({...spec,references:[{kind:'image',alias:'hero'}]},{},caps),/source video/);
+});
 test('every selectable checkpoint profile constructs the correct loader in all modes',()=>{
  for(const model_profile of Object.keys(C.profiles))for(const mode of ['text','frames','refs']){
  const g=buildGraph({mode,model_profile,checkpoint:singular,frames:{first:'f'},references:[{kind:'image',alias:'hero'}]},{first:'f.png',hero:'hero.png'},caps);

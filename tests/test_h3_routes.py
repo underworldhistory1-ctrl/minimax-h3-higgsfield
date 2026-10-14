@@ -25,6 +25,16 @@ class QueueClient:
 
 
 class TestH3LabRoutes(AioHTTPTestCase):
+    async def test_legacy_submission_cannot_bypass_anime_adapter_admission(self):
+        from h3_lab.configuration import ANIME_TO_REALISM
+        spec = {'mode': 'text', 'workflow': {'adapter': {'class_type': 'LoraLoaderModelOnly',
+            'inputs': {'lora_name': ANIME_TO_REALISM, 'strength_model': 1, 'model': ['loader', 0]}}},
+            'loras': [{'name': ANIME_TO_REALISM, 'enabled': True, 'strength': 1}]}
+        response = await self.client.post('/h3_studio/lab/jobs', json={'request_id': 'legacy-anime', 'render_spec': spec})
+        self.assertEqual(response.status, 400)
+        self.assertIn('Ref2VA', (await response.json())['error'])
+        self.assertEqual(self.queue.submissions, [])
+
     async def get_application(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.storage_root = pathlib.Path(self.temp_dir.name)

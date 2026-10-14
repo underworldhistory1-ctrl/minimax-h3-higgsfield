@@ -55,3 +55,17 @@
 ## مرحلة الصوت 2.5.0
 
 [مصفوفة الصوت والدليل المنشور والاختبارات](AUDIO_ENHANCEMENT_AR.md#التوافق). خيار مستقل يحافظ على الفيديو النهائي، يتجاوز نفسه عند حفظ صوت المصدر، ويدعم حماية صوت التكملة. التوصيل المحلي متحقق؛ تحسن الصوت مع كل checkpoint/LoRA غير مثبت.
+
+
+### Anime → Realism — 2.5.2
+
+| المكوّن | التوافق وحدود الدليل |
+|---|---|
+| LiseTY `Anime2Realsim__H3.safetensors` | تدريب Ref2VA، مسار Original References مع فيديو مصدر؛ Trigger `LumiReal` |
+| FL2VA / Singularity / Hybrid | لا يوجد إثبات لهذا الملف؛ الواجهة والخادم يمنعان الاختيار |
+| Native rendering | مسار Prepare؛ المقاس والسيد والعينة يُحفظون، قوة 1 بداية قابلة للتعديل وليست أفضل قيمة مثبتة |
+| MotionCache / Spectrum / Refine / ControlNet / LoRA stacking | تظل خيارات متقدمة؛ لا يوجد اختبار جودة محلي لهذه التركيبات |
+| Realism → Anime | قالب prompt-guided؛ لا يستخدم اللورا أحادية الاتجاه |
+| الصوت | Native H3 أو حفظ صوت المصدر؛ اللورا ليست تحسينًا مخصصًا للصوت |
+
+[مصدر الناشر](https://huggingface.co/LiseTY/Minimax-H3-ref2v_Anime_2_Realism) · [التحقق والتعليمات](ANIME_TO_REALISM_AR.md).

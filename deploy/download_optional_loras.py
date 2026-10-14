@@ -12,6 +12,12 @@ import urllib.request
 
 LORAS = (
     (
+        "Anime2Realsim__H3.safetensors",
+        "https://huggingface.co/LiseTY/Minimax-H3-ref2v_Anime_2_Realism/resolve/33ee6502c125eea847aac14c49fecca43737ee40/Anime2Realsim__H3.safetensors",
+        "bce58949e0983115bb9b7f2cf79f7474119ce2cedd845e4c565666fabfde2a3e",
+        310168760,
+    ),
+    (
         "h3_character_swap_pro4500_1000.safetensors",
         "https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA/resolve/a665bb7e3bb9804e487d2925f67744f554c8ad49/h3_character_swap_pro4500_1000.safetensors",
         "4b2a3f420ae804c0aa3422761ff84dbd1bf52eef6900ffab6d2e66df63cb4e79",

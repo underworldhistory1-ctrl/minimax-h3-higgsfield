@@ -38,7 +38,7 @@
 ## مراجعة بعد التثبيت
 
 - تحقق من ظهور RTX 5090 أو GPU الجديد، وكل `models_ready=true` و`missing_nodes=[]` في فاحص الخادم.
-- تحقق من ملفات LoRA الأربع: Realism People وCombat V2 وMotion Repair V2 وCharacter Swap، ومن نودز Spectrum وMotionCache المنفصلة.
+- تحقق من ملفات LoRA الخمس: Anime → Realism وRealism People وCombat V2 وMotion Repair V2 وCharacter Swap، ومن نودز Spectrum وMotionCache المنفصلة.
 - افتح الرابط الرئيسي: يجب أن تظهر **H3 Studio** لا محرر ComfyUI. جرب ظهور الريفرنسات، مقاسات الكانفس، خطوات 20/30/50، Show more، تفاصيل الفيديوهات، وأزرار الإلغاء/التحميل دون تشغيل رندر تلقائي.
 - رندر صوت/صورة جديد على سيرفر أو نسخة ComfyUI مختلفة يحتاج حكم مشاهدة واستماع من المستخدم. فحص جاهزية API لا يحل محل ذلك.
 

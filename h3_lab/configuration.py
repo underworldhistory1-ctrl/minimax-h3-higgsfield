@@ -3,6 +3,7 @@ FL = 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'
 REF = 'minimax_h3_ref2va_pruned_int8_convrot.safetensors'
 
 CHARACTER_SWAP = 'h3_character_swap_pro4500_1000.safetensors'
+ANIME_TO_REALISM = 'Anime2Realsim__H3.safetensors'
 
 
 def validate_audio_refinement(spec, capabilities):
@@ -58,43 +59,45 @@ def validate_audio_refinement(spec, capabilities):
     return sampler_id
 
 
-def validate_character_swap(spec):
+def _validate_ref2va_adapter(spec, filename, label, replacement_image):
     graph = spec.get('workflow', {})
     def matches(name):
-        return isinstance(name, str) and name.replace('\\', '/').rsplit('/', 1)[-1].lower() == CHARACTER_SWAP
+        return isinstance(name, str) and name.replace('\\', '/').rsplit('/', 1)[-1].lower() == filename.lower()
     declared = any(x.get('enabled') and matches(x.get('name')) for x in spec.get('loras', []) if isinstance(x, dict))
     loaded = [n for n in graph.values() if matches(n.get('inputs', {}).get('lora_name'))]
     if not declared and not loaded:
         return
     if declared != bool(loaded):
-        raise ValueError('Character Swap selection disagrees with the submitted LoRA graph')
+        raise ValueError(label + ' selection disagrees with the submitted LoRA graph')
     if spec.get('mode') != 'refs' or spec.get('model_profile', 'original') != 'original':
-        raise ValueError('Character Swap requires Original H3 Ref2VA; selected checkpoint is not validated')
+        raise ValueError(label + ' requires Original H3 Ref2VA; selected checkpoint is not validated')
     if graph.get('1', {}).get('class_type') != 'UNETLoader' or graph['1'].get('inputs', {}).get('unet_name') != REF or graph.get('6', {}).get('class_type') != 'MiniMaxH3ReferenceToVideo':
-        raise ValueError('Character Swap requires the original Ref2VA loader and conditioning')
+        raise ValueError(label + ' requires the original Ref2VA loader and conditioning')
     def model_chain(link):
         chain = []
         seen = set()
         while isinstance(link, list) and len(link) == 2 and link[0] in graph:
             key = link[0]
             if key in seen:
-                raise ValueError('Character Swap model chain contains a cycle')
+                raise ValueError(label + ' model chain contains a cycle')
             seen.add(key)
             node = graph[key]
             chain.append(node)
             if node.get('class_type') == 'UNETLoader':
                 if node.get('inputs', {}).get('unet_name') != REF:
-                    raise ValueError('Character Swap model chain requires Original Ref2VA')
+                    raise ValueError(label + ' model chain requires Original Ref2VA')
                 return chain
             link = node.get('inputs', {}).get('model')
-        raise ValueError('Character Swap model chain is not connected to Original Ref2VA')
+        raise ValueError(label + ' model chain is not connected to Original Ref2VA')
     generation_chain = model_chain(graph.get('8', {}).get('inputs', {}).get('model'))
     if not any(n is adapter for n in generation_chain for adapter in loaded):
-        raise ValueError('Character Swap is not connected to the generation sampler')
+        raise ValueError(label + ' is not connected to the generation sampler')
     declarations = [x for x in spec.get('loras', []) if isinstance(x, dict) and x.get('enabled') and matches(x.get('name'))]
+    if len(declarations) != 1:
+        raise ValueError(label + ' must be declared exactly once')
     for adapter in loaded:
         if adapter.get('class_type') != 'LoraLoaderModelOnly':
-            raise ValueError('Character Swap requires the model-only LoRA loader')
+            raise ValueError(label + ' requires the model-only LoRA loader')
         model_chain(adapter.get('inputs', {}).get('model'))
         consumed = False
         for key, sampler in graph.items():
@@ -110,21 +113,28 @@ def validate_character_swap(spec):
             if key != '8' and not audio_pass:
                 strength = declarations[0].get('refinement_strength', strength)
             if adapter.get('inputs', {}).get('strength_model') != strength:
-                raise ValueError('Character Swap strength disagrees with the selected sampler pass')
+                raise ValueError(label + ' strength disagrees with the selected sampler pass')
         if not consumed:
-            raise ValueError('Character Swap adapter is not consumed by a sampler')
+            raise ValueError(label + ' adapter is not consumed by a sampler')
     conditioning = graph['6'].get('inputs', {})
-    for prefix in ('ref_images.ref_image_', 'ref_videos.ref_video_'):
+    for prefix in (('ref_images.ref_image_', 'ref_videos.ref_video_') if replacement_image else ('ref_videos.ref_video_',)):
         if not any(k.startswith(prefix) and isinstance(v, list) and len(v) == 2 and v[0] in graph for k, v in conditioning.items()):
-            raise ValueError('Character Swap requires connected source video and replacement image')
+            raise ValueError(label + ' requires connected source media')
     refs = spec.get('references', [])
-    if not isinstance(refs, list) or not any(isinstance(r, dict) and r.get('kind') == 'video' for r in refs) or not any(isinstance(r, dict) and r.get('kind') == 'image' for r in refs):
-        raise ValueError('Character Swap requires a source video and replacement character image')
+    if not isinstance(refs, list) or not any(isinstance(r, dict) and r.get('kind') == 'video' for r in refs) or (replacement_image and not any(isinstance(r, dict) and r.get('kind') == 'image' for r in refs)):
+        raise ValueError(label + (' requires a source video and replacement character image' if replacement_image else ' requires a source video in References'))
 
+
+def validate_character_swap(spec):
+    _validate_ref2va_adapter(spec, CHARACTER_SWAP, 'Character Swap', True)
+
+def validate_anime_to_realism(spec):
+    _validate_ref2va_adapter(spec, ANIME_TO_REALISM, 'Anime → Realism', False)
 
 def validate_configuration(spec, capabilities):
     audio_sampler = validate_audio_refinement(spec, capabilities)
     validate_character_swap(spec)
+    validate_anime_to_realism(spec)
     graph = spec.get('workflow', {})
     # Legacy clients have no configuration contract; ComfyUI still validates their schemas.
     if 'model_profile' not in spec and 'sampling' not in spec:
