@@ -86,18 +86,22 @@ const api = path => (localStorage.getItem(baseKey) || "").replace(/\/$/,"") + pa
 const seconds = () => Number($("duration").value) / 24;
 const refMemoryRisk = () => state.ramLimit && state.ramLimit < 56 && state.mode === "refs"
   && state.width*state.height >= 1280*704 && Number($("duration").value) >= 294;
-function durationFrames(requestedSeconds){
-  const step=Math.round((requestedSeconds*24-124)/17);
-  return 124+17*Math.max(0,Math.min(14,step));
+function durationFrames(requestedSeconds){return H3RenderValues.durationFrames(requestedSeconds);}
+function repairSavedSeed(){
+  const value=$('seed').value;if(value.trim()===''||value.trim()==='-1')return;
+  try{$('seed').value=String(H3RenderValues.seed(value));}
+  catch{$('seed').value='42';info('The saved seed was not a valid whole number. Reset to the default 42; other settings are preserved.',true);}
 }
+function resolveSeedInput(){const value=H3RenderValues.seed($('seed').value,{allowRandom:true});$('seed').value=String(value);saveDraft();return value;}
 function syncDuration(){
   const input=$("durationSeconds"),hint=$("durationHint"),requested=Number(input.value);
-  if(input.value===""||!Number.isFinite(requested)||requested<5||requested>15.1){
-    hint.textContent="Enter a duration from 5 to 15.1 seconds.";hint.classList.add("error");return false;
+  if(input.value===""||!Number.isFinite(requested)||requested<.2||requested>15.1){
+    hint.textContent="Enter a duration from 0.2 to 15.1 seconds.";hint.classList.add("error");return false;
   }
   const frames=durationFrames(requested);
   $("duration").value=String(frames);
   hint.textContent=`Actual H3 length: ${(frames/24).toFixed(2)} s · ${frames} frames at 24 fps.`;
+  if(frames<124)hint.textContent+=" Short duration · outside H3’s usual trained range; quality may vary.";
   hint.classList.remove("error");
   return true;
 }
@@ -203,7 +207,7 @@ const post = async (path, body) => {
   const r = await fetch(api(path), {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
   if (!r.ok) throw Error((await r.text()).slice(0,300));
   const text=await r.text();
-  return text ? JSON.parse(text) : {};
+  return text ? H3RenderValues.parseJson(text) : {};
 };
 
 function selectMode(mode, internal=false) {
@@ -270,10 +274,10 @@ function restoreDraft(){
     const info=$("refinePresetInfo");if(info)info.style.display=draft.enableRefine?"block":"none";
   }
   const storedFrames=Number($("duration").value);
-  if(!Number.isInteger(storedFrames)||storedFrames<124||storedFrames>362||(storedFrames-5)%17!==0)$("duration").value="362";
-  $("durationSeconds").value=Number.isFinite(Number(draft.durationRequested))&&Number(draft.durationRequested)>=5&&Number(draft.durationRequested)<=15.1
+  if(!Number.isInteger(storedFrames)||storedFrames<5||storedFrames>362||(storedFrames-5)%17!==0)$("duration").value="362";
+  $("durationSeconds").value=Number.isFinite(Number(draft.durationRequested))&&Number(draft.durationRequested)>=.2&&Number(draft.durationRequested)<=15.1
     ?String(draft.durationRequested):(Number($("duration").value)/24).toFixed(1);
-  syncDuration();
+  repairSavedSeed();syncDuration();
   $("prompt").value=state.prompts[state.mode]||"";
   if(draft.renderMethod==="turbo"){$("renderMethod").value="native";$("steps").value="20";info("Turbo was removed. This older draft now uses Original quality at 20 steps.");}
   const draftSteps=Number($("steps").value);
@@ -312,7 +316,7 @@ function captureSettings(){
     server_attention:state.labCapabilities?.server_attention||null,timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
     canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
-    steps:Number($("steps").value),seed:Number($("seed").value),render_method:method(),
+    steps:Number($("steps").value),seed:$("seed").value,render_method:method(),
     loras:adapters,reference_detail:refs?$("refSize").value:null,
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
       file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
@@ -419,7 +423,7 @@ function renderLoras() {
 async function loadLoras(){
   try{
     const r=await fetch(api("/h3_studio/loras"));if(!r.ok)throw Error("unavailable");
-    const names=(await r.json()).items||[];
+    const names=(await H3RenderValues.readJson(r)).items||[];
     const existing=new Map(state.loras.map(item=>[item.name,item]));
     state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:/Motion_Repair_V2/i.test(name)?.9:1});
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}
@@ -440,7 +444,7 @@ $("steps").addEventListener("input",()=>{renderMethodInfo();const value=Number($
 $("renderMethod").addEventListener("change",()=>{if(method()==="turbo")$("steps").value="6";else if(Number($("steps").value)<8)$("steps").value="20";renderMethodInfo();renderLoras();renderEstimates();saveDraft();});
 document.querySelectorAll("#stepPresets button").forEach(button=>button.onclick=()=>{$("steps").value=button.dataset.steps;renderMethodInfo();renderEstimates();saveDraft();});
 ["prompt","steps","seed","refSize","renderMethod"].forEach(id => $(id).addEventListener("input",saveDraft));
-$("randomSeed").onclick = () => {$("seed").value = Math.floor(Math.random()*2**31);saveDraft();};
+$("randomSeed").onclick = () => {$("seed").value = H3RenderValues.randomSeed();saveDraft();};
 const refineEl = $("enableRefine");
 if (refineEl) {
   refineEl.addEventListener("change", () => {
@@ -764,7 +768,7 @@ function currentRenderSpec() {
     duration: Number($("duration").value),
     duration_seconds: seconds(),
     target_seconds: seconds(),
-    seed: Number($("seed").value),
+    seed: $("seed").value,
     steps: Number($("steps").value),
     render_method: method(),
     style_direction:state.styleDirection||null,
@@ -945,7 +949,7 @@ async function cancelPromptId(id){
   if(jobId){const result=await post(`/h3_studio/lab/jobs/${encodeURIComponent(jobId)}/cancel`,{});return result.state==="cancelled";}
   const r=await fetch(api("/queue"));
   if(!r.ok)throw Error("Queue unavailable");
-  const queue=await r.json();
+  const queue=await H3RenderValues.readJson(r);
   if((queue.queue_running||[]).some(item=>item[1]===id)){
     await post("/interrupt",{});
     return true;
@@ -961,7 +965,7 @@ async function loadLibrary(force=false){
   if(state.libraryLoadedFor===key&&!force)return;
   try{
     const r=await fetch(api("/h3_studio/library"));if(!r.ok)throw Error("library unavailable");
-    const items=(await r.json()).items||[];
+    const items=(await H3RenderValues.readJson(r)).items||[];
     const known=new Map(state.results.map(e=>[e.file.filename,e]));
     const next=[];
     for(const file of items){
@@ -999,7 +1003,7 @@ async function loadLibrary(force=false){
 async function loadHistorySamples(){
   try{
     const r=await fetch(api("/history?max_items=100"));if(!r.ok)return;
-    const history=await r.json(),samples=[];
+    const history=await H3RenderValues.readJson(r),samples=[];
     for(const job of Object.values(history)){
       const filename=findVideoOutput(job.outputs?.["12"])?.filename;
       const timing=H3TimingEstimator.measured(job);if(!filename||!timing)continue;
@@ -1163,6 +1167,7 @@ async function generate() {
   const prepareWithAI=usePromptAI();
   try{
     state.labJobId=null;state.runMeta=null;state.preparedContext=null;state.queuePhase=null;
+    const seed=resolveSeedInput();
     if(state.continuation){const c=state.continuation;
       if(!continuationCanvasMatches(c))throw Error("Continuation must use the source canvas.");
       if(c.type==="generated"&&c.source_model!==selectedCheckpoint())throw Error("For another checkpoint, choose Video context and re-encode the source; direct latent switching has not been validated.");
@@ -1175,12 +1180,11 @@ async function generate() {
     if(asksPortrait&&!asksLandscape&&state.width>state.height)throw Error("The prompt asks for 9:16, but Output settings is set to Landscape. Select Portrait before generating.");
     if(state.mode==="refs"&&requestsMutedSourceDialogue($("prompt").value,state.refs))
       throw Error("The reference video's soundtrack is off, so H3 cannot know its original words. Write the exact dialogue and language in the prompt for a new voice. Turning on the soundtrack supplies audio guidance but may also carry the original voice; H3 cannot guarantee exact speech.");
-    if(!syncDuration())throw Error("Enter a duration from 5 to 15.1 seconds.");
-    const steps=Number($("steps").value),seed=Number($("seed").value);
+    if(!syncDuration())throw Error("Enter a duration from 0.2 to 15.1 seconds.");
+    const steps=Number($("steps").value);
     if(!Number.isInteger(steps)||steps<Number($("steps").min)||steps>Number($("steps").max))throw Error("Sampling steps must be between "+$("steps").min+" and "+$("steps").max+" for this render method.");
     if(!methodAvailable(method()))throw Error("The selected render method is not installed on this ComfyUI server.");
     if(method()==="turbo"&&state.loras.some(item=>item.enabled))throw Error("Turn off other LoRAs before Turbo. This combination is not verified yet.");
-    if(!Number.isSafeInteger(seed)||seed<0)throw Error("Use a valid non-negative seed.");
     for(const item of state.loras.filter(x=>x.enabled)){
       if(!Number.isFinite(item.strength)||item.strength<0||item.strength>2)throw Error("LoRA strength must be between 0 and 2.");
       if(/^h3-realism-people-t2v-i2v-r2v\.safetensors$/i.test(item.name)&&!/(^|\W)r34l1sm(?=\W|$)/i.test($("prompt").value))
@@ -1330,7 +1334,7 @@ async function generate() {
     const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,clip_id:state.currentClipId,parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
     state.runMeta.request_id=token;state.runMeta.submission=submission;state.running="request:"+token;saveSession();
     const r=await fetch(api("/h3_studio/lab/jobs"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(submission)});
-    const response=await r.json();
+    const response=await H3RenderValues.readJson(r);
     state.labJobId=response.job?.job_id||response.job_id||null;
     if(state.labJobId)state.runMeta.lab_job_id=state.labJobId;
     const body={...response,prompt_id:response.job?.prompt_id};
@@ -1502,7 +1506,7 @@ function openDetails(entry,trigger){
     content.append(heading,prompt);
   }
   const quality=document.createElement("button");quality.type="button";quality.className="button alt";quality.textContent="Check periodic brightness flicker";
-  quality.onclick=async()=>{quality.disabled=true;quality.textContent="Checking…";try{const response=await fetch(api("/h3_studio/lab/quality?filename="+encodeURIComponent(entry.file.filename)));const result=await response.json();if(!response.ok)throw Error(result.error||"Check unavailable");const message=document.createElement("p");message.className="tip";message.textContent=result.status==="review"?"Periodic brightness changes detected. Review this clip against Original quality with the same seed.":"No periodic brightness flicker detected in the sampled span. This check does not assess hair, skin, clothing shimmer or VAE seams.";quality.replaceWith(message);}catch(error){quality.textContent=error.message;quality.disabled=false;}};content.append(quality);
+  quality.onclick=async()=>{quality.disabled=true;quality.textContent="Checking…";try{const response=await fetch(api("/h3_studio/lab/quality?filename="+encodeURIComponent(entry.file.filename)));const result=await H3RenderValues.readJson(response);if(!response.ok)throw Error(result.error||"Check unavailable");const message=document.createElement("p");message.className="tip";message.textContent=result.status==="review"?"Periodic brightness changes detected. Review this clip against Original quality with the same seed.":"No periodic brightness flicker detected in the sampled span. This check does not assess hair, skin, clothing shimmer or VAE seams.";quality.replaceWith(message);}catch(error){quality.textContent=error.message;quality.disabled=false;}};content.append(quality);
   settingsTrigger=trigger||document.activeElement;
   $("settingsDialog").showModal();
   $("settingsClose").focus();
@@ -1534,7 +1538,7 @@ async function completeImpl(file){
   try{
     const response=await fetch(api("/h3_studio/library"),{cache:"no-store"});
     if(!response.ok)throw Error("Library unavailable");
-    const listed=((await response.json()).items||[]).some(item=>item.filename===file.filename);
+    const listed=((await H3RenderValues.readJson(response)).items||[]).some(item=>item.filename===file.filename);
     if(epoch!==state.generationEpoch||state.running!==expectedId)return;
     if(!listed){
       state.outputMissingSince??=Date.now();
@@ -1554,7 +1558,7 @@ async function completeImpl(file){
   const completedUploads=state.uploads.splice(0);
   const actual=(Date.now()-state.started)/1000;
   let measured= null;
-  try{const r=await fetch(api("/history/"+encodeURIComponent(expectedId)));if(r.ok)measured=H3TimingEstimator.measured((await r.json())[expectedId]);}catch{}
+  try{const r=await fetch(api("/history/"+encodeURIComponent(expectedId)));if(r.ok)measured=H3TimingEstimator.measured((await H3RenderValues.readJson(r))[expectedId]);}catch{}
   const renderActual=measured?.seconds??(Date.now()-(state.renderStarted||state.started))/1000;
   const meta={...(state.runMeta||{}),elapsed:actual,renderElapsed:renderActual,completedAt:Date.now()};
   if(meta.settings)meta.settings={...meta.settings,timingMeasurement:measured||{source:"browser",seconds:renderActual}};
@@ -1727,7 +1731,7 @@ async function restoreLinkedJob(){
   const epoch=state.generationEpoch,origin=api('/');
   const r=await fetch(api('/h3_studio/lab/jobs/'+encodeURIComponent(id)),{cache:'no-store'});
   if(!r.ok)return;
-  const job=await r.json();
+  const job=await H3RenderValues.readJson(r);
   if(epoch!==state.generationEpoch||origin!==api('/')||!job.prompt_id||
      (state.busy&&state.running!==job.prompt_id)|| (state.running&&state.running!==job.prompt_id))return;
   state.linkedJobRestored=true;
@@ -1756,7 +1760,7 @@ async function pollServerProgress(id){
   try{
     const r=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});
     if(!r.ok)return;
-    const data=await r.json();
+    const data=await H3RenderValues.readJson(r);
     if(state.running!==id||data.prompt_id!==id)return;
     applyServerProgress(data);
   }catch{}
@@ -1857,7 +1861,7 @@ async function pollHistoryImpl(){
   if(!state.running||/^(lab|request):/.test(String(state.running)))return;
   try{
     const r=await fetch(api("/history/"+state.running));if(!r.ok)return;
-    const data=(await r.json())[state.running];if(!stillCurrent()||!data)return;
+    const data=(await H3RenderValues.readJson(r))[state.running];if(!stillCurrent()||!data)return;
     const file=findVideoOutput(data.outputs?.["12"]);
     if(file){await complete(file);return;}
     if(data.status?.status_str==="error"){
@@ -1876,7 +1880,7 @@ async function cancelSharedRender(id){
   try{
     const response=await fetch(api('/queue'),{cache:'no-store'});
     if(!response.ok)throw Error('Cannot check the server queue. Retry cancellation.');
-    const queue=await response.json();
+    const queue=await H3RenderValues.readJson(response);
     const request=H3QueueUI.cancellationRequest(queue,id);
     if(!request){sharedCancellationPending.delete(id);await pollQueue();return;}
     const result=await fetch(api(request.path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request.body)});
@@ -1903,7 +1907,7 @@ async function pollQueue(){
   try{
     const r=await fetch(api("/queue"));if(!r.ok)throw Error("queue unavailable");
     if(state.serverMissingSince){state.serverMissingSince=null;if(state.running)setProgress("Connected · checking render progress",null,null,true);}
-    const data=await r.json();if(pollSerial!==queuePollSerial||epoch!==state.generationEpoch||state.running!==polledId)return;
+    const data=await H3RenderValues.readJson(r);if(pollSerial!==queuePollSerial||epoch!==state.generationEpoch||state.running!==polledId)return;
     const running=data.queue_running||[],pending=data.queue_pending||[];
     const activeIds=new Set([...running,...pending].filter(row=>Array.isArray(row)).map(row=>row[1]));
     for(const cancelledId of sharedCancellationPending)if(!activeIds.has(cancelledId))sharedCancellationPending.delete(cancelledId);
@@ -1918,7 +1922,7 @@ async function pollQueue(){
           const timingTask=(async()=>{
             try{
               const response=await fetch(new URL('./h3/shared-timing.json?t='+Date.now(),location.href).href,{cache:'no-store',signal:controller.signal});
-              if(response.ok){const value=await response.json();if(value.updated_at && Date.now()-value.updated_at<10000)options.timings=value;else options.timings=null;}
+              if(response.ok){const value=await H3RenderValues.readJson(response);if(value.updated_at && Date.now()-value.updated_at<10000)options.timings=value;else options.timings=null;}
               else options.timings=null;
             }catch{options.timings=null;}
           })();
@@ -1926,7 +1930,7 @@ async function pollQueue(){
             try{
               const response=await fetch(api('/h3_studio/job_progress?prompt_id='+encodeURIComponent(row[1])),{cache:'no-store',signal:controller.signal});
               if(!response.ok)return;
-              const snapshot=await response.json();
+              const snapshot=await H3RenderValues.readJson(response);
               if(snapshot.prompt_id===row[1])progress[row[1]]=snapshot;
             }catch{}
           }));

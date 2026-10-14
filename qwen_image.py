@@ -130,7 +130,11 @@ def build_qwen_graph(request, uploads, token):
     if width % 32 or height % 32:
         raise ValueError("Width and height must be a multiple of 32")
     steps = _integer(request.get("steps", 40), "Steps", 1, 100)
-    seed = _integer(request.get("seed", 0), "Seed", 0, 2**53 - 1)
+    try:
+        from .h3_lab.render_values import seed_value
+    except ImportError:
+        from h3_lab.render_values import seed_value
+    seed = seed_value(request.get("seed", 42))
     reference_resolution = _integer(request.get("reference_resolution", 1024), "Reference resolution", 0, 4096)
     safe_token = re.sub(r"[^A-Za-z0-9_-]", "", str(token))[:64]
     if not safe_token:

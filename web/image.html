@@ -58,7 +58,7 @@
      <div><label for="aspect">ASPECT RATIO</label><select id="aspect"><option value="1:1">1:1 Square</option><option value="16:9">16:9 Landscape</option><option value="9:16">9:16 Portrait</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="3:2">3:2</option><option value="2:3">2:3</option></select></div>
      <div><label for="resolution">OUTPUT SIZE</label><select id="resolution"><option value="1">Draft · 1 MP</option><option value="1.6" selected>Standard · 1.6 MP</option><option value="4">Native 2K · 4 MP</option></select></div>
      <div><label for="steps">SAMPLING STEPS</label><input id="steps" type="number" min="1" max="100" value="40"></div>
-     <div><label for="seed">SEED</label><div class="row"><input id="seed" type="number" min="0" max="9007199254740991" value="42"><button id="randomSeed" class="button alt small" type="button">Random</button></div></div>
+     <div><label for="seed">SEED</label><div class="row"><input id="seed" type="text" inputmode="numeric" aria-label="Seed · whole number; blank or minus one for Random" min="0" max="9007199254740991" value="42"><button id="randomSeed" class="button alt small" type="button">Random</button></div></div>
     </div>
     <label id="transparentLabel" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input id="transparent" type="checkbox" style="width:auto"> Transparent background (RGBA)</label>
     <div id="dimensions" class="notice"></div><div id="estimate" class="tip"></div>
@@ -76,9 +76,10 @@
  </section>
 </main>
 <dialog id="detailsDialog" class="dialog" aria-labelledby="detailsTitle"><div class="dialog-head"><h2 id="detailsTitle">Image settings</h2><button id="closeDetails" class="button alt small" aria-label="Close settings">✕ Close</button></div><div id="detailsContent"></div></dialog>
+<script src="./h3/render-values.js?v=20261014-seeds-short-r1"></script>
 <script src="./h3/uuid.js?v=20261004-lan"></script>
-<script src="./h3/image-reference-store.js?v=20261012-reference-1"></script>
-<script src="./image-studio.js?v=20261012-reference-1"></script>
+<script src="./h3/image-reference-store.js?v=20261014-seeds-short-r1"></script>
+<script src="./image-studio.js?v=20261014-seeds-short-r1"></script>
 <link rel="stylesheet" href="./studio-ux.css?v=20261008">
 <script src="./h3/studio-ux.js?v=20261008"></script>
 </body>

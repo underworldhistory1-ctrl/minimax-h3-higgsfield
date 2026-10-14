@@ -189,7 +189,8 @@
     "5b609a177dd7ca1b65c94813211636ef270366fb",
     "42d84a7e5822b33e7b6f37562b4434ea14874b64",
     "972f1962d0dd29d1a90b390a1c6c5efd322e50b8",
-    "68bdfaaea3d3219b8ed6ada9518d6bb286ea011a"
+    "68bdfaaea3d3219b8ed6ada9518d6bb286ea011a",
+    "d0d8090f31c47fe97df1889a708d334803323c8f"
   ],
   "deploy/download_control_models.py": [
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
@@ -261,7 +262,8 @@
   ],
   "deploy/launcher_smoke.py": [
     "27b518847caf7abd9646b30fb7ea39e9a1e858a5",
-    "620dae39a9f6b7d154c52c4132a7779bf7aa0b26"
+    "620dae39a9f6b7d154c52c4132a7779bf7aa0b26",
+    "917e0878766e41a460da43e6b36482a75beee992"
   ],
   "deploy/llama-swap-gemma-a4b.snippet.yaml": [
     "cccc890da72196f0f226bd48ad6bcf02b24a217d"
@@ -308,7 +310,8 @@
     "60b71c81781a1a45cb198d193dfea025e5b57bf3",
     "36dbd4b80d2434c3bb9f542fe0a7320dd28675a1",
     "e60e154229ad11610c8f77c295cc1d59c613aa0c",
-    "c0501a0f5bb2aba87b9720ad0a09c4a992e4b14a"
+    "c0501a0f5bb2aba87b9720ad0a09c4a992e4b14a",
+    "24cd32f1c64b235d6276104bebca84e79fbd4e0e"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -495,7 +498,8 @@
     "05af2eb7bb878cf9dc92f9393a804cf51ae95b2f",
     "9f043d9e19c118ddd0f784538fa6e3a70f917f9c",
     "4b379d11fd52bc9e3c4e2a93451aaedf46400687",
-    "816ae3f5ad9bc13e5ccc326b4577b2124d4f68cb"
+    "816ae3f5ad9bc13e5ccc326b4577b2124d4f68cb",
+    "ecce4158567733086087f1d072189212aeaa7325"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -663,7 +667,8 @@
   ],
   "h3_lab/assets.py": [
     "0e9fc8696c022521708df91a10a75c146d7faebe",
-    "fb9aaf99815d435f0c2953d58f116a48f4c950f9"
+    "fb9aaf99815d435f0c2953d58f116a48f4c950f9",
+    "061e8879a898620629ce903fe52402b964c19365"
   ],
   "h3_lab/capabilities.py": [
     "0c2402a34a1b3c2528efb499d8fb1b595de00907",
@@ -723,7 +728,8 @@
     "431e97202dd214a7440a4c9d4b4a92601cc5b368",
     "88cb169736bd1235cdde3f170187ff74a38b2e23",
     "ad3d7575d32e0d95cfd0050c7a40328d0e922967",
-    "a3aa2b23b09759729e528b0aa2d78d1084af0b76"
+    "a3aa2b23b09759729e528b0aa2d78d1084af0b76",
+    "7ba7e455ed2445bc28e4d492079451c862cfac16"
   ],
   "h3_lab/prompt_context.py": [
     "54853c23f48b96ad9c87d3ea4695fdaf3dd810dc",
@@ -747,7 +753,8 @@
     "4fb13b55fe38aa33f24c40e22d66368a909b4033",
     "9d16262f3a78214045a4e44975c931e08808e091",
     "584b8cca53864bac4014d462fe93f207c6b96427",
-    "c6c110c554b16d4c839c15d57a60591e78ce5e7a"
+    "c6c110c554b16d4c839c15d57a60591e78ce5e7a",
+    "13284079040b9006a1415db36a505dcae502597f"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -1150,7 +1157,8 @@
     "a39daa4dbfdfbe26bacc91cb1af27f7ee73d99cd",
     "a2d27dc2d9fed1a074e6689de5810dc13a371791",
     "1a077cf100a515f4ef9bcd76e9204545bbcfeee7",
-    "92d42dc260622d8db2784afa79574cda1fac2d63"
+    "92d42dc260622d8db2784afa79574cda1fac2d63",
+    "414c388fd51faddc9dd119e6ff92416e653078e7"
   ],
   "web/h3/configuration.js": [
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
@@ -1312,7 +1320,8 @@
     "7c9fb32fecc4bbdf08bc9fb380c4a4fdb59df779",
     "d0d70e1332f07ebdfe8284e44bb410132125c331",
     "e56b0fa046ccaae824e763b2c8d7140879ac896f",
-    "0034a31c4d87689cb67bd0209ea8555cc6cb2a41"
+    "0034a31c4d87689cb67bd0209ea8555cc6cb2a41",
+    "060097344935a7eda4e8c2beec4443bbfb480a4d"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
@@ -1320,7 +1329,8 @@
     "8c89f3168b59e774fc1a3b52f9c735dc294181cd",
     "9d8c91fcff3b9bb79ec02f820b634a4e30ace8e3",
     "93cda709700ee81322d4a4fe460e73d676c7e64a",
-    "b351a94b6f91806693524d2f4afb780acbe0fbba"
+    "b351a94b6f91806693524d2f4afb780acbe0fbba",
+    "be94563957fa5900a9a31819b35ffd3bdbd5da0d"
   ],
   "web/studio.js": [
     "00fb9696bfa52a4699497ce3205ead9aab724735",
@@ -1416,6 +1426,7 @@
     "2aa0412c70641df234beb820026fd32a7424a57d"
   ],
   "web/h3/project-workspace.js": [
-    "6680ea888acc5f33cd33d7676820dfd90f31be98"
+    "6680ea888acc5f33cd33d7676820dfd90f31be98",
+    "71071c6f6b1d256cf03967cb11ef04b5c12f967c"
   ]
 }

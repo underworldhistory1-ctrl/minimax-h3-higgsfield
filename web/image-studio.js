@@ -69,6 +69,7 @@ function saveDraft(){
 function restoreDraft(){
   let draft={};try{draft=JSON.parse(localStorage.getItem("qwen.imageDraft")||"{}");}catch{}
   for(const id of ["prompt","aspect","resolution","steps","seed","referenceResolution"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}
+  if($("seed").value.trim()&&$("seed").value.trim()!=="-1"){try{$("seed").value=String(H3RenderValues.seed($("seed").value));}catch{$("seed").value="42";showError("The saved seed was invalid. Reset to the default42.");}}
   $("transparent").checked=!!draft.transparent;$("customSize").checked=!!draft.customSize;$("fitReferences").checked=draft.fitReferences!==false;
 }
 function validName(name){return /^[\p{L}\p{N}_-]+$/u.test(name);}
@@ -123,7 +124,7 @@ $("referenceFiles").onchange=()=>{
 async function checkConnection(){
   try{
     const response=await fetch(api("/h3_studio/image_readiness"),{cache:"no-store"});if(!response.ok)throw Error("Image extension unavailable");
-    const data=await response.json();state.profiles=data.profiles||{};state.nodes=data.nodes||{};state.inferenceEnabled=data.inference_enabled!==false;state.standbyReason=state.inferenceEnabled?null:(data.reason||"Inference is disabled on this standby server.");state.ready=state.inferenceEnabled&&!!data.ready;
+    const data=await H3RenderValues.readJson(response);state.profiles=data.profiles||{};state.nodes=data.nodes||{};state.inferenceEnabled=data.inference_enabled!==false;state.standbyReason=state.inferenceEnabled?null:(data.reason||"Inference is disabled on this standby server.");state.ready=state.inferenceEnabled&&!!data.ready;
     for(const option of $("profile").options){option.disabled=!state.profiles[option.value]?.ready;}
     if(!state.profiles[$("profile").value]?.ready){const first=[...$("profile").options].find(option=>!option.disabled);if(first)$("profile").value=first.value;}
     const readyProfiles=Object.entries(state.profiles).filter(([,item])=>item.ready).map(([key])=>key.toUpperCase());
@@ -148,7 +149,7 @@ function handleSocket(message){
   }else if(message.type==="execution_error"&&state.busy){failGeneration(data.exception_message||"ComfyUI graph failed");}
 }
 function saveActiveJob(){if(!state.activePromptId)return;localStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8)}));}
-async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await response.json();if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
+async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await H3RenderValues.readJson(response);if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
 
 function buildGraph(settings,uploads,token){
   const files=profileFiles[settings.profile];if(!files)throw Error("Selected model profile is invalid.");
@@ -181,10 +182,11 @@ async function uploadOne(file,index){
 }
 async function cleanupUploads(){const names=state.uploaded.splice(0);await Promise.allSettled(names.map(filename=>fetch(api("/h3_studio/discard"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename})})));}
 function captureSettings(){
-  const [width,height]=outputDimensions(),sourcePrompt=$("prompt").value.trim(),steps=Number($("steps").value),seed=Number($("seed").value),profile=$("profile").value,mode=state.refs.length?"edit":"create";
-  if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(!Number.isSafeInteger(seed)||seed<0)throw Error("Seed must be a positive safe integer.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
+  const [width,height]=outputDimensions(),sourcePrompt=$("prompt").value.trim(),steps=Number($("steps").value),seed=H3RenderValues.seed($("seed").value,{allowRandom:true}),profile=$("profile").value,mode=state.refs.length?"edit":"create";
+  if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
   if(mode==="edit"&&!$("customSize").checked){if(!state.refs[0].width||!state.refs[0].height)throw Error("Still reading the first reference's dimensions. Try again in a moment.");if(width<256||height<256)throw Error("First reference is too small for the output canvas. Select 'Fit first image to selected output size'.");if(width>2752||height>2752)throw Error("First reference exceeds the supported output canvas. Select 'Fit first image to selected output size'.");}
   const prompt=resolveMentions(sourcePrompt);
+  $("seed").value=String(seed);saveDraft();
   return {mode,profile,prompt,sourcePrompt,referenceNames:state.refs.map(ref=>ref.name),width,height,steps,seed,transparent:mode==="create"&&$("transparent").checked,referenceResolution:Number($("referenceResolution").value),customSize:mode==="edit"&&$("customSize").checked};
 }
 async function recoverPendingImage(){
@@ -201,7 +203,7 @@ async function cancelQueuedImage(promptId){
   if(String(promptId).startsWith('submission:'))promptId=await recoverPendingImage();
   if(!promptId)return false;
   const response=await fetch(api('/queue'));if(!response.ok)return false;
-  const queue=await response.json();
+  const queue=await H3RenderValues.readJson(response);
   if((queue.queue_running||[]).some(item=>item[1]===promptId))return false;
   if(!(queue.queue_pending||[]).some(item=>item[1]===promptId))return false;
   const deleted=await fetch(api('/queue'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({delete:[promptId]})});if(!deleted.ok)return false;
@@ -221,7 +223,7 @@ async function generate(){
     const prompt=buildGraph(settings,state.uploaded,token);
     state.pendingToken=token;state.activePromptId="submission:"+token;localStorage.setItem("qwen.activePromptId",state.activePromptId);saveActiveJob();submitted=true;
     const response=await fetch(api("/prompt"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,client_id:state.clientId})});
-    const data=await response.json();
+    const data=await H3RenderValues.readJson(response);
     if(!response.ok||!data.prompt_id){submissionSettled=!response.ok&&response.status<500;if(submissionSettled){state.activePromptId=null;state.pendingToken=null;}throw Error(nodeError(data));}
     submissionSettled=true;state.pendingToken=null;
     state.activePromptId=data.prompt_id;localStorage.setItem("qwen.activePromptId",data.prompt_id);saveActiveJob();
@@ -255,7 +257,7 @@ async function pollQueue(){
 }
 function findOutput(history){for(const output of Object.values(history?.outputs||{})){for(const image of output.images||[]){if(/^qwen_studio_[A-Za-z0-9_-]+_[0-9]{5}\.png$/.test(image.filename||""))return image;}}return null;}
 async function pollHistory(force=false){
-  if(!state.activePromptId)return;if(state.pendingToken&&!await recoverPendingImage()){setTimeout(()=>pollHistory(false),2000);return;}try{const response=await fetch(api("/history/"+encodeURIComponent(state.activePromptId)),{cache:"no-store"});const all=await response.json();const history=all[state.activePromptId];if(history){const file=findOutput(history);if(file){await completeGeneration(file);return;}const status=history.status||{};if(status.status_str==="error"||status.completed===false)throw Error("The image graph failed. Check the ComfyUI error details.");}}catch(error){if(force){await finishFailure(error.message,false);return;}}setTimeout(()=>pollHistory(false),2000);
+  if(!state.activePromptId)return;if(state.pendingToken&&!await recoverPendingImage()){setTimeout(()=>pollHistory(false),2000);return;}try{const response=await fetch(api("/history/"+encodeURIComponent(state.activePromptId)),{cache:"no-store"});const all=await H3RenderValues.readJson(response);const history=all[state.activePromptId];if(history){const file=findOutput(history);if(file){await completeGeneration(file);return;}const status=history.status||{};if(status.status_str==="error"||status.completed===false)throw Error("The image graph failed. Check the ComfyUI error details.");}}catch(error){if(force){await finishFailure(error.message,false);return;}}setTimeout(()=>pollHistory(false),2000);
 }
 async function completeGeneration(file){
   if(state.completing)return;state.completing=true;
@@ -266,7 +268,7 @@ async function completeGeneration(file){
 function imageUrl(entry){return api("/h3_studio/image_file?"+new URLSearchParams({filename:entry.filename,_time:String(entry.modified||Date.now())}));}
 function showImage(entry){state.current=entry;const image=document.createElement("img");image.src=imageUrl(entry);image.alt="Generated Qwen image";$("stage").replaceChildren(image);$("currentActions").classList.remove("hidden");}
 async function loadLibrary(force=false){
-  try{const response=await fetch(api("/h3_studio/image_library"),{cache:"no-store"});if(!response.ok)throw Error();state.results=(await response.json()).items||[];renderLibrary();}catch{if(force)showError("Could not refresh the generated image library.");}
+  try{const response=await fetch(api("/h3_studio/image_library"),{cache:"no-store"});if(!response.ok)throw Error();state.results=(await H3RenderValues.readJson(response)).items||[];renderLibrary();}catch{if(force)showError("Could not refresh the generated image library.");}
 }
 function renderLibrary(){
   $("results").replaceChildren();$("imageCount").textContent=`(${state.results.length} on server)`;$("emptyHistory").classList.toggle("hidden",!!state.results.length);const remaining=Math.max(0,state.results.length-state.visible);$("showMore").classList.toggle("hidden",!remaining);$("showMore").textContent=`Show ${Math.min(8,remaining)} more · ${remaining} remaining`;
@@ -291,7 +293,7 @@ if($("sendToH3")) $("sendToH3").onclick = async () => {
       })
     });
     if(!res.ok) throw new Error((await res.text()).slice(0, 200));
-    const data = await res.json();
+    const data = await H3RenderValues.readJson(res);
     sessionStorage.setItem("h3_lab.imported_handoff", JSON.stringify({
       asset: data.asset,
       as_role: role
@@ -302,7 +304,7 @@ if($("sendToH3")) $("sendToH3").onclick = async () => {
   }
 };
 $("deleteCurrent").onclick=()=>deleteEntry(state.current);$("refreshLibrary").onclick=()=>loadLibrary(true);$("showMore").onclick=()=>{state.visible+=8;renderLibrary();};
-$("randomSeed").onclick=()=>{$("seed").value=Math.floor(Math.random()*2**48);saveDraft();};
+$("randomSeed").onclick=()=>{$("seed").value=H3RenderValues.randomSeed();saveDraft();};
 for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences"]){$(id).addEventListener("input",()=>{updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);

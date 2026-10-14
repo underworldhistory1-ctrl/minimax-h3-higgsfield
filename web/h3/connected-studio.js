@@ -147,7 +147,7 @@
     if(state.width!==width||state.height!==height||state.controlInputs[key]!==item||control.kind==='inpaint'&&state.controlInputs.mask!==mask||currentControl()?.kind!==control.kind||currentControl()?.input_type!==control.input_type||currentControl()?.start_seconds!==control.start_seconds)throw Error('Control inputs changed. Review them and generate again.');
     if(alignedMask){alignedMasks.set(mask,alignedMask);state.control.mask_alignment={fitted:alignedMask.fitted,width:canvas.width,height:canvas.height,method:'nearest_cover_crop'};}
     const available=Math.floor((duration-control.start_seconds)*24+.0001);
-    if(available<124)throw Error('The source must contain at least 5.17 seconds after the selected start. Choose a longer span.');
+    if(available<5)throw Error('The source must contain at least 5 frames after the selected start. Choose a longer span.');
     const requested=Number($('duration').value),matched=Math.min(requested,5+17*Math.floor((available-5)/17));
     state.control.source_span={start_seconds:control.start_seconds,seconds:matched/24,source_duration:duration};
     state.control.plan_note=matched<requested?'Matched output to source span: '+(matched/24).toFixed(2)+' seconds. No frames are repeated or padded.':'';

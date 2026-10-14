@@ -487,6 +487,10 @@ def validate_resource_contract(spec):
         if 'batch_size' in inputs and integer(inputs['batch_size'], 'Batch size') != 1:
             raise ValueError('H3 Studio supports one video per render. Batch size must be 1.')
         if node.get('class_type') in ('KSampler', 'KSamplerAdvanced'):
+            from .render_values import seed_value
+            seed_key = 'noise_seed' if node.get('class_type') == 'KSamplerAdvanced' else 'seed'
+            if seed_key in inputs:
+                inputs[seed_key] = seed_value(inputs[seed_key])
             steps = integer(inputs.get('steps'), 'Sampler steps')
             if not 1 <= steps <= 100:
                 raise ValueError('Sampler steps must be between 1 and 100.')

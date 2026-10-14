@@ -171,4 +171,16 @@ class PromptContextTests(unittest.TestCase):
             self.assertEqual(len(calls),1)
 
 
+class ShortDurationPreparationTests(unittest.TestCase):
+    def test_reference_prompt_preparation_accepts_short_native_grid(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory);Image.new('RGB',(20,20)).save(root/'h3_studio_kf_short.png')
+            service=PromptContextService(root,writer=lambda spec,parts:{'compiled_prompt':'A still portrait.','source_prompt':spec['source_prompt'],'bindings':spec['bindings']})
+            for frames in (5,22,39,56,73,90,107):
+                spec={'mode':'refs','source_prompt':'@hero','target_frames':frames,'references':[{'alias':'hero','kind':'image','filename':'h3_studio_kf_short.png'}]}
+                result=service.prepare(spec)
+                self.assertIn('bindings',result)
+            with self.assertRaises(ValueError):service.prepare({**spec,'target_frames':24})
+
 if __name__=='__main__': unittest.main()
