@@ -26,7 +26,7 @@ Multiple installations require `--comfy-root`; ambiguous environments are preser
 ## Defaults and optional profiles
 
 Default preparation includes H3 Text/Frames/References, MotionCache and Spectrum,
-Realism People, Combat V2, Motion Repair V2, Character Swap, Refine, ControlNet with CPU pose/depth
+Anime → Realism (LiseTY, pinned 310 MB), Realism People, Combat V2, Motion Repair V2, Character Swap, Refine, ControlNet with CPU pose/depth
 preprocessors, and Qwen Image INT8. Original remains the default rendering method.
 The launcher's short validation render also uses Original.
 

@@ -6,6 +6,13 @@
   const profiles=Object.freeze({original:{label:'Original H3',accent:'original'},singularity:{label:'H3 Singularity',accent:'singularity'},hybrid_conditioning:{label:'Hybrid · FL2VA reference conditioning',accent:'hybrid'},hybrid_loader:{label:'Hybrid · tensor overlay loader',accent:'hybrid'}});
   function filename(value){if(typeof value!=='string'||!value||value.includes('..')||/[\\\x00-\x1f]/.test(value)||value.startsWith('/')||/^[a-z]+:/i.test(value))throw Error('Invalid model filename.');return value;}
   const CHARACTER_SWAP='h3_character_swap_pro4500_1000.safetensors';
+  const ANIME_TO_REALISM='Anime2Realsim__H3.safetensors';
+  function isAnimeToRealism(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===ANIME_TO_REALISM.toLowerCase();}
+  function validateAnimeToRealism(spec){
+    if(!(spec.loras||[]).some(x=>x.enabled&&isAnimeToRealism(x.name)))return;
+    if(spec.mode!=='refs'||(spec.model_profile||'original')!=='original')throw Error('Anime → Realism requires Original H3 Ref2VA; other checkpoint families are not validated.');
+    if(!(spec.references||[]).some(r=>r.kind==='video'))throw Error('Anime → Realism requires a source video in References.');
+  }
   function isCharacterSwap(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===CHARACTER_SWAP;}
   function validateCharacterSwap(spec){
     if(!(spec.loras||[]).some(x=>x.enabled&&isCharacterSwap(x.name)))return;
@@ -15,6 +22,7 @@
   }
   function resolve(spec,caps={}){
     validateCharacterSwap(spec);
+    validateAnimeToRealism(spec);
     const profile=spec.model_profile||'original';if(!profiles[profile])throw Error('Unknown model profile.');
     const family=spec.mode==='refs'?'ref2va':'fl2va';
     let name=profile==='original'?(family==='ref2va'?REF:FL):profile==='singularity'?filename(spec.checkpoint):FL;
@@ -55,5 +63,5 @@
     }
     return node;
   }
-  return {defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap};
+  return {defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

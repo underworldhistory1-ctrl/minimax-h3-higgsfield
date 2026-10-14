@@ -12,6 +12,32 @@ from h3_lab.model_catalog import discover, reference_control_supported
 
 
 class ModernizationTests(unittest.TestCase):
+    def test_anime_realism_manifest_and_admission(self):
+        import copy, json, subprocess
+        from pathlib import Path
+        from h3_lab.configuration import validate_anime_to_realism, ANIME_TO_REALISM
+        artifact = next(a for a in launcher_models.manifest(qwen_profiles='', refine=False, controlnet=False) if a.relative_path.endswith(ANIME_TO_REALISM))
+        self.assertEqual(artifact.size, 310168760)
+        self.assertEqual(artifact.sha256, 'bce58949e0983115bb9b7f2cf79f7474119ce2cedd845e4c565666fabfde2a3e')
+        self.assertIn('/33ee6502c125eea847aac14c49fecca43737ee40/', artifact.url)
+        script="""const C=require('./web/h3/configuration');const spec={mode:'refs',loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124}]};spec.workflow=require('./web/h3/graph-builder').buildGraph(spec,{shot:'s.mp4'},{});console.log(JSON.stringify(spec));"""
+        spec=json.loads(subprocess.check_output(['node','-e',script],cwd=Path(__file__).resolve().parents[1],text=True))
+        validate_anime_to_realism(spec)
+        for mutation in ('wrong_chain','missing_video','wrong_strength','undeclared','disconnected','duplicate'):
+            bad=copy.deepcopy(spec)
+            adapter=next(n for n in bad['workflow'].values() if n.get('class_type')=='LoraLoaderModelOnly')
+            if mutation=='wrong_chain':
+                bad['workflow']['other']={'class_type':'UNETLoader','inputs':{'unet_name':'other.safetensors'}};adapter['inputs']['model']=['other',0]
+            elif mutation=='missing_video':bad['workflow']['6']['inputs'].pop('ref_videos.ref_video_0')
+            elif mutation=='wrong_strength':adapter['inputs']['strength_model']=1
+            elif mutation=='undeclared':bad['loras']=[]
+            elif mutation=='duplicate':bad['loras'].append(copy.deepcopy(bad['loras'][0]))
+            else:bad['workflow']['8']['inputs']['model']=['1',0]
+            with self.assertRaises(ValueError):validate_anime_to_realism(bad)
+        for profile in ('singularity','hybrid_loader','hybrid_conditioning'):
+            with self.assertRaisesRegex(ValueError,'Ref2VA'):validate_anime_to_realism({**spec,'model_profile':profile})
+        with self.assertRaisesRegex(ValueError,'source video'):validate_anime_to_realism({**spec,'references':[{'kind':'image'}]})
+
     def test_character_swap_manifest_and_admission(self):
         from h3_lab.configuration import validate_character_swap, CHARACTER_SWAP, REF
         item = next(x for x in launcher_models.manifest(qwen_profiles='', refine=False, controlnet=False) if x.relative_path.endswith(CHARACTER_SWAP))

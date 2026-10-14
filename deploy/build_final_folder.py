@@ -10,6 +10,7 @@ import zipfile
 
 
 SOURCE_FILES = (
+    "docs/ANIME_TO_REALISM_AR.md", "docs/anime/anime-realism-prepared.png",
     "docs/TAB_PERSISTENCE_AR.md", "docs/tabs/tab-restored.png", "docs/tabs/tab-browser-verification.json",
     "docs/AUDIO_ENHANCEMENT_AR.md", "docs/audio/audio-enhancement.png", "docs/audio/audio-browser-verification.json",
     "uninstall.ps1", "uninstall.sh", "deploy/uninstall_h3.py", "docs/UNINSTALL.md",
