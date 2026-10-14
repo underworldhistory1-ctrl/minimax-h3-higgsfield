@@ -60,7 +60,9 @@ class QwenImageContractTests(unittest.TestCase):
         self.assertEqual(graph["cache"]["class_type"], "QwenImage21Cache")
         self.assertEqual(graph["sampler"]["inputs"]["latent_image"], ["enc", 2])
         self.assertEqual(graph["enc"]["inputs"]["images.image_1"], ["load1", 0])
-        self.assertEqual(graph["enc"]["inputs"]["images.image_2"], ["load2", 0])
+        self.assertEqual(graph["enc"]["inputs"]["resolution"], 0)
+        self.assertEqual(graph["enc"]["inputs"]["images.image_2"], ["scale_ref2", 0])
+        self.assertEqual(graph["scale_ref2"]["inputs"]["megapixels"], 1.0)
         self.assertEqual(graph["unet"]["inputs"]["unet_name"], "qwen_image_2.1_bf16.safetensors")
 
     def test_edit_graph_can_resize_only_the_primary_canvas(self):
@@ -75,6 +77,15 @@ class QwenImageContractTests(unittest.TestCase):
         self.assertEqual(graph["scale_primary"]["inputs"]["width"], 1696)
         self.assertEqual(graph["enc"]["inputs"]["images.image_1"], ["scale_primary", 0])
         self.assertEqual(graph["enc"]["inputs"]["images.image_2"], ["load2", 0])
+
+    def test_additional_reference_detail_respects_native_megapixel_units_and_limits(self):
+        qwen = self.module()
+        for resolution in (103, 1024, 1536, 2048, 4096):
+            graph=qwen.build_qwen_graph({'mode':'edit','prompt':'x','reference_resolution':resolution}, ['a.png','b.png'], 'size')
+            self.assertEqual(graph['scale_ref2']['inputs']['megapixels'],resolution**2/1048576)
+            self.assertEqual(graph['scale_ref2']['inputs']['resolution_steps'],32)
+        with self.assertRaisesRegex(ValueError,'103'):
+            qwen.build_qwen_graph({'mode':'edit','prompt':'x','reference_resolution':1}, ['a.png','b.png'], 'size')
 
     def test_validation_rejects_bad_or_unsafe_requests(self):
         qwen = self.module()

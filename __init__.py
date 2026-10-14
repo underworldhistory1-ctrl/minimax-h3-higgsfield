@@ -319,11 +319,12 @@ async def upload_ref(request):
             raise ValueError("Images cannot have an audio/video trim.")
     except (TypeError, ValueError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
-    reader = await request.multipart()
-    part = await reader.next()
-    if not part or part.name != "file":
-        return web.json_response({"error": "Missing file."}, status=400)
-    ext = pathlib.Path(part.filename or "").suffix.lower()
+    from .h3_lab.reference_upload import reference_upload
+    try:
+        filename, read_chunk = await reference_upload(request, kind, limits[kind])
+    except ValueError as error:
+        return web.json_response({"error": str(error)}, status=400)
+    ext = pathlib.Path(filename).suffix.lower()
     if ext not in kinds[kind]:
         return web.json_response({"error": "Unsupported file extension for this type."}, status=400)
     name = f"{INPUT_PREFIX}_{uuid.uuid4().hex}{ext}"
@@ -334,7 +335,7 @@ async def upload_ref(request):
         os.makedirs(folder_paths.get_input_directory(), exist_ok=True)
         with open(path, "xb") as output:
             while True:
-                chunk = await part.read_chunk(size=1 << 20)
+                chunk = await read_chunk(size=1 << 20)
                 if not chunk:
                     break
                 size += len(chunk)

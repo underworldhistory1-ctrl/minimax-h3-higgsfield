@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.5.2
+# H3 Higgsfield 2.5.3
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -11,6 +11,11 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 [![Superman above Earth — watch the creator-supplied excerpt](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
+
+## New in 2.5.3
+
+- **Image uploads through hosted gateways:** bounded JSON image transport avoids the multipart rejection reproduced on HyperAI, with the same image verification and25 MB raw limit. Upload errors show HTTP or connection details; inputs remain saved.
+- **Change the image canvas anytime:** aspect ratio and output size stay available after adding references. Changing either selects an explicit output canvas; turn off Use selected output size to follow the first reference. Prompts, named images and sizing choices survive refresh independently per tab. [Evidence and rollback](docs/IMAGE_WORKSPACE_FIX_AR.md).
 
 ## New in 2.5.2
 

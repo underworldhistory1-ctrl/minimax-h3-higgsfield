@@ -40,7 +40,8 @@ function estimateSeconds(){
 function updateSettings(){
   const hasRefs=state.refs.length>0,sourceCanvas=hasRefs&&!$("customSize").checked;
   $("referenceOptions").hidden=!hasRefs;$("referenceCount").textContent=hasRefs?`${state.refs.length}/10 attached`+(state.refsSaving?" · saving…":state.refsSaved?" · saved in this browser":""):"Optional";
-  $("aspect").disabled=state.busy||sourceCanvas;$("resolution").disabled=state.busy||sourceCanvas;$("transparentLabel").hidden=hasRefs;
+  $("aspect").disabled=state.busy;$("resolution").disabled=state.busy;$("canvasOptions").hidden=!hasRefs;$("referenceResolution").disabled=state.busy||state.refs.length<2;$("transparentLabel").hidden=hasRefs;
+  for(const meta of document.querySelectorAll('[data-reference-canvas="true"]')){const first=state.refs[0];if(first)meta.textContent=fmtBytes(first.file.size)+(sourceCanvas?" · sets canvas size":" · fitted to selected canvas");}
   const [w,h]=outputDimensions();$("dimensions").textContent=sourceCanvas?(state.refs[0].width?`Output canvas from first reference · approximately ${w} × ${h}`:"Output canvas follows the first reference · reading dimensions…"):`${w} × ${h} · ${(w*h/1048576).toFixed(1)} MP target`;
   $("estimate").textContent=`Initial estimate: ${fmt(estimateSeconds())}. It will calibrate from completed images on this server.`;
 }
@@ -94,7 +95,7 @@ function moveReference(index,direction){
 function renderRefs(){
   $("referenceList").replaceChildren();state.refs.forEach((ref,index)=>{
     const row=document.createElement("div");row.className="ref";const image=document.createElement("img");image.src=ref.url;image.alt=`Preview of image ${index+1}`;
-    const text=document.createElement("div");const title=document.createElement("strong");title.textContent=`image${index+1} · ${ref.file.name}`;const meta=document.createElement("small");meta.textContent=fmtBytes(ref.file.size)+(index===0?" · sets canvas size":" · reference");const nameLabel=document.createElement("label");nameLabel.textContent="MENTION NAME";const nameInput=document.createElement("input");nameInput.className="ref-name";nameInput.value=ref.name;nameInput.maxLength=32;nameInput.setAttribute("aria-label",`Mention name for image ${index+1}`);nameInput.onchange=()=>{const next=nameInput.value.trim();if(!validName(next)||state.refs.some(other=>other!==ref&&other.name.toLowerCase()===next.toLowerCase())){showError("Use a unique reference name with letters, numbers, _ or -.");nameInput.value=ref.name;return;}const old=ref.name;ref.name=next;if(old!==next){const escaped=old.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");$("prompt").value=$("prompt").value.replace(new RegExp(`(^|[^\\p{L}\\p{N}_])@${escaped}(?![\\p{L}\\p{N}_-])`,"gu"),(full,prefix)=>`${prefix}@${next}`);}showError("");renderMentions();saveDraft();};nameInput.oninput=()=>{if(validName(nameInput.value.trim())&&!state.refs.some(other=>other!==ref&&other.name.toLowerCase()===nameInput.value.trim().toLowerCase()))nameInput.onchange();};text.append(title,meta,nameLabel,nameInput);
+    const text=document.createElement("div");const title=document.createElement("strong");title.textContent=`image${index+1} · ${ref.file.name}`;const meta=document.createElement("small");meta.dataset.referenceCanvas=String(index===0);meta.textContent=fmtBytes(ref.file.size)+(index===0?" · sets canvas size":" · reference");const nameLabel=document.createElement("label");nameLabel.textContent="MENTION NAME";const nameInput=document.createElement("input");nameInput.className="ref-name";nameInput.value=ref.name;nameInput.maxLength=32;nameInput.setAttribute("aria-label",`Mention name for image ${index+1}`);nameInput.onchange=()=>{const next=nameInput.value.trim();if(!validName(next)||state.refs.some(other=>other!==ref&&other.name.toLowerCase()===next.toLowerCase())){showError("Use a unique reference name with letters, numbers, _ or -.");nameInput.value=ref.name;return;}const old=ref.name;ref.name=next;if(old!==next){const escaped=old.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");$("prompt").value=$("prompt").value.replace(new RegExp(`(^|[^\\p{L}\\p{N}_])@${escaped}(?![\\p{L}\\p{N}_-])`,"gu"),(full,prefix)=>`${prefix}@${next}`);}showError("");renderMentions();saveDraft();};nameInput.oninput=()=>{if(validName(nameInput.value.trim())&&!state.refs.some(other=>other!==ref&&other.name.toLowerCase()===nameInput.value.trim().toLowerCase()))nameInput.onchange();};text.append(title,meta,nameLabel,nameInput);
     const remove=document.createElement("button");remove.className="button alt small";remove.type="button";remove.textContent="Remove";remove.onclick=()=>{if(state.busy)return;URL.revokeObjectURL(ref.url);state.refs.splice(index,1);renderRefs();saveDraft();};
     const aliasRow=document.createElement("div");aliasRow.className="ref-alias-row";aliasRow.append(nameLabel,nameInput);
     const insert=document.createElement("button");insert.type="button";insert.className="button alt small ref-insert";insert.textContent=`Insert @${ref.name} into prompt`;insert.title=insert.textContent;insert.disabled=state.busy;insert.onclick=()=>{insertMention(ref.name);$("prompt").scrollIntoView({behavior:"smooth",block:"center"});};
@@ -154,6 +155,7 @@ function saveActiveJob(){if(!state.activePromptId)return;sessionStorage.setItem(
 async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await H3RenderValues.readJson(response);if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
 
 function buildGraph(settings,uploads,token){
+  if(settings.mode==="edit"&&uploads.length>1&&settings.referenceResolution>0&&(settings.referenceResolution<103||settings.referenceResolution>4096))throw Error("Additional reference detail must be 0 or 103–4096 px for this runtime.");
   const files=profileFiles[settings.profile];if(!files)throw Error("Selected model profile is invalid.");
   const prompt=settings.transparent&&settings.mode==="create"?`This is an RGBA format image with transparency. ${settings.prompt.replace(/\.+$/,'')}. The image has an alpha channel and a transparent background.`:settings.prompt;
   const metadata={kind:"image",...settings,prompt,references:uploads.map((name,index)=>({name:settings.referenceNames?.[index]||`image${index+1}`,file:name.split(/[\\/]/).pop()})),submitted_at:Date.now()/1000,token};
@@ -169,24 +171,42 @@ function buildGraph(settings,uploads,token){
   if(settings.mode==="create"){
     graph.latent={class_type:"EmptyLatentImage",inputs:{width:settings.width,height:settings.height,batch_size:1}};latent=["latent",0];
   }else{
-    graph.enc.inputs.vae=["vae",0];uploads.forEach((name,index)=>{const n=index+1,id="load"+n;graph[id]={class_type:"LoadImage",inputs:{image:name}};let link=[id,0];if(n===1&&settings.customSize){graph.scale_primary={class_type:"ImageScale",inputs:{image:link,upscale_method:"lanczos",width:settings.width,height:settings.height,crop:"center"}};link=["scale_primary",0];}graph.enc.inputs["images.image_"+n]=link;});
+    graph.enc.inputs.vae=["vae",0];graph.enc.inputs.resolution=0;uploads.forEach((name,index)=>{const n=index+1,id="load"+n;graph[id]={class_type:"LoadImage",inputs:{image:name}};let link=[id,0];if(n===1&&settings.customSize){graph.scale_primary={class_type:"ImageScale",inputs:{image:link,upscale_method:"lanczos",width:settings.width,height:settings.height,crop:"center"}};link=["scale_primary",0];}else if(n>1&&settings.referenceResolution>0){const scale="scale_ref"+n;graph[scale]={class_type:"ImageScaleToTotalPixels",inputs:{image:link,upscale_method:"lanczos",megapixels:settings.referenceResolution**2/1048576,resolution_steps:32}};link=[scale,0];}graph.enc.inputs["images.image_"+n]=link;});
     graph.cache={class_type:"QwenImage21Cache",inputs:{model:["unet",0],device:"auto",dtype:"default"}};model=["cache",0];latent=["enc",2];
   }
   graph.sampler={class_type:"KSampler",inputs:{model,seed:settings.seed,steps:settings.steps,cfg:1,sampler_name:"euler",scheduler:"simple",positive:["enc",0],negative:["enc",1],latent_image:latent,denoise:1}};
   return graph;
 }
 async function uploadOne(file,index){
+  const signal=state.abort?.signal;
+  const encoded=await new Promise((resolve,reject)=>{
+    if(signal?.aborted){reject(new DOMException("Cancelled","AbortError"));return;}
+    const reader=new FileReader(),cancel=()=>reader.abort();
+    const finish=()=>signal?.removeEventListener("abort",cancel);
+    signal?.addEventListener("abort",cancel,{once:true});
+    reader.onload=()=>{finish();resolve(String(reader.result).split(",")[1]);};
+    reader.onerror=()=>{finish();reject(Error("Could not read this image. Remove it and add the original file again."));};
+    reader.onabort=()=>{finish();reject(new DOMException("Cancelled","AbortError"));};
+    reader.readAsDataURL(file);
+  });
+  if(signal?.aborted)throw new DOMException("Cancelled","AbortError");
   return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();state.abort?.signal.addEventListener("abort",()=>xhr.abort(),{once:true});xhr.open("POST",api("/h3_studio/upload_ref?kind=image"+($("fitReferences").checked?"&resize=1":"")));
+    const xhr=new XMLHttpRequest(),cancel=()=>xhr.abort(),finish=()=>signal?.removeEventListener("abort",cancel);
+    signal?.addEventListener("abort",cancel,{once:true});xhr.open("POST",api("/h3_studio/upload_ref?kind=image"+($("fitReferences").checked?"&resize=1":"")));
+    xhr.setRequestHeader("Content-Type","application/json");xhr.timeout=300000;
     xhr.upload.onprogress=event=>{if(event.lengthComputable)setProgress(`Uploading image ${index+1}/${state.refs.length}`,2+Math.round(6*event.loaded/event.total),null);};
-    xhr.onload=()=>{let data={};try{data=JSON.parse(xhr.responseText);}catch{}if(xhr.status>=200&&xhr.status<300&&data.name)resolve(data.name);else reject(Error(data.error||"Upload failed"));};xhr.onerror=()=>reject(Error("Upload failed"));xhr.onabort=()=>reject(new DOMException("Cancelled","AbortError"));const form=new FormData();form.append("file",file,file.name);xhr.send(form);
+    xhr.onload=()=>{finish();let data={};try{data=JSON.parse(xhr.responseText);}catch{}if(xhr.status>=200&&xhr.status<300&&typeof data.name==="string"&&data.name)resolve(data.name);else reject(Error(data.error||`Image upload failed (HTTP ${xhr.status}). ${/just a moment|cf_chl|cloudflare/i.test(xhr.responseText)?'The hosting gateway blocked the upload.':'The server did not return a valid upload response.'}`));};
+    xhr.onerror=()=>{finish();reject(Error("Image upload could not reach the server. Check the connection and retry; your references remain saved."));};
+    xhr.ontimeout=()=>{finish();reject(Error("Image upload timed out. Your references remain saved; check the connection and retry."));};
+    xhr.onabort=()=>{finish();reject(new DOMException("Cancelled","AbortError"));};
+    xhr.send(JSON.stringify({filename:file.name,data:encoded}));
   });
 }
 async function cleanupUploads(){const names=state.uploaded.splice(0);await Promise.allSettled(names.map(filename=>fetch(api("/h3_studio/discard"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename})})));}
 function captureSettings(){
   const [width,height]=outputDimensions(),sourcePrompt=$("prompt").value.trim(),steps=Number($("steps").value),seed=H3RenderValues.seed($("seed").value,{allowRandom:true}),profile=$("profile").value,mode=state.refs.length?"edit":"create";
   if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
-  if(mode==="edit"&&!$("customSize").checked){if(!state.refs[0].width||!state.refs[0].height)throw Error("Still reading the first reference's dimensions. Try again in a moment.");if(width<256||height<256)throw Error("First reference is too small for the output canvas. Select 'Fit first image to selected output size'.");if(width>2752||height>2752)throw Error("First reference exceeds the supported output canvas. Select 'Fit first image to selected output size'.");}
+  if(mode==="edit"&&!$("customSize").checked){if(!state.refs[0].width||!state.refs[0].height)throw Error("Still reading the first reference's dimensions. Try again in a moment.");if(width<256||height<256)throw Error("First reference is too small for the output canvas. Select 'Use selected output size'.");if(width>2752||height>2752)throw Error("First reference exceeds the supported output canvas. Select 'Use selected output size'.");}
   const prompt=resolveMentions(sourcePrompt);
   $("seed").value=String(seed);saveDraft();
   return {mode,profile,prompt,sourcePrompt,referenceNames:state.refs.map(ref=>ref.name),width,height,steps,seed,transparent:mode==="create"&&$("transparent").checked,referenceResolution:Number($("referenceResolution").value),customSize:mode==="edit"&&$("customSize").checked};
@@ -307,7 +327,7 @@ if($("sendToH3")) $("sendToH3").onclick = async () => {
 };
 $("deleteCurrent").onclick=()=>deleteEntry(state.current);$("refreshLibrary").onclick=()=>loadLibrary(true);$("showMore").onclick=()=>{state.visible+=8;renderLibrary();};
 $("randomSeed").onclick=()=>{$("seed").value=H3RenderValues.randomSeed();saveDraft();};
-for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences"]){$(id).addEventListener("input",()=>{updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
+for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences"]){$(id).addEventListener("input",()=>{if(id==="aspect"||id==="resolution")$("customSize").checked=true;updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);
 async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(sessionStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}

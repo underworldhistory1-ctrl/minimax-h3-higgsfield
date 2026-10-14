@@ -61,7 +61,7 @@ MODEL_PROFILES = {
 REQUIRED_QWEN_NODES = (
     "UNETLoader", "CLIPLoader", "VAELoader", "TextEncodeQwenImage21",
     "QwenImage21Cache", "EmptyLatentImage", "KSampler", "VAEDecode",
-    "ImageScale", "QwenStudioSaveImage",
+    "ImageScale", "ImageScaleToTotalPixels", "QwenStudioSaveImage",
 )
 
 
@@ -136,6 +136,8 @@ def build_qwen_graph(request, uploads, token):
         from h3_lab.render_values import seed_value
     seed = seed_value(request.get("seed", 42))
     reference_resolution = _integer(request.get("reference_resolution", 1024), "Reference resolution", 0, 4096)
+    if mode == "edit" and len(uploads) > 1 and 0 < reference_resolution < 103:
+        raise ValueError("Additional reference detail must be 0 or 103–4096 px for this runtime")
     safe_token = re.sub(r"[^A-Za-z0-9_-]", "", str(token))[:64]
     if not safe_token:
         raise ValueError("A safe generation token is required")
@@ -147,6 +149,7 @@ def build_qwen_graph(request, uploads, token):
         "width": width, "height": height, "steps": steps, "seed": seed,
         "transparent": bool(mode == "create" and request.get("transparent")),
         "custom_size": bool(mode == "edit" and request.get("custom_size")),
+        "reference_resolution": reference_resolution,
         "references": [os.path.basename(str(name)) for name in uploads],
         "submitted_at": time.time(), "token": safe_token,
     }
@@ -169,6 +172,7 @@ def build_qwen_graph(request, uploads, token):
         latent_link = ["latent", 0]
     else:
         graph["enc"]["inputs"]["vae"] = ["vae", 0]
+        graph["enc"]["inputs"]["resolution"] = 0
         for index, filename in enumerate(uploads, 1):
             node_id = f"load{index}"
             graph[node_id] = {"class_type": "LoadImage", "inputs": {"image": filename}}
@@ -179,6 +183,13 @@ def build_qwen_graph(request, uploads, token):
                     "height": height, "crop": "center",
                 }}
                 image_link = ["scale_primary", 0]
+            if index > 1 and reference_resolution > 0:
+                scale_id = f"scale_ref{index}"
+                graph[scale_id] = {"class_type": "ImageScaleToTotalPixels", "inputs": {
+                    "image": image_link, "upscale_method": "lanczos",
+                    "megapixels": reference_resolution ** 2 / 1_048_576, "resolution_steps": 32,
+                }}
+                image_link = [scale_id, 0]
             graph["enc"]["inputs"][f"images.image_{index}"] = image_link
         graph["cache"] = {"class_type": "QwenImage21Cache", "inputs": {
             "model": ["unet", 0], "device": "auto", "dtype": "default",

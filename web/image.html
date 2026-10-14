@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>H3 Higgsfield 2.5.2 — Create Image</title>
+<title>H3 Higgsfield 2.5.3 — Create Image</title>
 <style>
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#242424;--line:#353535;--text:#f6f6f6;--muted:#a7a7a7;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
 *{box-sizing:border-box}[hidden],.hidden{display:none!important}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}a{color:var(--acid)}
@@ -26,7 +26,7 @@
 </head>
 <body>
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.5.2</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.5.3</div></div>
  <nav class="topnav" aria-label="Studio workspace"><a href="index.html">Create Video</a><a class="active" href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt small">Retry</button></div>
 </header>
@@ -36,13 +36,13 @@
    <div class="section-tabs"><span>Create Image</span><span>Qwen workflow</span></div>
    <div class="model-hero"><div class="eyebrow">MODEL · QWEN IMAGE 2.1</div><h1>Qwen Image 2.1</h1><p>Create images from a prompt, with optional visual references.</p></div>
    <section class="panel" id="editPanel">
-    <h2>References <span id="referenceCount" class="tip">Optional</span></h2><p>Add up to 10 images. Image 1 sets the output canvas; the others add visual context. Arrange them below, then name each image in the prompt to say what to keep or combine.</p>
+    <h2>References <span id="referenceCount" class="tip">Optional</span></h2><p>Add up to 10 images. By default Image 1 sets the output canvas; change Output settings anytime to choose a different size. Other images add visual context. Arrange them below, then name each image in the prompt to say what to keep or combine.</p>
     <div class="uploadbox"><button id="addReferences" type="button" class="button alt small">+ Add images</button><span class="tip">PNG, JPG or WebP · 25 MB each · 10 maximum</span></div>
     <input id="referenceFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
     <div id="referenceList" class="refs"></div>
     <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input id="fitReferences" type="checkbox" checked style="width:auto"> Auto fit oversized references before upload · 2048 px maximum</label>
-    <div id="referenceOptions" hidden><label for="referenceResolution">REFERENCE DETAIL</label><select id="referenceResolution"><option value="1024" selected>Balanced · 1024 px</option><option value="1536">High · 1536 px</option><option value="2048">Maximum · 2048 px</option><option value="0">Keep source size</option></select>
-    <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input id="customSize" type="checkbox" style="width:auto"> Fit first image to selected output size</label><div class="tip">Image 1 still guides the result. Fitting to a different aspect ratio center-crops it; otherwise its size sets the canvas. Choose your base image first.</div></div>
+    <div id="referenceOptions" hidden><label for="referenceResolution">ADDITIONAL REFERENCE DETAIL</label><select id="referenceResolution"><option value="1024" selected>Balanced · 1024 px</option><option value="1536">High · 1536 px</option><option value="2048">Maximum · 2048 px</option><option value="0">Keep source size</option></select><div class="tip">The first reference matches the output canvas. This detail setting applies to additional references.</div>
+    </div>
    </section>
    <section class="panel">
     <h2>Prompt</h2><p id="promptHelp">Describe the result. For multiple images, name each one and specify what comes from it, for example: “Put the person from @person in the room from @room.”</p>
@@ -54,6 +54,7 @@
     <h2>Output settings</h2><p>Qwen Image 2.1 supports native 2K output. Larger canvases take longer and use more memory.</p>
     <label for="profile">MODEL PRECISION</label><select id="profile"><option value="int8" disabled>Fast / efficient · INT8 ConvRot</option><option value="bf16" disabled>Maximum precision · BF16</option></select>
     <div id="profileNote" class="profile-note"><strong>Checking installed weights</strong><br>The interface enables only complete, verified profiles.</div>
+    <div id="canvasOptions" hidden><label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input id="customSize" type="checkbox" style="width:auto"> Use selected output size</label><div class="tip">Change aspect ratio or output size anytime to use your selected canvas. Fitting a different ratio center-crops the first image; uncheck to preserve its proportions and size.</div></div>
     <div class="controls">
      <div><label for="aspect">ASPECT RATIO</label><select id="aspect"><option value="1:1">1:1 Square</option><option value="16:9">16:9 Landscape</option><option value="9:16">9:16 Portrait</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="3:2">3:2</option><option value="2:3">2:3</option></select></div>
      <div><label for="resolution">OUTPUT SIZE</label><select id="resolution"><option value="1">Draft · 1 MP</option><option value="1.6" selected>Standard · 1.6 MP</option><option value="4">Native 2K · 4 MP</option></select></div>
@@ -76,12 +77,12 @@
  </section>
 </main>
 <dialog id="detailsDialog" class="dialog" aria-labelledby="detailsTitle"><div class="dialog-head"><h2 id="detailsTitle">Image settings</h2><button id="closeDetails" class="button alt small" aria-label="Close settings">✕ Close</button></div><div id="detailsContent"></div></dialog>
-<script src="./h3/render-values.js?v=20261015-production-2.5.2"></script>
-<script src="./h3/uuid.js?v=20261015-production-2.5.2"></script>
-<script src="./h3/tab-draft-store.js?v=20261015-production-2.5.2"></script>
-<script src="./h3/image-reference-store.js?v=20261015-production-2.5.2"></script>
-<script src="./image-studio.js?v=20261015-production-2.5.2"></script>
-<link rel="stylesheet" href="./studio-ux.css?v=20261015-production-2.5.2">
-<script src="./h3/studio-ux.js?v=20261015-production-2.5.2"></script>
+<script src="./h3/render-values.js?v=20261015-production-2.5.3"></script>
+<script src="./h3/uuid.js?v=20261015-production-2.5.3"></script>
+<script src="./h3/tab-draft-store.js?v=20261015-production-2.5.3"></script>
+<script src="./h3/image-reference-store.js?v=20261015-production-2.5.3"></script>
+<script src="./image-studio.js?v=20261015-production-2.5.3"></script>
+<link rel="stylesheet" href="./studio-ux.css?v=20261015-production-2.5.3">
+<script src="./h3/studio-ux.js?v=20261015-production-2.5.3"></script>
 </body>
 </html>
