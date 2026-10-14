@@ -1,5 +1,11 @@
 # Verified behavior and production boundaries
 
+## 2.4.0 project organization and Reuse
+
+346 Python tests and 148 JavaScript tests passed. A real local project/asset API and Playwright verified naming, project/asset folders, search, transfer copy/move, immutable original takes and Reuse into another project. Actual Generate captured the exact uint64 maximum seed, 73 frames, aliases and sampler shifts before any GPU submission. Save/reload keeps missing LoRAs blocked; delayed transfer lookup locks server/project switching. Browser screenshots cover desktop and 390px layouts. Durable interrupted transfers recover on restart; legacy clip dependencies prevent unsafe asset moves. [Evidence, compatibility and rollback](ORGANIZATION_AND_REUSE_AR.md).
+
+This release was prepared in the repository only. The server was not contacted and no new GPU render was run. Older videos without saved inputs cannot be reconstructed exactly; Reuse does not imply quality or model compatibility beyond the installed graph validators.
+
 ## 2.3.2 seed and short-duration repair
 
 331 Python tests and 148 JavaScript tests passed. The actual browser Generate path captured Text, Frames and References submissions at73frames/3.042seconds without enqueueing GPU work. A real local project/asset API verified saving/reloading the exact uint64 maximum, invalid saved fractional seed repair, Random resolution before submission and refinement seed rollover. Native node schemas permit5+17kframes; the UI and prompt preparation no longer impose124frames as a minimum. Below124frames remains outside the usual trained range and GPU output quality is unverified in this repair. Video-reference trim and continuation-context minimums remain genuine constraints. [Behavior and limits](SEED_AND_DURATION_AR.md).

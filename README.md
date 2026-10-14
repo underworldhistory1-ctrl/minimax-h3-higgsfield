@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.3.2
+# H3 Higgsfield 2.4.0
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,13 +12,14 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.3.2
+## New in 2.4.0
 
-- **Reliable seeds:** default 42, visible repair of invalid saved values such as 1.25, exact native 64-bit seeds, and Random with an empty field or -1. A seed controls reproducibility; no seed is universally best for quality.
-- **Short clips:** enter 0.2–15.1 seconds in Text, Frames or References. Studio shows the actual duration on H3's native 5+17k frame grid. Below 124 frames is outside the usual trained range and remains GPU-quality unverified. Prompt preparation and control-source planning use the same frame count.
-- **Shared image/video validation:** fractional seeds are rejected in both H3 and Qwen; large seeds survive project saves, history and refinement without rounding.
+- **Organized projects:** visible naming inside Production, project folders, Unfiled migration, scoped search and sorting. New projects use the selected folder.
+- **Asset folders and transfers:** folders independent of reference roles, multi-selection, copy/move between projects with revision checks, dependency protection and interrupted-operation recovery. Stable reference IDs and source takes survive transfers.
+- **Reuse every recorded take:** a visible card action restores the saved prompt, settings, references, LoRAs and advanced inputs into the chosen project's Production workspace. Missing inputs stay visible and block generation after Save/reload; using a changed setup requires explicit acknowledgement. Older videos without recorded inputs cannot claim full restoration.
+- **Portable projects:** exported ZIPs use the project name and include unused catalog materials. The launcher includes all new runtime files and recognizes official 2.4.0 files for upgrades.
 
-[Seed and short-duration behavior](docs/SEED_AND_DURATION_AR.md).
+[Organization, Reuse, screenshots, tests and rollback](docs/ORGANIZATION_AND_REUSE_AR.md). Previous seed and short-duration fixes remain supported: [behavior and limits](docs/SEED_AND_DURATION_AR.md).
 
 ## Workspace improvements
 
@@ -34,7 +35,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 ![Project Elements workspace — browser verified with local project and asset APIs](docs/demo/interface-elements.png)
 
-- **Video library actions:** every generated video has visible Options and Delete buttons. Options opens per-video enlargement, download, playback and settings; pinned deletion requires explicit confirmation.
+- **Video library actions:** every generated video has visible Reuse, Options and Delete buttons. Options opens per-video enlargement, transfer of project takes, download, playback and settings; pinned deletion requires explicit confirmation.
 
 - **Explicit attention baseline:** launcher paths use PyTorch dense attention. The actual server backend is visible and saved with each render; estimates separate different backends. Checkpoints can retain their native per-layer kernels.
 
@@ -50,7 +51,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 - **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
 - **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
 
-**Validation:** Version 2.3.2 checks are recorded in [verified behavior](docs/VERIFIED_BEHAVIOR.md) and [project workspace](docs/PROJECT_WORKSPACE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
+**Validation:** Version 2.4.0 checks are recorded in [verified behavior](docs/VERIFIED_BEHAVIOR.md) and [project workspace](docs/PROJECT_WORKSPACE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
 
 ![Character replacement controls](docs/modernization/character-swap.png)
 

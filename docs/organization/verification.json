@@ -1,0 +1,17 @@
+{
+  "project_rename": true,
+  "project_folders": true,
+  "folder_filter_and_search": true,
+  "asset_folders": true,
+  "bulk_copy": true,
+  "bulk_move": true,
+  "source_reference_identity_preserved": true,
+  "full_reuse_prompt_and_reference": true,
+  "uint64_seed": true,
+  "advanced_settings": true,
+  "actual_generate_graph_captured": true,
+  "reload": true,
+  "original_take_unchanged": true,
+  "errors": [],
+  "gpu_submissions": 0
+}

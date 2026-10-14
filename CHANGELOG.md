@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.0 — 2026-10-14
+
+- Project naming inside Production, project folders and Unfiled, cached search/sort, automatic filing of new projects in the selected folder.
+- Independent asset folders, rename, visible multi-selection and copy/move between projects. Protect current drafts, legacy clips, take ancestry and accepted sequences; preserve IDs/aliases/media ownership. Revision checks and durable roll-forward journal recover interrupted transfers.
+- Reuse on every video card with full saved-draft recovery or honest legacy fallback. Restore prompt, inputs, configuration and source provenance without modifying original takes. Missing media, LoRAs, checkpoints or generated contexts remain blocked through Save/reload; acknowledge an edited setup explicitly.
+- Named project ZIP downloads, complete runtime packaging and official 2.3.2 upgrade fingerprints. Preserve automatic main updates, idle-operation checks and rollback policy.
+- 346 Python and 148 JavaScript checks passed; browser tests use real local project/asset APIs and CPU media with captured generation submissions. No new GPU inference or remote deployment in this release.
+
+
 ## 2.3.2 — 2026-10-14
 
 - Complete known runtime fingerprints for both the original installer files and V2 additions, allowing unmodified2.3.0/2.3.1 releases to upgrade safely. Preserve refusal for customized runtime files.

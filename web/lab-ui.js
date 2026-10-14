@@ -134,16 +134,17 @@ async function persistProjectDraft(){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"].includes(key))):null;
   return {version:1,mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
-    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
+    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
     preparationMode:$("preparationMode")?.value||"auto",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
     controlInputs:Object.fromEntries(Object.entries(state.controlInputs||{}).map(([key,value])=>[key,descriptor(value)])),
-    settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:state.loras.filter(x=>x.enabled)};
+    reuse_source:state.reuseSource||null,reuse_missing:state.reuseUnresolved||[],
+    settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:[...state.loras.filter(x=>x.enabled),...(state.reuseRequiredLoras||[]).filter(l=>!state.loras.some(current=>current.name===l.name&&current.enabled))]};
 }
 async function hydrateProjectDraft(draft){
   if(!draft)return;
-  const epoch=++state.hydrationEpoch;const missing=[];
+  const epoch=++state.hydrationEpoch;const missing=[...(draft.reuse_missing||[])];
   async function item(desc){if(!desc)return null;try{if(!desc.assetId)throw Error("Missing asset identifier");const rec=await projectCtrl.getAsset(desc.assetId);const blob=await projectCtrl.mediaBlob(desc.assetId);return {...desc,file:new File([blob],rec.original_name||"asset.png",{type:blob.type}),url:URL.createObjectURL(blob),previewUrl:URL.createObjectURL(blob)};}catch{missing.push(desc.alias||desc.assetId||"frame");return null;}}
   const first=await item(draft.first),last=await item(draft.last),refs=await Promise.all((draft.refs||[]).map(item)),guides=await Promise.all((draft.guides||[]).map(item));
   const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
@@ -167,6 +168,14 @@ async function hydrateProjectDraft(draft){
   await Promise.all([renderFrameItem("first"),renderFrameItem("last")]);renderRefs();renderGuides();renderContinuation();updatePreviewLive();
   if(state.continuation?.source_asset_id){try{await projectCtrl.getAsset(state.continuation.source_asset_id);}catch{missing.push("continuation source");}}
   state.restoreMissing=missing;
+  state.reuseUnresolved=[...(draft.reuse_missing||[])];
+  state.reuseSource=draft.reuse_source||null;state.reuseRequiredLoras=[];state.reuseCheckpoint=null;
+  if(draft.reuse_source){
+    for(const adapter of draft.loras||[])if(adapter.enabled&&!state.loras.some(l=>l.name===adapter.name&&l.enabled)){state.reuseUnresolved.push('LoRA '+adapter.name);state.reuseRequiredLoras.push(adapter);}
+    if(draft.configuration?.checkpoint&&draft.configuration.checkpoint!==selectedCheckpoint()){state.reuseUnresolved.push('Checkpoint '+draft.configuration.checkpoint);state.reuseCheckpoint=draft.configuration.checkpoint;}
+    state.restoreMissing=[...new Set([...missing,...state.reuseUnresolved])];
+  }
+  if($('confirmEditedSetup'))$('confirmEditedSetup').hidden=!state.reuseUnresolved.length;
   if(missing.length)info("Project has unavailable inputs: "+missing.join(", ")+". Reattach them and Save before rendering.",true);
 }
 async function refreshProjectList(){
