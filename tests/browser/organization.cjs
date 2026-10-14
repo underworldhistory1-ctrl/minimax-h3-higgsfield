@@ -25,6 +25,10 @@ let browser;const submissions=[];
 
 
  await page.goto('http://127.0.0.1:18925/web/index.html');await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ const existing=await (await page.request.post('http://127.0.0.1:18925/h3_studio/lab/projects',{data:{name:'Existing workspace'}})).json();
+ await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ await page.locator(`[data-project-id="${existing.project_id}"]`).getByRole('button',{name:'Open',exact:true}).click({timeout:5000});await page.waitForFunction(()=>state.currentProject?.name==='Existing workspace'&&!state.projectLoading);
+ await page.locator('[data-workspace-nav=projects]').click();
  await page.locator('#newProjectName').fill('Film A');await page.locator('#projectHubCreate').click();await page.waitForFunction(()=>state.currentProject?.name==='Film A'&&!state.projectLoading);
  const sourceId=await page.evaluate(()=>state.activeProjectId);
  const target=(await (await page.request.post('http://127.0.0.1:18925/h3_studio/lab/projects',{data:{name:'Film B'}})).json());

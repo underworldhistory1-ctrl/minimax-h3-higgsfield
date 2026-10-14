@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.5.0
+# H3 Higgsfield 2.5.1
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,7 +12,7 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.5.0
+## New in 2.5.1
 
 - **Refresh-safe work per tab:** unsaved references and settings survive refresh independently, including copied tabs and image BF16 settings. Clear a tab’s setup explicitly; failed storage never silently overwrites a recoverable snapshot. [Behavior and browser evidence](docs/TAB_PERSISTENCE_AR.md).
 
