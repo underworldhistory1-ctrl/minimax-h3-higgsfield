@@ -10,6 +10,8 @@ import zipfile
 
 
 SOURCE_FILES = (
+    "docs/TAB_PERSISTENCE_AR.md", "docs/tabs/tab-restored.png", "docs/tabs/tab-browser-verification.json",
+    "docs/AUDIO_ENHANCEMENT_AR.md", "docs/audio/audio-enhancement.png", "docs/audio/audio-browser-verification.json",
     "uninstall.ps1", "uninstall.sh", "deploy/uninstall_h3.py", "docs/UNINSTALL.md",
     "AGENTS.md", "START_HERE_AR.md", "LICENSE", "VERSION", "README.md", "install.sh", "install.ps1", "__init__.py", "h3_video_save.py", "qwen_image.py",
     "Dockerfile.salad", ".dockerignore",

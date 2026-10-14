@@ -131,10 +131,14 @@ async function persistProjectDraft(){
   if(!projectCtrl?.currentProject)throw Error("Open or create a project before saving inputs.");
   for(const item of allInputItems())if(!item.assetId){const rec=await projectCtrl.uploadAsset(item.file);item.assetId=rec.asset_id;}
   const refreshed=await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(projectCtrl.currentProject.project_id)}`);projectCtrl.currentProject=refreshed;updateProjectUI(refreshed);
-  const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"].includes(key))):null;
-  return {version:1,mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
+  return captureProjectDraft();
+}
+function tabProjectDraftKey(projectId){return (api("")||location.origin)+"/project/"+projectId;}
+function captureProjectDraft(local=false){
+  const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!(local&&!item.assetId?["url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]:["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]).includes(key))):null;
+  return {version:1,...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
-    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
+    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
     preparationMode:$("preparationMode")?.value||"auto",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
@@ -142,15 +146,26 @@ async function persistProjectDraft(){
     reuse_source:state.reuseSource||null,reuse_missing:state.reuseUnresolved||[],
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:[...state.loras.filter(x=>x.enabled),...(state.reuseRequiredLoras||[]).filter(l=>!state.loras.some(current=>current.name===l.name&&current.enabled))]};
 }
-async function hydrateProjectDraft(draft){
+async function hydrateWorkspaceDraft(project){
+  const controller=projectCtrl,id=project?.project_id||'unassigned';
+  state.tabDraftRestoreError=null;let local=null;
+  try{local=await H3TabDraftStore.load(tabProjectDraftKey(id));}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
+  if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;
+  await hydrateProjectDraft(local||project?.draft||{mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[]},{preserveFailedLocal:!!state.tabDraftRestoreError});
+  return true;
+}
+async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   if(!draft)return;
+  if(!preserveFailedLocal)state.tabDraftRestoreError=null;
+  state.tabRestoredView=draft.tab_view||null;
   const epoch=++state.hydrationEpoch;const missing=[...(draft.reuse_missing||[])];
-  async function item(desc){if(!desc)return null;try{if(!desc.assetId)throw Error("Missing asset identifier");const rec=await projectCtrl.getAsset(desc.assetId);const blob=await projectCtrl.mediaBlob(desc.assetId);return {...desc,file:new File([blob],rec.original_name||"asset.png",{type:blob.type}),url:URL.createObjectURL(blob),previewUrl:URL.createObjectURL(blob)};}catch{missing.push(desc.alias||desc.assetId||"frame");return null;}}
+  async function item(desc){if(!desc)return null;try{if(desc.file instanceof Blob){const file=desc.file instanceof File?desc.file:new File([desc.file],desc.file.name||"reference",{type:desc.file.type});return {...desc,file,url:URL.createObjectURL(file),previewUrl:URL.createObjectURL(file)};}if(!desc.assetId)throw Error("Missing asset identifier");const rec=await projectCtrl.getAsset(desc.assetId);const blob=await projectCtrl.mediaBlob(desc.assetId);return {...desc,file:new File([blob],rec.original_name||"asset.png",{type:blob.type}),url:URL.createObjectURL(blob),previewUrl:URL.createObjectURL(blob)};}catch{missing.push(desc.alias||desc.assetId||"frame");return null;}}
   const first=await item(draft.first),last=await item(draft.last),refs=await Promise.all((draft.refs||[]).map(item)),guides=await Promise.all((draft.guides||[]).map(item));
   const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
   if(epoch!==state.hydrationEpoch)return;
+  for(const old of allInputItems())for(const url of new Set([old.url,old.previewUrl,old.originalPreviewUrl]))if(url)URL.revokeObjectURL(url);
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
-  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
+  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
   if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
   if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;
@@ -177,6 +192,7 @@ async function hydrateProjectDraft(draft){
   }
   if($('confirmEditedSetup'))$('confirmEditedSetup').hidden=!state.reuseUnresolved.length;
   if(missing.length)info("Project has unavailable inputs: "+missing.join(", ")+". Reattach them and Save before rendering.",true);
+  for(const id of draft.tab_details||[])if($(id)?.tagName==='DETAILS')$(id).open=true;
 }
 async function refreshProjectList(){
   if(!projectCtrl)return;const response=await projectCtrl.listProjects();const select=$("projectSelect");select.replaceChildren();
@@ -195,7 +211,7 @@ function initLabUI(){
     if(state.busy||state.projectLoading||!$("projectSelect").value)return;
     state.projectLoading=true;const controller=projectCtrl;const id=$("projectSelect").value;
     const controls=["projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject"];controls.forEach(k=>$(k).disabled=true);
-    try{const p=await controller.loadProject(id);if(controller!==projectCtrl)return;state.currentClipId=null;await hydrateProjectDraft(p.draft||{mode:"text",refs:[],guides:[]});}
+    try{const p=await controller.loadProject(id);if(controller!==projectCtrl)return;state.currentClipId=null;await hydrateWorkspaceDraft(p);}
     catch(e){info(e.message,true);}finally{state.projectLoading=false;controls.forEach(k=>$(k).disabled=state.busy);}
   };
   $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{try{await withProjectLoading(async()=>{const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateProjectDraft(p.draft);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};

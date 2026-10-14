@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.4.0
+# H3 Higgsfield 2.5.0
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -11,6 +11,16 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 [![Superman above Earth — watch the creator-supplied excerpt](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
+
+## New in 2.5.0
+
+- **Refresh-safe work per tab:** unsaved references and settings survive refresh independently, including copied tabs and image BF16 settings. Clear a tab’s setup explicitly; failed storage never silently overwrites a recoverable snapshot. [Behavior and browser evidence](docs/TAB_PERSISTENCE_AR.md).
+
+- **Native audio enhancement:** an optional extra audio pass preserves the exact final video latent, including after image refinement. Published AudioRefine evidence supports its Original H3 mechanism; it does not establish improved quality for every model, adapter or prompt.
+- **One saved setup:** audio controls persist in projects, drafts and Reuse, appear in take settings, and have their own progress label and timing signature. Source soundtrack reuse bypasses the pass; continuation protects its existing audio prefix.
+- **No new models or caching:** the pass uses the selected shifted model and LoRAs without MotionCache, Spectrum or structural patches. Existing renders and presets keep their behavior. The launcher ships the local nodes, license and official-upgrade fingerprints.
+
+[Audio evidence, controls, compatibility, screenshots and rollback](docs/AUDIO_ENHANCEMENT_AR.md). No new GPU quality test was performed in this release.
 
 ## New in 2.4.0
 

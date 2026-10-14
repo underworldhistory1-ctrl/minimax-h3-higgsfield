@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.0 — 2026-10-15
+
+- Preserve complete unsaved video/image setups across Refresh per tab, with immutable IndexedDB media, active leases, bounded storage, explicit Clear, protected failure recovery and stale-restore guards.
+- Keep active projects, server selection, image precision and image job tracking per tab.
+- Add exact native AV masking and final-video restoration for an optional audio-only refinement pass; protect continuation audio prefixes and reject invalid/nonfinite outputs.
+- Synchronize capability-gated controls, saved drafts, projects, complete/legacy Reuse, take settings, progress labels and timing signatures.
+- Validate final-image branch selection and all submitted audio sampler links/options server-side. Source soundtrack reuse bypasses generated-audio enhancement.
+- Ship local nodes and upstream MIT attribution with no model downloads or external runtime dependency. Preserve existing defaults and untested settings boundaries.
+- Local verification: 353 Python tests, 151 JavaScript tests, 72 graph combinations and real project API/browser flows. No GPU audio quality validation on this release.
+
 ## 2.4.0 — 2026-10-14
 
 - Project naming inside Production, project folders and Unfiled, cached search/sort, automatic filing of new projects in the selected folder.

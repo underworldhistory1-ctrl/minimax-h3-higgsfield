@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const state={
   mode:"create",refs:[],profiles:{},nodes:{},ready:false,busy:false,
-  clientId:crypto.randomUUID(),socket:null,activePromptId:localStorage.getItem("qwen.activePromptId")||null,
+  clientId:crypto.randomUUID(),socket:null,activePromptId:sessionStorage.getItem("qwen.activePromptId")||null,
   started:0,lastStepAt:0,lastStep:0,stepTotal:0,stepTimes:[],uploaded:[],current:null,results:[],visible:8,timer:null,
   settings:null,abort:null,completing:false,generationEpoch:0,inferenceEnabled:true,standbyReason:null,pendingToken:null,refsSaving:false,refsSaved:false,referencesReady:false
 };
@@ -63,12 +63,12 @@ function persistReferences(){
 }
 function saveDraft(){
   if(!state.referencesReady)return;
-  localStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
+  sessionStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
   void persistReferences();
 }
 function restoreDraft(){
-  let draft={};try{draft=JSON.parse(localStorage.getItem("qwen.imageDraft")||"{}");}catch{}
-  for(const id of ["prompt","aspect","resolution","steps","seed","referenceResolution"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}
+  let draft={};try{draft=JSON.parse(sessionStorage.getItem("qwen.imageDraft")||"{}");}catch{}
+  for(const id of ["prompt","profile","aspect","resolution","steps","seed","referenceResolution"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}
   if($("seed").value.trim()&&$("seed").value.trim()!=="-1"){try{$("seed").value=String(H3RenderValues.seed($("seed").value));}catch{$("seed").value="42";showError("The saved seed was invalid. Reset to the default42.");}}
   $("transparent").checked=!!draft.transparent;$("customSize").checked=!!draft.customSize;$("fitReferences").checked=draft.fitReferences!==false;
 }
@@ -126,7 +126,9 @@ async function checkConnection(){
     const response=await fetch(api("/h3_studio/image_readiness"),{cache:"no-store"});if(!response.ok)throw Error("Image extension unavailable");
     const data=await H3RenderValues.readJson(response);state.profiles=data.profiles||{};state.nodes=data.nodes||{};state.inferenceEnabled=data.inference_enabled!==false;state.standbyReason=state.inferenceEnabled?null:(data.reason||"Inference is disabled on this standby server.");state.ready=state.inferenceEnabled&&!!data.ready;
     for(const option of $("profile").options){option.disabled=!state.profiles[option.value]?.ready;}
-    if(!state.profiles[$("profile").value]?.ready){const first=[...$("profile").options].find(option=>!option.disabled);if(first)$("profile").value=first.value;}
+    let savedProfile;try{savedProfile=JSON.parse(sessionStorage.getItem('qwen.imageDraft')||'{}').profile;}catch{}
+    if(!state.profiles[$("profile").value]?.ready&&!savedProfile){const first=[...$("profile").options].find(option=>!option.disabled);if(first)$("profile").value=first.value;}
+    if(data.ready&&!state.profiles[$("profile").value]?.ready){state.ready=false;setConnection('down','Selected precision profile is unavailable');$('profileNote').textContent='Your saved precision choice was kept. Select an installed profile to generate.';return false;}
     const readyProfiles=Object.entries(state.profiles).filter(([,item])=>item.ready).map(([key])=>key.toUpperCase());
     const missingNodes=Object.entries(state.nodes).filter(([,ready])=>!ready).map(([name])=>name);
     if(!state.inferenceEnabled){setConnection("down",state.standbyReason);$("profileNote").textContent=state.standbyReason;return false;}
@@ -148,7 +150,7 @@ function handleSocket(message){
     if(data.node===null){pollHistory(true);}else if(data.node==="save")setProgress("Saving PNG and settings",96,2);else if(data.node==="decode")setProgress("Decoding image",91,5);else if(!state.lastStepAt)setProgress("Loading Qwen Image",8,estimateSeconds(),true);
   }else if(message.type==="execution_error"&&state.busy){failGeneration(data.exception_message||"ComfyUI graph failed");}
 }
-function saveActiveJob(){if(!state.activePromptId)return;localStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8)}));}
+function saveActiveJob(){if(!state.activePromptId)return;sessionStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8)}));}
 async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await H3RenderValues.readJson(response);if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
 
 function buildGraph(settings,uploads,token){
@@ -196,7 +198,7 @@ async function recoverPendingImage(){
   let found=null;
   try{const queue=await(await fetch(api('/queue'))).json();found=[...(queue.queue_running||[]),...(queue.queue_pending||[])].find(item=>matches(item[2]))?.[1];}catch{}
   if(!found)try{const history=await(await fetch(api('/history?max_items=100'))).json();found=Object.entries(history).find(([,item])=>matches(item.prompt?.[2]))?.[0];}catch{}
-  if(found&&state.pendingToken===token){state.activePromptId=found;state.pendingToken=null;localStorage.setItem('qwen.activePromptId',found);saveActiveJob();return found;}
+  if(found&&state.pendingToken===token){state.activePromptId=found;state.pendingToken=null;sessionStorage.setItem('qwen.activePromptId',found);saveActiveJob();return found;}
   return null;
 }
 async function cancelQueuedImage(promptId){
@@ -221,12 +223,12 @@ async function generate(){
     if(promptEpoch!==state.generationEpoch||state.abort.signal.aborted)throw new DOMException("Cancelled","AbortError");
     const token=crypto.randomUUID().replace(/-/g,"").slice(0,12);
     const prompt=buildGraph(settings,state.uploaded,token);
-    state.pendingToken=token;state.activePromptId="submission:"+token;localStorage.setItem("qwen.activePromptId",state.activePromptId);saveActiveJob();submitted=true;
+    state.pendingToken=token;state.activePromptId="submission:"+token;sessionStorage.setItem("qwen.activePromptId",state.activePromptId);saveActiveJob();submitted=true;
     const response=await fetch(api("/prompt"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,client_id:state.clientId})});
     const data=await H3RenderValues.readJson(response);
     if(!response.ok||!data.prompt_id){submissionSettled=!response.ok&&response.status<500;if(submissionSettled){state.activePromptId=null;state.pendingToken=null;}throw Error(nodeError(data));}
     submissionSettled=true;state.pendingToken=null;
-    state.activePromptId=data.prompt_id;localStorage.setItem("qwen.activePromptId",data.prompt_id);saveActiveJob();
+    state.activePromptId=data.prompt_id;sessionStorage.setItem("qwen.activePromptId",data.prompt_id);saveActiveJob();
     if(promptEpoch!==state.generationEpoch){
       let confirmed=false;
       try{confirmed=await cancelQueuedImage(data.prompt_id);}catch{}
@@ -240,7 +242,7 @@ async function generate(){
   }catch(error){if(submitted&&!submissionSettled){setBusy(true);showError("Submission acknowledgement was lost. The image may still run. Inputs are retained; this workspace will look for its saved token in queue/history. Do not retry yet.");pollQueue();pollHistory(false);return;}if(state.activePromptId&&error.message!=="Cancelled"){setBusy(true);showError(error.message);return;}if(error.name==="AbortError"||error.message==="Cancelled"){await finishFailure("Cancelled",true);}else await finishFailure(error.message,false);}
 }
 function nodeError(data){const errors=[];if(data.error?.message)errors.push(data.error.message);for(const [id,node] of Object.entries(data.node_errors||{}))for(const error of node.errors||[])errors.push(`${id}: ${error.message||""} ${error.details||""}`.trim());return (errors.join(" · ")||"ComfyUI rejected the image graph").slice(0,700);}
-async function finishFailure(message,cancelled){state.activePromptId=null;state.pendingToken=null;state.completing=false;localStorage.removeItem("qwen.activePromptId");localStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress(cancelled?"Cancelled":"Generation failed",0,null);showStage(cancelled?"Generation cancelled":"Generation failed",cancelled?"Your prompt and references are still here.":message);if(!cancelled)showError(message);}
+async function finishFailure(message,cancelled){state.activePromptId=null;state.pendingToken=null;state.completing=false;sessionStorage.removeItem("qwen.activePromptId");sessionStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress(cancelled?"Cancelled":"Generation failed",0,null);showStage(cancelled?"Generation cancelled":"Generation failed",cancelled?"Your prompt and references are still here.":message);if(!cancelled)showError(message);}
 function failGeneration(message){finishFailure(message,false);}
 $("generate").onclick=generate;
 $("cancel").onclick=async()=>{
@@ -263,7 +265,7 @@ async function completeGeneration(file){
   if(state.completing)return;state.completing=true;
   const elapsed=(Date.now()-state.started)/1000;const filename=file.filename,settings=state.settings||{};await fetch(api("/h3_studio/image_details"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename,render_seconds:elapsed,settings})});
   if(settings.mode&&settings.profile&&settings.width&&settings.height&&settings.steps){const key=`qwen.eta.${settings.mode}.${settings.profile}.${settings.width}x${settings.height}.${settings.steps}`;let samples=[];try{samples=JSON.parse(localStorage.getItem(key)||"[]");}catch{}samples.push(elapsed);localStorage.setItem(key,JSON.stringify(samples.slice(-8)));}
-  state.activePromptId=null;localStorage.removeItem("qwen.activePromptId");localStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress("Completed",100,0);$("timer").textContent="Actual time: "+fmt(elapsed);await loadLibrary(true);const entry=state.results.find(item=>item.filename===filename)||{filename,settings};showImage(entry);showError("");state.completing=false;
+  state.activePromptId=null;sessionStorage.removeItem("qwen.activePromptId");sessionStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress("Completed",100,0);$("timer").textContent="Actual time: "+fmt(elapsed);await loadLibrary(true);const entry=state.results.find(item=>item.filename===filename)||{filename,settings};showImage(entry);showError("");state.completing=false;
 }
 function imageUrl(entry){return api("/h3_studio/image_file?"+new URLSearchParams({filename:entry.filename,_time:String(entry.modified||Date.now())}));}
 function showImage(entry){state.current=entry;const image=document.createElement("img");image.src=imageUrl(entry);image.alt="Generated Qwen image";$("stage").replaceChildren(image);$("currentActions").classList.remove("hidden");}
@@ -308,7 +310,7 @@ $("randomSeed").onclick=()=>{$("seed").value=H3RenderValues.randomSeed();saveDra
 for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences"]){$(id).addEventListener("input",()=>{updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);
-async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(localStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}
+async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(sessionStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}
 async function initialize(){
   restoreDraft();
   $("addReferences").disabled=true;
@@ -334,3 +336,21 @@ async function initialize(){
   renderRefs();updateSettings();loadLibrary(false);await checkConnection();await resume();
 }
 void initialize();
+
+const clearImageSetup=document.createElement('button');clearImageSetup.id='clearImageSetup';clearImageSetup.type='button';clearImageSetup.className='button alt small';clearImageSetup.textContent='Clear this tab’s setup';$('addReferences').parentElement.append(clearImageSetup);
+clearImageSetup.onclick=async()=>{
+ if(state.busy||state.refsSaving||!state.referencesReady)return;
+ if(!confirm('Clear this tab’s image inputs and settings? Generated images remain.'))return;
+ for(const ref of state.refs)URL.revokeObjectURL(ref.url);state.refs=[];
+ for(const id of ['prompt','steps','seed'])$(id).value=$(id).defaultValue;
+ for(const id of ['profile','aspect','resolution','referenceResolution']){const el=$(id);el.value=[...el.options].find(o=>o.defaultSelected)?.value||el.options[0]?.value;}
+ $('transparent').checked=false;$('customSize').checked=false;$('fitReferences').checked=true;
+ renderRefs();saveDraft();await referenceWrite;updateSettings();
+};
+addEventListener('beforeunload',event=>{if(state.refsSaving){event.preventDefault();event.returnValue='';}});
+
+setInterval(()=>{
+ if(!state.referencesReady||state.referencesSessionOnly||state.refsSaving||!state.refs.length)return;
+ const snapshot=state.refs.map(ref=>({id:ref.id,file:ref.file,name:ref.name,width:ref.width,height:ref.height}));
+ referenceWrite=referenceWrite.then(()=>QwenReferenceStore.save(snapshot)).catch(error=>{showError('Saved reference storage needs attention: '+error.message);});
+},60000);

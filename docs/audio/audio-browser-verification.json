@@ -1,0 +1,12 @@
+{
+  "startup": true,
+  "ui_controls": true,
+  "project_save_reload": true,
+  "reuse": true,
+  "exact_uint64_rollover": true,
+  "actual_generate_graph_capture": true,
+  "source_soundtrack_bypass_ui": true,
+  "mobile_no_overflow": true,
+  "errors": [],
+  "gpu_submissions": 0
+}

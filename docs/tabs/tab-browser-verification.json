@@ -1,0 +1,19 @@
+{
+  "unsaved_media_refresh": true,
+  "roles_and_advanced_settings": true,
+  "same_project_separate_tabs": true,
+  "duplicated_session_isolation": true,
+  "clear_without_other_tab_damage": true,
+  "immutable_blob_storage": true,
+  "image_tabs_refresh_and_isolation": true,
+  "no_project_media_restore": true,
+  "image_profile_restore": true,
+  "lease_renewal": true,
+  "quota_failure_preserves_snapshot": true,
+  "failed_restore_preserves_snapshot": true,
+  "project_switch_after_failed_restore": true,
+  "delayed_restore_discarded": true,
+  "server_choice_per_tab": true,
+  "page_errors": [],
+  "gpu_submissions": 0
+}

@@ -87,7 +87,7 @@
         body: JSON.stringify({ name, canvas }),
       });
       this.currentProject = data;
-      localStorage.setItem(this._storageKey('active_project_id'), data.project_id);
+      sessionStorage.setItem(this._storageKey('active_project_id'), data.project_id);
       this.onProjectChanged(this.currentProject);
       return data;
     }
@@ -95,7 +95,7 @@
     async loadProject(projectId) {
       const data = await this.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(projectId)}`);
       this.currentProject = data;
-      localStorage.setItem(this._storageKey('active_project_id'), data.project_id);
+      sessionStorage.setItem(this._storageKey('active_project_id'), data.project_id);
       this.onProjectChanged(this.currentProject);
       return data;
     }
@@ -131,7 +131,7 @@
         body: JSON.stringify({ name: newName }),
       });
       this.currentProject = copy;
-      localStorage.setItem(this._storageKey('active_project_id'), copy.project_id);
+      sessionStorage.setItem(this._storageKey('active_project_id'), copy.project_id);
       this.onProjectChanged(this.currentProject);
       return copy;
     }

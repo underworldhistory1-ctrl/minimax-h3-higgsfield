@@ -72,7 +72,8 @@
     "f0263dc3c1539709ec5dea9f5cf4f283d11cbd4b",
     "4ec03a6a31d5bc6f09679b4210a380cac2acb3a1",
     "713eb4c4937ef76ce4f3a12dc832e0428cef514a",
-    "47b80de7d877c32e2eb642f7ad41b057f7971f65"
+    "47b80de7d877c32e2eb642f7ad41b057f7971f65",
+    "61dee734a40bcb8d213160c9f8c8dfcb2a177cf3"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -316,7 +317,8 @@
     "c0501a0f5bb2aba87b9720ad0a09c4a992e4b14a",
     "24cd32f1c64b235d6276104bebca84e79fbd4e0e",
     "ef3fada2187f9e2104e134aec4acb40f92f01946",
-    "e4e3006bc63e94ffec2c0c990c1a01f5bd93aa90"
+    "e4e3006bc63e94ffec2c0c990c1a01f5bd93aa90",
+    "51b1afb870be256c7150de54eec89033c7c73f7b"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -362,7 +364,8 @@
     "ff02fe5fcd4bc33da9c156697f0e1138e29308f9",
     "ceafb8198c2cf72b3524f8215243d26b4cad66d9",
     "e6a3cae8226f74de5abb517e9f3cbba5dade0410",
-    "dfa62d1381d90940097e32a7d7cbc78801218c12"
+    "dfa62d1381d90940097e32a7d7cbc78801218c12",
+    "430119ba4cd8b3e55828fd037a0379ebd3a4fc73"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -465,6 +468,9 @@
     "9f1b8440111ce59326c1e145d6cc1701088f7e76",
     "b3349c16dcd3ca752cf9cf84b051013087d904b7"
   ],
+  "docs/PROJECT_WORKSPACE_AR.md": [
+    "81680e83cfaa7e5934ebc755f69b769c3f461c13"
+  ],
   "docs/PROMPT_INPUT.md": [
     "14dea56c7edaaf4785158ece7194000f4b1b90ce",
     "21c7029d2bb5b1db9390b6ba11b01cbbebe8c411",
@@ -512,7 +518,8 @@
     "816ae3f5ad9bc13e5ccc326b4577b2124d4f68cb",
     "ecce4158567733086087f1d072189212aeaa7325",
     "4a1d75f4cc4adf0839a1ba27f07611d90a271b36",
-    "e9da59772ced315e41ca67246c5cb5ed7d4a247a"
+    "e9da59772ced315e41ca67246c5cb5ed7d4a247a",
+    "b497bf65342d9385ee725da697e3364e0034b462"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -714,6 +721,9 @@
     "6489a6e2416f6d9a951fd9232fe4917a96a833cf",
     "182ee70fd54ea324db4d3a002382eb2bd151dbdf"
   ],
+  "h3_lab/export_jobs.py": [
+    "27e159e75450c22e6857669596fb77aa9b2ccad0"
+  ],
   "h3_lab/images.py": [
     "7c2c9ef584c9629a380346c09f57ce33ea32d940"
   ],
@@ -734,6 +744,9 @@
   "h3_lab/model_catalog.py": [
     "d843f94cb384026a8caa4539f1937096077cf6a4"
   ],
+  "h3_lab/organization.py": [
+    "6c843788c6c06c4de175ae0ee1951a4238907c8d"
+  ],
   "h3_lab/paths.py": [
     "fb9fde3caadbf8848824d8969db9c898b948003e"
   ],
@@ -743,7 +756,8 @@
     "88cb169736bd1235cdde3f170187ff74a38b2e23",
     "ad3d7575d32e0d95cfd0050c7a40328d0e922967",
     "a3aa2b23b09759729e528b0aa2d78d1084af0b76",
-    "7ba7e455ed2445bc28e4d492079451c862cfac16"
+    "7ba7e455ed2445bc28e4d492079451c862cfac16",
+    "61ebd1aa51480c241450441d67d8e91108035aed"
   ],
   "h3_lab/prompt_context.py": [
     "54853c23f48b96ad9c87d3ea4695fdaf3dd810dc",
@@ -753,6 +767,9 @@
   ],
   "h3_lab/quality.py": [
     "a4a859a6b6bd643674b592a061002b4a13a8733f"
+  ],
+  "h3_lab/render_values.py": [
+    "e842d8afd60d55a9c25dedeec196f8cc9f559939"
   ],
   "h3_lab/routes.py": [
     "1b2872f84c63fa80c4eaddc73e3e27ccddeaca66",
@@ -769,7 +786,11 @@
     "9d16262f3a78214045a4e44975c931e08808e091",
     "584b8cca53864bac4014d462fe93f207c6b96427",
     "c6c110c554b16d4c839c15d57a60591e78ce5e7a",
-    "13284079040b9006a1415db36a505dcae502597f"
+    "13284079040b9006a1415db36a505dcae502597f",
+    "fa5b4de67aefcb541c1f1766262df072e7512345"
+  ],
+  "h3_lab/runtime_attention.py": [
+    "97a09539da24f0c69464d63759f79df8271ab6d2"
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6"
@@ -881,6 +902,15 @@
     "f0e2719a6ee7e6225c33e0e2b44cca6072ac23fb",
     "8e57413e613f5036131ad005ad6581e546f5148a",
     "ccc4a9d2ff74bf183cb52ace201620e9bbbce74e"
+  ],
+  "tests/browser/project-workspace.cjs": [
+    "f2c54d7fb012d581b1688c19b7d681762922e981"
+  ],
+  "tests/browser/shared-export.cjs": [
+    "5c229456b4c50bc966c49bdab95367c388ef3da5"
+  ],
+  "tests/browser/workspace_server.py": [
+    "630a36e1de59ebe0cbf9a4290372bfacdd38f04f"
   ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
@@ -1032,6 +1062,9 @@
     "ade0e1edd6783869278647f05290146e8da83281",
     "f309f11274841890c9b05d14ca9cddd5d891b04d"
   ],
+  "tests/test_export_jobs.py": [
+    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e"
+  ],
   "tests/test_h3_asset_leases.py": [
     "0511b912d51687acf05243e7f9de722839a0432b"
   ],
@@ -1106,6 +1139,9 @@
   "tests/test_portrait_resource_contract.py": [
     "ad5011897f1e6f62592418a5ef0128951f054d13"
   ],
+  "tests/test_project_workspace.py": [
+    "2aa0412c70641df234beb820026fd32a7424a57d"
+  ],
   "tests/test_prompt_context.py": [
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f",
@@ -1121,6 +1157,9 @@
   ],
   "tests/test_qwen_routes.py": [
     "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0"
+  ],
+  "tests/test_runtime_attention.py": [
+    "2e7e8a1cbd1f43ccf28131230f15632d7781797f"
   ],
   "tests/test_runtime_patches.py": [
     "c9b4242c86149ba5a8f8d4bcc9967e6932ae5624"
@@ -1146,6 +1185,9 @@
   ],
   "tests/test_v2_standby.py": [
     "1225fdefbb75b4c72398cfbced8a4b8736eeb07a"
+  ],
+  "tests/test_video_delete.py": [
+    "6ea44a02586ab2db30b9db94e77068739c4e01c3"
   ],
   "tests/test_video_source_padding.py": [
     "2947a0670b2eecf83ceeee0eef4773ff6810828c",
@@ -1205,10 +1247,18 @@
   "web/h3/image-reference-store.js": [
     "2d72e1ebdcec94f37ddf4f889092cac297e4a680"
   ],
+  "web/h3/organization-ui.js": [
+    "6af93fb34bea0666b6831ab9265170698b91421f"
+  ],
   "web/h3/project-controller.js": [
     "77ccbd811ba7ff87bbf7e06a8f02f0325a743d0a",
     "e73081e71b7bcd97869c33e78b9c2419fa81fe53",
     "6383a9e2de0f117d384db71ff7d39d83df666b6c"
+  ],
+  "web/h3/project-workspace.js": [
+    "6680ea888acc5f33cd33d7676820dfd90f31be98",
+    "71071c6f6b1d256cf03967cb11ef04b5c12f967c",
+    "6f90255ec97dd3133ac406fdcabaef4d69af6808"
   ],
   "web/h3/prompt-compiler.js": [
     "19683249836c69fcebd128f1c34b52e0c81c100f",
@@ -1231,6 +1281,9 @@
   "web/h3/queue-ui.js": [
     "a240b2ce0d7fdf72d35d2ae242bb54d48f0eb639",
     "b452382d39aad0d808312832a0648159ac686cf2"
+  ],
+  "web/h3/render-values.js": [
+    "acb042c276e6faed20c7b25de70e8696b662a49f"
   ],
   "web/h3/studio-ux.js": [
     "6faa39c53326aee1991a5d08c446a4ae8baa8e7b"
@@ -1274,7 +1327,8 @@
     "cecc54f1e7f40b91cd7e4dab17b9b4f531593161",
     "d510237645f7c3fd80959b0fd1bf6327b1f075cf",
     "de856112b57055737f3efc592ace8a32aa486421",
-    "c96b4e40c1f19579d875ea1afdfe532b0b0fa3f8"
+    "c96b4e40c1f19579d875ea1afdfe532b0b0fa3f8",
+    "39caa1df18e09fcd1fcb50c7a1b9de1e6667ab5c"
   ],
   "web/index.html": [
     "089178e1b9bbdce9eaff135d605ea400b9d23875",
@@ -1331,7 +1385,8 @@
     "300e7b05c9b7d7247e569a1b37b99761c37a921a",
     "2b89e13e3401dc5b0cc7e0f0c353bbc130f56d42",
     "e4fc077a5182a3dbea463770b812f085a713e543",
-    "849f09d72b3629b3035a164feeb0d0b13c17a10d"
+    "849f09d72b3629b3035a164feeb0d0b13c17a10d",
+    "620c72c20fb03ac1ef3052bd60cba7e6f3dfaaa3"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1346,7 +1401,11 @@
     "e56b0fa046ccaae824e763b2c8d7140879ac896f",
     "0034a31c4d87689cb67bd0209ea8555cc6cb2a41",
     "060097344935a7eda4e8c2beec4443bbfb480a4d",
-    "fb4e6a66c6a317b5db929ae06d91fadda1f8a53f"
+    "fb4e6a66c6a317b5db929ae06d91fadda1f8a53f",
+    "8594cb7408232a5503687f31ef3ea680bcdeec9c"
+  ],
+  "web/organization.css": [
+    "8f12219012fda1cde9e51c099ea41b6f4193a449"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
@@ -1404,7 +1463,8 @@
     "8c78a54f617a003c74712c0e92d8a7a4e60b5e85",
     "a3c9b854c2109d4aa900faf6982a336b8812c5c2",
     "67f34a4c6dc3ba98b2113eeef3f1799769f55833",
-    "0fcf68245610734439f83e333c0cd70555b678f4"
+    "0fcf68245610734439f83e333c0cd70555b678f4",
+    "e98919f6e80e714721de69a19668f06890812c02"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1421,45 +1481,5 @@
   "workflows/h3_t2v_ui.json": [
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945"
-  ],
-  "h3_lab/runtime_attention.py": [
-    "97a09539da24f0c69464d63759f79df8271ab6d2"
-  ],
-  "tests/test_runtime_attention.py": [
-    "2e7e8a1cbd1f43ccf28131230f15632d7781797f"
-  ],
-  "tests/test_video_delete.py": [
-    "6ea44a02586ab2db30b9db94e77068739c4e01c3"
-  ],
-  "docs/PROJECT_WORKSPACE_AR.md": [
-    "81680e83cfaa7e5934ebc755f69b769c3f461c13"
-  ],
-  "h3_lab/export_jobs.py": [
-    "27e159e75450c22e6857669596fb77aa9b2ccad0"
-  ],
-  "tests/browser/project-workspace.cjs": [
-    "f2c54d7fb012d581b1688c19b7d681762922e981"
-  ],
-  "tests/browser/shared-export.cjs": [
-    "5c229456b4c50bc966c49bdab95367c388ef3da5"
-  ],
-  "tests/browser/workspace_server.py": [
-    "630a36e1de59ebe0cbf9a4290372bfacdd38f04f"
-  ],
-  "tests/test_export_jobs.py": [
-    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e"
-  ],
-  "tests/test_project_workspace.py": [
-    "2aa0412c70641df234beb820026fd32a7424a57d"
-  ],
-  "web/h3/project-workspace.js": [
-    "6680ea888acc5f33cd33d7676820dfd90f31be98",
-    "71071c6f6b1d256cf03967cb11ef04b5c12f967c"
-  ],
-  "web/h3/render-values.js": [
-    "acb042c276e6faed20c7b25de70e8696b662a49f"
-  ],
-  "h3_lab/render_values.py": [
-    "e842d8afd60d55a9c25dedeec196f8cc9f559939"
   ]
 }

@@ -423,6 +423,20 @@
       g["13"].inputs.samples = [refineSamplerId, 0];
     }
 
+    const audioRefine=renderSpec.audio_refinement||{};
+    if(audioRefine.enabled&&!renderSpec.preserve_reference_audio){
+      if(!capabilities.audio_refine_ready)throw Error('Update H3 Studio runtime before enabling audio enhancement.');
+      const options={steps:6,denoise:.5,sampler_name:'euler',scheduler:'simple',...audioRefine};
+      if(!Number.isInteger(options.steps)||options.steps<1||options.steps>20||!Number.isFinite(options.denoise)||options.denoise<.01||options.denoise>1)throw Error('Invalid audio enhancement settings.');
+      Configuration.resolve({...renderSpec,sampling:{...renderSpec.sampling,sampler_name:options.sampler_name,scheduler:options.scheduler}},capabilities);
+      const source=g['13'].inputs.samples,preserve=renderSpec.continuation?Number(renderSpec.continuation.context_length||39):0;
+      const maskId=allocate(180),samplerId=allocate(181),restoreId=allocate(182);
+      g[maskId]={class_type:'H3StudioAudioRefineMask',inputs:{latent:source,preserve_frames:preserve}};
+      g[samplerId]={class_type:'KSampler',_meta:{title:'Audio enhancement'},inputs:{model:['2',0],positive:g['8'].inputs.positive,negative:g['8'].inputs.negative,latent_image:[maskId,0],seed:RenderValues.nextSeed(RenderValues.nextSeed(seed)),steps:options.steps,cfg:1,sampler_name:options.sampler_name,scheduler:options.scheduler,denoise:options.denoise}};
+      g[restoreId]={class_type:'H3StudioAudioRestoreVideo',inputs:{source,refined:[samplerId,0],preserve_frames:preserve}};
+      g['13'].inputs.samples=[restoreId,0];
+    }
+
     // Native ComfyUI nodes, verified against pinned revision 3b4c0b0e.
     // Fit refinement back to these new selected outputs; legacy refine stays unchanged.
     if (enableRefine && (canvas.crop || width === 1664 && height === 928)) {
