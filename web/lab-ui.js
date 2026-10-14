@@ -159,6 +159,7 @@ async function hydrateProjectDraft(draft){
   state.prompts={text:"",frames:"",refs:"",...draft.prompts};state.promptMode=draft.promptMode||"guided";$("promptMode").value=state.promptMode;$("frameFit").value=draft.frameFit||"crop";
   $("fitImages").checked=draft.fitImages!==false;$("fitFrames").checked=draft.fitFrames!==false;
   for(const [key,value] of Object.entries(draft.settings||{}))if($(key))$(key).value=value;
+  $("seed").value=String(draft.settings?.seed??42);repairSavedSeed();syncDuration();
   if(draft.settings?.renderMethod==='turbo'){$('renderMethod').value='native';$('steps').value='20';info('Turbo was removed. This project now uses Original quality at 20 steps.');}
   state.desiredLoras=state.lorasLoaded?null:(draft.loras||[]);
   state.aspectFormat=Object.keys(aspectPresets).find(k=>aspectPresets[k].some(([w,h])=>w===state.width&&h===state.height))||"16:9";

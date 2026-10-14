@@ -1,5 +1,9 @@
 # Verified behavior and production boundaries
 
+## 2.3.1 seed and short-duration repair
+
+331 Python tests and 148 JavaScript tests passed. The actual browser Generate path captured Text, Frames and References submissions at73frames/3.042seconds without enqueueing GPU work. A real local project/asset API verified saving/reloading the exact uint64 maximum, invalid saved fractional seed repair, Random resolution before submission and refinement seed rollover. Native node schemas permit5+17kframes; the UI and prompt preparation no longer impose124frames as a minimum. Below124frames remains outside the usual trained range and GPU output quality is unverified in this repair. Video-reference trim and continuation-context minimums remain genuine constraints. [Behavior and limits](SEED_AND_DURATION_AR.md).
+
 On the project's RTX 5090 server, Original mode produced a short clip and a 15.1-second clip with decodable video and audio. A 25 fps clip with audio was accepted as a reference, converted to 24 fps, and cleaned up afterward. New installs require the upstream H3 VAE tile fix before the UI permits generation. Qwen's graphs match the pinned ComfyUI 2.1 schemas and the source project's graph contract.
 
 On one 39 GB system-RAM RTX 5090 workspace, both 15.1-second Original and 14.38-second MotionCache Ref2VA renders exhausted system RAM during video decoding after all 20 sampling steps. The latter sampled for 50 minutes before the process was killed, with no MP4 saved. Studio displays a system-RAM risk notice for longer high-resolution renders on smaller hosts; that historical observation is no longer a universal hard duration block. This does not measure the GPU's 32 GB VRAM; for that full-length setting, at least 64 GB advertised system RAM is recommended, pending a successful validation render.

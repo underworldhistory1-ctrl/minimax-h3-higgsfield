@@ -15,6 +15,6 @@ with tempfile.TemporaryDirectory(prefix='h3-workspace-browser-') as folder:
         '-f','lavfi','-i','sine=frequency=440:sample_rate=44100','-t','13','-c:v','libx264','-preset','ultrafast',
         '-c:a','aac',str(video/'h3_studio_123abc456def_00001_.mp4')],check=True)
     app=web.Application(client_max_size=30*1024*1024)
-    register_lab_routes(app,folder,output_root=folder)
+    register_lab_routes(app,folder,output_root=folder,input_root=pathlib.Path(folder)/'input')
     app.router.add_static('/web/',root/'web')
     web.run_app(app,host='127.0.0.1',port=int(sys.argv[1] if len(sys.argv)>1 else 18925))

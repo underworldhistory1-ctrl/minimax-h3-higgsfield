@@ -45,7 +45,7 @@
         err.status = res.status;
         throw err;
       }
-      return await res.json();
+      return await (globalThis.H3RenderValues?H3RenderValues.readJson(res):res.json());
     }
 
     async uploadAsset(file, projectId = this.currentProject?.project_id) {

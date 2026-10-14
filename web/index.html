@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield 2.3.0 — Create Video</title>
+<title>H3 Higgsfield 2.3.1 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -51,11 +51,11 @@
   .right{padding-bottom:18px}
 }
 </style>
-<link rel="stylesheet" href="./studio-ux.css?v=20261014-workspaces-r1">
+<link rel="stylesheet" href="./studio-ux.css?v=20261014-seeds-short-r1">
 </head>
 <body class="project-hub-open">
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.3.0</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.3.1</div></div>
  <nav class="topnav" aria-label="Studio workspace"><button type="button" class="button alt smallbtn" id="projectsHome">Projects</button><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
 </header>
@@ -147,7 +147,7 @@
     <label for="renderMethod">Render method</label><select id="renderMethod"><option value="native">Original quality · recommended</option><option value="spectrum" disabled>Spectrum · approximate acceleration</option><option value="motioncache" disabled>MotionCache · approximate acceleration</option></select>
     <div class="tip" id="methodAvailability">Optional methods become available when installed on your ComfyUI server.</div>
     <div class="render-controls">
-     <div><label for="durationSeconds">Duration (seconds)</label><input id="durationSeconds" type="number" min="5" max="15.1" step="0.1" inputmode="decimal" value="15.1"><input id="duration" type="hidden" value="362"><div class="duration-hint" id="durationHint" role="status" aria-live="polite">Actual H3 length: 15.08 s · 362 frames at 24 fps.</div></div>
+     <div><label for="durationSeconds">Duration (seconds)</label><input id="durationSeconds" type="number" min="0.2" max="15.1" step="0.1" inputmode="decimal" value="15.1"><input id="duration" type="hidden" value="362"><div class="duration-hint" id="durationHint" role="status" aria-live="polite">Actual H3 length: 15.08 s · 362 frames at 24 fps.</div></div>
      <div class="steps-control"><label for="steps">Sampling steps</label><div class="steps-row"><input id="steps" type="number" min="8" max="100" value="20"><div class="step-presets" id="stepPresets"><button type="button" data-steps="20">20</button><button type="button" data-steps="30">30</button><button type="button" data-steps="50">50</button></div></div><div class="steps-hint"><strong>20 recommended</strong> · Choose a preset or enter a custom value.</div></div>
     </div>
     <div class="tip" id="stepAdvice">20 follows the ComfyUI H3 template. 30 or 50 take longer and are comparison choices, not guaranteed improvements. This interface allows up to 100; ComfyUI KSampler's technical limit is 10,000.</div>
@@ -160,7 +160,7 @@
     <div class="tip" id="refineAvailability">Requires the verified latent upscaler and its weight. Availability is checked on this server.</div>
     <div class="profile" id="refinePresetInfo" style="margin-top:8px;display:none"><strong>Quality Refine preset active</strong><br>1.25× latent upscale · 10-step refinement · denoise 0.40. Motion Repair uses strength 0.25 in this pass.</div>
    </section>
-   <details class="panel details"><summary>Advanced settings</summary><label for="seed">SEED</label><div class="row"><input id="seed" type="number" value="42"><button id="randomSeed" class="button alt smallbtn">Random</button></div><label for="server">COMFYUI ADDRESS</label><input id="server" placeholder="Use this server"><div class="tip">Leave empty when this page is served by ComfyUI.</div><button id="saveServer" class="button alt smallbtn" style="margin-top:8px">Save address</button></details>
+   <details class="panel details"><summary>Advanced settings</summary><label for="seed">SEED</label><div class="row"><input id="seed" type="text" inputmode="numeric" aria-label="Seed · whole number; blank or minus one for Random" value="42"><button id="randomSeed" class="button alt smallbtn">Random</button></div><div class="tip">42 is the reproducible default, not a quality ranking. Use a whole number; blank or -1 chooses Random when generating.</div><label for="server">COMFYUI ADDRESS</label><input id="server" placeholder="Use this server"><div class="tip">Leave empty when this page is served by ComfyUI.</div><button id="saveServer" class="button alt smallbtn" style="margin-top:8px">Save address</button></details>
   </div>
   <div class="actiondock"><button id="generate" class="button generate">Generate video →</button><button id="cancel" class="button alt generate hidden">Cancel render</button><div class="smallprint">Renders continue after refresh. Finished videos stay on this server until deleted.</div></div>
  </aside>
@@ -191,21 +191,22 @@
 <dialog id="assetPreviewDialog" class="settings-dialog"><div class="settings-head"><h2 id="assetPreviewTitle">Asset preview</h2><button id="assetPreviewClose" class="button alt">Close</button></div><p id="assetPreviewInfo" class="tip"></p><div id="assetPreviewContent"></div><button id="assetPreviewUse" class="button">Use in current shot</button></dialog>
 <dialog id="videoActionsDialog" class="settings-dialog" aria-labelledby="videoActionsTitle"><div class="settings-head"><h2 id="videoActionsTitle">Video options</h2><button id="videoActionsClose" class="button alt smallbtn" type="button">Close</button></div><p id="videoActionsName" class="video-options-name"></p><div class="secondary-actions"><button id="videoActionsPreview" class="button alt">Play video</button><button id="videoActionsSettings" class="button alt">Settings</button><button id="videoActionsDownload" class="button">Download</button><button id="videoActionsDelete" class="button alt danger">Delete video</button></div><h3>Upscale same take</h3><p>Enlarge this existing video without regenerating it. Keeps the shot and copies its audio; does not generate new detail.</p><label for="videoActionsTarget">Export size · original aspect ratio is kept</label><div class="row"><select id="videoActionsTarget"><option value="2x">2× current dimensions</option><option value="1080">1080 px short edge</option><option value="1440">1440 px short edge</option></select><button id="videoActionsUpscale" class="button">Upscale &amp; download</button></div><p id="videoActionsStatus" class="tip" role="status" aria-live="polite"></p></dialog>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/uuid.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/render-values.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/uuid.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261014-seeds-short-r1"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
-<script src="./h3/prompt-input.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/prompt-compiler.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/configuration.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/graph-builder.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/project-controller.js?v=20261014-workspaces-r1"></script>
-<script src="./lab-ui.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/studio-ux.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/queue-ui.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/timing-estimator.js?v=20261014-workspaces-r1"></script>
-<script src="./studio.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/connected-studio.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/configuration-ui.js?v=20261014-workspaces-r1"></script>
-<script src="./h3/project-workspace.js?v=20261014-workspaces-r1"></script>
+<script src="./h3/prompt-input.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/prompt-compiler.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/configuration.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/graph-builder.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/project-controller.js?v=20261014-seeds-short-r1"></script>
+<script src="./lab-ui.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/studio-ux.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/queue-ui.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/timing-estimator.js?v=20261014-seeds-short-r1"></script>
+<script src="./studio.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/connected-studio.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/configuration-ui.js?v=20261014-seeds-short-r1"></script>
+<script src="./h3/project-workspace.js?v=20261014-seeds-short-r1"></script>
 </body>
 </html>

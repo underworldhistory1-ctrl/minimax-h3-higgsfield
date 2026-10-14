@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.3.1 — 2026-10-14
+
+- Repair invalid saved fractional seeds to the reproducible default 42 with visible feedback. Preserve valid user overrides; no seed promises better quality.
+- Share exact uint64 seed parsing between video/image UI and submission validation. Resolve Random once before compilation; preserve large history/project seeds and refinement increment/rollover.
+- Remove the UI and prompt-preparation five-second floor. Use the native 5+17k frame grid consistently in Text, Frames, References and control planning, with accurate actual durations and an experimental short-clip notice.
+- Preserve genuine video-reference trimming and continuation-context limits.
+- Verify all three Generate paths without GPU submission, project save/reload, and backend rejection of fractional seeds.
+
+## 2.3.0 — 2026-10-14
+
+- Separate Projects, Production, Elements, Generations, Favorites and Activity workspaces; preserve project assets, aliases and native reference mappings.
+- Cache bounded thumbnails and support multi-upload, editing and custom asset categories.
+- Protect shared preparation/export operations during updates.
+
+
 ## 2.1.5 — 2026-10-14
 
 - Keep each card's video label and generation dimensions visible above the new actions; remove circular percentage height from its preview button.

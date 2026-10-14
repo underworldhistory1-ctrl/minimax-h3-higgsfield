@@ -58,7 +58,7 @@ class PromptContextService:
         if sum(r['kind']=='audio' or r['kind']=='video' and bool(r.get('use_audio')) for r in refs)>3:
             raise ValueError('Too many audio references including soundtracks.')
         length=spec.get('target_frames',362)
-        if type(length) is not int or length<124 or length>362 or (length-5)%17:
+        if type(length) is not int or length<5 or length>362 or (length-5)%17:
             raise ValueError('Select a supported H3 duration before preparation.')
         parts=[];bindings=[];hashes=[];aliases=set();pic=sub=vid=aud=0
         for ref in sorted(refs,key=lambda r:('image','video','audio').index(r['kind'])):

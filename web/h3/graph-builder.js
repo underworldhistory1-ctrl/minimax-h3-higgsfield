@@ -14,11 +14,11 @@
 
 (function(root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./configuration.js'));
+    module.exports = factory(require('./configuration.js'),require('./render-values.js'));
   } else {
-    root.H3GraphBuilder = factory(root.H3Configuration);
+    root.H3GraphBuilder = factory(root.H3Configuration,root.H3RenderValues);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function(Configuration) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(Configuration, RenderValues) {
   'use strict';
 
   const MODEL_FL = "minimax_h3_fl2va_pruned_int8_convrot.safetensors";
@@ -60,8 +60,7 @@
     if (Math.max(width,height)>1920 || width * height > 1920 * 1088) throw new Error('This server supports native H3 canvases up to 1920x1088. Choose a supported canvas.');
     const seconds = Number(renderSpec.target_seconds ?? renderSpec.duration_seconds ?? 124 / 24);
     const length = Number(renderSpec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
-    const seed = Number(renderSpec.seed ?? 42);
-    if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Seed must be a nonnegative safe integer.");
+    const seed = RenderValues.seed(renderSpec.seed ?? 42);
     if (renderSpec.fps != null && Number(renderSpec.fps) !== 24) throw new Error("H3 requires 24 fps.");
     if (!["text", "frames", "refs"].includes(mode)) throw new Error("Unknown generation mode.");
     if (!Number.isInteger(length) || length < 5 || length > 3600 || (length - 5) % 17 !== 0) throw new Error("Target frames must follow the H3 5 + 17k grid.");
@@ -409,7 +408,7 @@
         class_type: "KSampler",
         inputs: {
           model: refinementModel,
-          seed: (seed + 1) > 18446744073709551615 ? seed : (seed + 1),
+          seed: RenderValues.nextSeed(seed),
           steps: refinement.steps,
           cfg: refinement.cfg,
           sampler_name: refinement.sampler_name,
