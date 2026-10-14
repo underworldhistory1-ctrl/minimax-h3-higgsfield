@@ -24,7 +24,8 @@
     "ca254cbb0c110cf450ad4e2f8881e3f793e255fd",
     "e7da4c2105ddd4e877c1184f1751897db10b15ce",
     "f95e1966ec89c8f7d14b3f8dcc5013f0efc4f245",
-    "77ae47a656e43265285074fa669814e7477600e6"
+    "77ae47a656e43265285074fa669814e7477600e6",
+    "6a078a0acf3660c7faff176ed1911fde8f728788"
   ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
@@ -91,7 +92,8 @@
     "ac2cdeba0137a6c2cbca06867b7ab994a913e294",
     "7d2ed7c702057c90027b0e18808d3ea3c60d35c6",
     "cd57a8b95d6d1de42ed8ae15fa6c449ed7c9863c",
-    "ccbccc3dc62631f22ff358ac418e52401ec770b4"
+    "ccbccc3dc62631f22ff358ac418e52401ec770b4",
+    "437459cd94c9fa59d82c61c0bc8aa36e293b735e"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -177,7 +179,8 @@
     "c1f051c78fd4bfb4634fc18838ba0564a39e0c18",
     "c9a908381b6b9ae2e8c23a230f34e377cc4471d5",
     "2ecc64d933bbbcc2fb5790a1bc64d72d7b229f41",
-    "50a62e8c4493effc83910ffb784b0057b09b7b06"
+    "50a62e8c4493effc83910ffb784b0057b09b7b06",
+    "1dfd6a203fe2f17f6b856557291eb62e81b32511"
   ],
   "deploy/comfyui-vram.service": [
     "498fc21e35a0f59e91fddd6c64f7dee55c567fa0"
@@ -322,7 +325,8 @@
     "ef3fada2187f9e2104e134aec4acb40f92f01946",
     "e4e3006bc63e94ffec2c0c990c1a01f5bd93aa90",
     "51b1afb870be256c7150de54eec89033c7c73f7b",
-    "42b4c8d35908df2dae6a1a1c6ed5ee94a41892c5"
+    "42b4c8d35908df2dae6a1a1c6ed5ee94a41892c5",
+    "3ca8162c322b5fd6b8ff13d8edecf44188995a2e"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -479,7 +483,8 @@
     "b3349c16dcd3ca752cf9cf84b051013087d904b7"
   ],
   "docs/PROJECT_WORKSPACE_AR.md": [
-    "81680e83cfaa7e5934ebc755f69b769c3f461c13"
+    "81680e83cfaa7e5934ebc755f69b769c3f461c13",
+    "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5"
   ],
   "docs/PROMPT_INPUT.md": [
     "14dea56c7edaaf4785158ece7194000f4b1b90ce",
@@ -500,7 +505,8 @@
     "817177d474bfb9b9994fda0a18229d55f9bc73e8"
   ],
   "docs/TAB_PERSISTENCE_AR.md": [
-    "2d4423f18a69ae017441988ea5db504756150dba"
+    "2d4423f18a69ae017441988ea5db504756150dba",
+    "72ce2b1ce6d66c93889022680705aa45ce451b22"
   ],
   "docs/UNINSTALL.md": [
     "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba"
@@ -536,19 +542,23 @@
     "cd24a7dfe238943f14302ab9611d0d10c4ef9e02"
   ],
   "docs/demo/interface-motioncache.png": [
-    "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
+    "a83c7d3bb3a855abe40f2c2d0ec9451785780c09",
+    "db971743983462d3642b2b643d191d61e6303e18"
   ],
   "docs/demo/interface-references.png": [
-    "ce1b1165fc8f9eea4a656424b4905a0857177c48"
+    "ce1b1165fc8f9eea4a656424b4905a0857177c48",
+    "80fe13bc8f5606c8220a9ce63fded68e13dd1e41"
   ],
   "docs/demo/motioncache-no-lora.mp4": [
-    "e676cb1fbd7fe872f8cf3095ad9f6ebd145e5b5a"
+    "e676cb1fbd7fe872f8cf3095ad9f6ebd145e5b5a",
+    "e1ce0dd95dcff2f7012b60ccfbb46af7ee48afb2"
   ],
   "docs/demo/motioncache-preview.jpg": [
     "c3494bdc52db64ee002a1fd1c3ebc99a1bc46396"
   ],
   "docs/demo/spectrum-no-lora.mp4": [
-    "0c74758790a0b6e822072d311e6d803d31a7a30a"
+    "0c74758790a0b6e822072d311e6d803d31a7a30a",
+    "74b8a91df2144648e5dc1328e3580dc29dd5ee60"
   ],
   "docs/demo/spectrum-preview.jpg": [
     "ed4cab417cd96958a001d050f9dd0e445cb245d9"
@@ -654,29 +664,36 @@
     "6bd6c4b1bec15089a2e907e77369577af2e0232d"
   ],
   "docs/modernization/character-swap.png": [
-    "35368db66f0b6cb1a54e13297fadf98fa459fc2a"
+    "35368db66f0b6cb1a54e13297fadf98fa459fc2a",
+    "d12be29558da8e4feda7fdca84a7eb919bbdfe86"
   ],
   "docs/modernization/mobile.png": [
-    "854dd43e20ae060376522520a9dbf8d739ceb236"
+    "854dd43e20ae060376522520a9dbf8d739ceb236",
+    "cd0b9674ccfbe655e4c3d131fc99f44a691e01b4"
   ],
   "docs/modernization/references-desktop.png": [
-    "c7c3ea9c42d91c709d27dcb345c71e383932e9d5"
+    "c7c3ea9c42d91c709d27dcb345c71e383932e9d5",
+    "f7a32e6ead13e6aad81eb2bd26739d80e5db5266"
   ],
   "docs/modernization/server-browser-verification.json": [
     "42e20d23a171d068707377e4e25efa039db09bae"
   ],
   "docs/modernization/server-interface-desktop.png": [
-    "3b593858d8a3f8963b6b1b84aa1a5320e92d719b"
+    "3b593858d8a3f8963b6b1b84aa1a5320e92d719b",
+    "f51caf8327eddf03d6d89df0d41d4e8f62e081d0"
   ],
   "docs/modernization/singularity-settings.png": [
-    "0e3291e610ee5000a681049e6a76132fb133131c"
+    "0e3291e610ee5000a681049e6a76132fb133131c",
+    "dba35b7a04d4a289e0a2875e2d86e7c33007e556"
   ],
   "docs/screenshot.webp": [
-    "668a98b793ede9486caf3de7d6e5b472aeb5c671"
+    "668a98b793ede9486caf3de7d6e5b472aeb5c671",
+    "7a4b58aa668f13b2f7f9d618ac91ebb52a6ff6df"
   ],
   "docs/social-preview.png": [
     "39af23a8de4715a07ac17b6f7c61afdd3c243c77",
-    "85c5c03508d64e3d90791dbd8b76303ebc22a545"
+    "85c5c03508d64e3d90791dbd8b76303ebc22a545",
+    "eef79c6457d4fb5121172742367327e3678813b7"
   ],
   "docs/superpowers/plans/2026-09-28-qwen-image-studio.md": [
     "94862c2c6c86ced065bcbb8ab17b420f91718263"
@@ -924,16 +941,20 @@
     "6628e540b79bfea5f21a733897f414d74234b247",
     "f0e2719a6ee7e6225c33e0e2b44cca6072ac23fb",
     "8e57413e613f5036131ad005ad6581e546f5148a",
-    "ccc4a9d2ff74bf183cb52ace201620e9bbbce74e"
+    "ccc4a9d2ff74bf183cb52ace201620e9bbbce74e",
+    "069ab29b5c2f8aad282608f6d0b0253cc7c5cc5d"
   ],
   "tests/browser/project-workspace.cjs": [
-    "f2c54d7fb012d581b1688c19b7d681762922e981"
+    "f2c54d7fb012d581b1688c19b7d681762922e981",
+    "842c66a38617bed58928718f19368cc35541eef3"
   ],
   "tests/browser/shared-export.cjs": [
-    "5c229456b4c50bc966c49bdab95367c388ef3da5"
+    "5c229456b4c50bc966c49bdab95367c388ef3da5",
+    "f14ee9067fd2e81647a4e2876884c1d81b525e55"
   ],
   "tests/browser/workspace_server.py": [
-    "630a36e1de59ebe0cbf9a4290372bfacdd38f04f"
+    "630a36e1de59ebe0cbf9a4290372bfacdd38f04f",
+    "9af192bbb0f377de71619083fb8e0192be9930f5"
   ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
@@ -1163,12 +1184,14 @@
     "ad5011897f1e6f62592418a5ef0128951f054d13"
   ],
   "tests/test_project_workspace.py": [
-    "2aa0412c70641df234beb820026fd32a7424a57d"
+    "2aa0412c70641df234beb820026fd32a7424a57d",
+    "9062aae4fde2bb53dbeaa7a1e5adb81670852537"
   ],
   "tests/test_prompt_context.py": [
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f",
-    "22a8b5237b86308259bbad30e61c9ceb448b4e2d"
+    "22a8b5237b86308259bbad30e61c9ceb448b4e2d",
+    "d45ec4ee697485df942b0382c44121cf020d3a5d"
   ],
   "tests/test_qwen_downloader.py": [
     "57e8840579810f3075d4141053cab9abcd09a64e"
@@ -1335,7 +1358,8 @@
     "eedda330e95ef427e78b198f225651f69c271b66"
   ],
   "web/h3/video-tab-state.js": [
-    "30c54e48f87a9b074a7247b105195f7bcd284238"
+    "30c54e48f87a9b074a7247b105195f7bcd284238",
+    "7dd9605320a180894b88b55fdfa0630b1eee4db3"
   ],
   "web/image-studio.js": [
     "1896a75ee124fc471c735599a21f02d18332aee6",
@@ -1349,7 +1373,8 @@
     "d9cbc7ca9341296b62ec49ebab31c2381f19266a",
     "86b50e4cfe64aa8a0f70765532c61252cf7cc2df",
     "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d",
-    "3a29f68d27546ed880eac572d5cb8ba93fabffe9"
+    "3a29f68d27546ed880eac572d5cb8ba93fabffe9",
+    "d63f32928fc8aa51164b3c00c28990ae0cf33568"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",

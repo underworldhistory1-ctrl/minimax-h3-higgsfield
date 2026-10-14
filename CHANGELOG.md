@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1
+
+- Project card actions unlock after initial workspace loading and after catalog operations; active operations still keep them disabled.
+
+
 ## 2.5.0 — 2026-10-15
 
 - Preserve complete unsaved video/image setups across Refresh per tab, with immutable IndexedDB media, active leases, bounded storage, explicit Clear, protected failure recovery and stale-restore guards.

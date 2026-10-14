@@ -20,6 +20,7 @@ async function refreshLabCapabilities(){
   if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function refreshLabControls(){
+  if(typeof refreshProjectHubControls==="function")refreshProjectHubControls();
   const paused=state.labCapabilities?.inference_enabled===false;
   $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject;
   let banner=$("v2StandbyBanner");

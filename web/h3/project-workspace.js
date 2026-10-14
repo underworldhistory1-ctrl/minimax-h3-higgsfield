@@ -107,7 +107,12 @@ async function insertProjectMention(item,range=null){
   input.setRangeText('@'+ref.alias+' ',Math.min(start,input.value.length),Math.min(end,input.value.length),'end');
   $('mentionMenu').classList.add('hidden');input.focus();renderPromptAssets();saveDraft();
 }
+function refreshProjectHubControls(){
+  const locked=workspaceLocked();
+  for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=locked;
+}
 function renderProjectCatalog(){
+  refreshProjectHubControls();
   const list=$('projectAssetList');if(!list)return;list.replaceChildren();
   const project=state.currentProject;
   if(typeof H3OrganizationUI!=='undefined')H3OrganizationUI.assetTools();
