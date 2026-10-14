@@ -73,7 +73,8 @@
     "4ec03a6a31d5bc6f09679b4210a380cac2acb3a1",
     "713eb4c4937ef76ce4f3a12dc832e0428cef514a",
     "47b80de7d877c32e2eb642f7ad41b057f7971f65",
-    "61dee734a40bcb8d213160c9f8c8dfcb2a177cf3"
+    "61dee734a40bcb8d213160c9f8c8dfcb2a177cf3",
+    "78aaf1e940c55d03f97cb2ab412e879369954d68"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -114,7 +115,8 @@
     "df3e01effb8bece36fc1e2c51e1ba03c43ccc385",
     "f87f3081e1e4bb4e550b8f063b2e47642052a153",
     "ea4a6905600ae144415c793d8cf9828579dbbaf0",
-    "8403f063040668c39fd08313dc9b7196a74ecc65"
+    "8403f063040668c39fd08313dc9b7196a74ecc65",
+    "6361929506be187d62f163dd17c1eb0761156442"
   ],
   "corpus/h3_ref_style_rules.md": [
     "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7"
@@ -194,7 +196,8 @@
     "42d84a7e5822b33e7b6f37562b4434ea14874b64",
     "972f1962d0dd29d1a90b390a1c6c5efd322e50b8",
     "68bdfaaea3d3219b8ed6ada9518d6bb286ea011a",
-    "d0d8090f31c47fe97df1889a708d334803323c8f"
+    "d0d8090f31c47fe97df1889a708d334803323c8f",
+    "b1ac53d66326253426d58d35325507e088a684d3"
   ],
   "deploy/download_control_models.py": [
     "f927ecbf69070408066e085f2b1b8972002c2b2e"
@@ -318,7 +321,8 @@
     "24cd32f1c64b235d6276104bebca84e79fbd4e0e",
     "ef3fada2187f9e2104e134aec4acb40f92f01946",
     "e4e3006bc63e94ffec2c0c990c1a01f5bd93aa90",
-    "51b1afb870be256c7150de54eec89033c7c73f7b"
+    "51b1afb870be256c7150de54eec89033c7c73f7b",
+    "42b4c8d35908df2dae6a1a1c6ed5ee94a41892c5"
   ],
   "deploy/runtime_patches.py": [
     "fb8d8c860573f7c39507206decefe3aeffa76cea"
@@ -365,7 +369,8 @@
     "ceafb8198c2cf72b3524f8215243d26b4cad66d9",
     "e6a3cae8226f74de5abb517e9f3cbba5dade0410",
     "dfa62d1381d90940097e32a7d7cbc78801218c12",
-    "430119ba4cd8b3e55828fd037a0379ebd3a4fc73"
+    "430119ba4cd8b3e55828fd037a0379ebd3a4fc73",
+    "99dc6b7dddf7d9b4028ee1e7b9782c23b0842859"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
@@ -379,6 +384,9 @@
     "f6c79d6d3c7ccd413c7fe5c657823280a99d170a",
     "fdcabbf7dc9ecb511a4c2a64408e3b534f22e53f",
     "86d71972ba89f45135d2774c775dbc313cdf43d5"
+  ],
+  "docs/AUDIO_ENHANCEMENT_AR.md": [
+    "80c1a550085be650eea6ba0a7e054d61d063e3d4"
   ],
   "docs/CHARACTER_SWAP_AR.md": [
     "3272007c4ae92f812e8f3959ccd867cca7e8b6eb"
@@ -403,7 +411,8 @@
     "b884022aaf147ca96ed30607a2c218ec8dd7fea3",
     "cf83bf1cdb0ecb217568669741cabddfcefbebd6",
     "90f119a316cc85d85494a48775a95708ebd926a6",
-    "b0802f1ddd967fc607d794521525a131fe535a54"
+    "b0802f1ddd967fc607d794521525a131fe535a54",
+    "b194b06ca64093f98602378235bf3bc011ea776f"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -435,7 +444,8 @@
     "cc55ccdf31229fc749e3c5e299ff40f9cde600f6",
     "3e9b113f824903c107c8e3603eb158f0997d21a0",
     "eb1597e49c6b0d862979bf40c438da645249e27a",
-    "684b8ede4b2d60e5a7312d1e8b16db36fa730e1e"
+    "684b8ede4b2d60e5a7312d1e8b16db36fa730e1e",
+    "f16f5ffc3be3a236bb5c601a222d0cb375da4125"
   ],
   "docs/HARDENING_REVIEW_AR.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
@@ -489,6 +499,9 @@
   "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
     "817177d474bfb9b9994fda0a18229d55f9bc73e8"
   ],
+  "docs/TAB_PERSISTENCE_AR.md": [
+    "2d4423f18a69ae017441988ea5db504756150dba"
+  ],
   "docs/UNINSTALL.md": [
     "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba"
   ],
@@ -519,7 +532,8 @@
     "ecce4158567733086087f1d072189212aeaa7325",
     "4a1d75f4cc4adf0839a1ba27f07611d90a271b36",
     "e9da59772ced315e41ca67246c5cb5ed7d4a247a",
-    "b497bf65342d9385ee725da697e3364e0034b462"
+    "b497bf65342d9385ee725da697e3364e0034b462",
+    "cd24a7dfe238943f14302ab9611d0d10c4ef9e02"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09"
@@ -633,6 +647,9 @@
   "docs/lab/workflow-examples/salad-image.yml": [
     "38a3e301cb36d7d429bb60012400865a4f359852"
   ],
+  "docs/licenses/H3-AudioRefine-MIT.txt": [
+    "444341fd57e33b249bd856a82c526fda36ebf48b"
+  ],
   "docs/modernization/browser-results.json": [
     "6bd6c4b1bec15089a2e907e77369577af2e0232d"
   ],
@@ -676,6 +693,9 @@
   "docs/superpowers/specs/2026-10-12-launcher.md": [
     "a123f4729deff0f33e5434193057ef4f41a49ccf"
   ],
+  "h3_audio_refine.py": [
+    "1f54f939284d6cf5afd2e972d8088674e839ca45"
+  ],
   "h3_continuation.py": [
     "0540443e9156593814e2f55e3964164f96019efb",
     "d48d6a74b19217d3ad771bd5f047ce4b361b1765"
@@ -697,11 +717,13 @@
     "75c09918565fff1afbeb1e380da89dc0ae2776a8",
     "e94aa629f0822ed7767d014a4db3d02059d5ea71",
     "efcf0f37ee55612b433de3d700a13b04552e2177",
-    "dbc71fac3184c4620999054b976ec646459bdc7c"
+    "dbc71fac3184c4620999054b976ec646459bdc7c",
+    "354f75cee15aaa4a31fa8daa726b935d647ca1fd"
   ],
   "h3_lab/configuration.py": [
     "202a362ebd1571b9283525a309901224fdee9c3f",
-    "706050ee108f615bab84d40fa6334c868a7200e8"
+    "706050ee108f615bab84d40fa6334c868a7200e8",
+    "21a7351aa0192acdc40a5f3f140b9c75a8add26d"
   ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
@@ -745,7 +767,8 @@
     "d843f94cb384026a8caa4539f1937096077cf6a4"
   ],
   "h3_lab/organization.py": [
-    "6c843788c6c06c4de175ae0ee1951a4238907c8d"
+    "6c843788c6c06c4de175ae0ee1951a4238907c8d",
+    "72d37a67aa8a7332e0edb6f0160c62cf59bfacfb"
   ],
   "h3_lab/paths.py": [
     "fb9fde3caadbf8848824d8969db9c898b948003e"
@@ -1216,7 +1239,8 @@
     "a2d27dc2d9fed1a074e6689de5810dc13a371791",
     "1a077cf100a515f4ef9bcd76e9204545bbcfeee7",
     "92d42dc260622d8db2784afa79574cda1fac2d63",
-    "414c388fd51faddc9dd119e6ff92416e653078e7"
+    "414c388fd51faddc9dd119e6ff92416e653078e7",
+    "3321c8ffb64b559a54421365567ec16addc36707"
   ],
   "web/h3/configuration.js": [
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
@@ -1242,10 +1266,12 @@
     "af81cd2d54805782b35410e4679fa54211030f4b",
     "bfb02d735bcb32c6ac0e2092fab258736599ccbe",
     "f985627acb68c4bcbe56026c3080ed823427fc0d",
-    "49a3daefd7f85904541a8f2875b2e2379252adb6"
+    "49a3daefd7f85904541a8f2875b2e2379252adb6",
+    "86f3a05c08df2413bbc396e1a15b0985632c286a"
   ],
   "web/h3/image-reference-store.js": [
-    "2d72e1ebdcec94f37ddf4f889092cac297e4a680"
+    "2d72e1ebdcec94f37ddf4f889092cac297e4a680",
+    "9f3ef0820ac75e878bff97aef5308d30579b5859"
   ],
   "web/h3/organization-ui.js": [
     "6af93fb34bea0666b6831ab9265170698b91421f"
@@ -1253,12 +1279,14 @@
   "web/h3/project-controller.js": [
     "77ccbd811ba7ff87bbf7e06a8f02f0325a743d0a",
     "e73081e71b7bcd97869c33e78b9c2419fa81fe53",
-    "6383a9e2de0f117d384db71ff7d39d83df666b6c"
+    "6383a9e2de0f117d384db71ff7d39d83df666b6c",
+    "36eb6eec08a795df5498f6613e230e7a4c0c8506"
   ],
   "web/h3/project-workspace.js": [
     "6680ea888acc5f33cd33d7676820dfd90f31be98",
     "71071c6f6b1d256cf03967cb11ef04b5c12f967c",
-    "6f90255ec97dd3133ac406fdcabaef4d69af6808"
+    "6f90255ec97dd3133ac406fdcabaef4d69af6808",
+    "f34c8c2eacc598c27c484c359a53239bdc1c59e5"
   ],
   "web/h3/prompt-compiler.js": [
     "19683249836c69fcebd128f1c34b52e0c81c100f",
@@ -1288,6 +1316,9 @@
   "web/h3/studio-ux.js": [
     "6faa39c53326aee1991a5d08c446a4ae8baa8e7b"
   ],
+  "web/h3/tab-draft-store.js": [
+    "68556a3a18fc1fbf2fde94b2016f0db107a8105c"
+  ],
   "web/h3/timing-estimator.js": [
     "adc61f21642bb68cffcd7859b3350d33afecffba"
   ],
@@ -1303,6 +1334,9 @@
   "web/h3/vendor/prompt-parsers.js": [
     "eedda330e95ef427e78b198f225651f69c271b66"
   ],
+  "web/h3/video-tab-state.js": [
+    "30c54e48f87a9b074a7247b105195f7bcd284238"
+  ],
   "web/image-studio.js": [
     "1896a75ee124fc471c735599a21f02d18332aee6",
     "5b777cda0bad4ab23ae00d97e0ea480c687daf8e",
@@ -1314,7 +1348,8 @@
     "cccba039c92aed51358d28774462da5059c01824",
     "d9cbc7ca9341296b62ec49ebab31c2381f19266a",
     "86b50e4cfe64aa8a0f70765532c61252cf7cc2df",
-    "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d"
+    "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d",
+    "3a29f68d27546ed880eac572d5cb8ba93fabffe9"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",
@@ -1328,7 +1363,8 @@
     "d510237645f7c3fd80959b0fd1bf6327b1f075cf",
     "de856112b57055737f3efc592ace8a32aa486421",
     "c96b4e40c1f19579d875ea1afdfe532b0b0fa3f8",
-    "39caa1df18e09fcd1fcb50c7a1b9de1e6667ab5c"
+    "39caa1df18e09fcd1fcb50c7a1b9de1e6667ab5c",
+    "7b1ce70c5c49af23db5beff63aac436fce56d428"
   ],
   "web/index.html": [
     "089178e1b9bbdce9eaff135d605ea400b9d23875",
@@ -1386,7 +1422,8 @@
     "2b89e13e3401dc5b0cc7e0f0c353bbc130f56d42",
     "e4fc077a5182a3dbea463770b812f085a713e543",
     "849f09d72b3629b3035a164feeb0d0b13c17a10d",
-    "620c72c20fb03ac1ef3052bd60cba7e6f3dfaaa3"
+    "620c72c20fb03ac1ef3052bd60cba7e6f3dfaaa3",
+    "b3ae4c8d8295ae9bb762a8e77edea34cf7a3d325"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1402,7 +1439,8 @@
     "0034a31c4d87689cb67bd0209ea8555cc6cb2a41",
     "060097344935a7eda4e8c2beec4443bbfb480a4d",
     "fb4e6a66c6a317b5db929ae06d91fadda1f8a53f",
-    "8594cb7408232a5503687f31ef3ea680bcdeec9c"
+    "8594cb7408232a5503687f31ef3ea680bcdeec9c",
+    "6cb6dc4dadb4f99de39eb2cc8880ffb733fcf565"
   ],
   "web/organization.css": [
     "8f12219012fda1cde9e51c099ea41b6f4193a449"
@@ -1464,7 +1502,8 @@
     "a3c9b854c2109d4aa900faf6982a336b8812c5c2",
     "67f34a4c6dc3ba98b2113eeef3f1799769f55833",
     "0fcf68245610734439f83e333c0cd70555b678f4",
-    "e98919f6e80e714721de69a19668f06890812c02"
+    "e98919f6e80e714721de69a19668f06890812c02",
+    "9451d3a99b94135ed2996ef90fb6e126b60740ff"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",

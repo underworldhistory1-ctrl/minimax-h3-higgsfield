@@ -347,7 +347,7 @@ clearImageSetup.onclick=async()=>{
  $('transparent').checked=false;$('customSize').checked=false;$('fitReferences').checked=true;
  renderRefs();saveDraft();await referenceWrite;updateSettings();
 };
-addEventListener('beforeunload',event=>{if(state.refsSaving){event.preventDefault();event.returnValue='';}});
+addEventListener('beforeunload',event=>{saveDraft();if(state.refsSaving){event.preventDefault();event.returnValue='';}});
 
 setInterval(()=>{
  if(!state.referencesReady||state.referencesSessionOnly||state.refsSaving||!state.refs.length)return;
