@@ -75,7 +75,19 @@ let browser;const submissions=[];
  });assert.deepEqual(delayed,{discarded:true,errorUnchanged:true,promptUnchanged:true});
  await second.evaluate(()=>sessionStorage.setItem(baseKey,'http://127.0.0.1:18925'));assert.equal(await page.evaluate(()=>api('')),'');assert.equal(await second.evaluate(()=>api('')),'http://127.0.0.1:18925');
 
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'tab-browser-verification.json'),JSON.stringify({unsaved_media_refresh:true,roles_and_advanced_settings:true,same_project_separate_tabs:true,duplicated_session_isolation:true,clear_without_other_tab_damage:true,immutable_blob_storage:true,image_tabs_refresh_and_isolation:true,no_project_media_restore:true,image_profile_restore:true,lease_renewal:true,quota_failure_preserves_snapshot:true,failed_restore_preserves_snapshot:true,project_switch_after_failed_restore:true,delayed_restore_discarded:true,server_choice_per_tab:true,page_errors:errors,gpu_submissions:0},null,2));await browser.close();console.log('Unsaved media, settings, duplicate-tab isolation and clear persistence passed for video/image; no GPU submitted.');
+
+ const videoLeave=await standalone.evaluate(async()=>{
+  const original=H3TabDraftStore.save;let release;const gate=new Promise(resolve=>release=resolve);H3TabDraftStore.save=async(...args)=>{await gate;return original(...args);};
+  document.getElementById('prompt').value='Immediate video edit';const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);const guarded=event.defaultPrevented;
+  H3TabDraftStore.save=original;release();await new Promise(resolve=>setTimeout(resolve,30));return guarded;
+ });assert.equal(videoLeave,true);await standalone.waitForFunction(()=>document.getElementById('tabDraftStatus').textContent.includes('is saved'));assert.ok(await standalone.evaluate(()=>sessionStorage.getItem('h3.tab.setup.'+tabProjectDraftKey('unassigned')).includes('Immediate video edit')));
+ const imageLeave=await imageB.evaluate(async()=>{
+  const original=QwenReferenceStore.save;let release;const gate=new Promise(resolve=>release=resolve);QwenReferenceStore.save=async(...args)=>{await gate;return original(...args);};
+  state.refs.push({id:crypto.randomUUID(),file:new File(['new file'],'Immediate.png',{type:'image/png'}),name:'immediate',width:1,height:1});
+  const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);const guarded=event.defaultPrevented;await new Promise(resolve=>setTimeout(resolve,10));QwenReferenceStore.save=original;release();await referenceWrite;return guarded;
+ });assert.equal(imageLeave,true);
+
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'tab-browser-verification.json'),JSON.stringify({unsaved_media_refresh:true,roles_and_advanced_settings:true,same_project_separate_tabs:true,duplicated_session_isolation:true,clear_without_other_tab_damage:true,immutable_blob_storage:true,image_tabs_refresh_and_isolation:true,no_project_media_restore:true,image_profile_restore:true,lease_renewal:true,quota_failure_preserves_snapshot:true,failed_restore_preserves_snapshot:true,project_switch_after_failed_restore:true,delayed_restore_discarded:true,server_choice_per_tab:true,immediate_refresh_flush_and_pending_write_guard:true,page_errors:errors,gpu_submissions:0},null,2));await browser.close();console.log('Unsaved media, settings, duplicate-tab isolation and clear persistence passed for video/image; no GPU submitted.');
 })().catch(async error=>{console.error(error);if(browser)await browser.close();process.exitCode=1;});
 
 

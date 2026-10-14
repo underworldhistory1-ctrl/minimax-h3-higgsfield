@@ -14,6 +14,7 @@
   "project_switch_after_failed_restore": true,
   "delayed_restore_discarded": true,
   "server_choice_per_tab": true,
+  "immediate_refresh_flush_and_pending_write_guard": true,
   "page_errors": [],
   "gpu_submissions": 0
 }
