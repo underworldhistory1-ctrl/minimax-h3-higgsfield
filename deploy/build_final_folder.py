@@ -22,6 +22,7 @@ SOURCE_FILES = (
     "deploy/build_final_folder.py", "deploy/CLOUD_BOOTSTRAP_AR.md", "deploy/SALAD_DEPLOYMENT.md",
     "deploy/salad/entrypoint.sh", "deploy/salad/nginx.conf.template",
     "scripts/verify_h3_video.py", "docs/UX_FLOW.md", "docs/GRAPH_MAP.md",
+    "docs/ORGANIZATION_AND_REUSE_AR.md", "docs/organization/organized-projects.png", "docs/organization/organized-elements.png", "docs/organization/reused-setup.png", "docs/organization/missing-reuse-blocked.png", "docs/organization/organization-mobile.png", "docs/organization/verification.json",
     "docs/PROJECT_WORKSPACE_AR.md", "docs/SEED_AND_DURATION_AR.md", "docs/FINAL_AUDIT_AR.md", "docs/COMPATIBILITY_MATRIX_AR.md", "docs/social-preview.png",
     "docs/demo/interface-elements.png", "docs/demo/interface-references.png", "docs/demo/interface-motioncache.png",
     "docs/demo/spectrum-preview.jpg", "docs/demo/motioncache-preview.jpg",

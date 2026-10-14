@@ -14,6 +14,7 @@ import re
 import subprocess
 import threading
 from aiohttp import web
+from urllib.parse import quote
 
 from .assets import AssetService
 from .capabilities import check_capabilities
@@ -249,10 +250,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             body = await request.json()
         except Exception:
             body = {}
-        name = body.get("name", "New Project")
-        canvas = body.get("canvas")
-        proj = await asyncio.to_thread(projects.create_project, name=name, canvas=canvas)
-        return web.json_response(proj, status=201)
+        try:
+            name = body.get("name", "New Project")
+            canvas = body.get("canvas")
+            proj = await asyncio.to_thread(projects.create_project, name=name, canvas=canvas)
+            return web.json_response(proj, status=201)
+        except (ValueError, TypeError, AttributeError) as exc:
+            return web.json_response({'error': str(exc)}, status=400)
 
     async def handle_get_project(request):
         pid = request.match_info["id"]
@@ -273,6 +277,43 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         if not proj:
             return web.json_response({"error": "Project not found"}, status=404)
         return web.json_response(proj)
+
+    async def handle_organization(request):
+        try:
+            if request.method == 'GET':
+                return web.json_response(await asyncio.to_thread(projects.organization))
+            body = await request.json()
+            result = await asyncio.to_thread(projects.organize, body['operation'], body.get('expected_revision'))
+            return web.json_response(result)
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            return web.json_response({'error':str(error)}, status=getattr(error,'status_code',400))
+
+    async def handle_project_transfer(request):
+        try:
+            body = await request.json()
+            for pid in (request.match_info['id'], body.get('target_project_id')):
+                records = await asyncio.to_thread(jobs.project_jobs, pid)
+                if any(r.get('state') not in ('completed','failed','cancelled') for r in records):
+                    return web.json_response({'error':'Finish active project jobs before transferring materials.'}, status=409)
+            result = await asyncio.to_thread(projects.transfer, request.match_info['id'], body)
+            return web.json_response(result)
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            return web.json_response({'error':str(error)}, status=getattr(error,'status_code',400))
+
+    async def handle_reuse_video(request):
+        try:
+            body = await request.json()
+            target = body.get('target_project_id')
+            if target:
+                records = await asyncio.to_thread(jobs.project_jobs, target)
+                if any(r.get('state') not in ('completed','failed','cancelled') for r in records):
+                    return web.json_response({'error':'Finish active project jobs before replacing its draft.'}, status=409)
+                result = await asyncio.to_thread(projects.apply_reuse, body.get('output_file'), target, body.get('expected_revision'), jobs)
+            else:
+                result = await asyncio.to_thread(projects.prepare_reuse, body.get('output_file'), jobs)
+            return web.json_response(result)
+        except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
+            return web.json_response({'error':str(error)}, status=getattr(error,'status_code',400))
 
     async def handle_save_project(request):
         pid = request.match_info["id"]
@@ -306,7 +347,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             bundle_path = await asyncio.to_thread(projects.export_bundle, pid)
             return web.FileResponse(
                 bundle_path,
-                headers={"Content-Disposition": f'attachment; filename="project_{pid}.zip"'}
+                headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(projects.get_project(pid)['name'], safe='') + '.zip'}
             )
         except KeyError:
             return web.json_response({"error": "Project not found"}, status=404)
@@ -916,10 +957,14 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/control/cancel/{id}", handle_control_cancel),
         ("GET", "/h3_studio/lab/quality", handle_quality),
         ("GET", "/h3_studio/lab/projects", handle_list_projects),
+        ("GET", "/h3_studio/lab/organization", handle_organization),
+        ("POST", "/h3_studio/lab/organization", handle_organization),
+        ("POST", "/h3_studio/lab/videos/reuse", handle_reuse_video),
         ("POST", "/h3_studio/lab/projects", handle_create_project),
         ("GET", "/h3_studio/lab/projects/{id}", handle_get_project),
         ("POST", "/h3_studio/lab/projects/{id}", handle_save_project),
         ("POST", "/h3_studio/lab/projects/{id}/workspace", handle_workspace_update),
+        ("POST", "/h3_studio/lab/projects/{id}/transfer", handle_project_transfer),
         ("POST", "/h3_studio/lab/projects/{id}/duplicate", handle_duplicate_project),
         ("GET", "/h3_studio/lab/projects/{id}/export", handle_export_project),
         ("POST", "/h3_studio/lab/projects/{id}/assemble", handle_assemble_project),

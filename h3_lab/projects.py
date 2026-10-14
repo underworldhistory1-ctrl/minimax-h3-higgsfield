@@ -20,6 +20,7 @@ import uuid
 import zipfile
 import re
 from .paths import owned_path, owned_video
+from .organization import OrganizationMixin
 
 _LOG = logging.getLogger("h3_lab.projects")
 
@@ -52,7 +53,7 @@ def image_category_role(category):
     return category['role'] if category['role'] in ('character identity', 'location', 'object', 'visual style', 'storyboard', 'custom') else 'custom'
 
 
-class ProjectService:
+class ProjectService(OrganizationMixin):
     def __init__(self, storage_root: str, asset_service=None, output_root=None):
         self.storage_root = pathlib.Path(storage_root).resolve()
         self.projects_dir = self.storage_root / "projects"
@@ -62,6 +63,8 @@ class ProjectService:
         self.asset_service = asset_service
         self.output_root = pathlib.Path(output_root).resolve() if output_root else None
         self._lock = threading.RLock()
+        self._transfer_recovery_required = True
+        self.recover_transfers()
 
     def _project_dir(self, project_id: str) -> pathlib.Path:
         if not project_id or not re_id(project_id):
@@ -69,6 +72,7 @@ class ProjectService:
         return self.projects_dir / project_id
 
     def create_project(self, name: str = "Untitled Project", canvas: dict = None) -> dict:
+        name = workspace_name(name)
         project_id = str(uuid.uuid4())
         pdir = self._project_dir(project_id)
         pdir.mkdir(parents=True, exist_ok=True)
@@ -94,6 +98,8 @@ class ProjectService:
         return record
 
     def get_project(self, project_id: str) -> dict:
+        if self._transfer_recovery_required:
+            self.recover_transfers()
         pdir = self._project_dir(project_id)
         manifest_path = pdir / "project.json"
         if not manifest_path.is_file():
@@ -105,6 +111,8 @@ class ProjectService:
     def _workspace_manifest(self, project):
         """Add catalog fields in memory without rewriting historical takes or IDs."""
         project.setdefault("asset_categories", copy.deepcopy(ASSET_CATEGORIES))
+        project.setdefault("folder_id", None)
+        project.setdefault("asset_folders", [])
         refs = {item.get("assetId"): item for item in project.get("draft", {}).get("refs", [])}
         used = {item.get("alias", "").casefold() for item in project.get("assets", []) if item.get("alias")}
         for item in project.get("assets", []):
@@ -149,6 +157,33 @@ class ProjectService:
             action = operation.get("action")
             if action == "rename_project":
                 project["name"] = workspace_name(operation.get("name"))
+            elif action == "file_project":
+                folder = operation.get('folder_id')
+                if folder is not None and not any(f['id'] == folder for f in self.organization()['folders']):
+                    raise ValueError('Project folder not found')
+                project['folder_id'] = folder
+            elif action in ('add_asset_folder', 'rename_asset_folder'):
+                name = workspace_name(operation.get('name'))
+                folder = next((f for f in project['asset_folders'] if f['id'] == operation.get('folder_id')), None)
+                if any(f is not folder and f['name'].casefold() == name.casefold() for f in project['asset_folders']):
+                    raise ValueError('An asset folder with this name already exists')
+                if action == 'add_asset_folder':
+                    project['asset_folders'].append({'id':'assets_'+uuid.uuid4().hex[:12], 'name':name})
+                elif folder:
+                    folder['name'] = name
+                else:
+                    raise ValueError('Asset folder not found')
+            elif action == 'file_assets':
+                ids = operation.get('asset_ids')
+                folder = operation.get('folder_id')
+                if not isinstance(ids, list) or not ids or len(ids)>200 or any(not isinstance(a,str) for a in ids):
+                    raise ValueError('Select up to 200 assets')
+                if not set(ids).issubset({a['asset_id'] for a in project['assets']}):
+                    raise ValueError('An asset is not in this project')
+                if folder is not None and not any(f['id']==folder for f in project['asset_folders']):
+                    raise ValueError('Asset folder not found')
+                for asset in project['assets']:
+                    if asset['asset_id'] in ids: asset['folder_id']=folder
             elif action == "add_category":
                 name = workspace_name(operation.get("name"))
                 if any(c["name"].casefold() == name.casefold() for c in project["asset_categories"]):
@@ -179,6 +214,11 @@ class ProjectService:
                     item["category"] = category["id"]
                     if item["kind"] == "image":
                         item["role"] = image_category_role(category)
+                if 'folder_id' in operation:
+                    folder = operation['folder_id']
+                    if folder is not None and not any(f['id']==folder for f in project['asset_folders']):
+                        raise ValueError('Asset folder not found')
+                    item['folder_id'] = folder
                 # Display names can change freely. Stable aliases keep drafts and historical graphs intact.
             else:
                 raise ValueError("Unknown workspace operation")
@@ -202,6 +242,7 @@ class ProjectService:
                                 "updated_at": data.get("updated_at"),
                                 "asset_count": len(data.get("assets", [])),
                                 "take_count": len(data.get("takes", [])),
+                                "folder_id": data.get('folder_id'),
                             })
                         except Exception:
                             pass
@@ -270,6 +311,8 @@ class ProjectService:
             project = self.get_project(job['project_id'])
             if not project or any(take.get('take_id') == token for take in project.get('takes', [])):
                 return
+            if token in project.get('transferred_take_ids', []):
+                return
         output = job['output']
         if not isinstance(output, dict) or not isinstance(output.get('filename'), str) or not isinstance(output.get('subfolder', 'video'), str):
             raise ValueError('Completed job output is malformed')
@@ -280,6 +323,8 @@ class ProjectService:
             if not project:
                 return
             if any(take.get('take_id') == token for take in project.get('takes', [])):
+                return
+            if token in project.get('transferred_take_ids', []):
                 return
             spec = job.get('render_spec')
             spec = spec if isinstance(spec, dict) else {}
@@ -411,6 +456,8 @@ class ProjectService:
 
             # Re-key project
             manifest_data["project_id"] = new_project_id
+            manifest_data['folder_id'] = None
+            manifest_data['transferred_take_ids'] = []
             manifest_data["revision"] = 1
             manifest_data["name"] = f"{manifest_data.get('name', 'Imported')} (Imported)"
             manifest_data["updated_at"] = time.time()

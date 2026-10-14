@@ -1445,7 +1445,8 @@ function renderResults(){
     const remove=document.createElement("button");remove.className="button alt danger";remove.type="button";remove.textContent="Delete";
     remove.setAttribute("aria-label","Delete video "+(index+1));remove.disabled=videoDeletionPending(entry)||!!state.mediaExporting;
     remove.onclick=()=>deleteVideoEntry(entry,renderOrigin);
-    actions.append(options,remove);card.append(b,actions);$("results").append(card);
+    const reuse=document.createElement('button');reuse.type='button';reuse.className='button alt';reuse.textContent='Reuse';reuse.setAttribute('aria-label','Reuse video '+(index+1));reuse.disabled=state.busy||state.projectLoading;reuse.onclick=()=>{if(api('')===renderOrigin)H3OrganizationUI.openReuse(entry).catch(error=>info(error.message,true));};
+    actions.append(reuse,options,remove);card.append(b,actions);$("results").append(card);
   });
 }
 $("showMoreVideos").onclick=()=>{state.visibleResults+=8;renderResults();};
@@ -2128,7 +2129,7 @@ if ($("btnSaveProject")) {
         assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems()),
       };
       await projectCtrl.saveCurrentProject(updates);
-      state.restoreMissing=[];info("Project saved successfully.");
+      state.restoreMissing=[...(state.reuseUnresolved||[])];info(state.restoreMissing.length?'Project saved; unresolved Reuse requirements still block rendering.':'Project saved successfully.');
     } catch (e) {
       info("Failed to save project: " + e.message, true);
     }
