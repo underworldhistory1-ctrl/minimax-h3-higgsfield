@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.5.3
+# H3 Higgsfield 2.5.4
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -11,6 +11,11 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 [![Superman above Earth — watch the creator-supplied excerpt](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
+
+## New in 2.5.4
+
+- **Video workspace reference uploads:** stream images, video, audio, keyframes and control inputs through the shared validated upload route without multipart. Filenames, trim/resize, progress and cancellation are preserved. Image workspace JSON uploads remain supported.
+- **Combined graph checks:** Anime2Realism + Combat V2 + image/video references + timed keyframes preserve all links across Original, MotionCache and Spectrum. This verifies wiring, not combined visual quality; Combat in Ref2VA remains experimental.
 
 ## New in 2.5.3
 

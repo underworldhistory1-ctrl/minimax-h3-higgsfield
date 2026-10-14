@@ -1,4 +1,4 @@
-"""Bounded image JSON transport for hosts that reject multipart requests."""
+"""Bounded reference transports with shared downstream media validation."""
 import base64
 import binascii
 import io
@@ -7,7 +7,20 @@ import json
 
 async def reference_upload(request, kind, max_bytes):
     """Return a filename and bounded chunk reader; media verification stays shared."""
+    if request.content_type == 'application/octet-stream':
+        name = request.query.get('filename', '')
+        if not name or len(name) > 255 or any(ord(c) in (0, 47, 92) for c in name):
+            raise ValueError('Invalid reference filename.')
+        if request.content_length is not None and request.content_length > max_bytes:
+            raise ValueError('Reference file is too large.')
+
+        async def read_binary_chunk(size):
+            return await request.content.read(size)
+
+        return name, read_binary_chunk
     if request.content_type != 'application/json':
+        if request.content_type != 'multipart/form-data':
+            raise ValueError('Use binary, JSON image, or multipart reference uploads.')
         reader = await request.multipart()
         part = await reader.next()
         if not part or part.name != 'file':
