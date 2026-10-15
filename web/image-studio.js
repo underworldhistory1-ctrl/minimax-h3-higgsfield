@@ -16,8 +16,12 @@ const sizeMap={
   "1.6":{"1:1":[1280,1280],"16:9":[1696,960],"9:16":[960,1696],"4:3":[1472,1088],"3:4":[1088,1472],"3:2":[1536,1024],"2:3":[1024,1536]},
   "4":{"1:1":[2048,2048],"16:9":[2752,1536],"9:16":[1536,2752],"4:3":[2400,1792],"3:4":[1792,2400],"3:2":[2528,1696],"2:3":[1696,2528]}
 };
-function api(path){return path;}
-function wsUrl(){const url=new URL(location.href);url.protocol=url.protocol==="https:"?"wss:":"ws:";url.pathname="/ws";url.search="?clientId="+encodeURIComponent(state.clientId);return url.toString();}
+function imageServerPrefix(){
+  const marker=location.pathname.indexOf("/extensions/");
+  return marker<0?"":location.pathname.slice(0,marker);
+}
+function api(path){return imageServerPrefix()+path;}
+function wsUrl(){const url=new URL(location.href);url.protocol=url.protocol==="https:"?"wss:":"ws:";url.pathname=api("/ws");url.search="?clientId="+encodeURIComponent(state.clientId);url.hash="";return url.toString();}
 function fmt(seconds){if(!Number.isFinite(seconds)||seconds<0)return "—";const total=Math.round(seconds),m=Math.floor(total/60),s=total%60;return m?`${m}m ${String(s).padStart(2,"0")}s`:`${s}s`;}
 function fmtBytes(bytes){if(bytes<1024)return bytes+" B";if(bytes<1048576)return (bytes/1024).toFixed(1)+" KB";return (bytes/1048576).toFixed(1)+" MB";}
 function showError(message=""){$("error").textContent=message;$("error").classList.toggle("hidden",!message);}
