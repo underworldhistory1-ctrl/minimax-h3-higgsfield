@@ -67,7 +67,41 @@ class UpdateService:
         os.replace(temporary, self.record)
         self.current = value
 
+    def launcher_restart_pending(self):
+        """CLI installs must close admission too, even without a UI receipt."""
+        try:
+            barrier = self.directory / 'maintenance.json'
+            if barrier.exists():
+                value = json.loads(barrier.read_text(encoding='utf-8'))
+                return not isinstance(value, dict) or value.get('closed') is not False
+            state = json.loads((self.directory / 'state.json').read_text(encoding='utf-8'))
+            if not isinstance(state, dict):
+                return True
+            return bool(state.get('restart_pending', False))
+        except FileNotFoundError:
+            return False
+        except (OSError, ValueError, TypeError):
+            return True
+
+
+    def reboot_ready(self):
+        """Only restart after the installer has finished every runtime write."""
+        try:
+            marker = self.directory / 'maintenance.json'
+            if marker.exists():
+                value = json.loads(marker.read_text(encoding='utf-8'))
+                if not isinstance(value, dict) or value.get('closed') not in (True, False):
+                    return False
+                if value.get('closed') is True:
+                    return value.get('reboot_ready') is True
+            return self.load().get('state') == 'restart_required'
+        except (OSError, ValueError, TypeError):
+            return False
+
     def status(self):
+        if self.launcher_restart_pending():
+            return {'state': 'restart_required',
+                    'message': 'Launcher changes require a verified restart. Existing renders continue; new work is paused.'}
         if self.blocked:
             recovered = self.load()
             if recovered.get('state') == 'completed':
@@ -122,7 +156,7 @@ class UpdateService:
         return {'state': 'available' if target != head else 'current', 'current': head, 'target': target}
 
     def reserve(self):
-        if self.blocked:
+        if self.blocked or self.launcher_restart_pending():
             raise RuntimeError('An update is already active or requires recovery/restart.')
         # Called on the event loop without awaiting: no request can enter between
         # counting mutations and closing admission.
@@ -135,14 +169,18 @@ class UpdateService:
     async def apply(self, target):
         if not isinstance(target, str) or not SHA.fullmatch(target) or target != self.candidate:
             raise RuntimeError('Check for updates again before applying this revision.')
+        previous = dict(self.current)
         self.reserve()
         try:
+            # Persist the reservation before yielding. A concurrent status request
+            # must never mistake the previous completed receipt for recovery.
+            self.save({'state': 'running', 'target': target})
             source, receipt = await asyncio.to_thread(self.source)
             if target == receipt['installed_commit']:
                 raise RuntimeError('This revision is already installed.')
-            self.save({'state': 'running', 'target': target})
             self.task = asyncio.create_task(self.run(source, target))
         except Exception:
+            self.save(previous)
             self.blocked = False
             raise
         return self.status()
@@ -181,8 +219,20 @@ def register_update_routes(app, service):
                     return web.json_response({'error': 'Updates must be requested from this server origin.'}, status=403)
             if request.headers.get('Sec-Fetch-Site') == 'cross-site':
                 return web.json_response({'error': 'Cross-site update requests are forbidden.'}, status=403)
+        if mutation:
+            service.status()  # Observe trusted recovery without a browser polling first.
+        if mutation and request.path == '/v2/manager/reboot':
+            # Keep Manager's own authorization; maintenance only narrows admission.
+            if service.inflight or service.active_operations() or service.queue_count():
+                return web.json_response({'error': 'Wait for admitted work to drain before restart.'}, status=409)
+            if (service.blocked or service.launcher_restart_pending()) and not service.reboot_ready():
+                return web.json_response({'error': 'Runtime preparation has not finished.'}, status=503)
+            return await handler(request)
         if mutation and not own:
-            if service.blocked:
+            control = (request.path in ('/interrupt', '/queue') or
+                       request.path.startswith('/h3_studio/lab/jobs/') and request.path.endswith('/cancel') or
+                       request.path.startswith('/h3_studio/lab/control/cancel/'))
+            if service.blocked or (not control and service.launcher_restart_pending()):
                 return web.json_response({'error': 'Studio is paused for an update. Restart/recovery may be required.', 'code': 'update_in_progress'}, status=503)
             service.inflight += 1
             try:
@@ -190,6 +240,12 @@ def register_update_routes(app, service):
             finally:
                 service.inflight -= 1
         return await handler(request)
+
+    async def maintenance(request):
+        return web.json_response({'admission_closed': service.blocked or service.launcher_restart_pending(),
+                                  'inflight': service.inflight,
+                                  'active_operations': len(service.active_operations()) + int(service.task is not None and not service.task.done()),
+                                  'queue_count': service.queue_count()})
 
     async def status(request):
         return web.json_response(service.status())
@@ -211,6 +267,7 @@ def register_update_routes(app, service):
             return web.json_response({'error': 'Update cannot start. Check for updates again and wait for all rendering and Studio operations to finish. Custom or changed installations require the launcher.'}, status=409)
 
     app.middlewares.insert(0, admission)
+    app.router.add_get(prefix + 'maintenance', maintenance)
     app.router.add_get(prefix + 'status', status)
     app.router.add_get(prefix + 'check', check)
     app.router.add_post(prefix + 'apply', apply)

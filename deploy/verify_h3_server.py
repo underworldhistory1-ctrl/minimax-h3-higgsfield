@@ -110,6 +110,7 @@ def main():
     missing_models = [name for name in REQUIRED_MODELS if not ready.get("models", {}).get(name)]
     missing_nodes = [name for name in REQUIRED_NODES if not ready.get("nodes", {}).get(name)]
     vae_tile_fix = bool(ready.get("quality", {}).get("h3_vae_tile_fix"))
+    native_cuda_ready = ready.get("acceleration", {}).get("native_cuda_ready") is True
     # Image weights are optional in the direct Windows/Linux installers. Hosts
     # that require Image mode must explicitly pass their selected profile(s).
     selected_profiles = tuple(name.strip() for name in os.environ.get("QWEN_IMAGE_PROFILES", "").split(",") if name.strip())
@@ -120,6 +121,9 @@ def main():
     print(json.dumps({
         "gpu": [item.get("name") for item in stats.get("devices", [])],
         "models_ready": not missing_models,
+        "native_cuda_ready": native_cuda_ready,
+        "acceleration": ready.get("acceleration", {}),
+        "attention": ready.get("attention", {}),
         "v2_ready": not missing_v2,
         "v2_problems": missing_v2,
         "missing_models": missing_models,
@@ -137,7 +141,7 @@ def main():
         "running_jobs": len(queue.get("queue_running", [])),
         "pending_jobs": len(queue.get("queue_pending", [])),
     }, indent=2, ensure_ascii=False))
-    if missing_models or missing_nodes or not vae_tile_fix or missing_image_profiles or missing_image_nodes or missing_v2 or unavailable_loras:
+    if not native_cuda_ready or missing_models or missing_nodes or not vae_tile_fix or missing_image_profiles or missing_image_nodes or missing_v2 or unavailable_loras:
         raise SystemExit(1)
 
 

@@ -148,12 +148,13 @@ else
 fi
 export COMFY_PYTHON="$H3_PYTHON"
 
-if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize()' 2>/dev/null; then
+if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"]()["ready"], "Optimized CUDA backend or Python dependencies need repair"' "$ROOT/deploy/environment_audit.py" 2>/dev/null; then
     echo "Installing missing ComfyUI Python dependencies..."
+    "$H3_PYTHON" "$ROOT/deploy/environment_audit.py" --check-install
     if ((existing == 0)); then
         "$H3_PYTHON" -m pip install --upgrade pip
     fi
-    if ! "$H3_PYTHON" -c 'import torch; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize()' 2>/dev/null; then
+    if ! "$H3_PYTHON" -c 'import torch; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"' 2>/dev/null; then
         echo "Preparing CUDA PyTorch..."
         "$H3_PYTHON" -m pip install 'torch==2.9.1+cu130' 'torchvision==0.24.1+cu130' 'torchaudio==2.9.1+cu130' --index-url https://download.pytorch.org/whl/cu130
     fi
@@ -166,7 +167,7 @@ for name in ("torch", "torchvision", "torchaudio"):
     except m.PackageNotFoundError: pass' > "$task_constraints"
         "$H3_PYTHON" -m pip install -c "$task_constraints" -r "$COMFY_ROOT/requirements.txt" av
     )
-    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"; assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize()'
+    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"; assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"]()["ready"], "Optimized CUDA backend or Python dependencies still need repair"' "$ROOT/deploy/environment_audit.py"
 fi
 
 free_gib="$(df -Pk "$COMFY_ROOT" | awk 'NR==2 {printf "%.0f", $4/1048576}')"

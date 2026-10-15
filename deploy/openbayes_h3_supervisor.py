@@ -6,8 +6,12 @@ dies before saving its MP4. The checkpoint remains if recovery also fails.
 """
 
 import argparse
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 import json
+import os
 import pathlib
 import signal
 import subprocess
@@ -44,18 +48,13 @@ def wait_ready(base, child, timeout=180):
     return False
 
 
-def recovery_graph(token):
-    latent = ["1", 0]
-    return {
-        "1": {"class_type": "H3LoadSavedLatent", "inputs": {"token": token}},
-        "2": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax_h3_video_vae_fp16.safetensors"}},
-        "3": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax_h3_audio_vae_fp32.safetensors"}},
-        "4": {"class_type": "VAEDecode", "inputs": {"samples": latent, "vae": ["2", 0]}},
-        "5": {"class_type": "VAEDecodeAudio", "inputs": {"samples": latent, "vae": ["3", 0]}},
-        "6": {"class_type": "CreateVideo", "inputs": {"images": ["4", 0], "fps": 24, "audio": ["5", 0]}},
-        "7": {"class_type": "H3SaveVideo", "inputs": {
-            "video": ["6", 0], "filename_prefix": "video/h3_studio_" + token}},
-    }
+def save_recovery(path, record):
+    part = path.with_suffix('.json.part')
+    with part.open('w', encoding='utf-8') as stream:
+        json.dump(record, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(part, path)
 
 
 def recover(comfy, base):
@@ -63,36 +62,98 @@ def recover(comfy, base):
     if not latent_dir.exists():
         return
     for checkpoint in sorted(latent_dir.glob("h3_studio_*.safetensors")):
+        if STOP:
+            return
         token = checkpoint.stem.removeprefix("h3_studio_")
         if len(token) != 12 or any(char not in "0123456789abcdef" for char in token):
             continue
-        if list((comfy / "output" / "video").glob(f"h3_studio_{token}_*.mp4")):
-            checkpoint.unlink(missing_ok=True)
-            continue
+        # File existence is not completion: a dead encoder can leave a partial MP4.
+        # Only H3SaveVideo removes a checkpoint after its successful save.
         marker = checkpoint.with_suffix(".recovery-attempted")
         if marker.exists():
             continue
-        marker.write_text("decode-only recovery submitted\n", encoding="utf-8")
+        record_path = checkpoint.with_suffix('.recovery.json')
         try:
-            result = api(base, "/prompt", {"prompt": recovery_graph(token)})
-            if "prompt_id" not in result:
-                raise RuntimeError(f"Recovery prompt rejected: {result}")
-            print(f"Recovery queued for {token}: {result['prompt_id']}", flush=True)
-        except (OSError, ValueError, RuntimeError) as error:
+            if record_path.exists():
+                previous = json.loads(record_path.read_text(encoding='utf-8'))
+                if previous.get('state') == 'accepted':
+                    continue
+            maintenance = api(base, '/h3_studio/updates/maintenance')
+            if maintenance.get('admission_closed') is not False:
+                return
+            queue = api(base, '/queue')
+            if queue.get('queue_running') or queue.get('queue_pending'):
+                return
+            jobs = json.loads((comfy/'output/lab_storage/jobs_manifest.json').read_text(encoding='utf-8'))
+            matches = [job for job in jobs.values() if job.get('request_id') == token]
+            if len(matches) != 1:
+                continue
+            job = matches[0]
+            if job.get('state') in ('completed', 'cancelled', 'cancel_requested') or job.get('recovery_cancel_requested') or job.get('recovery_of'):
+                continue
+            record = {'state': 'uncertain', 'token': token, 'job_id': job['job_id'],
+                      'created_at': time.time()}
+            if STOP:
+                return
+            save_recovery(record_path, record)  # Covers a crash/lost reply after acceptance.
+            try:
+                result = api(base, '/h3_studio/lab/jobs/'+job['job_id']+'/recover', {})
+            except urllib.error.HTTPError as error:
+                if error.code in (400, 401, 403, 404, 405, 422, 429):
+                    record.update(state='rejected', http_status=error.code)
+                    save_recovery(record_path, record)
+                raise
+            child = result.get('job', {})
+            if child.get('job_id'):
+                record.update(state='accepted', recovery_job_id=child['job_id'],
+                              prompt_id=child.get('prompt_id'))
+                save_recovery(record_path, record)
+                print(f"Tracked recovery for {token}: {child['job_id']}", flush=True)
+                return  # One recovery at a time, with a fresh queue check next time.
+            if result.get('error') or result.get('node_errors'):
+                record['state'] = 'rejected'
+                save_recovery(record_path, record)
+            raise RuntimeError('Recovery prompt was not acknowledged; checkpoint retained')
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
             print(f"Recovery could not be queued for {token}: {error}", file=sys.stderr, flush=True)
+
+
+def worker_command(python, args):
+    return [str(python), 'main.py', '--listen', args.bind, '--port', str(args.port),
+            '--reserve-vram', str(args.reserve_vram), '--cache-ram', '--fp16-intermediates',
+            '--use-ck-attention' if getattr(args, 'attention_backend', 'pytorch') == 'ck-int8'
+            else '--use-pytorch-cross-attention']
+
+
+def worker_python(comfy, override=None):
+    python = pathlib.Path(override).expanduser().absolute() if override else comfy/'.venv/bin/python'
+    if not python.is_file():
+        raise ValueError('ComfyUI Python environment was not found')
+    return python
+
+
+def recovery_ready(base, child, ready):
+    return ready or wait_ready(base, child, timeout=1)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--comfy-root", type=pathlib.Path, required=True)
     parser.add_argument("--port", type=int, default=8188)
+    parser.add_argument('--bind', default='127.0.0.1')
+    parser.add_argument('--reserve-vram', type=float, default=3.0)
+    parser.add_argument('--comfy-python')
+    parser.add_argument('--attention-backend', choices=('pytorch', 'ck-int8'), default='pytorch')
     args = parser.parse_args()
+    if fcntl is None:
+        parser.error('The worker supervisor requires Linux/POSIX file locking')
     comfy = args.comfy_root.resolve()
     if not (comfy / "main.py").is_file():
         parser.error("ComfyUI main.py was not found")
-    python = comfy / ".venv" / "bin" / "python"
-    if not python.is_file():
-        parser.error("ComfyUI Python environment was not found")
+    try:
+        python = worker_python(comfy, args.comfy_python)
+    except ValueError as error:
+        parser.error(str(error))
     lock_path = comfy / ".h3-supervisor.lock"
     with lock_path.open("w") as lock:
         try:
@@ -103,17 +164,19 @@ def main():
         signal.signal(signal.SIGINT, stop)
         base = f"http://127.0.0.1:{args.port}"
         log_path = comfy / "h3-higgsfield-server.log"
-        recovering = False
         while not STOP:
             with log_path.open("a", encoding="utf-8") as log:
-                child = subprocess.Popen([
-                    str(python), "main.py", "--listen", "127.0.0.1", "--port", str(args.port),
-                    "--cache-none", "--fp16-intermediates", "--use-pytorch-cross-attention",
-                ], cwd=comfy, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
+                child = subprocess.Popen(worker_command(python, args), cwd=comfy,
+                                         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
                 print(f"ComfyUI started: PID {child.pid}", flush=True)
-                if wait_ready(base, child) and recovering:
-                    recover(comfy, base)
+                ready = wait_ready(base, child)
+                next_recovery = 0
                 while not STOP and child.poll() is None:
+                    if time.monotonic() >= next_recovery:
+                        ready = recovery_ready(base, child, ready)
+                        if ready:
+                            recover(comfy, base)
+                        next_recovery = time.monotonic() + 10
                     time.sleep(2)
                 if STOP:
                     child.terminate()
@@ -123,7 +186,6 @@ def main():
                         child.kill()
                     break
                 print(f"ComfyUI exited with code {child.returncode}; restarting", flush=True)
-            recovering = True
             time.sleep(5)
 
 

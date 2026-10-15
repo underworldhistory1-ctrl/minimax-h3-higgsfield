@@ -224,15 +224,19 @@ def select_python(root, override, fresh):
 def ensure_python_env(python, root, fresh):
     probe = subprocess.run([str(python), "-c",
                             "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
-                            "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()"],
+                            "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split('.')[:2])) >= (13,0), 'CUDA 13.0+ is required for optimized INT8'; "
+                            "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit']()['ready'], 'Optimized CUDA backend or Python dependencies need repair'",
+                            str(PROJECT / 'deploy/environment_audit.py')],
                            capture_output=True, text=True)
     if probe.returncode == 0:
         return
     print("Installing missing ComfyUI Python dependencies...", flush=True)
+    # Run in the selected interpreter, before pip can replace a working stack.
+    call(python, PROJECT / 'deploy/environment_audit.py', '--check-install')
     if fresh:
         call(python, "-m", "pip", "install", "--upgrade", "pip")
     cuda = subprocess.run([str(python), "-c", "import torch; assert torch.cuda.is_available(); "
-                           "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()"],
+                           "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split('.')[:2])) >= (13,0), 'CUDA 13.0+ is required for optimized INT8'"],
                           capture_output=True, text=True)
     if cuda.returncode:
         print("Preparing CUDA PyTorch...", flush=True)
@@ -249,7 +253,9 @@ def ensure_python_env(python, root, fresh):
         constraints.write_text(versions + "\n", encoding="utf-8")
         call(python, "-m", "pip", "install", "-c", constraints, "-r", root / "requirements.txt", "av")
     call(python, "-c", "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
-         "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize()")
+         "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split('.')[:2])) >= (13,0), 'CUDA 13.0+ is required for optimized INT8'; "
+         "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit']()['ready'], 'Optimized CUDA backend or Python dependencies still need repair'",
+         PROJECT / 'deploy/environment_audit.py')
 
 
 def runtime_target(root):

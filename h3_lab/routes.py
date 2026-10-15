@@ -376,6 +376,62 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         finally:
             tmp_zip.unlink(missing_ok=True)
 
+    async def enqueue_job(job_rec):
+        current = await asyncio.to_thread(jobs.get_job, job_rec['job_id'])
+        if current.get('state') == 'cancel_requested':
+            return await asyncio.to_thread(jobs.update_job, job_rec['job_id'], state='cancelled')
+        if current.get('state') in ('completed', 'failed', 'cancelled'):
+            return current
+        result = await comfy_client.submit_prompt(job_rec['render_spec'], {
+            'h3_lab_job_id': job_rec['job_id'], 'h3_lab_request_id': job_rec['request_id']})
+        if not isinstance(result, dict) or not result.get('prompt_id'):
+            raise RuntimeError('Queue did not acknowledge a prompt ID')
+        updated = await asyncio.to_thread(jobs.update_job, job_rec['job_id'],
+                                         prompt_id=result['prompt_id'], state='queued')
+        if updated.get('state') == 'cancel_requested':
+            updated = await jobs.request_cancel(updated['job_id'], comfy_client)
+        return updated
+
+    async def handle_recover_job(request):
+        if comfy_client is None:
+            return web.json_response({'error': 'Lab queue bridge is unavailable'}, status=503)
+        if preparation_lock.locked():
+            return web.json_response({'error': 'Shared resource is busy'}, status=409)
+        async with preparation_lock:
+            try:
+                body = await request.json()
+                if not isinstance(body, dict) or body:
+                    raise ValueError('Supply only the parent job id in the URL')
+                parent_id = request.match_info['id']
+                parent = await asyncio.to_thread(jobs.get_job, parent_id)
+                if not parent:
+                    return web.json_response({'error': 'Job not found'}, status=404)
+                if parent.get('state') not in ('completed', 'failed', 'cancelled'):
+                    parent = await jobs.reconcile_submission_gap(parent_id, comfy_client)
+                if not parent.get('recovery_job_id'):
+                    queue = await comfy_client.get_queue()
+                    if queue.get('queue_running') or queue.get('queue_pending'):
+                        return web.json_response({'error': 'Wait for the render queue to become idle'}, status=409)
+                record, duplicate = await asyncio.to_thread(jobs.submit_decode_recovery, parent_id)
+                if duplicate:
+                    if record.get('state') not in ('completed', 'failed', 'cancelled'):
+                        record = await jobs.reconcile_submission_gap(record['job_id'], comfy_client)
+                    return web.json_response({'job': record, 'is_duplicate': True}, status=200)
+                try:
+                    record = await enqueue_job(record)
+                except ValueError as error:
+                    await asyncio.to_thread(jobs.update_job, record['job_id'], state='failed', error=str(error))
+                    return web.json_response({'error': str(error), 'job_id': record['job_id']}, status=getattr(error, 'status_code', 400))
+                except Exception:
+                    await asyncio.to_thread(jobs.update_job, record['job_id'], state='unknown',
+                                            error='Queue acknowledgement unavailable; reconcile before retrying')
+                    return web.json_response({'error': 'Queue acknowledgement unavailable', 'job_id': record['job_id']}, status=503)
+                return web.json_response({'job': record, 'is_duplicate': False}, status=201)
+            except KeyError:
+                return web.json_response({'error': 'Job not found'}, status=404)
+            except (ValueError, TypeError, OSError) as error:
+                return web.json_response({'error': str(error)}, status=getattr(error, 'status_code', 400))
+
     async def handle_submit_job(request):
         if preparation_lock.locked():
             return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish.", "code": "PREPARATION_BUSY"}, status=409)
@@ -423,14 +479,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             )
             if not is_dup:
                 try:
-                    result = await comfy_client.submit_prompt(spec, {
-                        "h3_lab_job_id": job_rec["job_id"], "h3_lab_request_id": req_id})
-                    if not isinstance(result, dict) or not result.get("prompt_id"):
-                        raise RuntimeError("Queue did not acknowledge a prompt ID")
-                    job_rec = await asyncio.to_thread(jobs.update_job, job_rec["job_id"],
-                        prompt_id=result["prompt_id"], state="queued")
-                    if job_rec.get("state") == "cancel_requested":
-                        job_rec = await jobs.request_cancel(job_rec["job_id"], comfy_client)
+                    job_rec = await enqueue_job(job_rec)
                 except ValueError as error:
                     await asyncio.to_thread(jobs.update_job, job_rec["job_id"], state="failed", error=str(error))
                     return web.json_response({"error": str(error), "job_id": job_rec["job_id"]}, status=getattr(error, "status_code", 400))
@@ -469,7 +518,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     async def handle_cancel_by_request(request):
         req_id = request.match_info["request_id"]
         rec = await asyncio.to_thread(jobs.reserve_cancellation, req_id)
-        if rec.get("state") in ("completed", "failed", "cancelled"):
+        if rec.get("state") in ("completed", "cancelled"):
             return web.json_response(rec)
         if comfy_client is None:
             return web.json_response({"error": "Lab queue bridge is unavailable; job retained", "job_id": rec["job_id"]}, status=503)
@@ -1046,6 +1095,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/jobs/by_request/{request_id}/cancel", handle_cancel_by_request),
         ("GET", "/h3_studio/lab/jobs/{id}", handle_get_job),
         ("POST", "/h3_studio/lab/jobs/{id}/cancel", handle_cancel_job),
+        ("POST", "/h3_studio/lab/jobs/{id}/recover", handle_recover_job),
         ("POST", "/h3_studio/lab/import_qwen_image", handle_import_qwen_image),
         ("GET", "/h3_studio/lab/contexts/usage", handle_context_usage),
         ("GET", "/h3_studio/lab/contexts/{id}", handle_context_metadata),

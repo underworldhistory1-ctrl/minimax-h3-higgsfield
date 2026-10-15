@@ -39,8 +39,6 @@ class H3ReleaseForDecode:
         target = folder / f"h3_studio_{token}.safetensors"
         part = folder / f"h3_studio_{token}.part"
         import comfy.model_management as model_management
-        model_management.unload_all_models()
-        model_management.soft_empty_cache()
         sampled = samples["samples"]
         if getattr(sampled, "is_nested", False):
             tensors = {f"nested_{index}": tensor.detach().to("cpu").contiguous()
@@ -57,6 +55,10 @@ class H3ReleaseForDecode:
         finally:
             part.unlink(missing_ok=True)
 
+        # Unloading may itself fail or exhaust host RAM. The completed sampler
+        # checkpoint must already exist so that decode can recover independently.
+        model_management.unload_all_models()
+        model_management.soft_empty_cache()
         logging.info("H3 Studio: sampled latent saved at %s; generation models released before VAE decode", target)
         return (samples,)
 

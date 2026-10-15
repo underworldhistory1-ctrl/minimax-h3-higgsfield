@@ -1,6 +1,32 @@
 # Production readiness audit — 15 October 2026
 
-## Scope and revision
+## Current server-runtime follow-up
+
+A later authorized audit connected to the current RTX 5090 deployment and repaired
+its runtime as well as source. The earlier software-only results below remain
+historical; this follow-up does not certify every configuration.
+
+| Check | Observed result |
+|---|---|
+| Native acceleration | Actual loaded worker: Torch2.9.1+cu130, CUDA13.0, enabled comfy-kitchen CUDA backend |
+| Original Ref2VA INT8 + Combat V2 | Complete 1024x576,362-frame video with audio; full-file decode passed |
+| Singularity INT8 + Anime Realism | Complete 1024x576,209-frame video with audio; full-file decode passed |
+| Matched attention comparison | Same Original job/settings/references/seed, fresh worker: PyTorch Flash1201.28s versus CK INT8 attention582.94s; steady56.3 versus25.04s/step |
+| Output review | Both matched files decoded fully; coherent frame spot checks at1/7/13s. Quantized attention changes output; perceptual equivalence and universal quality are not claimed |
+| Regression checks | 452 Python tests and170 JavaScript tests passed; real project/asset API browser navigation passed without GPU inference |
+| Limits | Host cgroup40GB with no swap remained near its limit in sampling; no new OOM kills were observed in these production checks. Sampling itself has no restart checkpoint |
+
+Repairs include CUDA/native-backend preflight, verification of the actual loaded
+worker and attention implementation, preserving venv interpreter symlinks, Linux
+supervision, RAM-pressure node caching, atomic completed-latent saving, tracked
+and cancellation-safe decode recovery, and update/restart admission barriers.
+Regression tests reproduced and prevented stale restart authorization and an
+async source-validation race that could reopen admission during an update.
+See [launcher evidence and limits](LAUNCHER.md) and [decode recovery](DECODE_RECOVERY.md).
+
+No user media, prompts, credentials or private server addresses are included here.
+
+## Original 2.5.5 software audit scope
 
 Audit started from official main commit a98c47104348640c7e36b8db2b58ef570ccd9c08 (2.5.4). Work is isolated on fix/production-readiness-2.5.5. The final branch commit is the revision containing this report.
 
@@ -82,11 +108,11 @@ node tests/browser/updates.cjs
 
 The image-workspace, modernization and anime-realism browser fixtures default to port18923; run a second workspace fixture there or pass the supported H3_TEST_URL for video fixtures. Playwright with its Chromium executable must be installed. The workspace server runs only CPU fixtures and temporary storage.
 
-## Verdict
+## Original software-audit verdict
 
 Source release is ready for deployment validation after the verified local checks. A complete production-runtime acceptance is NOT TESTED. Missing LoRAs can no longer pass the server verification step, but network, storage, credentials and server-path faults can still require recovery. UI code updates do not download absent model weights; use the full launcher for that repair. Production rendering acceptance requires the current server's readiness/API verification and a deliberately authorized minimal GPU render, then viewing/listening to the result. No finite test certifies every prompt or adapter combination.
 
-## Publication and review limits
+## Original audit publication and review limits
 
 A fresh public API check confirmed main remained at the audited base during the work. GitHub CLI and Git transport have no authenticated write credential in this environment; a noninteractive push dry-run failed before publishing. The validated commit/patch is local, and upstream main has not been changed.
 

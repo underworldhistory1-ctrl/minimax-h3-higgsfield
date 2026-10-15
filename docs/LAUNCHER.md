@@ -100,6 +100,19 @@ model access, writable space and administrator privileges for missing system too
 The launcher installs missing tools where the OS package manager is supported;
 it cannot repair provider hardware, grant permissions or accept model licenses.
 Versions are compatible pins, not untested automatic upgrades to the newest release.
+CUDA visibility alone is insufficient: NVIDIA installs require CUDA 13.0+ PyTorch
+and an available comfy-kitchen CUDA backend for the optimized INT8 path. Existing
+CUDA 12.x environments must be repaired before the launcher declares readiness.
+Linux launch paths use ComfyUI RAM-pressure caching rather than disabling all
+node-result reuse. This cache evicts under RAM pressure and is separate from the
+user-selected Spectrum/MotionCache approximation methods.
+Maintenance writes a fixed-root .h3-launcher/maintenance.json barrier even
+when reports use --state-dir. Admission closes before runtime mutation; the
+launcher then waits for already admitted HTTP handlers, background operations and
+the render queue to drain. Older running workers without the drain endpoint must
+be stopped when idle before this first upgrade. Queue reads and cancellation
+remain available. Manager restart is allowed only after all admitted work drains.
+A failed update remains paused; a verified restart and API check reopen admission.
 
 ## Remote one-command handoff
 
@@ -138,3 +151,66 @@ The Updates control checks official main and reports a newer source commit. Inst
 Before applying, Studio closes admission to new mutations and verifies both the ComfyUI queue and shared preparation/export operations. Existing work blocks the update. The launcher still validates runtime edits, installation locks, backups and source revision. User models, input/output media, project manifests and settings are retained.
 
 Successful code installation requires an explicit ComfyUI restart and browser reload. The old worker remains paused until then. Interrupted or failed updates retain a recovery state and installation log; rerun the launcher after resolving its reported error. Installing code is not GPU or quality validation. [Current audit](PRODUCTION_READINESS_2026_10_15.md).
+
+## Performance and recovery limits
+
+INT8 diffusion weights coexist with floating-point residuals, normalization,
+softmax, text encoding and VAEs. BF16/FP16 activity does not by itself indicate
+that INT8 linear kernels are disabled. The selected Combat LoRA can retain INT8
+through the pinned ComfyUI requantization path. The environment audit checks the
+native CUDA backend separately from basic GPU visibility.
+
+The explicit PyTorch attention baseline selects an eligible fused SDPA kernel;
+its label is not evidence of a slow math fallback. Comfy Kitchen INT8 attention,
+Spectrum and MotionCache change arithmetic and require matched-seed video/audio
+quality checks and measured end-to-end timings before choosing them for a workload.
+Do not infer their speed from installation, GPU occupancy or marketing factors.
+Keep model, LoRAs, dimensions, frame count, sampler, scheduler, steps and references
+matched. Confirm KSampler actually executes: RAM caching can reuse its complete
+result when identical inputs are submitted, even with a new output token.
+
+RAM-pressure caching cannot guarantee that a large allocation inside one node
+will fit. Avoid blind high-RAM/high-VRAM flags on constrained hosts. Record peak
+cgroup RAM and OOM counters across model loading, sampling, unload, decode and
+save; decoded video still needs CPU memory. More host RAM may be necessary.
+A completed-sampler latent supports decode recovery; a worker lost during sampling
+has no resumable solver checkpoint. Never report completion before the output
+video and audio are saved and validated. Cancelled jobs must remain cancelled.
+
+## Attention selection and supervised workers
+
+The default remains the explicit PyTorch fused SDPA baseline. Select native
+Comfy Kitchen quantized attention with `--attention-backend ck-int8`; use
+`--attention-backend pytorch` for the baseline. This is an additional arithmetic
+approximation, separate from INT8 diffusion weights. The choice enters the
+launcher configuration fingerprint, reaches worker restarts, and must match the
+actual loaded implementation in readiness. An argument alone is not verification.
+Changing the choice on an existing supervisor requires an idle relaunch with the
+new arguments; Manager reboot preserves the old supervisor arguments.
+
+On Linux, the launcher starts a detached worker supervisor with the selected
+Python interpreter, port, bind address and VRAM reserve. Interpreter symlinks must
+remain intact so a virtual environment never resolves to the system Python.
+The supervisor restarts a failed worker and periodically checks for supported
+decode-only recovery. See [decode recovery and cancellation](DECODE_RECOVERY.md).
+Sampling in progress has no resumable solver checkpoint.
+
+For an idle GPU, `deploy/benchmark_attention.py` compares the pinned PyTorch SDPA
+wrapper and native Kitchen attention. It submits no model inference and changes
+no server settings. It reports CUDA-event timings, loaded kernels and numerical
+error, with safety checks against a large quadratic math fallback. On an RTX 5090
+with Torch 2.9.1+cu130, BF16 B1/H56/D128, sequence32768, three timed repetitions:
+Flash SDPA median146.64ms; Kitchen INT8 median51.73ms (2.84x attention-only);
+relative RMSE0.01693 versus SDPA. This is not a whole-video speed or quality claim.
+
+
+A matched full-render check on the same RTX 5090 used Ref2VA INT8 + Combat V2,
+1024x576, 362 frames at24fps, 20 steps, seed42 and identical image/audio references.
+CUDA13 PyTorch Flash took1201.28s end-to-end (steady56.3s/step); native Kitchen
+INT8 attention took582.94s (steady25.04s/step), about2.06x end-to-end. A fresh
+worker executed all20 steps, avoiding sampler-result cache reuse. Both MP4s
+contain362 video frames and native audio and passed full-file decoding. Spot
+checks at1/7/13s found coherent frames but arithmetic changes alter the output;
+this is not perceptual equivalence or a guarantee for other workloads. Small
+attention shapes can be slower with quantization. Singularity INT8 + Anime
+Realism also completed and passed full video/audio decode on this runtime.

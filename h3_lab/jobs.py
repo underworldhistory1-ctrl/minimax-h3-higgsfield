@@ -107,7 +107,7 @@ class JobService:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     def submit_job(self, request_id: str, render_spec: dict, asset_leases: list = None,
-                   project_id: str = None, take_id: str = None) -> tuple:
+                   project_id: str = None, take_id: str = None, *, recovery_of=None) -> tuple:
         """
         Idempotent job submission.
         Returns (job_record, is_duplicate).
@@ -125,6 +125,13 @@ class JobService:
                                    "project_id": project_id, "take_id": take_id})
 
         with self._lock:
+            parent = None
+            if recovery_of is not None:
+                parent = self._jobs.get(recovery_of)
+                if not parent or parent.get('state') != 'failed' or parent.get('recovery_cancel_requested'):
+                    error = ValueError('Recovery requires an uncancelled failed parent job')
+                    error.status_code = 409
+                    raise error
             existing_job_id = self._request_index.get(request_id)
             if existing_job_id:
                 existing = self._jobs.get(existing_job_id)
@@ -160,12 +167,44 @@ class JobService:
             }
 
             self._jobs[job_id] = record
+            if parent is not None:
+                record['recovery_of'] = recovery_of
+                parent['recovery_job_id'] = job_id
             self._request_index[request_id] = job_id
             if self.asset_service:
                 for item in leases:
                     self.asset_service.acquire_lease(item, job_id)
             self._save_jobs_locked()
             return dict(record), False
+
+    def submit_decode_recovery(self, parent_id):
+        """Create/link one deterministic child in the same durable transaction."""
+        from .decode_recovery import recovery_graph
+        with self._lock:
+            parent = self._jobs.get(parent_id)
+            if not parent:
+                raise KeyError(parent_id)
+            if parent.get('state') != 'failed' or parent.get('recovery_cancel_requested') or parent.get('recovery_of'):
+                error = ValueError('Recovery requires an uncancelled failed original job')
+                error.status_code = 409
+                raise error
+            linked = self._jobs.get(parent.get('recovery_job_id'))
+            if linked and linked.get('recovery_of') == parent_id:
+                return copy.deepcopy(linked), True
+            token = parent.get('request_id', '')
+            if self.output_root is None or not re.fullmatch(r'[a-f0-9]{12}', token):
+                raise ValueError('Saved sampler identity is unavailable')
+            from .paths import owned_path
+            try:
+                checkpoint = owned_path(self.output_root/'latent', 'h3_studio_'+token+'.safetensors')
+                if checkpoint.stat().st_size <= 0:
+                    raise ValueError('Saved sampler checkpoint is empty')
+            except OSError as error:
+                raise ValueError('Saved sampler checkpoint is unavailable') from error
+            request_id = hashlib.sha256(('h3-decode-v1:'+parent_id).encode()).hexdigest()[:12]
+            spec = copy.deepcopy(parent.get('render_spec', {}))
+            spec['workflow'] = recovery_graph(token, spec.get('workflow'), request_id)
+            return self.submit_job(request_id, spec, project_id=parent.get('project_id'), recovery_of=parent_id)
 
     def get_job(self, job_id: str) -> dict:
         with self._lock:
@@ -358,9 +397,19 @@ class JobService:
             job = self._jobs.get(job_id)
             if not job:
                 raise KeyError(f"Job not found: {job_id}")
-            if job["state"] in TERMINAL_STATES:
+            child = self._jobs.get(job.get('recovery_job_id'))
+            if job.get('state') == 'failed':
+                # Reserve cancellation even before a recovery child exists.
+                job['recovery_cancel_requested'] = True
+                self._save_jobs_locked()
+            child_id = child['job_id'] if child and child.get('recovery_of') == job_id and child.get('state') in ACTIVE_STATES else None
+            if job["state"] in TERMINAL_STATES and not child_id:
                 return dict(job)
             prompt_id = job.get("prompt_id")
+
+        if child_id:
+            await self.request_cancel(child_id, comfy_client)
+            return self.get_job(job_id)
 
         # Mark cancel_requested first
         job = self.update_job(job_id, state="cancel_requested")

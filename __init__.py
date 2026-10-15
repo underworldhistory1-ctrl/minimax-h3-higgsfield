@@ -801,7 +801,10 @@ async def readiness(request):
             ram_limit = round(int(raw) / (1024 ** 3), 2)
     except OSError:
         pass
+    from .h3_lab.runtime_attention import runtime_acceleration, runtime_attention
     return web.json_response({"models": present, "nodes": available,
+                              "acceleration": runtime_acceleration(),
+                              "attention": runtime_attention(),
                               "runtime_instance": H3_RUNTIME_INSTANCE,
                               "runtime_fingerprint": H3_RUNTIME_FINGERPRINT,
                               "quality": {"h3_vae_tile_fix": vae_tile_fix, "h3_vae_chunked_io": vae_chunked_io},

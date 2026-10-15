@@ -32,7 +32,7 @@ class WindowsPythonSafetyTests(unittest.TestCase):
             python = root / "python.exe"
             constraints_paths = []
             observed = []
-            versions = "torch==2.11.0+cu128\ntorchvision==0.26.0+cu128\ntorchaudio==2.11.0+cu128"
+            versions = "torch==2.9.1+cu130\ntorchvision==0.24.1+cu130\ntorchaudio==2.9.1+cu130"
 
             def call(*args, **kwargs):
                 observed.append(args)
@@ -73,13 +73,15 @@ class LinuxPythonSafetyTests(unittest.TestCase):
         block = source[source.index("if ! \"$H3_PYTHON\" -c"):source.index("free_gib=")]
         harness = '''set -Eeuo pipefail
 H3_PYTHON=fake_python
+ROOT=/repo
 COMFY_ROOT=/comfy
 existing=1
 full_probes=0
 fake_python() {
+    if [[ "${2:-}" == --check-install ]]; then return 0; fi
     if [[ "$1" == -c ]]; then
         case "$2" in
-            *"importlib.metadata"*) printf 'torch==2.11.0+cu128\\n' ;;
+            *"importlib.metadata"*) printf 'torch==2.9.1+cu130\\n' ;;
             *"import torch, av"*)
                 full_probes=$((full_probes+1))
                 if [[ "$full_probes" == 1 ]]; then return 1; fi ;;
@@ -100,7 +102,7 @@ fake_python() {
         self.assertIn("requirements.txt av", commands[0])
         self.assertNotIn("--upgrade", commands[0])
         self.assertNotIn("--index-url", commands[0])
-        self.assertIn("torch==2.11.0+cu128", result.stdout)
+        self.assertIn("torch==2.9.1+cu130", result.stdout)
 
     def test_existing_unresolved_or_invalid_override_environment_stops(self):
         source = (ROOT / "install.sh").read_text(encoding="utf-8")

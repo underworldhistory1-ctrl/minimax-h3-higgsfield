@@ -68,7 +68,7 @@ class ActivationTests(unittest.TestCase):
 
     def test_launch_is_manual_isolated_and_uses_requested_memory_flags(self):
         command = launch_command()
-        self.assertIn("--cache-none", command)
+        self.assertIn("--cache-ram", command)
         self.assertIn("--fp16-intermediates", command)
         self.assertEqual(command[command.index("--port") + 1], "8190")
         self.assertEqual(pathlib.Path(command[command.index("--output-directory") + 1]).as_posix(), "/output/h3-studio-v2/data/output")

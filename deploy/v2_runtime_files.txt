@@ -15,6 +15,7 @@ h3_lab/contexts.py
 h3_lab/continuation.py
 h3_lab/images.py
 h3_lab/jobs.py
+h3_lab/decode_recovery.py
 h3_lab/paths.py
 h3_lab/projects.py
 h3_lab/routes.py
@@ -71,6 +72,8 @@ docs/demo/superman/video-poster.jpg
 docs/OPENBAYES.md
 docs/CONNECTED_STUDIO.md
 deploy/launcher.py
+deploy/openbayes_h3_supervisor.py
+deploy/benchmark_attention.py
 deploy/launcher_models.py
 deploy/launcher_smoke.py
 deploy/download_h3_models.py
@@ -78,6 +81,7 @@ launcher.sh
 launcher.ps1
 install.ps1
 docs/LAUNCHER.md
+docs/DECODE_RECOVERY.md
 web/h3/timing-estimator.js
 h3_lab/timing.py
 deploy/runtime_hashes.json

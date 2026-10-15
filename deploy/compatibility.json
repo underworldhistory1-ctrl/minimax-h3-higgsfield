@@ -19,14 +19,14 @@
       "filename": "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors",
       "size": 20967647456,
       "sha256": "412a7b126595a958964193f3b42513d7cf2df4196ef04223a0f05e3622949cce",
-      "status": "publisher_metadata_verified_gpu_untested"
+      "status": "gpu_render_and_full_file_decode_verified"
     }
   },
   "retired": [
     "turbo",
     "lightx2v"
   ],
-  "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations.",
+  "gpu_evidence": "RTX 5090, PyTorch 2.9.1+cu130: native CUDA INT8 linear passed. Original Ref2VA INT8 + CombatV2 strength1: 362 frames 1024x576, 24fps, stereo audio, full file decode passed (20m01). Singularity INT8 + Anime2Realism strength1 with references/guides: 209 frames 1024x576, 24fps stereo, full file decode passed (22m36). These establish technical execution for those profiles, not perceptual quality or all optional accelerators.",
   "project_version": "2.5.5",
   "audio_enhancement": {
     "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
@@ -41,5 +41,10 @@
     "storage_limit_bytes": 1073741824,
     "inactive_file_retention_days": 7,
     "status": "real_local_api_browser_verified"
+  },
+  "runtime_acceleration": {
+    "minimum_cuda": "13.0",
+    "minimum_driver_major": 580,
+    "required_backend": "comfy-kitchen-cuda"
   }
 }

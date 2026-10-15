@@ -11,6 +11,44 @@ from deploy import launcher
 
 
 class LauncherTests(unittest.TestCase):
+    def test_attention_backend_defaults_and_explicit_commands(self):
+        self.assertEqual(launcher.parser().parse_args([]).attention_backend, 'pytorch')
+        for backend, flag in [('pytorch', '--use-pytorch-cross-attention'), ('ck-int8', '--use-ck-attention')]:
+            args = launcher.parser().parse_args(['--attention-backend', backend])
+            linux = launcher.server_command(Path('/comfy'), Path('/selected/python'), args, platform='posix')
+            self.assertEqual(linux[linux.index('--attention-backend')+1], backend)
+            direct = launcher.server_command(Path('/comfy'), Path('/selected/python'), args, platform='nt')
+            self.assertIn(flag, direct)
+            self.assertNotIn('--use-ck-attention' if backend == 'pytorch' else '--use-pytorch-cross-attention', direct)
+
+    def test_attention_readiness_must_match_selected_backend(self):
+        for backend, implementation in [('pytorch', 'attention_pytorch'), ('ck-int8', 'attention_comfy_kitchen_int8')]:
+            args = launcher.parser().parse_args(['--attention-backend', backend])
+            self.assertFalse(launcher.attention_ready({}, args))
+            self.assertFalse(launcher.attention_ready({'attention': {'implementation': implementation, 'source': 'launch_argument'}}, args))
+            self.assertTrue(launcher.attention_ready({'attention': {'implementation': implementation, 'source': 'loaded_runtime'}}, args))
+            self.assertFalse(launcher.attention_ready({'attention': {'implementation': 'attention_sage'}}, args))
+
+    def test_restart_rejects_correct_source_with_wrong_attention_backend(self):
+        api = Mock()
+        api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+        api.wait_idle.return_value = True
+        old = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
+               'models': {'ref2va': True}, 'nodes': {'sampler': True},
+               'acceleration': {'native_cuda_ready': True},
+               'attention': {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
+        wrong = dict(old, runtime_instance='new-wrong')
+        healthy = dict(old, runtime_instance='new-ck',
+                       attention={'implementation': 'attention_comfy_kitchen_int8', 'source': 'loaded_runtime'})
+        api.request.side_effect = [old, {}, wrong, healthy]
+        args = launcher.parser().parse_args(['--attention-backend', 'ck-int8'])
+        state = {}
+        with patch.object(launcher.time, 'sleep') as sleep, patch.object(
+                launcher, 'loaded_source_fingerprint', return_value='desired'):
+            launcher.start_server(api, Path('root'), Path('python'), args, Mock(), state, Mock())
+        sleep.assert_called_once()
+        self.assertEqual(state['loaded_runtime_instance'], 'new-ck')
+
     def test_source_receipt_requires_clean_official_main_and_separate_source(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -158,7 +196,7 @@ class LauncherTests(unittest.TestCase):
         api = Mock()
         api.queue.return_value = {"queue_running": [], "queue_pending": []}
         api.wait_idle.return_value = True
-        ready = {"runtime_instance": "old", "runtime_fingerprint": "desired", "models": {"fl2va": True}, "nodes": {"sampler": True}}
+        ready = {"runtime_instance": "old", "runtime_fingerprint": "desired", "models": {"fl2va": True}, "nodes": {"sampler": True}, "acceleration": {"native_cuda_ready": True}, "attention": {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
         api.request.side_effect = [ready, {}, ready, dict(ready, runtime_instance="new")]
         args = Mock(queue_timeout=1, start_timeout=10)
         with patch.object(launcher.time, "sleep") as sleep, patch.object(launcher, "loaded_source_fingerprint", return_value="desired"):
@@ -193,13 +231,14 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch("deploy.launcher_smoke.run_smoke", return_value={"status": "validated"}))
             stack.enter_context(patch.object(launcher, "prerequisites"))
+            stack.enter_context(patch.object(launcher, "close_admission"))
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher.Runner, "run"))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
             stack.enter_context(patch.object(launcher, "environment_ready", return_value=True))
             stack.enter_context(patch.object(launcher, "optional_nodes_ready", return_value=True))
             setup = stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
-            stack.enter_context(patch.object(launcher, "start_server"))
+            stack.enter_context(patch.object(launcher, "start_server", side_effect=lambda *args: args[5].update(restart_pending=False)))
             self.assertEqual(launcher.main(), 0)
             report = json.loads((root / ".h3-launcher/report.json").read_text())
             self.assertTrue(report["files_prepared"] and report["api_ready"] and report["gpu_validated"])
@@ -220,11 +259,12 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch("deploy.launcher_smoke.run_smoke", return_value={"status": "timeout"}))
             stack.enter_context(patch.object(launcher, "prerequisites"))
+            stack.enter_context(patch.object(launcher, "close_admission"))
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher.Runner, "run"))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
             stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
-            stack.enter_context(patch.object(launcher, "start_server"))
+            stack.enter_context(patch.object(launcher, "start_server", side_effect=lambda *args: args[5].update(restart_pending=False)))
             self.assertEqual(launcher.main(), 1)
             report = json.loads((root / ".h3-launcher/report.json").read_text())
             self.assertTrue(report["api_ready"])
@@ -245,6 +285,7 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch("deploy.launcher_models.manifest", return_value=[]))
             stack.enter_context(patch("deploy.launcher_smoke.ComfyAPI", return_value=api))
             stack.enter_context(patch.object(launcher, "prerequisites"))
+            stack.enter_context(patch.object(launcher, "close_admission"))
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
             stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
@@ -286,6 +327,97 @@ class LauncherTests(unittest.TestCase):
              patch.object(launcher, "process_candidates", return_value=[]), \
              patch.object(launcher, "default_fresh_root", return_value=Path("/durable/ComfyUI")):
             self.assertEqual(launcher.discover_comfy(None, []), Path("/durable/ComfyUI"))
+
+
+    def test_close_admission_persists_root_barrier_before_waiting(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            api = Mock()
+            api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+            def status(path):
+                self.assertEqual(path, '/h3_studio/updates/maintenance')
+                self.assertTrue(json.loads((root / '.h3-launcher/maintenance.json').read_text())['closed'])
+                return {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 0}
+            api.request.side_effect = status
+            launcher.close_admission(api, root, 1)
+
+    def test_close_admission_waits_for_handler_then_newly_enqueued_work(self):
+        with tempfile.TemporaryDirectory() as folder:
+            api = Mock()
+            api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+            api.request.side_effect = [
+                {'admission_closed': True, 'inflight': 1, 'active_operations': 0, 'queue_count': 0},
+                {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 1},
+                {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 0}]
+            with patch.object(launcher.time, 'sleep') as sleep:
+                launcher.close_admission(api, Path(folder), 10)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_online_legacy_runtime_cannot_be_mutated_without_drain_proof(self):
+        with tempfile.TemporaryDirectory() as folder:
+            api = Mock()
+            api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+            api.request.return_value = {'state': 'idle'}
+            with self.assertRaisesRegex(RuntimeError, 'drain'):
+                launcher.close_admission(api, Path(folder), 1)
+
+    def test_custom_report_directory_cannot_hide_maintenance_before_mutation(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            root = Path(folder) / 'ComfyUI'
+            root.mkdir()
+            (root / 'main.py').touch()
+            reports = Path(folder) / 'reports'
+            api = Mock()
+            api.queue.return_value = {'status': 'offline'}
+            stack.enter_context(patch('sys.argv', ['launcher', '--comfy-root', str(root),
+                '--comfy-python', sys.executable, '--state-dir', str(reports), '--no-update']))
+            stack.enter_context(patch('deploy.launcher_models.manifest', return_value=[]))
+            stack.enter_context(patch('deploy.launcher_smoke.ComfyAPI', return_value=api))
+            stack.enter_context(patch.object(launcher, 'prerequisites'))
+            stack.enter_context(patch.object(launcher, 'runtime_matches', return_value=False))
+            def mutation(*args):
+                self.assertTrue(json.loads((root / '.h3-launcher/maintenance.json').read_text())['closed'])
+                raise RuntimeError('simulated repair failure')
+            setup = stack.enter_context(patch.object(launcher, 'setup_runtime', side_effect=mutation))
+            self.assertEqual(launcher.main(), 1)
+            setup.assert_called_once()
+            self.assertTrue((reports / 'state.json').exists())
+            self.assertFalse((root / '.h3-launcher/state.json').exists())
+            self.assertTrue(json.loads((root / '.h3-launcher/maintenance.json').read_text())['closed'])
+
+    def test_restart_rejects_new_worker_with_old_cuda_environment(self):
+        api = Mock()
+        api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+        api.wait_idle.return_value = True
+        old = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
+               'models': {'ref2va': True}, 'nodes': {'sampler': True},
+               'acceleration': {'native_cuda_ready': False}}
+        stale_env = dict(old, runtime_instance='new-old-env')
+        healthy = dict(old, runtime_instance='new-cu130',
+                       acceleration={'native_cuda_ready': True},
+                       attention={'implementation': 'attention_pytorch', 'source': 'loaded_runtime'})
+        api.request.side_effect = [old, {}, stale_env, healthy]
+        state = {'restart_pending': True, 'pre_update_instance': 'old'}
+        with patch.object(launcher.time, 'sleep') as sleep, patch.object(
+                launcher, 'loaded_source_fingerprint', return_value='desired'):
+            launcher.start_server(api, Path('root'), Path('python'),
+                Mock(queue_timeout=1, start_timeout=10), Mock(), state, Mock())
+        sleep.assert_called_once()
+        self.assertFalse(state['restart_pending'])
+        self.assertEqual(state['loaded_runtime_instance'], 'new-cu130')
+
+
+    def test_linux_supervisor_uses_selected_interpreter_and_bind(self):
+        args = Mock(bind='0.0.0.0', port=8188)
+        command = launcher.server_command(Path('/comfy'), Path('/selected/bin/python'), args, platform='posix')
+        self.assertEqual(command[0], '/selected/bin/python')
+        self.assertIn('openbayes_h3_supervisor.py', command[1])
+        self.assertEqual(command[command.index('--comfy-python')+1], '/selected/bin/python')
+        self.assertEqual(command[command.index('--bind')+1], '0.0.0.0')
+        self.assertEqual(command[command.index('--reserve-vram')+1], '3.0')
+        direct = launcher.server_command(Path('/comfy'), Path('/selected/python.exe'), args, platform='nt')
+        self.assertEqual(direct[1], 'main.py')
+        self.assertIn('--use-pytorch-cross-attention', direct)
 
 
 if __name__ == "__main__":

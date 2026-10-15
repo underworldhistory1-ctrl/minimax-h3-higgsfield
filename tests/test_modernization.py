@@ -122,7 +122,7 @@ spec.workflow=B.buildGraph(spec,{hero:'hero.png',shot:'shot.mp4'},caps);specs.pu
         self.assertFalse(caps['hybrid_loader_ready']);self.assertEqual(caps['model_catalog'],[])
 
     def test_environment_audit_reports_inconsistent_packages_without_repair(self):
-        with patch('deploy.environment_audit.importlib.metadata.version',return_value='test'), patch('deploy.environment_audit.subprocess.run',return_value=Mock(returncode=1)) as run:
+        with patch('deploy.environment_audit.platform.platform', return_value='test'), patch('deploy.environment_audit.importlib.metadata.version',return_value='test'), patch('deploy.environment_audit.subprocess.run',return_value=Mock(returncode=1)) as run:
             result=audit()
         self.assertFalse(result['ready']);self.assertFalse(result['gpu_validated']);self.assertFalse(result['dependency_consistent'])
         self.assertIn('check',run.call_args.args[0]);self.assertNotIn('install',run.call_args.args[0])

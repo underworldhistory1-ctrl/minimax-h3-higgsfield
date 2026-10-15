@@ -386,6 +386,11 @@ def setup_runtime(args, root, python, runner):
 def environment_ready(python, args):
     if python is None:
         return False
+    try:
+        if not audit_environment(python).get("ready", False):
+            return False
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+        return False
     modules = "torch,av,aiohttp,PIL,comfyui_frontend_package"
     if not args.no_refine:
         modules += ",einops,safetensors,typing_extensions"
@@ -464,6 +469,28 @@ def prepare_source(root, python, runner):
 def wait_for_install_idle(api, timeout):
     if api.queue().get("status") != "offline" and not api.wait_idle(timeout):
         raise RuntimeError("ComfyUI queue did not become idle before timeout; no runtime files were changed")
+
+
+def close_admission(api, root, timeout):
+    """Close admission durably, then drain requests admitted before maintenance."""
+    atomic_json(Path(root) / '.h3-launcher/maintenance.json', {'closed': True, 'reboot_ready': False})
+    deadline = time.monotonic() + timeout
+    while True:
+        if api.queue().get('status') == 'offline':
+            return
+        try:
+            state = api.request('/h3_studio/updates/maintenance')
+        except (OSError, RuntimeError) as error:
+            raise RuntimeError('Cannot prove request drain on this runtime. Stop ComfyUI when idle, then rerun the launcher; no runtime files were changed.') from error
+        fields = ('inflight', 'active_operations', 'queue_count')
+        if (not isinstance(state, dict) or state.get('admission_closed') is not True
+                or any(type(state.get(key)) is not int or state[key] < 0 for key in fields)):
+            raise RuntimeError('Runtime cannot prove request drain. Stop ComfyUI when idle, then rerun the launcher; no runtime files were changed.')
+        if all(state[key] == 0 for key in fields):
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Maintenance drain timed out; admitted work continues and runtime files were not changed.')
+        time.sleep(1)
 
 
 def runtime_target(root):
@@ -574,6 +601,51 @@ def configure_overlay(root, overlay, python, before_change=None):
     return True
 
 
+
+def reopen_after_verification(root, state, save):
+    """Complete trusted UI recovery before admitting the launcher's smoke job."""
+    if not state.get('files_prepared') or not state.get('api_ready') or state.get('restart_pending'):
+        raise RuntimeError('Admission stays closed until runtime restart and API verification pass.')
+    if __package__:
+        from .ui_update import complete_recovery
+    else:
+        from ui_update import complete_recovery
+    complete_recovery(root, state)
+    state['maintenance_closed'] = False
+    save()
+
+
+
+def selected_attention(args):
+    value = getattr(args, 'attention_backend', 'pytorch')
+    return value if value in ('pytorch', 'ck-int8') else 'pytorch'
+
+
+def attention_ready(ready, args):
+    actual = ready.get('attention', {})
+    expected = {'pytorch': 'attention_pytorch', 'ck-int8': 'attention_comfy_kitchen_int8'}
+    return (actual.get('source') == 'loaded_runtime'
+            and actual.get('implementation') == expected[selected_attention(args)])
+
+
+def server_command(root, python, args, platform=None):
+    """Keep the selected interpreter and launch policy across worker restarts."""
+    platform = os.name if platform is None else platform
+    if platform != 'nt':
+        return [str(python), str(PROJECT / 'deploy/openbayes_h3_supervisor.py'),
+                '--comfy-root', str(root), '--comfy-python', str(python),
+                '--bind', args.bind, '--port', str(args.port), '--reserve-vram', '3.0',
+                '--attention-backend', selected_attention(args)]
+    command = [str(python), 'main.py', '--listen', args.bind, '--port', str(args.port),
+               '--reserve-vram', '3.0',
+               '--use-ck-attention' if selected_attention(args) == 'ck-int8' else '--use-pytorch-cross-attention']
+    if python.parent.name.lower() == 'python_embeded':
+        command.append('--windows-standalone-build')
+    else:
+        command += ['--cache-ram', '--fp16-intermediates']
+    return command
+
+
 def start_server(api, root, python, args, runner, state, save):
     queue = api.queue()
     if queue.get("status") != "offline":
@@ -586,7 +658,9 @@ def start_server(api, root, python, args, runner, state, save):
             before = {}
             previous_instance = None
         expected = loaded_source_fingerprint(root)
-        already_loaded = isinstance(before, dict) and before.get("runtime_fingerprint") == expected
+        already_loaded = (isinstance(before, dict) and before.get("runtime_fingerprint") == expected
+                          and before.get("acceleration", {}).get("native_cuda_ready") is True
+                          and attention_ready(before, args))
         pending = state.get("restart_pending", False)
         if already_loaded and (not pending or previous_instance != state.get("pre_update_instance")):
             state["restart_pending"] = False
@@ -602,12 +676,7 @@ def start_server(api, root, python, args, runner, state, save):
         save()
     else:
         previous_instance = None
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0", "--use-pytorch-cross-attention"]
-        if python.parent.name.lower() == "python_embeded":
-            command.append("--windows-standalone-build")
-        else:
-            # Conservative memory defaults for container rentals; optional cache stays off.
-            command += ["--cache-none", "--fp16-intermediates"]
+        command = server_command(root, python, args)
         with (root / "h3-higgsfield-server.log").open("a", encoding="utf-8") as log:
             child = subprocess.Popen(command, cwd=root, stdin=subprocess.DEVNULL, stdout=log,
                                      stderr=subprocess.STDOUT, env=os.environ.copy(),
@@ -622,7 +691,9 @@ def start_server(api, root, python, args, runner, state, save):
             ready = api.request("/h3_studio/readiness")
             if (isinstance(ready, dict) and ready.get("models") and ready.get("nodes")
                     and ready.get("runtime_instance") and ready["runtime_instance"] != previous_instance
-                    and ready.get("runtime_fingerprint") == loaded_source_fingerprint(root)):
+                    and ready.get("runtime_fingerprint") == loaded_source_fingerprint(root)
+                    and ready.get("acceleration", {}).get("native_cuda_ready") is True
+                    and attention_ready(ready, args)):
                 state["restart_pending"] = False
                 state["loaded_runtime_instance"] = ready["runtime_instance"]
                 save()
@@ -639,6 +710,8 @@ def parser():
     result.add_argument('--ui-update-staged', action='store_true', help=argparse.SUPPRESS)
     result.add_argument("--comfy-root")
     result.add_argument("--comfy-python", default=os.environ.get("COMFY_PYTHON"))
+    result.add_argument('--attention-backend', choices=('pytorch', 'ck-int8'), default='pytorch',
+                        help='Server attention backend; ck-int8 explicitly opts into approximate INT8 attention')
     result.add_argument("--models-root", action="append", default=[], help="Attached storage directory; repeat for multiple disks")
     result.add_argument("--state-dir", type=Path)
     result.add_argument("--port", type=int, default=8188)
@@ -724,7 +797,7 @@ def main():
         raise RuntimeError("Supply an HTTP(S) URL without credentials or query tokens; set H3_ACCESS_TOKEN/H3_INSTANCE_PASSWORD instead")
     config = {"root": str(root), "url": url, "turbo": args.turbo,
               "checkpoint": args.checkpoint, "hybrid": args.hybrid, "update_policy": args.update_policy,
-              "bind": args.bind, "environment_id": environment_identity(),
+              "bind": args.bind, "attention_backend": args.attention_backend, "environment_id": environment_identity(),
               "refine": not args.no_refine, "controlnet": not args.no_controlnet,
               "qwen": args.qwen_image_profiles, "source_version": source_version()}
     # Root-level lock prevents concurrent launchers with different --state-dir values.
@@ -739,6 +812,8 @@ def main():
             state["updated_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
             atomic_json(directory / "state.json", state)
             atomic_json(directory / "report.json", state)
+            if "maintenance_closed" in state:
+                atomic_json(root / ".h3-launcher/maintenance.json", {"closed": state["maintenance_closed"], "reboot_ready": state["maintenance_closed"] is True and state.get("files_prepared") is True})
         def stage(name, action):
             state["stage"] = name
             state["status"] = "running"
@@ -766,6 +841,8 @@ def main():
             # Runtime repairs are idempotent; snapshot once per source/config instead of every retry.
             if not state.get("snapshot"):
                 state["snapshot"] = stage("backup", lambda: runtime_snapshot(root, directory))
+            state["maintenance_closed"] = True
+            stage("close_admission", lambda: close_admission(api, root, args.queue_timeout))
             python = stage("source", lambda: prepare_source(root, python, runner))
             needs_runtime = (not runtime_matches(root) or "runtime" not in state["stages"]
                              or not environment_ready(python, args) or not optional_nodes_ready(root, args))
@@ -833,6 +910,7 @@ def main():
             env = dict(os.environ, H3_ACCESS_TOKEN=os.environ.get("H3_ACCESS_TOKEN", ""), QWEN_IMAGE_PROFILES=args.qwen_image_profiles)
             stage("api_verification", lambda: runner.run([python, PROJECT / "deploy/verify_h3_server.py", "--url", url], env=env, retries=0))
             state["api_ready"] = True
+            reopen_after_verification(root, state, save)
             if not args.skip_smoke:
                 result = stage("smoke", lambda: run_smoke(api, PROJECT, directory, state, save, args.smoke_timeout))
                 if result.get("status") != "validated":
@@ -842,11 +920,6 @@ def main():
                          studio_url=url.rstrip("/") + "/extensions/" + runtime_target(root).name + "/index.html", next_action=None)
             save()
             runner.emit("H3 ready: " + state["studio_url"])
-            if __package__:
-                from .ui_update import complete_recovery
-            else:
-                from ui_update import complete_recovery
-            complete_recovery(root, state)
             runner.emit("GPU video/audio validation: " + ("passed" if state["gpu_validated"] else "not run"))
             runner.emit("Report: " + str(directory / "report.json"))
             return 0
