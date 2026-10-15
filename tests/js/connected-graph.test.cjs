@@ -75,6 +75,8 @@ test('preview allows missing metadata honestly while generation stays strict',()
  const verified=compilePrompt({...spec,preview_only:true,references:[{...spec.references[0],fps:24,frame_count:48}]});
  assert.equal(verified.bindings[0].used_frames,39);
  assert.equal(verified.bindings[0].paired_audio_frames,39);
+ const canonical=compilePrompt({...spec,preview_only:true,references:[{...spec.references[0],fps:23.98,frame_count:48}]});
+ assert.equal(canonical.bindings[0].used_frames,39);
 });
 
 test('inpaint supports source and mask without a control hint and cache wraps applied model',()=>{

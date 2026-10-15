@@ -57,7 +57,10 @@ def _find_corpus():
     second is the layout this was originally developed in.
     """
     here = Path(__file__).resolve()
-    for cand in (here.parent / "corpus", here.parents[3] / "corpus"):
+    cands = [here.parent / "corpus"]
+    if len(here.parents) > 3:
+        cands.append(here.parents[3] / "corpus")
+    for cand in cands:
         if (cand / "h3_style_rules.md").exists():
             return cand
     return here.parent / "corpus"

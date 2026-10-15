@@ -310,7 +310,8 @@
           guideInputs.audio_vae = ['5', 0];
         } else if (kind === 'video') {
           if (capabilities.guide_video !== true) throw new Error('Native timed video guides are unavailable on this server.');
-          if (Number(guide.fps) !== 24) throw new Error('Video guide must have verified canonical 24 fps metadata.');
+          const guideFps = Number(guide.fps);
+          if (!Number.isFinite(guideFps) || Math.abs(guideFps - 24) > 0.05) throw new Error('Video guide must have verified canonical 24 fps metadata.');
           const sourceFrames = Number(guide.frame_count ?? guide.duration_frames);
           if (!Number.isInteger(sourceFrames) || sourceFrames < 1) throw new Error('Video guide requires a verified frame count.');
           const span = sourceFrames < 5 ? 1 : 5 + 17 * Math.floor((sourceFrames - 5) / 17);

@@ -268,7 +268,7 @@ async def _normalize_reference_video(source, target, trim_start=0.0, trim_durati
         *(["-ss", str(trim_start)] if trim_start else []),
         *(["-t", str(trim_duration)] if trim_duration is not None else []),
         "-map", "0:v:0", "-map", "0:a:0?",
-        "-vf", ",".join(filters), "-c:v", "libx264", "-preset", "veryfast",
+        "-vf", ",".join(filters), "-r", "24", "-c:v", "libx264", "-preset", "veryfast",
         "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac",
         "-b:a", "192k", "-movflags", "+faststart", target,
     ]
@@ -428,33 +428,42 @@ async def upload_ref(request):
             path, name = normalized_path, normalized_name
             normalized_path = None
             info.update(duration=round(actual, 2), trim_start=trim_start, trim_duration=trim_duration, trimmed=True)
-        if kind == "video" and (abs(info["fps"] - 24) > 0.02 or trim_duration is not None or trim_start or
-                                resize and (info["source_width"] > 1920 or info["source_height"] > 1080)):
-            original_fps = info["fps"]
-            normalized_name = f"{INPUT_PREFIX}_{uuid.uuid4().hex}.mp4"
-            normalized_path = _safe_input_path(normalized_name)
-            await _normalize_reference_video(path, normalized_path, trim_start, trim_duration,
-                                             resize and (info["source_width"] > 1920 or info["source_height"] > 1080))
-            if os.path.getsize(normalized_path) > limits["video"]:
-                raise ValueError("The 24 fps reference video is too large.")
-            with av.open(normalized_path) as normalized:
-                stream = normalized.streams.video[0]
-                fps = float(stream.average_rate or 0)
-                duration = (float(stream.duration * stream.time_base)
-                            if stream.duration else float(normalized.duration or 0) / 1000000)
-                if abs(fps - 24) > 0.02 or not 1.9 <= duration <= 15.1 or stream.width > 1920 or stream.height > 1080:
-                    raise ValueError("The converted video did not meet H3's 24 fps and duration limits.")
-                info.update(duration=round(duration, 2), fps=round(fps, 2),frame_count=stream.frames or sum(1 for _ in normalized.decode(stream)),
-                            width=stream.width, height=stream.height,
-                            has_audio=bool(normalized.streams.audio),
-                            normalized_from_fps=original_fps if abs(original_fps - 24) > .02 else None,
-                            size=os.path.getsize(normalized_path),
-                            resized=stream.width != info["source_width"] or stream.height != info["source_height"],
-                            trim_start=trim_start, trim_duration=round(trim_duration, 2) if trim_duration is not None else None,
-                            trimmed=trim_duration is not None)
-            os.unlink(path)
-            path, name = normalized_path, normalized_name
-            normalized_path = None
+        if kind == "video":
+            needs_norm = (
+                abs(float(info["fps"]) - 24.0) > 0.001 or
+                trim_duration is not None or
+                bool(trim_start) or
+                bool(resize and (info["source_width"] > 1920 or info["source_height"] > 1080))
+            )
+            if needs_norm:
+                original_fps = info["fps"]
+                normalized_name = f"{INPUT_PREFIX}_{uuid.uuid4().hex}.mp4"
+                normalized_path = _safe_input_path(normalized_name)
+                await _normalize_reference_video(path, normalized_path, trim_start, trim_duration,
+                                                 resize and (info["source_width"] > 1920 or info["source_height"] > 1080))
+                if os.path.getsize(normalized_path) > limits["video"]:
+                    raise ValueError("The 24 fps reference video is too large.")
+                with av.open(normalized_path) as normalized:
+                    stream = normalized.streams.video[0]
+                    fps = float(stream.average_rate or 0)
+                    duration = (float(stream.duration * stream.time_base)
+                                if stream.duration else float(normalized.duration or 0) / 1000000)
+                    if abs(fps - 24) > 0.05 or not 1.9 <= duration <= 15.1 or stream.width > 1920 or stream.height > 1080:
+                        raise ValueError("The converted video did not meet H3's 24 fps and duration limits.")
+                    frames = stream.frames or sum(1 for _ in normalized.decode(stream))
+                    info.update(duration=round(duration, 2), fps=24, frame_count=frames,
+                                width=stream.width, height=stream.height,
+                                has_audio=bool(normalized.streams.audio),
+                                normalized_from_fps=original_fps if abs(original_fps - 24) > .02 else None,
+                                size=os.path.getsize(normalized_path),
+                                resized=stream.width != info["source_width"] or stream.height != info["source_height"],
+                                trim_start=trim_start, trim_duration=round(trim_duration, 2) if trim_duration is not None else None,
+                                trimmed=trim_duration is not None)
+                os.unlink(path)
+                path, name = normalized_path, normalized_name
+                normalized_path = None
+            elif abs(float(info["fps"]) - 24.0) <= 0.05:
+                info["fps"] = 24
         with _lock:
             _tracked[name] = {"kept": False, "ts": time.time()}
         return web.json_response({"name": name, **info})

@@ -47,6 +47,37 @@ class TestH3Projects(unittest.TestCase):
         self.assertEqual(loaded["revision"], 2)
         self.assertEqual(loaded["name"], "Action Sequence 1")
 
+    def test_element_custom_name_and_mention_synchronization(self):
+        proj = self.project_service.create_project(name="Element Naming Test")
+        pid = proj["project_id"]
+
+        dummy_img = self.storage_root / "raw_upload_DSC1234.png"
+        dummy_img.write_bytes(b"\x89PNG\r\n\x1a\nherodata")
+        asset_rec = self.asset_service.register_asset(str(dummy_img), kind="image", original_name="raw_upload_DSC1234.png", project_id=pid)
+
+        # 1. Attaching with an assigned custom name derives alias from assigned name, not filename
+        attached = self.project_service.attach_asset(pid, asset_rec, category="characters", name="Commander Shepard")
+        item = attached["assets"][0]
+        self.assertEqual(item["name"], "Commander Shepard")
+        self.assertEqual(item["alias"], "Commander_Shepard")
+
+        # Set up a draft referencing this element by both assetId and alias
+        attached["draft"] = {
+            "refs": [{"assetId": item["asset_id"], "alias": item["alias"], "kind": "image", "role": "character identity"}],
+            "prompts": {"refs": f"Close-up of @{item['alias']} walking into the light."},
+            "source_prompt": f"Close-up of @{item['alias']} walking into the light.",
+        }
+        self.project_service.save_project(pid, attached, attached["revision"])
+
+        # 2. Renaming the element immediately updates its alias and synchronizes draft refs & prompt mentions
+        renamed = self.project_service.update_workspace(pid, {"action": "edit_asset", "asset_id": item["asset_id"], "name": "Vanguard Shepard"}, attached["revision"] + 1)
+        renamed_item = renamed["assets"][0]
+        self.assertEqual(renamed_item["name"], "Vanguard Shepard")
+        self.assertEqual(renamed_item["alias"], "Vanguard_Shepard")
+        self.assertEqual(renamed["draft"]["refs"][0]["alias"], "Vanguard_Shepard")
+        self.assertEqual(renamed["draft"]["prompts"]["refs"], "Close-up of @Vanguard_Shepard walking into the light.")
+        self.assertEqual(renamed["draft"]["source_prompt"], "Close-up of @Vanguard_Shepard walking into the light.")
+
     def test_bundle_export_and_safe_import(self):
         proj = self.project_service.create_project(name="Bundle Test")
         pid = proj["project_id"]

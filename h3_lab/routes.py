@@ -584,7 +584,62 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                     if size > limit_mb * 1024 * 1024:
                         return web.json_response({"error": f"Asset exceeds {limit_mb} MB"}, status=413)
                     await asyncio.to_thread(stream.write, chunk)
-            rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], field.filename, pid)
+            metadata = {}
+            if kinds[suffix] == "video":
+                def process_video_asset(source_path):
+                    import subprocess
+                    from .assembly import get_ffmpeg_path, inspect_media
+                    from fractions import Fraction
+                    try:
+                        probe = inspect_media(str(source_path))
+                        streams = probe.get("streams", [])
+                        vstream = next((s for s in streams if s.get("codec_type") == "video"), None)
+                        if not vstream:
+                            raise ValueError("This file has no video stream")
+                        fps_val = float(Fraction(vstream.get("r_frame_rate", "0/1"))) if vstream.get("r_frame_rate") else 0.0
+                        width = int(vstream.get("width") or 0)
+                        height = int(vstream.get("height") or 0)
+                        nb_frames = int(vstream.get("nb_read_frames") or vstream.get("nb_frames") or 0)
+                        dur = float(vstream.get("duration") or probe.get("format", {}).get("duration") or 0.0)
+                        if not dur and nb_frames and fps_val:
+                            dur = nb_frames / fps_val
+                        needs_norm = abs(fps_val - 24.0) > 0.05 or width > 1920 or height > 1080 or source_path.suffix.lower() != ".mp4"
+                        if needs_norm:
+                            norm_file = source_path.with_name("norm_" + source_path.stem + ".mp4")
+                            filters = ["fps=24"]
+                            if width > 1920 or height > 1080:
+                                filters.extend(("scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+                                                "scale=trunc(iw/2)*2:trunc(ih/2)*2"))
+                            cmd = [
+                                get_ffmpeg_path(), "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                                "-i", str(source_path),
+                                "-map", "0:v:0", "-map", "0:a:0?",
+                                "-vf", ",".join(filters), "-r", "24", "-c:v", "libx264", "-preset", "veryfast",
+                                "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+                                "-movflags", "+faststart", str(norm_file)
+                            ]
+                            subprocess.run(cmd, check=True, timeout=180)
+                            source_path.unlink(missing_ok=True)
+                            norm_file.replace(source_path)
+                            probe = inspect_media(str(source_path))
+                            streams = probe.get("streams", [])
+                            vstream = next((s for s in streams if s.get("codec_type") == "video"), None)
+                            width = int(vstream.get("width") or 0)
+                            height = int(vstream.get("height") or 0)
+                            nb_frames = int(vstream.get("nb_read_frames") or vstream.get("nb_frames") or 0)
+                            dur = float(vstream.get("duration") or probe.get("format", {}).get("duration") or 0.0)
+                        frames = nb_frames if nb_frames > 0 else (int(round(dur * 24)) if dur else 120)
+                        return {
+                            "fps": 24,
+                            "frame_count": frames,
+                            "duration": round(dur, 2) if dur else 5.0,
+                            "width": width,
+                            "height": height
+                        }
+                    except Exception:
+                        return {"fps": 24}
+                metadata = await asyncio.to_thread(process_video_asset, temporary)
+            rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], field.filename, pid, metadata)
             if pid:
                 await asyncio.to_thread(projects.attach_asset, pid, rec, request.query.get("category"), request.query.get("name"))
             return web.json_response({"asset": rec}, status=201)
@@ -652,7 +707,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             finally:
                 part.unlink(missing_ok=True)
         await asyncio.to_thread(copy_input)
-        return web.json_response({"asset_id": rec["asset_id"], "filename": filename, "kind": rec["kind"]})
+        meta = rec.get("metadata", {})
+        resp = {"asset_id": rec["asset_id"], "filename": filename, "kind": rec["kind"], "metadata": meta}
+        if rec["kind"] == "video":
+            resp["fps"] = 24
+            resp["frame_count"] = meta.get("frame_count")
+            resp["duration"] = meta.get("duration")
+        return web.json_response(resp)
 
     # Context endpoints
     async def handle_context_usage(request):

@@ -158,7 +158,8 @@
   }
 
   function referenceVideoSpan(ref, targetFrames) {
-    if (Number(ref.fps) !== 24) throw new Error('Reference video requires verified canonical 24 fps metadata.');
+    const fps = Number(ref.fps);
+    if (!Number.isFinite(fps) || Math.abs(fps - 24) > 0.05) throw new Error('Reference video requires verified canonical 24 fps metadata.');
     const frames = Number(ref.frame_count ?? ref.duration_frames);
     if (!Number.isInteger(frames) || frames < 5) throw new Error('Reference video requires a verified frame count of at least 5.');
     const used = Math.min(frames, targetFrames);
@@ -379,7 +380,7 @@
           tag = `<Video ${vidNum}>`;
           const hasSpanMetadata = ref.fps != null && (ref.frame_count ?? ref.duration_frames) != null;
           if (spec.preview_only === true && !hasSpanMetadata) {
-            if (ref.fps != null && Number(ref.fps) !== 24) throw new Error('Reference video requires verified canonical 24 fps metadata.');
+            if (ref.fps != null && Math.abs(Number(ref.fps) - 24) > 0.05) throw new Error('Reference video requires verified canonical 24 fps metadata.');
             const knownFrames = ref.frame_count ?? ref.duration_frames;
             if (knownFrames != null && (!Number.isInteger(Number(knownFrames)) || Number(knownFrames) < 5)) throw new Error('Reference video requires a verified frame count of at least 5.');
             warnings.push('@' + ref.alias + ': effective span available after upload. Preview does not verify video or soundtrack timing.');

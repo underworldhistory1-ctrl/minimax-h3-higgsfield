@@ -556,12 +556,12 @@ function renderRefs() {
       preview.onerror=()=>{icon.textContent=ref.kind==="video"?"▶":"I";};
       icon.append(preview);
     }else icon.textContent=ref.kind==="audio"?"♫":ref.kind==="video"?"▶":"I";
-    const title=document.createElement("strong");title.textContent="@"+ref.alias+" · "+ref.role;
+    const title=document.createElement("strong");title.textContent="@"+ref.alias+(ref.label&&ref.label!==ref.alias?" ("+ref.label+")":"")+" · "+ref.role;
     const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=state.busy;
     remove.onclick=()=>{state.refs.splice(index,1);if(ref.previewUrl)URL.revokeObjectURL(ref.previewUrl);renderRefs();renderEstimates();saveDraft();};
     const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=state.busy;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,up,down,remove);
     const meta=document.createElement("div");meta.className="refmeta";
-    meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+ref.file.name
+    meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+(ref.label||ref.name||ref.file.name)
       +(ref.kind==="video"&&ref.localDuration?" · source "+ref.localDuration.toFixed(2)+"s":ref.kind==="audio"&&ref.localDuration?" · "+ref.localDuration.toFixed(2)+"s":"")
       +(ref.meta?.duration?" · used "+ref.meta.duration+"s":ref.kind==="video"&&ref.trimEnabled?" · selected "+Number(ref.trimDuration).toFixed(2)+"s":"")
       +(ref.meta?.normalized_from_fps?" · converted "+ref.meta.normalized_from_fps+"→24 fps":"")
@@ -575,8 +575,13 @@ function renderRefs() {
         name.value=ref.alias; info("Use a unique name with letters, numbers, _ or -, and no spaces.",true);return;
       }
       const old=ref.alias;ref.alias=value;
+      if(!ref.label||ref.label===old)ref.label=value;
       $("prompt").value=$("prompt").value.replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","gu"),"@"+value);
+      for(const m of ["text","frames","refs"]){if(state.prompts[m])state.prompts[m]=state.prompts[m].replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","gu"),"@"+value);}
       renderRefs();saveDraft();
+      if(ref.assetId&&state.currentProject&&typeof workspaceMutation==='function'){
+        workspaceMutation({action:'edit_asset',asset_id:ref.assetId,name:value}).catch(()=>{});
+      }
     };
     nameWrap.append(nameLabel,name);
     const roleWrap=document.createElement("div"),roleLabel=document.createElement("label"),role=document.createElement("select");
@@ -676,8 +681,8 @@ function mentionItems(){
   if(state.mode!=="refs")return typeof projectCatalogItems==='function'?projectCatalogItems():[];
   let bindings=[];
   try{bindings=H3PromptCompiler.compilePrompt({mode:"refs",source_prompt:state.refs.map(r=>"@"+r.alias).join(" "),references:currentRenderSpec().references}).bindings||[];}catch{}
-  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),label:ref.kind}));
-  return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias)):[]);
+  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),label:ref.label||ref.name||ref.alias||ref.kind,name:ref.name||ref.label||ref.alias,assetId:ref.assetId}));
+  return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias||(ref.assetId&&ref.assetId===item.assetId))):[]);
 }
 function mentionPreview(item){
   if(!item.previewUrl||item.kind==="audio")return null;
@@ -712,22 +717,28 @@ function insertReferenceMention(alias,scroll){
   renderPromptAssets();saveDraft();
 }
 function mentionState() {
+  if(typeof queueSyncPromptMentions==='function')queueSyncPromptMentions();
   const input=$("prompt"),before=input.value.slice(0,input.selectionStart);
   const match=before.match(/@([\p{L}\p{N}_-]*)$/u);
   if(!match){$("mentionMenu").classList.add("hidden");renderPromptAssets();return;}
-  const names=mentionItems().filter(item=>[item.alias,item.label||''].some(value=>value.toLocaleLowerCase().includes(match[1].toLocaleLowerCase()))).slice(0,30);
+  const query=match[1].toLocaleLowerCase();
+  const names=mentionItems().filter(item=>[item.alias,item.label||'',item.name||''].some(value=>value.toLocaleLowerCase().includes(query))).slice(0,30);
   const menu=$("mentionMenu");menu.replaceChildren();
-  names.forEach(item=>{
+  names.forEach((item,idx)=>{
     const b=document.createElement("button");b.type="button";
+    if(idx===0)b.classList.add("selected");
     const preview=mentionPreview(item);if(preview){preview.alt="";b.append(preview);}
-    const label=document.createElement("span");label.textContent=(item.catalog?item.label+" · ":"")+"@"+item.alias+" · "+item.tag;b.append(label);
-    b.onmousedown=e=>{
-      e.preventDefault();
+    const displayName=item.label||item.name||item.alias;
+    const label=document.createElement("span");
+    label.textContent=(item.catalog||item.label?displayName+" · ":"")+"@"+item.alias+" · "+item.tag;
+    b.append(label);
+    const choose=()=>{
       const start=input.selectionStart-match[0].length,end=input.selectionStart;
       if(item.catalog){insertProjectMention(item,{start,end}).catch(error=>info(error.message,true));return;}
       input.setRangeText("@"+item.alias+" ",start,end,"end");
       menu.classList.add("hidden");input.focus();renderPromptAssets();saveDraft();
     };
+    b.onmousedown=e=>{e.preventDefault();choose();};
     menu.append(b);
   });
   menu.classList.toggle("hidden",!names.length);
@@ -735,7 +746,37 @@ function mentionState() {
 }
 $("prompt").addEventListener("input",mentionState);
 $("prompt").addEventListener("click",mentionState);
-$("prompt").addEventListener("blur",()=>setTimeout(()=>$("mentionMenu").classList.add("hidden"),120));
+$("prompt").addEventListener("keydown",e=>{
+  const menu=$("mentionMenu");
+  if(menu.classList.contains("hidden")||!menu.children.length)return;
+  const items=[...menu.querySelectorAll("button")];
+  let cur=items.findIndex(b=>b.classList.contains("selected"));
+  if(e.key==="ArrowDown"){
+    e.preventDefault();
+    if(cur>=0)items[cur].classList.remove("selected");
+    cur=(cur+1)%items.length;
+    items[cur].classList.add("selected");
+    items[cur].scrollIntoView({block:"nearest"});
+  }else if(e.key==="ArrowUp"){
+    e.preventDefault();
+    if(cur>=0)items[cur].classList.remove("selected");
+    cur=(cur-1+items.length)%items.length;
+    items[cur].classList.add("selected");
+    items[cur].scrollIntoView({block:"nearest"});
+  }else if(e.key==="Enter"||e.key==="Tab"){
+    if(cur>=0&&items[cur]){
+      e.preventDefault();
+      items[cur].dispatchEvent(new MouseEvent("mousedown"));
+    }
+  }else if(e.key==="Escape"){
+    e.preventDefault();
+    menu.classList.add("hidden");
+  }
+});
+$("prompt").addEventListener("blur",()=>{
+  setTimeout(()=>$("mentionMenu").classList.add("hidden"),120);
+  if(typeof syncPromptMentionsToReferences==='function')syncPromptMentionsToReferences();
+});
 
 function currentRenderSpec() {
   const refs = state.mode === "refs";
@@ -752,9 +793,9 @@ function currentRenderSpec() {
       role: r.role || (r.kind === "image" ? "character identity" : r.kind === "video" ? "motion" : "voice"),
       instruction: r.instruction || "",
       use_audio: !!r.useAudio,
-      fps:r.meta?.fps,
-      frame_count:r.meta?.frame_count,
-      duration:r.meta?.duration,
+      fps: r.meta?.fps ?? (r.kind === "video" ? 24 : undefined),
+      frame_count: r.meta?.frame_count ?? (r.kind === "video" ? (r.localDuration ? Math.round(r.localDuration * 24) : 120) : undefined),
+      duration: r.meta?.duration ?? (r.kind === "video" ? (r.localDuration || 5) : undefined),
       file: r.file?.name
     })) : [],
     guides: state.guides.map(g=>({...g,file:undefined,filename:g.file?.name,relative_to_new_content:!!state.continuation})),
@@ -2054,6 +2095,39 @@ function updateProjectUI(proj) {
   state.activeProjectId = proj.project_id;
   if ($("projectNameDisplay")) $("projectNameDisplay").textContent = `${proj.name || 'Project'} (${proj.project_id.slice(0, 8)})`;
   if ($("projectRevision")) $("projectRevision").textContent = `Rev ${proj.revision || 1}`;
+  if (Array.isArray(proj.assets) && Array.isArray(state.refs)) {
+    let refsChanged = false;
+    for (const asset of proj.assets) {
+      const matchingRef = state.refs.find(r => r.assetId === asset.asset_id);
+      if (matchingRef) {
+        const oldAlias = matchingRef.alias;
+        const newAlias = asset.alias;
+        const assignedName = asset.name || asset.alias;
+        if (matchingRef.label !== assignedName) {
+          matchingRef.label = assignedName;
+          refsChanged = true;
+        }
+        if (oldAlias && newAlias && oldAlias !== newAlias) {
+          matchingRef.alias = newAlias;
+          refsChanged = true;
+          const pattern = new RegExp("@" + oldAlias + "(?=$|[^\\p{L}\\p{N}_-])", "gu");
+          if ($("prompt")) {
+            $("prompt").value = $("prompt").value.replace(pattern, "@" + newAlias);
+          }
+          for (const m of ["text", "frames", "refs"]) {
+            if (state.prompts[m]) {
+              state.prompts[m] = state.prompts[m].replace(pattern, "@" + newAlias);
+            }
+          }
+        }
+      }
+    }
+    if (refsChanged) {
+      renderRefs();
+      renderPromptAssets();
+      saveDraft();
+    }
+  }
   appendProjectResults(proj);renderResults();renderSequenceCard();
   if(typeof renderProjectCatalog==='function'){renderProjectCatalog();renderProjectHub().catch(()=>{});}
   refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));

@@ -60,6 +60,17 @@ class TestH3AssetLeases(unittest.TestCase):
         self.service.acquire_lease(stale_file, owner_id="queued_job_99")
         self.assertFalse(self.service.can_discard_input(stale_file))
 
+    def test_register_video_asset_metadata(self):
+        src_file = self.storage_root / "test_video.mp4"
+        src_file.write_bytes(b"\x00\x00\x00\x20ftypmp42fakevideocontent")
+        meta = {"fps": 24, "frame_count": 120, "duration": 5.0, "width": 1280, "height": 720}
+        rec = self.service.register_asset(str(src_file), kind="video", original_name="test_video.mp4",
+                                          project_id="proj_video", metadata=meta)
+        self.assertEqual(rec["metadata"]["fps"], 24)
+        self.assertEqual(rec["metadata"]["frame_count"], 120)
+        fetched = self.service.get_asset(rec["asset_id"])
+        self.assertEqual(fetched["metadata"]["fps"], 24)
+
 
 if __name__ == "__main__":
     unittest.main()

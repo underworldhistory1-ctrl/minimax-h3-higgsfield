@@ -28,9 +28,12 @@ class ProjectWorkspaceTests(unittest.TestCase):
         item=project['assets'][0];project['takes']=[{'take_id':'old','draft':{'refs':[{'assetId':item['asset_id'],'alias':item['alias']}]}}]
         project['draft']={'refs':[{'assetId':item['asset_id'],'alias':item['alias']}],'prompts':{'refs':'@'+item['alias']}}
         project=self.projects.save_project(self.pid,project,project['revision'])
-        history=json.dumps(project['takes']);draft=json.dumps(project['draft'])
+        history=json.dumps(project['takes'])
         renamed=self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':item['asset_id'],'name':'لوحة البداية','category':'props'},project['revision'])
-        self.assertEqual(renamed['assets'][0]['alias'],item['alias']);self.assertEqual(json.dumps(renamed['takes']),history);self.assertEqual(json.dumps(renamed['draft']),draft)
+        self.assertEqual(renamed['assets'][0]['alias'],'لوحة_البداية')
+        self.assertEqual(renamed['draft']['refs'][0]['alias'],'لوحة_البداية')
+        self.assertEqual(renamed['draft']['prompts']['refs'],'@لوحة_البداية')
+        self.assertEqual(json.dumps(renamed['takes']),history)
         with self.assertRaises(ValueError) as error:self.projects.update_workspace(self.pid,{'action':'rename_project','name':'Wrong'},project['revision'])
         self.assertEqual(error.exception.status_code,409);self.assertEqual(self.projects.get_project(self.pid)['name'],'Film')
     def test_unused_catalog_assets_and_custom_categories_survive_bundle(self):
