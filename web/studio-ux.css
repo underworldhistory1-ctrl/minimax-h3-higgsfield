@@ -77,3 +77,5 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
   .top .connection{order:4;margin-left:0;max-width:none}
   body[data-workspace-view] .workspace-page,body[data-workspace-view] #projectHub{height:calc(100dvh - 168px)}
 }
+
+#elementsProjectSwitcher{max-width:850px;margin-bottom:20px}#elementsProjectSwitcher label{display:block;margin:0 0 7px;color:var(--muted)}#elementsProjectSwitcher .row{display:flex;flex-wrap:wrap;gap:8px}#elementsProjectSwitcher select{flex:1 1 220px;min-width:0;margin:0}#elementsProjectSwitcher .button{flex:0 0 auto}

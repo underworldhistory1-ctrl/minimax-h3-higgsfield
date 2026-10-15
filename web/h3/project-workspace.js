@@ -36,7 +36,7 @@ async function saveWorkspaceDraft(){
   if(!projectCtrl?.currentProject)return;
   const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
 }
-async function openProjectWorkspace(id){
+async function openProjectWorkspace(id,{view='studio'}={}){
   if(workspaceLocked())throw Error('Wait for the current operation before changing projects.');
   await withProjectLoading(async()=>{
     if(projectCtrl.currentProject)await saveWorkspaceDraft();
@@ -44,7 +44,7 @@ async function openProjectWorkspace(id){
     await hydrateWorkspaceDraft(project);
     state.current=null;state.visibleResults=16;$('videoActionsDialog').close();$('upscaleStatus').textContent='';showStageMessage('Project workspace',project.name);renderResults();
   });
-  document.body.classList.remove('project-hub-open');setWorkspaceView('studio');renderProjectCatalog();refreshLabControls();
+  document.body.classList.remove('project-hub-open');setWorkspaceView(view);renderProjectCatalog();refreshLabControls();
 }
 async function showProjectHub(save=true){
   if(workspaceLocked())throw Error('Wait for the current operation before leaving this project.');
@@ -161,6 +161,7 @@ async function insertProjectMention(item,range=null){
 }
 function refreshProjectHubControls(){
   const locked=workspaceLocked();
+  $('projectSelect').disabled=locked;
   for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=locked;
 }
 function renderProjectCatalog(){
@@ -244,7 +245,7 @@ function initProjectWorkspace(){
   };
   $('assetEditClose').onclick=()=>$('assetEditDialog').close();
   $('libraryScope').onchange=()=>{state.visibleResults=16;renderResults();};
-  $('projectSelect').onchange=()=>{if($('projectSelect').value)openProjectWorkspace($('projectSelect').value).catch(error=>info(error.message,true));};
+  $('projectSelect').onchange=()=>{if($('projectSelect').value)openProjectWorkspace($('projectSelect').value,{view:workspaceView==='elements'?'elements':'studio'}).catch(error=>{$('projectSelect').value=state.activeProjectId||'';info(error.message,true);});};
   renderProjectCatalog();renderProjectHub().catch(error=>{$('projectHubStatus').textContent=error.message;});
 }
 
@@ -253,6 +254,9 @@ function setWorkspaceView(view,{history=true}={}){
   if(!['projects','studio','elements','generations','favorites','activity'].includes(view))view='projects';
   if(!state.currentProject&&view==='elements')view='projects';
   workspaceView=view;document.body.dataset.workspaceView=view;
+  const pickerHome=view==='elements'?$('elementsProjectSwitcher'):$('projectPickerHome');
+  pickerHome.append($('workspaceProjectPicker'));
+  document.querySelector('label[for=projectSelect]').textContent=view==='elements'?'CURRENT PROJECT':'OPEN SAVED PROJECT';
   document.querySelector('.topnav a[href="index.html"]')?.classList.toggle('active',view==='studio');
   document.body.classList.toggle('project-hub-open',view==='projects');
   document.querySelectorAll('[data-workspace-nav]').forEach(button=>{const active=button.dataset.workspaceNav===view;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false');});
@@ -278,7 +282,7 @@ function previewProjectAsset(item){
 }
 function initWorkspaceNavigation(){
   const createLink=document.querySelector('.topnav a[href="index.html"]');if(createLink)createLink.onclick=event=>{event.preventDefault();setWorkspaceView('studio');};
-  const projectPicker=$('projectSelect').parentElement;const pickerLabel=document.querySelector('label[for=projectSelect]');const hubControls=workspaceElement('details',undefined,'project-hub-tools');hubControls.append(workspaceElement('summary','Open or import an existing project'),pickerLabel,projectPicker,$('projectBundleFile'));$('projectHubStatus').before(hubControls);
+  const projectPicker=$('projectSelect').parentElement;const pickerLabel=document.querySelector('label[for=projectSelect]');const pickerGroup=workspaceElement('div',undefined,'workspace-project-picker');pickerGroup.id='workspaceProjectPicker';pickerGroup.append(pickerLabel,projectPicker);projectPicker.querySelector('select').setAttribute('aria-label','Current project');const hubControls=workspaceElement('details',undefined,'project-hub-tools');hubControls.id='projectPickerHome';hubControls.append(workspaceElement('summary','Open or import an existing project'),pickerGroup,$('projectBundleFile'));$('projectHubStatus').before(hubControls);
   const rail=workspaceElement('nav',undefined,'workspace-rail');rail.setAttribute('aria-label','Production navigation');
   const project=workspaceElement('div',undefined,'rail-project');project.append(workspaceElement('small','Current project'),workspaceElement('strong','Choose a project'));project.lastChild.id='workspaceProjectLabel';rail.append(project);
   for(const [view,label,icon] of [['projects','Projects','▦'],['studio','Production','◉'],['elements','Elements','▧'],['generations','Generations','▶'],['favorites','Favorites','☆'],['activity','Activity','◷']]){
@@ -288,7 +292,7 @@ function initWorkspaceNavigation(){
   const hint=workspaceElement('p','Upload once in Elements. Use @ names in your shot.','rail-hint');rail.append(hint);document.body.append(rail);
   const page=workspaceElement('section',undefined,'workspace-page');page.id='workspacePage';
   const heading=workspaceElement('div',undefined,'workspace-page-heading');const title=workspaceElement('h1','Projects');title.id='workspacePageTitle';heading.append(title);page.append(heading);document.body.append(page);
-  const elements=workspaceElement('div');elements.id='elementsWorkspace';elements.append($('projectAssetsPanel'));page.append(elements);
+  const elements=workspaceElement('div');elements.id='elementsWorkspace';const switcher=workspaceElement('div');switcher.id='elementsProjectSwitcher';elements.append(switcher,$('projectAssetsPanel'));page.append(elements);
   const generations=workspaceElement('div');generations.id='generationsWorkspace';
   const head=document.querySelector('.history-head');let node=head;while(node){const next=node.nextElementSibling;generations.append(node);node=next;}page.append(generations);
   const activity=workspaceElement('div');activity.id='activityWorkspace';const queue=workspaceElement('section',undefined,'output-card');queue.append(workspaceElement('h2','Render queue'));const queueMirror=workspaceElement('div');queueMirror.id='activityQueue';queue.append(queueMirror);activity.append(queue,$('mediaExportsPanel'));
