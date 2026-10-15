@@ -173,10 +173,41 @@
     }
   }
 
+  function mentionName(ref) {
+    return (ref.name || ref.label || ref.alias || '').trim().replace(/\.(?:png|jpe?g|webp|gif|bmp|mp4|mov|webm|mkv|wav|mp3|ogg|flac|m4a)$/i,'').replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '') || ref.alias;
+  }
+
+  function normalizeReferenceMentions(text, references) {
+    const names = new Map(), aliases = new Map();
+    const add = (name, ref) => {
+      if (!name) return;
+      const key = name.toLocaleLowerCase();
+      if (!names.has(key)) names.set(key, new Set());
+      names.get(key).add(ref.alias);
+    };
+    for (const ref of references) {
+      if (ref.alias) aliases.set(ref.alias.toLocaleLowerCase(), ref.alias);
+      add(ref.alias, ref);add(mentionName(ref), ref);
+      add(ref.name?.trim(), ref);add(ref.label?.trim(), ref);
+      for(const name of ref.mention_names || []){add(name,ref);add(mentionName({name}),ref);}
+    }
+    if (!names.size) return text;
+    const escaped = [...names.keys()].sort((a,b)=>b.length-a.length).map(name=>name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+    const pattern = new RegExp('@(' + escaped.join('|') + ')(?=$|[^\\p{L}\\p{N}_-])', 'giu');
+    return text.replace(pattern, (whole, name) => {
+      const key=name.toLocaleLowerCase(), exact=aliases.get(key), matches=names.get(key);
+      if (exact) return '@'+exact;
+      if (matches.size!==1) throw new Error('Ambiguous reference mention: '+whole+'. Select a unique element name.');
+      return '@'+[...matches][0];
+    });
+  }
+
   function compilePrompt(spec) {
     const mode = spec.mode || 'text';
     const promptMode = spec.prompt_mode || 'guided';
-    const normalized = inputAdapter.normalize(spec.source_prompt || '');
+    const refs = spec.references || [];
+    const normalize = text => mode === 'refs' ? normalizeReferenceMentions(text, refs) : text;
+    const normalized = inputAdapter.normalize(normalize(spec.source_prompt || ''));
     let source = normalized.text;
     const warnings = [...normalized.warnings];
     const seconds = Number(spec.target_seconds ?? spec.duration_seconds ?? 124 / 24);
@@ -286,7 +317,7 @@
 
     // --- REFERENCES MODE ---
     if (mode === 'refs') {
-      const rawRefs = spec.references || [];
+      const rawRefs = refs.map(ref=>({...ref,instruction:normalize(ref.instruction || '')}));
       if (!rawRefs.length) {
         throw new Error('Add at least one reference.');
       }
@@ -559,6 +590,8 @@
   }
 
   return {
+    mentionName,
+    normalizeReferenceMentions,
     compilePrompt,
     referenceVideoSpan,
     validateNativeBindings,

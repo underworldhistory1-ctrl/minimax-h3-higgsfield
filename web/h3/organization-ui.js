@@ -11,19 +11,48 @@ const H3OrganizationUI=(()=>{
  async function createFolder(){if(workspaceLocked())return;const name=await askName('New project folder');if(!name)return;await refreshFolders();await projectCtrl.fetchJson('/h3_studio/lab/organization',{method:'POST',body:JSON.stringify({operation:{action:'create_folder',name},expected_revision:organization.revision})});await renderProjectHub();}
  async function renameFolder(){const id=$('projectFolderFilter').value,folder=organization.folders.find(f=>f.id===id);if(!folder)return;const name=await askName('Rename project folder',folder.name);if(!name)return;await projectCtrl.fetchJson('/h3_studio/lab/organization',{method:'POST',body:JSON.stringify({operation:{action:'rename_folder',folder_id:id,name},expected_revision:organization.revision})});await renderProjectHub();}
  async function fileProject(project){if(workspaceLocked())throw Error('Finish the current operation first.');await refreshFolders();populate($('fileProjectFolder'),organization.folders.map(f=>[f.id,f.name]),['','Unfiled']);$('fileProjectFolder').value=project.folder_id||'';$('fileProjectDialog').dataset.projectId=project.project_id;$('fileProjectDialog').dataset.revision=project.revision;$('fileProjectTitle').textContent='Move '+project.name+' to folder';$('fileProjectStatus').textContent='';$('fileProjectDialog').showModal();}
+ function projectView(value){
+  const view=value==='list'?'list':'grid';$('projectHubList').dataset.view=view;
+  for(const button of document.querySelectorAll('[data-project-view]'))button.setAttribute('aria-pressed',String(button.dataset.projectView===view));
+  try{localStorage.setItem('h3studio.projects.view',view);}catch(_){}return view;
+ }
+ function libraryControls(list){
+  if($('projectLibraryControls'))return;
+  const bar=workspaceElement('div',undefined,'project-library-controls');bar.id='projectLibraryControls';
+  const label=workspaceElement('div',undefined,'project-library-summary'),description=workspaceElement('span');H3Guidance.setText(description,'projectLibrarySummary');label.append(workspaceElement('strong','Your projects'),description);
+  const views=workspaceElement('div',undefined,'project-view-switch');views.setAttribute('role','group');views.setAttribute('aria-label','Project display');
+  for(const [value,name] of [['grid','Grid'],['list','List']]){const button=workspaceButton(name,()=>projectView(value));button.dataset.projectView=value;button.setAttribute('aria-label',name+' view');views.append(button);}
+  bar.append(label,views);list.before(bar);let saved='grid';try{saved=localStorage.getItem('h3studio.projects.view')||'grid';}catch(_){}projectView(saved);
+  $('projectSearch').setAttribute('placeholder','Search project names…');$('projectSearch').setAttribute('type','search');
+ }
  async function renderProjects(projects,list,refresh=true){
-  const epoch=++hubEpoch,controller=projectCtrl;if(refresh)await refreshFolders();if(epoch!==hubEpoch||controller!==projectCtrl)return;projectCache=projects;
-  populate($('projectFolderFilter'),[['unfiled','Unfiled'],...organization.folders.map(f=>[f.id,f.name])],['all','All project folders']);
-  const query=$('projectSearch').value.trim().toLocaleLowerCase(),folder=$('projectFolderFilter').value,sort=$('projectSort').value;
-  $('renameProjectFolder').disabled=!organization.folders.some(f=>f.id===folder)||workspaceLocked();
-  const filtered=projects.filter(p=>p.name.toLocaleLowerCase().includes(query)&&(folder==='all'||(folder==='unfiled'?!p.folder_id:p.folder_id===folder)));
-  filtered.sort(sort==='name'?(a,b)=>a.name.localeCompare(b.name):(a,b)=>(b.updated_at||0)-(a.updated_at||0));list.replaceChildren();
-  for(const project of filtered){const card=workspaceElement('article',undefined,'project-card');card.dataset.projectId=project.project_id;
-   card.append(workspaceElement('small',organization.folders.find(f=>f.id===project.folder_id)?.name||'Unfiled','project-folder-label'),workspaceElement('h2',project.name),workspaceElement('p',`${project.asset_count||0} assets · ${project.take_count||0} takes`,'tip'));
-   const actions=workspaceElement('div',undefined,'project-card-actions');actions.append(workspaceButton('Open',()=>openProjectWorkspace(project.project_id)),workspaceButton('Rename',async()=>{const name=prompt('Project name',project.name);if(name?.trim())await workspaceMutation({action:'rename_project',name},project);}),workspaceButton('Move to folder',()=>fileProject(project)),workspaceButton('Duplicate',async()=>{const name=await askName('Duplicate project',project.name+' (Copy)');if(!name)return;await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}/duplicate`,{method:'POST',body:JSON.stringify({name})});await renderProjectHub();}));
-   for(const button of actions.children)button.disabled=workspaceLocked();card.append(actions);list.append(card);
-  }
-  $('projectHubStatus').textContent=filtered.length?`${filtered.length} projects shown · ${projects.length} total`:'No projects match. Create one or change the search/folder.';
+  libraryControls(list);const epoch=++hubEpoch,controller=projectCtrl;list.setAttribute('aria-busy','true');
+  try{
+   if(refresh)await refreshFolders();if(epoch!==hubEpoch||controller!==projectCtrl)return;projectCache=projects;
+   populate($('projectFolderFilter'),[['unfiled','Unfiled'],...organization.folders.map(f=>[f.id,f.name])],['all','All project folders']);
+   const query=$('projectSearch').value.trim().toLocaleLowerCase(),folder=$('projectFolderFilter').value,sort=$('projectSort').value;
+   $('renameProjectFolder').disabled=!organization.folders.some(f=>f.id===folder)||workspaceLocked();
+   const filtered=projects.filter(p=>p.name.toLocaleLowerCase().includes(query)&&(folder==='all'||(folder==='unfiled'?!p.folder_id:p.folder_id===folder)));
+   filtered.sort(sort==='name'?(a,b)=>a.name.localeCompare(b.name):(a,b)=>(b.updated_at||0)-(a.updated_at||0));list.replaceChildren();
+   for(const project of filtered){
+    const card=workspaceElement('article',undefined,'project-card');card.dataset.projectId=project.project_id;
+    const title=workspaceElement('h2',project.name);title.id='project-title-'+project.project_id;card.setAttribute('aria-labelledby',title.id);
+    const media=workspaceElement('div',undefined,'project-card-preview');
+    const fallback=workspaceElement('div',undefined,'project-preview-empty');fallback.append(workspaceElement('span','H3','project-preview-monogram'),workspaceElement('span','No image preview yet'));media.append(fallback);
+    if(project.preview_asset_id){const image=document.createElement('img');image.alt='';image.loading='lazy';image.src=api('/h3_studio/lab/assets/'+encodeURIComponent(project.preview_asset_id)+'/thumbnail');image.onload=()=>fallback.hidden=true;image.onerror=()=>image.remove();media.append(image);}
+    const body=workspaceElement('div',undefined,'project-card-body');
+    body.append(workspaceElement('small',organization.folders.find(f=>f.id===project.folder_id)?.name||'Unfiled','project-folder-label'),title);
+    const meta=workspaceElement('div',undefined,'project-card-meta');meta.append(workspaceElement('span',(project.asset_count||0)+' assets'),workspaceElement('span',(project.take_count||0)+' takes'));
+    const date=Number(project.updated_at);if(Number.isFinite(date)&&date>0){const time=document.createElement('time');const updated=new Date(date<1e12?date*1000:date);time.dateTime=updated.toISOString();time.textContent=updated.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});time.title='Last updated '+updated.toLocaleString();meta.append(time);}body.append(meta);
+    const actions=workspaceElement('div',undefined,'project-card-actions');
+    const open=workspaceButton('Open',()=>openProjectWorkspace(project.project_id));open.classList.add('project-open');
+    actions.append(open,workspaceButton('Rename',async()=>{const name=await askName('Rename project',project.name);if(name?.trim())await workspaceMutation({action:'rename_project',name},project);}),workspaceButton('Move to folder',()=>fileProject(project)),workspaceButton('Duplicate',async()=>{const name=await askName('Duplicate project',project.name+' (Copy)');if(!name)return;await projectCtrl.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(project.project_id)+'/duplicate',{method:'POST',body:JSON.stringify({name})});await renderProjectHub();}));
+    for(const button of actions.children)button.disabled=workspaceLocked();card.append(media,body,actions);list.append(card);
+   }
+   if(!filtered.length){const empty=workspaceElement('div',undefined,'project-library-empty');empty.append(workspaceElement('span',query||folder!=='all'?'No matching projects':'Your next film starts here','empty-title'),workspaceElement('p',query||folder!=='all'?'Try another project name or folder.':'Name a project above to keep its references, shot settings and takes together.'));const action=workspaceButton(query||folder!=='all'?'Clear filters':'Name your first project',()=>{if(query||folder!=='all'){$('projectSearch').value='';$('projectFolderFilter').value='all';renderProjects(projectCache,list,false).catch(error=>info(error.message,true));}else $('newProjectName').focus();});empty.append(action);H3Guidance.setText(empty.querySelector('p'),query||folder!=='all'?'projectLibraryNoMatch':'projectLibraryEmpty');list.append(empty);}
+   $('projectHubStatus').textContent=filtered.length+' of '+projects.length+' projects';$('projectHubStatus').dataset.state='ready';
+  }catch(error){if(epoch===hubEpoch){$('projectHubStatus').textContent='Could not load the project library. '+error.message;$('projectHubStatus').dataset.state='error';}throw error;}
+  finally{if(epoch===hubEpoch)list.setAttribute('aria-busy','false');}
  }
  function assetSelection(item,row){if(selectedProject!==state.activeProjectId){selected.clear();selectedProject=state.activeProjectId;}const label=workspaceElement('label',undefined,'catalog-select');const box=document.createElement('input');box.type='checkbox';box.checked=selected.has(item.assetId);box.setAttribute('aria-label','Select '+item.label);box.disabled=workspaceLocked();box.onchange=()=>{box.checked?selected.add(item.assetId):selected.delete(item.assetId);updateSelection();};label.append(box);row.prepend(label);}
  function updateSelection(){for(const id of ['transferAssets','fileSelectedAssets','clearSelectedAssets'])if($(id))$(id).disabled=!selected.size||workspaceLocked();if($('assetSelectionCount'))$('assetSelectionCount').textContent=selected.size+' selected';}

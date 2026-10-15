@@ -1,0 +1,48 @@
+{
+  "release": "2.5.5",
+  "base_commit": "a98c47104348640c7e36b8db2b58ef570ccd9c08",
+  "python": {
+    "passed": 394,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 79.519
+  },
+  "javascript": {
+    "passed": 170,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser_suites": {
+    "passed": [
+      "project-workspace",
+      "organization",
+      "seed-duration",
+      "image-workspace",
+      "modernization",
+      "anime-realism",
+      "audio-refine",
+      "tab-persistence",
+      "shared-export",
+      "layout-audit",
+      "project-library",
+      "updates"
+    ],
+    "failed": []
+  },
+  "graph_profiles": [
+    "original",
+    "singularity",
+    "hybrid_conditioning",
+    "hybrid_loader"
+  ],
+  "graph_methods": [
+    "native",
+    "spectrum",
+    "motioncache"
+  ],
+  "cross_language_graph_cases": 12,
+  "local_cpu_export_verified": true,
+  "runtime_api_verified": false,
+  "gpu_render_verified": false,
+  "github_published": false
+}

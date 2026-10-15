@@ -1,15 +1,18 @@
 {
   ".dockerignore": [
-    "260ce8310ad81c41260cbffc76310a1dc15d5581"
+    "260ce8310ad81c41260cbffc76310a1dc15d5581",
+    "f0b7ef78e6ef7dad3250a6fb3374bb726bf72cc5"
   ],
   ".gitattributes": [
-    "f16ec5f4539b97543f92f3e019a5f1a99512385b"
+    "f16ec5f4539b97543f92f3e019a5f1a99512385b",
+    "bd1a9c372ebcec0c07e005cd279ee2cd3c1cda6a"
   ],
   ".gitignore": [
     "7bb57c8935685da50e584f3e9b8eaa149ecac6b3",
     "ca6728c3ae49e15f1d3c6edc0bd8984e8352db09",
     "e0d57ff55be53e6609718a874eb530c15baee4ea",
-    "ddfc9a570d8b761ba96a4f9e3fd84c13d1ec2127"
+    "ddfc9a570d8b761ba96a4f9e3fd84c13d1ec2127",
+    "eecd137353e752cb082850e6e747060e85c950c5"
   ],
   "AGENTS.md": [
     "2364b258317f9c81567f26ee3d03ed61c80a4fe6",
@@ -17,7 +20,9 @@
     "714e1567a28f9ced7ce8ea51636e3d42d48145a3",
     "73b99091ec0d916f276656b5e326f80ee10e9380",
     "9bf99edf0b98ab6748c88094a09c8b73f558c808",
-    "a4459f64908dcf9e6424f96a3e15d72658d1c877"
+    "a4459f64908dcf9e6424f96a3e15d72658d1c877",
+    "20b2dbfc6247220d46e0dbe3ed2d117d46495477",
+    "a83f7b1d78e557bf9b9a6464eceb0c5e271522ef"
   ],
   "CHANGELOG.md": [
     "00af951fb2c730f900730a288f5bb3d3e147d477",
@@ -26,7 +31,11 @@
     "f95e1966ec89c8f7d14b3f8dcc5013f0efc4f245",
     "77ae47a656e43265285074fa669814e7477600e6",
     "6a078a0acf3660c7faff176ed1911fde8f728788",
-    "ed1c86fb88f1b7c8db8953f1984781b47ce64f2a"
+    "ed1c86fb88f1b7c8db8953f1984781b47ce64f2a",
+    "501676fba8d036087e5999eff0f1f514f61a3c2a",
+    "6fe20a4bb8e593b508a5ad8e94706dd50f2cf2d8",
+    "f3533b1dad68888e721f951c101b552c2fd49d93",
+    "193127d86a1688f75714109c0d409eda30b8b638"
   ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
@@ -39,7 +48,8 @@
     "ff8382b9de986462485ac728c3380a3cc283f1c5"
   ],
   "LICENSE": [
-    "99e10e3536b6d915494101f1a0e42ef3efb3e844"
+    "99e10e3536b6d915494101f1a0e42ef3efb3e844",
+    "0355995f4ab24773a7c7cd6b633c47c2acf0ec96"
   ],
   "README.md": [
     "12e637c7c20d7b35be8b2b80a1bee731a939a189",
@@ -79,7 +89,10 @@
     "78aaf1e940c55d03f97cb2ab412e879369954d68",
     "7d4bbcbd23afefb472b7fc1f67a9ccb73f8e6bf3",
     "dd7d4f77b514b311acaf11e2645527560afba2d8",
-    "c1d8534192b08a5bb1a074a7e2d02324db6bbdc9"
+    "c1d8534192b08a5bb1a074a7e2d02324db6bbdc9",
+    "f35f4dc972d47de47124513a2c59e6a62d792adc",
+    "ed110f7357411a2a4ce8b4c07c21fddc948f611c",
+    "46a8056c6c7a64c5ff6590f7741b85fa9856f182"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -89,7 +102,9 @@
     "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d",
     "bb51374dc1fc6ad03f0cb5d03873b640374edaa7",
     "9d8b0440ab2856f5a26965e56d2ac20a83f6ab60",
-    "56dbf092a1473d0c6c376bb0f4eb0262cd5aa171"
+    "56dbf092a1473d0c6c376bb0f4eb0262cd5aa171",
+    "77610c709768f92b6465c112fee4f8964311c66c",
+    "1c6b3b40bac5d5b152515dd34af802203be2f25f"
   ],
   "VERSION": [
     "3e3c2f1e5edb083aab93646ac7b076daa38516dd",
@@ -101,7 +116,9 @@
     "437459cd94c9fa59d82c61c0bc8aa36e293b735e",
     "73462a5a13445f66009e00988279d30e55aa8363",
     "f225a78adf0534ad898ee7521a19aa40897f53ba",
-    "aedc15bb0c6e24f27eedf7684532f8039cabb92c"
+    "aedc15bb0c6e24f27eedf7684532f8039cabb92c",
+    "0cadbc1e33b27c15475868596b6f73d866de5182",
+    "fe16b348d97f7a5d8d995ebbd9712fe708f7423e"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -128,40 +145,49 @@
     "be999653b2b1ac73b08d1ad9e182b11aca357149",
     "df3e01effb8bece36fc1e2c51e1ba03c43ccc385",
     "ea4a6905600ae144415c793d8cf9828579dbbaf0",
-    "f87f3081e1e4bb4e550b8f063b2e47642052a153"
+    "f87f3081e1e4bb4e550b8f063b2e47642052a153",
+    "adfb553fa46e97992b830d853d93a8705222341f",
+    "3c90252c3f5dba08768bc6c7e5b93235ee6f5eec"
   ],
   "corpus/h3_ref_style_rules.md": [
-    "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7"
+    "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7",
+    "ac1818d18ad42fd20a77d19311be163846f1f376"
   ],
   "corpus/h3_style_rules.md": [
-    "5663c7a56f0bacbe3612380abd954bd758ccbb5e"
+    "5663c7a56f0bacbe3612380abd954bd758ccbb5e",
+    "f9d6b9c19714529c6e7595c4dc46b982721252bb"
   ],
   "deploy/CLOUD_BOOTSTRAP_AR.md": [
     "0d9f2f3f4673377869ffc3437ed9917f7d2c4a01",
-    "b2b5403e4c62d3b14b991293d70a974f7f952dad"
+    "b2b5403e4c62d3b14b991293d70a974f7f952dad",
+    "37bb1bd7456daf962a748f9be7968e86c1fcf675"
   ],
   "deploy/SALAD_DEPLOYMENT.md": [
     "4a02e9079fb2812a6bff41e5d9b449ddddf1114b",
     "6f952ab528013c7e04e86a75ab11a040d5f91a62",
     "86c223192245242bdf4c541ef88f293014aede15",
     "a379d53513e5be4b4b59e8f380aefb9dd5c79b9e",
-    "d3d21e48ddaff79eb08596ca486ca5b47a1a3ac4"
+    "d3d21e48ddaff79eb08596ca486ca5b47a1a3ac4",
+    "cfe1b5fb26a7abc8fdb71fa55e5ba04b4fbe2f0b"
   ],
   "deploy/activate_h3.py": [
     "1dc5f60c0698a4234ca873c6bdf46ae33d12e46c",
     "394f7f92f7df5cfb9c17406cb9cc69dd20ca9276",
     "8f1e1cc3fcdbfdedb51aa60ee3feb0c190e1564c",
-    "d23d700832e3e1dfdac16a168616d61561bbdc6f"
+    "d23d700832e3e1dfdac16a168616d61561bbdc6f",
+    "4e436d40229ee078ff4b2d1be4b53abb085472bf"
   ],
   "deploy/activate_v2.py": [
     "455e7864c541067977be043c16461191607103c9",
     "6420ca5b37255d6a28079d5753ec0ba51bbfdcb9",
     "6a7cc7a45074f7b90918b1ee6c9831227e3ebff4",
     "7de48cf0394aaaec4db876651f5b53952345acc0",
-    "861a5ff862c0e36713a6a75a3f779548db63191f"
+    "861a5ff862c0e36713a6a75a3f779548db63191f",
+    "cfc6f3733a740fa72a8bd052818a37c54c284f50"
   ],
   "deploy/backup_h3_library.py": [
-    "ba132bf302505d3c6333900902ce548ae13b4afb"
+    "ba132bf302505d3c6333900902ce548ae13b4afb",
+    "c2a38d673de293516709b445630bcaf8efa6bcb5"
   ],
   "deploy/bootstrap_h3_server.sh": [
     "1df5450b854a34fb380979b11eaef672c241e05a",
@@ -192,15 +218,19 @@
     "50a62e8c4493effc83910ffb784b0057b09b7b06",
     "1dfd6a203fe2f17f6b856557291eb62e81b32511",
     "c1c7ac950bfea35493f6eca5702531eb41a0db3d",
-    "98288b8efb056f9a62f7a50bd59e375bc64871f2"
+    "98288b8efb056f9a62f7a50bd59e375bc64871f2",
+    "6a114f9056afd4ecae96bcc0573dcafd16999884",
+    "c8cd681a2cc0c4aa93d952b4f32585bf6012edb7"
   ],
   "deploy/comfyui-vram.service": [
-    "498fc21e35a0f59e91fddd6c64f7dee55c567fa0"
+    "498fc21e35a0f59e91fddd6c64f7dee55c567fa0",
+    "9b85a68e0a3f8edb65b9a10b93a2c154a431e401"
   ],
   "deploy/comfyui.service": [
     "4a8a9dc4024484f87c767b3b77dcdb88a69b50b3",
     "ddadd735eff2bc5293067788f63abe4090f91d1a",
-    "9fb56f3f0202144a3dac85035d40fb49e4fb9ac6"
+    "9fb56f3f0202144a3dac85035d40fb49e4fb9ac6",
+    "6909d7d3e0798f019de20699a29ead1b223b0e3a"
   ],
   "deploy/compatibility.json": [
     "5de415084f059ab3ea6329c0d94c604f105eb00d",
@@ -212,20 +242,24 @@
     "972f1962d0dd29d1a90b390a1c6c5efd322e50b8",
     "68bdfaaea3d3219b8ed6ada9518d6bb286ea011a",
     "d0d8090f31c47fe97df1889a708d334803323c8f",
-    "b1ac53d66326253426d58d35325507e088a684d3"
+    "b1ac53d66326253426d58d35325507e088a684d3",
+    "ef2d0c55149de815f80569cf4c5155132bb0b193"
   ],
   "deploy/download_control_models.py": [
-    "f927ecbf69070408066e085f2b1b8972002c2b2e"
+    "f927ecbf69070408066e085f2b1b8972002c2b2e",
+    "cabe331272e2ceb18f89d2db90d6e6d698db6bd7"
   ],
   "deploy/download_control_preprocessors.py": [
     "4b4747f2b83adb1d616e2189303a2deb51e03f47",
     "ac77fb99e9a2bfa24dabdaade33b5bd6120bcdbc",
     "dd1c25afbe0cdf8f98b4fa2e7b2b6814d6bdff75",
-    "f3af9c45dac33fea14a6ba616d5dc23ad1615784"
+    "f3af9c45dac33fea14a6ba616d5dc23ad1615784",
+    "af7f31ec644bf41b3fdb692e57685c1fcde453f8"
   ],
   "deploy/download_h3_models.py": [
     "655d19f647e23ff1005f3f9127d7c7eae4ba1c0d",
-    "80d65d3fb31d22b7dd36a56faa24f5c14c20dd03"
+    "80d65d3fb31d22b7dd36a56faa24f5c14c20dd03",
+    "9416254fdd9316a056b886022ab7de52862415b7"
   ],
   "deploy/download_h3_models.sh": [
     "97130e96ec3de5c10dd9da83de222b6b2eb31068",
@@ -235,19 +269,25 @@
     "477993fb218d75e5cac3a0965970f2ae8b765be9",
     "f859e9bc2b41fc6fa69ea9ed6fe9024b2c1aac8c",
     "7661913465c7d7cb9121046c5ecd4f15da8d453b",
-    "ab5eff8beb07c2d0bf30aa1349d6849a9978d572"
+    "ab5eff8beb07c2d0bf30aa1349d6849a9978d572",
+    "7bccfabc44bebdf171bf3afaea3395dd23336176",
+    "d59729513918ba8f5a6307937ed9287c24b88d0c"
   ],
   "deploy/download_qwen_image_models.py": [
-    "b89a65c73297b700f047317ecb6cdb44304c217c"
+    "b89a65c73297b700f047317ecb6cdb44304c217c",
+    "ee6b0b329d4179418f8c24c73e25713929406e93"
   ],
   "deploy/download_refine_models.py": [
-    "144db293003cea45f1dfc452f3f913dca7a51ff2"
+    "144db293003cea45f1dfc452f3f913dca7a51ff2",
+    "c625c812afa861a44fd2ef7f4e1450a3d6e7a6d9"
   ],
   "deploy/environment_audit.py": [
-    "b9d0aa3460d947b0e6910829a191aa156c07c0c3"
+    "b9d0aa3460d947b0e6910829a191aa156c07c0c3",
+    "1dcf6c4ab4aa5b5af4ce8965cd31839da21bf166"
   ],
   "deploy/install_python_dependencies.py": [
-    "e2fa5ee12ca211304d4e05a8bb3d447eaf2fe6a2"
+    "e2fa5ee12ca211304d4e05a8bb3d447eaf2fe6a2",
+    "ba5096b388ffc72235acf3783a6778063b1c1b5f"
   ],
   "deploy/install_windows.py": [
     "01dc648d06cc8ea3d87bef0db1ef294ed7af63c1",
@@ -267,7 +307,8 @@
     "f050e7feb9eef962479bd889a97c9f25a4c86db0",
     "f06b2bd057c1bae1435fc632f55507a8ba505e0e",
     "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0",
-    "5bde83ce77650fc0bfd3e10210b79eea31f9268a"
+    "5bde83ce77650fc0bfd3e10210b79eea31f9268a",
+    "4342948d2133f35e498e359a2d673f8d0ab3a985"
   ],
   "deploy/launcher.py": [
     "1972ff3b516a9f156b7bcf51394be62f949f6bda",
@@ -277,23 +318,29 @@
     "68a9bc1119629ee13312921ab6d9a9d53506ccfb",
     "b83cfac1043261cf1d040c7b61d3eee25836d3fe",
     "18e4aab4200e382db92a6c51b1ee9aebffd0878d",
-    "40cc6e68829fb8afb86904553b44222f6c15b9f5"
+    "40cc6e68829fb8afb86904553b44222f6c15b9f5",
+    "bb0c1865df50f76a3c2fb0c776bd9668522fe3db",
+    "115d69fdeea3ca0ae832966bba9a3ee4e5d9c9a2"
   ],
   "deploy/launcher_models.py": [
     "2bf41f0300ee0682fb25a78e502c0e249d39daaa",
-    "5f06f97da4605172d87d8442bc691d092f51a7c5"
+    "5f06f97da4605172d87d8442bc691d092f51a7c5",
+    "30641d89a6a87b5073dce01ca1b63165e31cb7f2"
   ],
   "deploy/launcher_smoke.py": [
     "27b518847caf7abd9646b30fb7ea39e9a1e858a5",
     "620dae39a9f6b7d154c52c4132a7779bf7aa0b26",
-    "917e0878766e41a460da43e6b36482a75beee992"
+    "917e0878766e41a460da43e6b36482a75beee992",
+    "749e2b5b9b4d2a258fc7d6a8709938d3bb9a97a1"
   ],
   "deploy/llama-swap-gemma-a4b.snippet.yaml": [
-    "cccc890da72196f0f226bd48ad6bcf02b24a217d"
+    "cccc890da72196f0f226bd48ad6bcf02b24a217d",
+    "fdb2d6835594494e70fe510a7ef00a417b480738"
   ],
   "deploy/make_h3_landing.py": [
     "5a76529e97f290a6ef3f8f2827d6522672aa8da0",
-    "8754b0ca795e14807db6c4cb1665a308c31672d7"
+    "8754b0ca795e14807db6c4cb1665a308c31672d7",
+    "5f10b4ad7235072d9b071190903c0a08139e7a1a"
   ],
   "deploy/openbayes_fresh_workspace.sh": [
     "2f9e706774557d596f45ee8d19203cda6ad261d6",
@@ -310,21 +357,26 @@
   "deploy/openbayes_h3_supervisor.py": [
     "190a4986fb9f8e6777413819d383d8b36f2c8529",
     "ac4150cc22a035aaa080805a6b2614cff619be37",
-    "80c3ddb735690fb61aa0b8bf0ebeb724aad6a753"
+    "80c3ddb735690fb61aa0b8bf0ebeb724aad6a753",
+    "3ceb508100c4810dc94b491ed3ab42c3c81de5b9"
   ],
   "deploy/openbayes_prepare_bf16.py": [
-    "aee66532bdccc483f2dcf33c19facad2a6d6ba2a"
+    "aee66532bdccc483f2dcf33c19facad2a6d6ba2a",
+    "0389d13ef82aa213969ffb5bba6215dac0d06453"
   ],
   "deploy/openbayes_tunnel.py": [
     "39f4b7a091a2a52998e70f52446b22ae59c10e68",
-    "61fd8294183f121c6f09283cdb6f940af371286a"
+    "61fd8294183f121c6f09283cdb6f940af371286a",
+    "e9e7b22a80b846d0b3a9221f9e249eff484edd5f"
   ],
   "deploy/provision_h3.py": [
     "4408a27db5c9244fa957e382c150c9c933373b26",
-    "57fc78f641879699da0723faff6be79e5ee9e87b"
+    "57fc78f641879699da0723faff6be79e5ee9e87b",
+    "987c0e8a02ebe3f5e56e1bb9ba3c2db83c0ccb67"
   ],
   "deploy/restore_h3_library.py": [
-    "f77d7db5f6758b673c36f9e26cc896e486b7ed18"
+    "f77d7db5f6758b673c36f9e26cc896e486b7ed18",
+    "a932e0adb61928326be9f685ccbdd922b000bd45"
   ],
   "deploy/runtime_hashes.json": [
     "429208a2a6437b9eb4af34916d2ede0e077e1dad",
@@ -345,7 +397,8 @@
     "57f43f3af263e7350da1b463028b43111eb70b48"
   ],
   "deploy/runtime_patches.py": [
-    "fb8d8c860573f7c39507206decefe3aeffa76cea"
+    "fb8d8c860573f7c39507206decefe3aeffa76cea",
+    "ced01adebd76b19890fb4952738e25196057cecf"
   ],
   "deploy/salad/entrypoint.sh": [
     "049718276b48bf4ccb5ca22d306977843ac010e8",
@@ -357,20 +410,27 @@
     "a114dd447d565a891e103098c3133eef7193ce42",
     "a156560095da44077b4244c12b170bbd05867783",
     "e810487734ba200fc769439304ee2df9075242d9",
-    "73994609feee4f8b126c1ac14af257594a6ac805"
+    "73994609feee4f8b126c1ac14af257594a6ac805",
+    "44c99103bc6f8ccb1e69b57dfe0bfb6a52464cd2"
   ],
   "deploy/salad/nginx.conf.template": [
     "72ac6056df96bfc7e33ebfa9370a8852d9943d75",
-    "d0c1d2a5340bf516f2739495aefb349b6ae415a8"
+    "d0c1d2a5340bf516f2739495aefb349b6ae415a8",
+    "495c8b9e3dd54cbc5635ccf65f3aba66c1e749b0"
+  ],
+  "deploy/ui_update.py": [
+    "8a83c571f5b687acdebbfd345894fbfcb3b952d2"
   ],
   "deploy/uninstall_h3.py": [
     "12959d641e39caed3e87d1287e68a189fb36f6be",
-    "559761620bd7fe4fc5309cf2314aa486db4101c6"
+    "559761620bd7fe4fc5309cf2314aa486db4101c6",
+    "5f2f458f5f7b1ffff796284582c5acd4b2557665"
   ],
   "deploy/update_source.py": [
     "1c4b48de0930d9dac111700132631cf74a601b0a",
     "5c9d9573982539bcad986ec06101ec383b241683",
-    "595a1d9e7af8c7f42e42e9efec1f7842f13ed79a"
+    "595a1d9e7af8c7f42e42e9efec1f7842f13ed79a",
+    "6bcea56836f280cfa8362a0e67ebd1736ea0ab6b"
   ],
   "deploy/v2_runtime_files.txt": [
     "0bbf3b82a02b0c42e5bb5f0735bc5ca52c6c43c9",
@@ -391,10 +451,12 @@
     "dfa62d1381d90940097e32a7d7cbc78801218c12",
     "430119ba4cd8b3e55828fd037a0379ebd3a4fc73",
     "99dc6b7dddf7d9b4028ee1e7b9782c23b0842859",
-    "aaee3392b082084e601d4094d6c26a9bf76116f9"
+    "aaee3392b082084e601d4094d6c26a9bf76116f9",
+    "f7bce641bb937bdcf58fd2b53f53d35112597682"
   ],
   "deploy/v2_standby.py": [
-    "d41adecc5f3ff554b96f8452bb8c720ca1079af3"
+    "d41adecc5f3ff554b96f8452bb8c720ca1079af3",
+    "5a698d6808d69236edac8a6ecbbfd58ad358c847"
   ],
   "deploy/verify_h3_server.py": [
     "19e7c8ab3915937ae3070c34ff2a8b217ed181b8",
@@ -405,16 +467,23 @@
     "f6c79d6d3c7ccd413c7fe5c657823280a99d170a",
     "fdcabbf7dc9ecb511a4c2a64408e3b534f22e53f",
     "86d71972ba89f45135d2774c775dbc313cdf43d5",
-    "cda47e5b1fd184382073a2e77f134f1c1a0618d2"
+    "cda47e5b1fd184382073a2e77f134f1c1a0618d2",
+    "d32aad003b1e1769fce6919ba752ef862abdd8b7",
+    "c7b299ba302a769f657d53033716b9e30c07cc1b",
+    "a142a05d1b40273ebf2a5bf965ab04fe4713e076"
   ],
   "docs/AUDIO_ENHANCEMENT_AR.md": [
-    "80c1a550085be650eea6ba0a7e054d61d063e3d4"
+    "80c1a550085be650eea6ba0a7e054d61d063e3d4",
+    "ca485dcebc8e7b681f6a646ba06706b2dbbb8d5c"
   ],
   "docs/CHARACTER_SWAP_AR.md": [
-    "3272007c4ae92f812e8f3959ccd867cca7e8b6eb"
+    "3272007c4ae92f812e8f3959ccd867cca7e8b6eb",
+    "e10b907e53857dcd0acbe2a8f80b8cb16120ca94",
+    "f4585dec21143999b24da5ff17f982a67dceb1e1"
   ],
   "docs/CHARACTER_SWAP_TEST_RESULTS.json": [
-    "da619f049743e87a6cc157865be510d9d773b5c1"
+    "da619f049743e87a6cc157865be510d9d773b5c1",
+    "90a8195c83edcb11b070411f5afd3069b2a535cd"
   ],
   "docs/COMPATIBILITY_MATRIX_AR.md": [
     "022efd9d67aa3ed3f7d48417742d49e4a962ccfe",
@@ -435,7 +504,9 @@
     "90f119a316cc85d85494a48775a95708ebd926a6",
     "b0802f1ddd967fc607d794521525a131fe535a54",
     "b194b06ca64093f98602378235bf3bc011ea776f",
-    "6f4cc27a4554dad4b259e11569ae1117e7231fab"
+    "6f4cc27a4554dad4b259e11569ae1117e7231fab",
+    "a3a78a653280f1c7871944f255bbe86017054f25",
+    "be8fad51fa88fb5afeb1fdf7e453426f4b813e24"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -444,13 +515,15 @@
     "4a3ff50191614320bad38fdf174e6fb8aee4a5dd",
     "749627e5dc51925451d906ba8f141816ccef37cd",
     "98a5e044776bf9a1c7efa7e36bdc69e28d01a935",
-    "d3deeff227ab2e091da0bea38894e0f4edfd21ae"
+    "d3deeff227ab2e091da0bea38894e0f4edfd21ae",
+    "002c22a98661f86d464e469281b8067e5b7e8439"
   ],
   "docs/FINAL_AUDIT_AR.md": [
     "0259ff0836652fae30c880d98aae6dc5672245c8",
     "645c5e942301f42f5b3966180783299f8344b799",
     "8e589b144e9b1a4b4e96bbaf9e6011a6c1bc605f",
-    "a00b84542ce5e9ea61abeb34521972d9193431c2"
+    "a00b84542ce5e9ea61abeb34521972d9193431c2",
+    "51f7c1ac7f7ba5ea505f3f18c8a6ffabc5fdd2ab"
   ],
   "docs/GRAPH_MAP.md": [
     "00f26d6fa0cb1a1d91bd43514ef04d6c9b18a7c8",
@@ -468,30 +541,40 @@
     "3e9b113f824903c107c8e3603eb158f0997d21a0",
     "eb1597e49c6b0d862979bf40c438da645249e27a",
     "684b8ede4b2d60e5a7312d1e8b16db36fa730e1e",
-    "f16f5ffc3be3a236bb5c601a222d0cb375da4125"
+    "f16f5ffc3be3a236bb5c601a222d0cb375da4125",
+    "7d4f292fb6c9a834d327dc1d12b8f55c5b9506b7",
+    "2d341594e38375ec6dacb6c5adb3a77063ced0fb"
   ],
   "docs/HARDENING_REVIEW_AR.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
-    "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e"
+    "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e",
+    "b167381ea257ce1f2b689612bdca4e726926d79f"
   ],
   "docs/INSTALL.md": [
     "ae0b468c80d24fe422510ffbbcc3daf5c980c60f",
     "e2651f3e5d821ee5f772024648bab091718dd958",
-    "3981074eb2a25c0026d39621e4253846ab544dae"
+    "3981074eb2a25c0026d39621e4253846ab544dae",
+    "d13a53d17bfde93131e77cfa850f0b8456383810"
   ],
   "docs/LAUNCHER.md": [
     "51ba6885ebb8021d5e73abc7031b279da8c86a7f",
     "a2116468f44f2165358bdc545132aa5fa12d8c44",
     "dfcf270726520d23979f4356705bc6a40c6e7568",
     "d72bf517bd69bbb15af6973aed6272db0dee3147",
-    "ae73504956253563c035ba6c15e596fb69b155c1"
+    "ae73504956253563c035ba6c15e596fb69b155c1",
+    "574715897d55c7e2cbb0d0eec4d58c0e2228904d",
+    "3361b6183fb7e8fdea88e098f45fb4d8d3204fc3",
+    "c444788132ccaef84277c41e5695093545b6072b",
+    "98720cbd75b5e266a3ebd412ce8d2b9cfa55a209"
   ],
   "docs/MODERNIZATION_2026_10_13_AR.md": [
     "a8d13687abee4323ab4fe9695001473a80c12f77",
-    "f333a389ca8cda92717a920790fb35570e7b74ca"
+    "f333a389ca8cda92717a920790fb35570e7b74ca",
+    "ac54e428b06db69ff3d2a759f41272b5fa962692"
   ],
   "docs/MODERNIZATION_TEST_RESULTS.json": [
-    "890d3f4e8b10db6539ef818893954a26bbb1e889"
+    "890d3f4e8b10db6539ef818893954a26bbb1e889",
+    "a65843fda78a00b4a6b093d0f0e9bb28dc60a63f"
   ],
   "docs/OPENBAYES.md": [
     "18ef7d19bc42681c9081c51f4c282b7684cc4e02",
@@ -501,36 +584,45 @@
     "918df1a9a55632c792f5840b7088ffda489246c4",
     "9946b264a2521ee31bfeae5144ba380b89580634",
     "9f1b8440111ce59326c1e145d6cc1701088f7e76",
-    "b3349c16dcd3ca752cf9cf84b051013087d904b7"
+    "b3349c16dcd3ca752cf9cf84b051013087d904b7",
+    "2e2c3bffc23edba4bcb3c61215d26d6bf9b06953"
   ],
   "docs/PROJECT_WORKSPACE_AR.md": [
     "81680e83cfaa7e5934ebc755f69b769c3f461c13",
-    "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5"
+    "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5",
+    "44d43123b276cd171f04622a9b6309e2a7b6340b"
   ],
   "docs/PROMPT_INPUT.md": [
     "14dea56c7edaaf4785158ece7194000f4b1b90ce",
     "21c7029d2bb5b1db9390b6ba11b01cbbebe8c411",
-    "7d355fdcd52622f66cc3b8e9180df49095b5942a"
+    "7d355fdcd52622f66cc3b8e9180df49095b5942a",
+    "aa3dc9da3e98c8e1348998c29cef7495f50f6421"
   ],
   "docs/README.md": [
-    "713c0a3d91cfa97c1958ad3dc11b2afa7febbc70"
+    "713c0a3d91cfa97c1958ad3dc11b2afa7febbc70",
+    "5c4283dc468103a6dfbb2e20096a99c114af56db"
   ],
   "docs/RENDER_RECOVERY.md": [
-    "0e7df303d7d97ca3e6267d9033c5c9c5584af991"
+    "0e7df303d7d97ca3e6267d9033c5c9c5584af991",
+    "b29debe73f76266110726e9d75a6e24e11d37def"
   ],
   "docs/RESOLUTION_AND_SAME_TAKE_AR.md": [
     "17eb38b983738b60dcfe749710ad85259012e301",
-    "4b0eb9c9d892f09565f1177cb4fdf8299a98a2d4"
+    "4b0eb9c9d892f09565f1177cb4fdf8299a98a2d4",
+    "0b7a36135798ab76aa7e6f8db575c21d28e8d78a"
   ],
   "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
-    "817177d474bfb9b9994fda0a18229d55f9bc73e8"
+    "817177d474bfb9b9994fda0a18229d55f9bc73e8",
+    "99f64153a2bda15c7cb6cf85bd10edb8c8fa4b94"
   ],
   "docs/TAB_PERSISTENCE_AR.md": [
     "2d4423f18a69ae017441988ea5db504756150dba",
-    "72ce2b1ce6d66c93889022680705aa45ce451b22"
+    "72ce2b1ce6d66c93889022680705aa45ce451b22",
+    "1a46dac5df8f891a53af11929d678452440f437c"
   ],
   "docs/UNINSTALL.md": [
-    "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba"
+    "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba",
+    "f19c6f7e9195c2265d97fc75c77b4d34fe146c37"
   ],
   "docs/UX_FLOW.md": [
     "011df8f48483dc3688a08ab9b7171aab43298f1c",
@@ -542,10 +634,13 @@
     "fd24f5ace2e6c91b90254c57e82799ea41978ea5",
     "1b13a398842e7bd172a2c40961cfd7eceb74db8b",
     "eafc89e497b0d31bdf89232f898215f506d253b9",
-    "6ff01941b00034d8891731a661d60fa65e85f3b8"
+    "6ff01941b00034d8891731a661d60fa65e85f3b8",
+    "456ff6d741a757969388d711873d724520604e0a",
+    "10f8605914954a088c763868b8c9547b387c31be"
   ],
   "docs/V2_UPGRADE_AR.md": [
-    "4ec03e3185d7b08f3f6ce34ac007bad3972043bd"
+    "4ec03e3185d7b08f3f6ce34ac007bad3972043bd",
+    "c642715d8504d65b07e44ab224735b331da57574"
   ],
   "docs/VERIFIED_BEHAVIOR.md": [
     "b7fed3b8f37a77fefb3776ecb40b5a6a369fdca6",
@@ -560,7 +655,8 @@
     "4a1d75f4cc4adf0839a1ba27f07611d90a271b36",
     "e9da59772ced315e41ca67246c5cb5ed7d4a247a",
     "b497bf65342d9385ee725da697e3364e0034b462",
-    "cd24a7dfe238943f14302ab9611d0d10c4ef9e02"
+    "cd24a7dfe238943f14302ab9611d0d10c4ef9e02",
+    "e4589344cfcc87c4cf2a48e34217475b2ef7ecc2"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09",
@@ -585,7 +681,8 @@
     "ed4cab417cd96958a001d050f9dd0e445cb245d9"
   ],
   "docs/demo/superman/README.md": [
-    "e77c3ebe38908403bc7b1090d71be13f6b7f4a47"
+    "e77c3ebe38908403bc7b1090d71be13f6b7f4a47",
+    "6c2b998c03866cee11a30a78fc21b9db606e5bce"
   ],
   "docs/demo/superman/character-reference-preview.jpg": [
     "c6c240da4b9200f3005ee60498fccf97daffb0c3"
@@ -595,7 +692,8 @@
     "56c641b8694eca7d72af016215eb1b52e7db90b1"
   ],
   "docs/demo/superman/example.json": [
-    "db347abc9d6e89b4ca312854c69c8e0dc961b487"
+    "db347abc9d6e89b4ca312854c69c8e0dc961b487",
+    "5aa9eec032faf196c936eb37a02ec32467e99535"
   ],
   "docs/demo/superman/production-workspace-preview.jpg": [
     "62611da281af396ff9c33c2b8181f7d88b08d412",
@@ -606,7 +704,8 @@
     "e9cfb63b38f086c44354b27748eed47b93b23c46"
   ],
   "docs/demo/superman/prompt.txt": [
-    "dc499324e5b735a1e7c8a7617c602526329ccf2b"
+    "dc499324e5b735a1e7c8a7617c602526329ccf2b",
+    "87293cf1feeacc4b1a5c9bdd8c91744b444f3190"
   ],
   "docs/demo/superman/storyboard-reference-preview.jpg": [
     "0751269bcc95bd9bc6362d45031247b9a47e3d67",
@@ -625,39 +724,48 @@
   ],
   "docs/development/2026-10-08-connected-studio.md": [
     "6f36ce599d64f6ad0c057f5ae2efd063b7a00b01",
-    "8a560d2e2babd3b7daf94f994bccb8b270561b0f"
+    "8a560d2e2babd3b7daf94f994bccb8b270561b0f",
+    "19bae5fd2f9b458281692ecfdf1723deaaedab56"
   ],
   "docs/lab/ARCHITECTURE.md": [
     "258f12164fe804953656ba29e595424bee1f0265",
     "29175e91da88607464ff66b0ce1e9836df210540",
     "374d0e145c8eed88210e96adf19d87b942ab4413",
-    "6436712b9505d5f4abc577dd84e384344c3c5117"
+    "6436712b9505d5f4abc577dd84e384344c3c5117",
+    "100d278cfd28e809b995e9fd6e4492b921523d0d"
   ],
   "docs/lab/BASELINE.md": [
-    "c0e3406ca9c8f57a5ad865133f24cfdc21365a4e"
+    "c0e3406ca9c8f57a5ad865133f24cfdc21365a4e",
+    "36e324544302595103f47711edda858fd2dd5422"
   ],
   "docs/lab/ENGINE_DECISION.md": [
-    "c011948b4f4ee6ce0db608e71b56d0359686d96b"
+    "c011948b4f4ee6ce0db608e71b56d0359686d96b",
+    "69364daf987c3755730babd6b02078be5b638a5d"
   ],
   "docs/lab/FOLLOWUP_REVIEW_2026-10-03.md": [
-    "030540d420331a4c52426e34844c66e42c7064a1"
+    "030540d420331a4c52426e34844c66e42c7064a1",
+    "00cb1a48a0066446d08c314c5b3a349d2bc03917"
   ],
   "docs/lab/INPUT_LIFETIME_FIX_2026-10-03.md": [
-    "68a2725468434f67ea3c0290d6a3c87f5704cb6a"
+    "68a2725468434f67ea3c0290d6a3c87f5704cb6a",
+    "728458d960d18723775885e6a27b3437e59bc54b"
   ],
   "docs/lab/INSTALL_AND_ROLLBACK.md": [
     "1f7124578d5bb85e921f2054e06989f4967752d0",
     "27c65a0244597169ffdffe122bd763040e6921dc",
-    "590b90df0923203333016ad8f08339e7f4484995"
+    "590b90df0923203333016ad8f08339e7f4484995",
+    "85e68c6019623625517f0598029cae3c5ac515a8"
   ],
   "docs/lab/QUALITY_EXPERIMENTS.md": [
     "64ca075893af13201e0dd372feba4863eed8a102",
     "829d619148b78dbccde8cdd8c7b9b18e81521da4",
-    "ef2de91036f92bad08d0736535cb7b1d620de86e"
+    "ef2de91036f92bad08d0736535cb7b1d620de86e",
+    "3ec301d96599a61b28177afbcb462ceebd9b442a"
   ],
   "docs/lab/REVIEW_HANDOFF.md": [
     "0175910a88902b7f66d5525477140efe768ab2ce",
-    "da089df79bf8fb1bc9566ee7c02cb3157bd1893a"
+    "da089df79bf8fb1bc9566ee7c02cb3157bd1893a",
+    "5a3098a086cd254551a884d2877274761ce03960"
   ],
   "docs/lab/STATUS.md": [
     "1ede7c074373d7e92e68f12e98b680b3da4a2c81",
@@ -665,7 +773,8 @@
     "80b6b1b01622691f4b5c7766d48b3df66817b067",
     "aef8cf37799290c9689aac513895baf008f09a08",
     "be8f847cef06ac08e70fdbac175c356c77426d7c",
-    "e75cceef945cce7d944c4a57b47a962ce2bc05b8"
+    "e75cceef945cce7d944c4a57b47a962ce2bc05b8",
+    "98b4d6b981aba32a5462046beb038d65c39a6561"
   ],
   "docs/lab/TEST_REPORT.md": [
     "0fd725a7ebfc3cd2a802caaa8ddccfe4a3635cb6",
@@ -673,16 +782,20 @@
     "31e4ca7db3fb9055e67cb2eb09057bfca97b2d0d",
     "97ffacf52a1ba5c903a4b834472dcc0a2c57ba60",
     "c1bdc792e409fb06a6dc227df7a8262de0000915",
-    "f3086c481ad5ed2be67bac7775bb8667a8bcd17a"
+    "f3086c481ad5ed2be67bac7775bb8667a8bcd17a",
+    "aa7de6d47956835a6ccab77a0836a2b54eec3a23"
   ],
   "docs/lab/workflow-examples/salad-image.yml": [
-    "38a3e301cb36d7d429bb60012400865a4f359852"
+    "38a3e301cb36d7d429bb60012400865a4f359852",
+    "4bcb9fecd252eaa0a37ef535a66ae7f66381076c"
   ],
   "docs/licenses/H3-AudioRefine-MIT.txt": [
-    "444341fd57e33b249bd856a82c526fda36ebf48b"
+    "444341fd57e33b249bd856a82c526fda36ebf48b",
+    "c2bc254f247f359a152073813f504c8f513789b6"
   ],
   "docs/modernization/browser-results.json": [
-    "6bd6c4b1bec15089a2e907e77369577af2e0232d"
+    "6bd6c4b1bec15089a2e907e77369577af2e0232d",
+    "760c807f96b4918b2fec58b9e71fe5adc69663fb"
   ],
   "docs/modernization/character-swap.png": [
     "35368db66f0b6cb1a54e13297fadf98fa459fc2a",
@@ -697,7 +810,8 @@
     "f7a32e6ead13e6aad81eb2bd26739d80e5db5266"
   ],
   "docs/modernization/server-browser-verification.json": [
-    "42e20d23a171d068707377e4e25efa039db09bae"
+    "42e20d23a171d068707377e4e25efa039db09bae",
+    "7d4788d7c2048b9d14727d19cd21638278afbe2b"
   ],
   "docs/modernization/server-interface-desktop.png": [
     "3b593858d8a3f8963b6b1b84aa1a5320e92d719b",
@@ -717,36 +831,45 @@
     "eef79c6457d4fb5121172742367327e3678813b7"
   ],
   "docs/superpowers/plans/2026-09-28-qwen-image-studio.md": [
-    "94862c2c6c86ced065bcbb8ab17b420f91718263"
+    "94862c2c6c86ced065bcbb8ab17b420f91718263",
+    "c63f6b2e4baa506c3e2e3caefcf9449da726c455"
   ],
   "docs/superpowers/plans/2026-10-12-high-resolution-hardening.md": [
-    "4c62f6a5888ef4e1da65ef1346399bf8c155aa2a"
+    "4c62f6a5888ef4e1da65ef1346399bf8c155aa2a",
+    "15aefcff07846891e14b94a3e006d952d1151981"
   ],
   "docs/superpowers/plans/2026-10-12-launcher.md": [
-    "535d1f1670bbc68543d5c58d366b7065091edfde"
+    "535d1f1670bbc68543d5c58d366b7065091edfde",
+    "8936a067ca60cc7d0da128e718318fd99e35074e"
   ],
   "docs/superpowers/specs/2026-09-28-qwen-image-studio-design.md": [
-    "90bd9d3b2cb89e087fc44c96ab6b1412b50f6346"
+    "90bd9d3b2cb89e087fc44c96ab6b1412b50f6346",
+    "5f663e5294dc9b36e527493fca4d43b7e43621fa"
   ],
   "docs/superpowers/specs/2026-10-12-launcher.md": [
-    "a123f4729deff0f33e5434193057ef4f41a49ccf"
+    "a123f4729deff0f33e5434193057ef4f41a49ccf",
+    "b04d3c0a8c304a64aab458ab58eb08091097a941"
   ],
   "h3_audio_refine.py": [
-    "1f54f939284d6cf5afd2e972d8088674e839ca45"
+    "1f54f939284d6cf5afd2e972d8088674e839ca45",
+    "4783fc0615a4d5db61b2c21adafbaa0940fab5d5"
   ],
   "h3_continuation.py": [
     "0540443e9156593814e2f55e3964164f96019efb",
-    "d48d6a74b19217d3ad771bd5f047ce4b361b1765"
+    "d48d6a74b19217d3ad771bd5f047ce4b361b1765",
+    "852063a6365f8f3e905bbea2dec4e11c4541deff"
   ],
   "h3_lab/assembly.py": [
     "79475d27cf0e4f772f5f3c7cb05b489de4a39804",
     "982133fe51ee0f696e548f67a16eca0c34c04286",
-    "cf891cd794e15aa190afe5c226fad52c21fc9479"
+    "cf891cd794e15aa190afe5c226fad52c21fc9479",
+    "7aa4b2cf85e0f63577d968878709b7b9ee411bca"
   ],
   "h3_lab/assets.py": [
     "0e9fc8696c022521708df91a10a75c146d7faebe",
     "fb9aaf99815d435f0c2953d58f116a48f4c950f9",
-    "061e8879a898620629ce903fe52402b964c19365"
+    "061e8879a898620629ce903fe52402b964c19365",
+    "1341c0e4a381b2277b408bcd5d0065de061b5c89"
   ],
   "h3_lab/capabilities.py": [
     "0c2402a34a1b3c2528efb499d8fb1b595de00907",
@@ -756,37 +879,46 @@
     "e94aa629f0822ed7767d014a4db3d02059d5ea71",
     "efcf0f37ee55612b433de3d700a13b04552e2177",
     "dbc71fac3184c4620999054b976ec646459bdc7c",
-    "354f75cee15aaa4a31fa8daa726b935d647ca1fd"
+    "354f75cee15aaa4a31fa8daa726b935d647ca1fd",
+    "7870ef9ddd1f18098450be179b5bad26f2e8bfe6"
   ],
   "h3_lab/configuration.py": [
     "202a362ebd1571b9283525a309901224fdee9c3f",
     "706050ee108f615bab84d40fa6334c868a7200e8",
     "21a7351aa0192acdc40a5f3f140b9c75a8add26d",
-    "4f97422aa9b4b10d97b7f978eacb77511a3d8549"
+    "4f97422aa9b4b10d97b7f978eacb77511a3d8549",
+    "bdc5617710df91a63b57f60e251e0feddada61f8",
+    "6555364692ce5d60892801313150e6a41dc74300"
   ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
-    "da8eb87edb39d134606f6ae1321e7dd24fb48e0a"
+    "da8eb87edb39d134606f6ae1321e7dd24fb48e0a",
+    "ceca05b0b28332944b202b06b4f3a004be8401b2"
   ],
   "h3_lab/continuation.py": [
-    "23a0c20cc5a37d291e58cde3936c496767fc5bcd"
+    "23a0c20cc5a37d291e58cde3936c496767fc5bcd",
+    "3e72a1c1d1a6230d3386d9aa34ca0df66d08232e"
   ],
   "h3_lab/control.py": [
     "49c969b65bfd2b88ed321aaf104ca68060c68203",
     "4a7a408883ad902eb0e0b3d7ed0050f9745fb7de",
     "5f96b7d48df66ce907cabb0a49c3fc9f1346346a",
     "6edaa06471c9baed9fbd4451ece4c3495e3008a8",
-    "75e84fa3cb95e5e17348ab7a3c41fc1dcc3bec71"
+    "75e84fa3cb95e5e17348ab7a3c41fc1dcc3bec71",
+    "5d88130025d02d0852952dea31114beb4973de15"
   ],
   "h3_lab/control_preprocess.py": [
     "6489a6e2416f6d9a951fd9232fe4917a96a833cf",
-    "182ee70fd54ea324db4d3a002382eb2bd151dbdf"
+    "182ee70fd54ea324db4d3a002382eb2bd151dbdf",
+    "cb6fa5e4ef363bb57df869876c92197ebdd6be61"
   ],
   "h3_lab/export_jobs.py": [
-    "27e159e75450c22e6857669596fb77aa9b2ccad0"
+    "27e159e75450c22e6857669596fb77aa9b2ccad0",
+    "37f7674e355410ab76b40e1dfd8fc52f546cba69"
   ],
   "h3_lab/images.py": [
-    "7c2c9ef584c9629a380346c09f57ce33ea32d940"
+    "7c2c9ef584c9629a380346c09f57ce33ea32d940",
+    "ab7399fbbf3998c35e2a1beb9fd748219959e554"
   ],
   "h3_lab/jobs.py": [
     "0a239c577795b359ea929ffa68fff7fe86fffa88",
@@ -796,21 +928,26 @@
     "fb324184ac230b83ca7b4fc7406a3bf084d41c4e",
     "53bdf713f8d26df9773d9454c71efe47d1c8b202",
     "133b5a469fd792692125fe12ffde7a4cbe2454b0",
-    "26039c1522704ba0efb3a056eb9e3f91bb6efe18"
+    "26039c1522704ba0efb3a056eb9e3f91bb6efe18",
+    "0a403ce3ccc5ef6bbcd46ce3e93305a136deb78e"
   ],
   "h3_lab/media_export.py": [
     "784cdd8a9108be5eb3e9e9593b6479d7cc465316",
-    "ded24f26c07f835b2f50842af462c59ac91dc5dc"
+    "ded24f26c07f835b2f50842af462c59ac91dc5dc",
+    "324fb1aff0dbc251db4a180556f7ee0556f9eda1"
   ],
   "h3_lab/model_catalog.py": [
-    "d843f94cb384026a8caa4539f1937096077cf6a4"
+    "d843f94cb384026a8caa4539f1937096077cf6a4",
+    "96021d3a2158a5363c6b59f1eb74d02f5d8769dc"
   ],
   "h3_lab/organization.py": [
     "6c843788c6c06c4de175ae0ee1951a4238907c8d",
-    "72d37a67aa8a7332e0edb6f0160c62cf59bfacfb"
+    "72d37a67aa8a7332e0edb6f0160c62cf59bfacfb",
+    "7973b8c8f731a8603129b2273d75959749eabc9c"
   ],
   "h3_lab/paths.py": [
-    "fb9fde3caadbf8848824d8969db9c898b948003e"
+    "fb9fde3caadbf8848824d8969db9c898b948003e",
+    "957ebc6a9e8e20d3c47be9d8b6a23385dc4395ef"
   ],
   "h3_lab/projects.py": [
     "3ad16d215942634a7963851f3eb815567408fcdd",
@@ -820,19 +957,29 @@
     "7ba7e455ed2445bc28e4d492079451c862cfac16",
     "88cb169736bd1235cdde3f170187ff74a38b2e23",
     "a3aa2b23b09759729e528b0aa2d78d1084af0b76",
-    "ad3d7575d32e0d95cfd0050c7a40328d0e922967"
+    "ad3d7575d32e0d95cfd0050c7a40328d0e922967",
+    "7ccde99b113ad4ad1985e3561d9f88e667de320b",
+    "3e3577c52d0525cd6c440e510f2f3b20b931a95b"
   ],
   "h3_lab/prompt_context.py": [
     "54853c23f48b96ad9c87d3ea4695fdaf3dd810dc",
     "673f820e8e7d0682a842ad5b2114bcccde5d5261",
     "d825f0ec0a3c9f3316bd0d7094626c4d9e6856d1",
-    "620aa06ecbb239ba48bd5d8e47ab6c0c88a558e6"
+    "620aa06ecbb239ba48bd5d8e47ab6c0c88a558e6",
+    "5f54b4cd495fbd12b4632345d8c2f4eae9962b35"
   ],
   "h3_lab/quality.py": [
-    "a4a859a6b6bd643674b592a061002b4a13a8733f"
+    "a4a859a6b6bd643674b592a061002b4a13a8733f",
+    "d0f0580b81e802c0210fb1ab4ae23895b8f8caca"
+  ],
+  "h3_lab/reference_upload.py": [
+    "085087cdac33b1c8166bb397167b6c90e898c6a8",
+    "648b1ec686e340d86f6b2f5fcf6a9f20fa880eef",
+    "04641d42ee3b325b3686132a114faa03760aef65"
   ],
   "h3_lab/render_values.py": [
-    "e842d8afd60d55a9c25dedeec196f8cc9f559939"
+    "e842d8afd60d55a9c25dedeec196f8cc9f559939",
+    "8f9c421e67e71e972d2f7cec474b5d7b33fd2b81"
   ],
   "h3_lab/routes.py": [
     "13284079040b9006a1415db36a505dcae502597f",
@@ -852,40 +999,53 @@
     "c6c110c554b16d4c839c15d57a60591e78ce5e7a",
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fa5b4de67aefcb541c1f1766262df072e7512345",
-    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e"
+    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
+    "811e299bd9a28f5a8485c38b6e7b955cd0b3a7f9",
+    "b0ea3c072219c22b1aab00932480cb29d523dae7"
   ],
   "h3_lab/runtime_attention.py": [
-    "97a09539da24f0c69464d63759f79df8271ab6d2"
+    "97a09539da24f0c69464d63759f79df8271ab6d2",
+    "9418c6fd72f9db9cf46970ba6bebcd5df27c3eef"
   ],
   "h3_lab/runtime_fingerprint.py": [
-    "6ca36acd829fa9aed663730f286482d1bb51baa6"
+    "6ca36acd829fa9aed663730f286482d1bb51baa6",
+    "f6e603f858f873b25284c6cf1722ee712991086b"
   ],
   "h3_lab/shared_timing.py": [
-    "45733c82bd7d8cde590ef8bda0551202fedf3a32"
+    "45733c82bd7d8cde590ef8bda0551202fedf3a32",
+    "625306844e28bc58a5bc164cc1786b475632bf1b"
   ],
   "h3_lab/storage.py": [
-    "68038898d8b6484c8e0ceb60656cf39d09008004"
+    "68038898d8b6484c8e0ceb60656cf39d09008004",
+    "99ba40c3c0a01bc2fac4ef167ea4b291be762a33"
   ],
   "h3_lab/timing.py": [
     "2b268de01992cd31ed3f38eb0e318551ca12a436",
-    "d3944115c9d9ed86681a95600c7638fdbc1d9039"
+    "d3944115c9d9ed86681a95600c7638fdbc1d9039",
+    "4a4419743e7583ac43903ade67eaa985312dce1e"
+  ],
+  "h3_lab/updates.py": [
+    "0bd20e7ed5c7b237c17a9b637cb1b2b04f0ee41b"
   ],
   "h3_lab/video_source.py": [
     "07ca981afb3c108219d9b938a32e9b3e0209a76b",
     "5f535fe446e120bfe113ea3132721ccc19d5352a",
     "81bb3e268910b7de8ffc111d8733c34076d2acc9",
-    "a0548e708c31df48cb9efe2c6224297df69440f3"
+    "a0548e708c31df48cb9efe2c6224297df69440f3",
+    "53101467bb2e21ae9a8501ea8992fe4d1a6728cf"
   ],
   "h3_queue_bridge.py": [
     "a076ebb80365ed053a0a5198704784d10bcc48e8",
     "a18f976a5103f5f0709d7795e972ababe6abf4e6",
-    "d7ae589ed9e7e85fce11f7a77553c183c073624a"
+    "d7ae589ed9e7e85fce11f7a77553c183c073624a",
+    "db8da8f8b9cbf03de02b5f10f497a1199aed6c08"
   ],
   "h3_video_save.py": [
     "008cdbe6554dca66836052cc70754686d5dcb55d",
     "0384568511052a4b2a1a9215aa680ad25706f945",
     "9cb41af8f75a6cdc0ca5733b1ae1ef3fe108c178",
-    "df900e5ebe9cba5fb5b1ea8ccb239e79b717dc32"
+    "df900e5ebe9cba5fb5b1ea8ccb239e79b717dc32",
+    "9d5726948c5e3772431dace01e5a61bbbf26a63a"
   ],
   "install.ps1": [
     "144e2faad922e576e8f55c86926d11d32ad0a5ab",
@@ -895,7 +1055,8 @@
     "96cb2ff32bb419ac324539095d8e9bb433f34744",
     "ad2a518b8736a42fea4473e60846b50126c56fd5",
     "fca93b138886a5910703e9492cda44517c8e9114",
-    "fb85d18bb31b59557c4bc94b7bc94472996a7fb2"
+    "fb85d18bb31b59557c4bc94b7bc94472996a7fb2",
+    "301e6b2bf7b5dfb8501b5a712e78356ff389bb04"
   ],
   "install.sh": [
     "37419fd534b27ef8bb61b9785b528243993efe42",
@@ -912,23 +1073,27 @@
     "e81d4fc901b7adab623007752a37645969cb57fe"
   ],
   "lab/dependencies.lock.json": [
-    "22788ffee953a94668f47b31454f716166fa8659"
+    "22788ffee953a94668f47b31454f716166fa8659",
+    "b979d35feb5b3bb817ba26f4c640d5c23beee8fb"
   ],
   "launcher.ps1": [
-    "99c1b4c04439babd1887f78aa0ccb76b35ce5164"
+    "99c1b4c04439babd1887f78aa0ccb76b35ce5164",
+    "5c0e551001308a278e50dbed895d52b2cd3c11f5"
   ],
   "launcher.sh": [
     "55577de698f50bc95b205c7308c165304c9dbbe4"
   ],
   "prompt_formats.py": [
-    "6d2ea5706054b4ce13cb647b1cb16bd7580bb727"
+    "6d2ea5706054b4ce13cb647b1cb16bd7580bb727",
+    "2c83e16bd4eded7ae10475e7414506007838f6b9"
   ],
   "promptwriter.py": [
     "2e440ad62f72a2f429604b01026b28043e876452",
     "65986a7167aa0dfc6609a267e061ac3bc9002a21",
     "7a0836b6e728676e467403a7fc38f7e43cb64938",
     "aef04b4cb17471048a558e7c3e018968a3e0382c",
-    "ff00e623bafd709e5b93c23d693ff699554846ad"
+    "ff00e623bafd709e5b93c23d693ff699554846ad",
+    "9a4ea8e0d5f7ed6edb03a476cba99555110dfc1d"
   ],
   "qwen_image.py": [
     "0317c01d3fefe8f665ac12ebd25faf0db3ac9f0b",
@@ -937,10 +1102,12 @@
     "52beeba80c3a60f9dbe2d8dacd5c9bcaf8770b12",
     "688b49099164447f263da6fd20a77ef0bede331c",
     "40ac0dc1861f9cb98a8b62a42bfbb87f10dcdb37",
-    "97135399fa25496f7f7c53b50807593b374a8681"
+    "97135399fa25496f7f7c53b50807593b374a8681",
+    "25d44c31c1601cd4df04c80e7353b7f3443aa01d"
   ],
   "scripts/build_corpus.py": [
-    "93357dfa682a7a052c714075087d20586fa67721"
+    "93357dfa682a7a052c714075087d20586fa67721",
+    "65fa7eff5c940c947b1d02fb46a42de0383f985f"
   ],
   "scripts/fetch_corpus.sh": [
     "83a4b949ecdaeba192610326d45584bf53afaf04"
@@ -948,19 +1115,23 @@
   "scripts/studio_preview.py": [
     "3a5cf044c9ee88d981948c1071c3389560b27850",
     "8285c6aa72a928f64c8f5d26766c40916f5716f3",
-    "c71aff3e44324fc4dd8a0723419407734486d4b3"
+    "c71aff3e44324fc4dd8a0723419407734486d4b3",
+    "0c3e85ede25b1ade6f2997b188696bfa1cedfbb0"
   ],
   "scripts/verify_h3_video.py": [
-    "9e0f6b039235befc5fd1285e7906d21237c4fd76"
+    "9e0f6b039235befc5fd1285e7906d21237c4fd76",
+    "4ea4c71fd7adf65958e8ddb3f01ee7a0e93335e4"
   ],
   "scripts/verify_models.sh": [
     "c2d8ef11c96f9da347f0afd78020c8c6dc97fa63"
   ],
   "scripts/vram_watchdog.py": [
-    "4f84eee42ccd664a2df18a7e22bc9ca9988f5e95"
+    "4f84eee42ccd664a2df18a7e22bc9ca9988f5e95",
+    "cbd4366ff9fec492bbdf97fee77700ff4e14d41d"
   ],
   "tests/__init__.py": [
-    "8b137891791fe96927ad78e64b0aad7bded08bdc"
+    "8b137891791fe96927ad78e64b0aad7bded08bdc",
+    "d3f5a12faa99758192ecc4ed3fc22c9249232e86"
   ],
   "tests/browser/modernization.cjs": [
     "2ebc99cb4b1680431b1a8af5d4729f0b93ef9411",
@@ -969,31 +1140,39 @@
     "f0e2719a6ee7e6225c33e0e2b44cca6072ac23fb",
     "8e57413e613f5036131ad005ad6581e546f5148a",
     "ccc4a9d2ff74bf183cb52ace201620e9bbbce74e",
-    "069ab29b5c2f8aad282608f6d0b0253cc7c5cc5d"
+    "069ab29b5c2f8aad282608f6d0b0253cc7c5cc5d",
+    "08c599bc2ba2d9886e8fbcc27f4d132a04dc5847",
+    "37445af60053031b497962d8238eb0145eeb1199"
   ],
   "tests/browser/project-workspace.cjs": [
     "f2c54d7fb012d581b1688c19b7d681762922e981",
-    "842c66a38617bed58928718f19368cc35541eef3"
+    "842c66a38617bed58928718f19368cc35541eef3",
+    "d1c580ca3d8f29afc4df1b191901a5912beef2da",
+    "cb4648abe0abd6e764163a7d16a4e045eb5b0e95"
   ],
   "tests/browser/shared-export.cjs": [
     "5c229456b4c50bc966c49bdab95367c388ef3da5",
-    "f14ee9067fd2e81647a4e2876884c1d81b525e55"
+    "f14ee9067fd2e81647a4e2876884c1d81b525e55",
+    "6c1cc4ad81afad03cdfa631aeaa1e167606f10ad"
   ],
   "tests/browser/workspace_server.py": [
     "630a36e1de59ebe0cbf9a4290372bfacdd38f04f",
-    "9af192bbb0f377de71619083fb8e0192be9930f5"
+    "9af192bbb0f377de71619083fb8e0192be9930f5",
+    "ab89413a58b1e95cb57d5c582dda04c976967a99"
   ],
   "tests/e2e/README.md": [
     "01757bcc584e3aa345b5fcc265fbb8304ede2ba2",
     "0a7a09befcea487eb7f5582104191502d5bd2f52",
-    "4ba676de5a81334bb585f7021d53ddbd7a922952"
+    "4ba676de5a81334bb585f7021d53ddbd7a922952",
+    "5fe4ae988563132ed8f041c21d7d116a7bba3787"
   ],
   "tests/e2e/browser-acceptance.cjs": [
     "2d6c5b64362f1f7f43f88a90a7dd37e02007acd2",
     "7b6aa1db62c7f5cf4d42b972962ae89c82b29fb8",
     "ae0717331d87a80a9fe344b01d931817b1226097",
     "c456341b6e177120a821387f9ff066c225706c3a",
-    "c786662d57755b8644f109a4297819d515f29412"
+    "c786662d57755b8644f109a4297819d515f29412",
+    "3fc096dbb60506939a359556bd18e465526f9ad2"
   ],
   "tests/e2e/connected-browser-acceptance.cjs": [
     "066b552d0f8806265797bc72090770a32b87c79f",
@@ -1001,43 +1180,57 @@
     "ca7cbc14d4e7eccf16d8093233fb8dfdb09b8787",
     "e0ad6156e9897b4e52baeb3b7c45d3f2347a689c",
     "e8cdef7b0cff4c2b4d57509564d202496426ad5c",
-    "fd233e78a6251d5e569ac0b259463cf428dfe1dd"
+    "fd233e78a6251d5e569ac0b259463cf428dfe1dd",
+    "bf9aa0a1b20def887d8334856ba9e7e087b58a3e"
   ],
   "tests/e2e/continuation-browser-acceptance.cjs": [
     "2208e28223213a7dfe0ac6aaf8cd8c0c532736fd",
-    "360f2233e122874734361be73126c07ae9fe0d9c"
+    "360f2233e122874734361be73126c07ae9fe0d9c",
+    "1d95ce97064972bfff652254e9c2882f8f183377"
   ],
   "tests/e2e/cpu_fixture.py": [
     "353aced26842b67f1da03ae080cd9f9582454152",
     "dbb468905ffb7c2546b4995e52b3b179a8369b1c",
-    "f931aec81d1434f0f60a9f71e2c5607d1a2c92c4"
+    "f931aec81d1434f0f60a9f71e2c5607d1a2c92c4",
+    "6c4036ee9ddeb7c8dcb68c9595849ad44f8d89bc"
   ],
   "tests/e2e/image-browser-acceptance.cjs": [
-    "9cc8707e194a6ea9fc0b9e623d16fbcd58966ec0"
+    "9cc8707e194a6ea9fc0b9e623d16fbcd58966ec0",
+    "b1ac36ce899385a0c5ff427249d995508ee4375c"
   ],
   "tests/e2e/resolution-browser-acceptance.cjs": [
-    "967def05226b11b04aae042a2f6d0f573929fcc5"
+    "967def05226b11b04aae042a2f6d0f573929fcc5",
+    "6bb8cc9ee46e6ce586b3267b27b6bbcaed7d8818"
   ],
   "tests/js/cancellation.test.cjs": [
-    "8c6507b18a28b699bf3d81d346a8afb0f8c06a43"
+    "8c6507b18a28b699bf3d81d346a8afb0f8c06a43",
+    "3eceb321e700af4272a82eeb0cf41c89d258c83c"
   ],
   "tests/js/checkpoint-display.test.cjs": [
-    "05a0407c820c8c7fcff59e0883daeaa5b04387a1"
+    "05a0407c820c8c7fcff59e0883daeaa5b04387a1",
+    "1a17e5cb18309f622e5e98e1963b6886f546e69d"
   ],
   "tests/js/configuration.test.cjs": [
     "87eb28097eb61eb1ca0800bbf8d1a2f9040211f4",
-    "6e5dcf40788c2c234c61590b224be126d905eed2"
+    "6e5dcf40788c2c234c61590b224be126d905eed2",
+    "44a7e28c08ffb2fe040d17e447e8975e37b8c09a",
+    "8a8c49e409efdbde8bade1a952c7f28318437dad",
+    "39f4506f08c7784a59d17410316a1237830bd941"
   ],
   "tests/js/connected-graph.test.cjs": [
     "61d007733c406886b7715a6d5d884e3905a20652",
-    "0a6998c3dd1dfbc51ec5d65ee59cb3f32c407c7e"
+    "0a6998c3dd1dfbc51ec5d65ee59cb3f32c407c7e",
+    "d8bf7c425120f8916b27bb66c1e8c66b957e22cc",
+    "50966c08b3a939f41898ad07ab455c5732e4de11"
   ],
   "tests/js/control-upload.test.cjs": [
-    "8b5c0edeb0bf4e827b041c9f7aa1716051ec707f"
+    "8b5c0edeb0bf4e827b041c9f7aa1716051ec707f",
+    "13fe8becffc69f54a66e43d186ee4ed916d96411"
   ],
   "tests/js/fullhd-methods.test.cjs": [
     "e7d5f3c036989ae38430e74118c0a5c91e1676e5",
-    "f5f967f88b55e206abbe43339cb6a50b8771b58f"
+    "f5f967f88b55e206abbe43339cb6a50b8771b58f",
+    "b7a533ce73071613e1d04dd8179d4a5d9ac2990f"
   ],
   "tests/js/graph-builder.test.cjs": [
     "485e547bfde1d42c95caa2d06d1bc78b9e1e5a9f",
@@ -1046,16 +1239,21 @@
     "e2259e17a54dc8a04170295f80f4e46e0864eceb",
     "e7f8cbb1d79040e99f4d8b54bae51241b6164372",
     "11617214cc01df2368b903e4fb7889273eebbea4",
-    "a9dbf03ffae1d565eb74c2ce1ec9ad8d77144481"
+    "a9dbf03ffae1d565eb74c2ce1ec9ad8d77144481",
+    "4072a765e8967c87129dcc93bc66f82b22e53d8b"
   ],
   "tests/js/grouped-reference-definitions.test.cjs": [
-    "7dd14769976da9dc89966ac4f185448c8c95b681"
+    "7dd14769976da9dc89966ac4f185448c8c95b681",
+    "8e841bd352ad35cf7b684be468f73773889856fa"
   ],
   "tests/js/preparation-restore.test.cjs": [
-    "3c546ddb9a61619ed7ebdd0ff6cf3bb2efe9eb5a"
+    "3c546ddb9a61619ed7ebdd0ff6cf3bb2efe9eb5a",
+    "25590dfeeb5a3f538ec786674b5105b62800043b"
   ],
   "tests/js/project-controller.test.cjs": [
-    "7bbd79d0407ef51a818e6793a1137b93216add2d"
+    "7bbd79d0407ef51a818e6793a1137b93216add2d",
+    "fb872e3fd564394e5220a0e1e01b89b9acbbbf96",
+    "7d553d1a96adb55c2627b88fba619c9078ab83eb"
   ],
   "tests/js/prompt-compiler.test.cjs": [
     "0f8841aa44e73561894f6656d20c31fca84a2d2e",
@@ -1065,87 +1263,113 @@
     "ce0ed426282d45f4526f326025449ed1a98e6b74",
     "e00d3601814a2cabcb8ba898ac4a2dfc97f51624",
     "f5e35592c249b989d5005531fcc2b8e20cb87c9a",
-    "aab402d4d47c347ae66c129a7d4dffec7927de6a"
+    "aab402d4d47c347ae66c129a7d4dffec7927de6a",
+    "8c5cf06069040adc966f94d3c4ccc82c125889b0"
   ],
   "tests/js/prompt-input.test.cjs": [
-    "a73e61fa76ebba920c1a2597c2ce165a3b1dacfa"
+    "a73e61fa76ebba920c1a2597c2ce165a3b1dacfa",
+    "db7a6bde427cb3aa07b030b84393d7849639e211"
   ],
   "tests/js/queue-ui.test.cjs": [
-    "ef18fefa835209ac00326443a5aaf535f5f1ed7f"
+    "ef18fefa835209ac00326443a5aaf535f5f1ed7f",
+    "4e0541d6af882c5f07b334a494aa5f3ce8ce7a95"
   ],
   "tests/js/reference-role-matrix.test.cjs": [
-    "f9160730c7efbbbdb7b15f8e89ad40489461a24d"
+    "f9160730c7efbbbdb7b15f8e89ad40489461a24d",
+    "680fa324480405eb6ddb6358753596c7777a4aac"
   ],
   "tests/js/resolution-studio.test.cjs": [
-    "19a3cbbd5fa693fe7d9715638486afdb51ae43ea"
+    "19a3cbbd5fa693fe7d9715638486afdb51ae43ea",
+    "76aae5e757c9fcf73824e0beaf039dc965aa2e6e"
   ],
   "tests/js/studio-ux.test.cjs": [
-    "7385236e9f97b883874ebcee7ad7004f89771895"
+    "7385236e9f97b883874ebcee7ad7004f89771895",
+    "cabd574c7b2ec4ca73813222eba1debd763ac04e"
   ],
   "tests/js/subject-binding-repair.test.cjs": [
-    "d20ff18dc2141f66170bd8d89dfe0aaa4539412c"
+    "d20ff18dc2141f66170bd8d89dfe0aaa4539412c",
+    "513b977ba4661459c29a5aa690ae9a648e24ec42"
   ],
   "tests/js/timing-estimator.test.cjs": [
     "0c49d6779f56a3b8bdd7d7210bb8d65df227d6d9",
     "a990c38a19b07a2756f50ac90cc1aa338315bb86",
-    "6d4cb98d2bcb88424e73024132449f9f99b6f533"
+    "6d4cb98d2bcb88424e73024132449f9f99b6f533",
+    "5d3074737218dd044e357ffabea88408c1c44658"
   ],
   "tests/js/uuid.test.cjs": [
-    "61a6be4bae13e251207949930fb655f8aa1bd353"
+    "61a6be4bae13e251207949930fb655f8aa1bd353",
+    "a8451736d9ca6104cd0f252ab87d8170e0bf3a01"
   ],
   "tests/test_activate_v2.py": [
     "380ce4cd97cb5ddbfe02fe67b0d9ae58e3ebe03d",
-    "5035cc534721042544b6d5570732fcfcbb237c1f"
+    "5035cc534721042544b6d5570732fcfcbb237c1f",
+    "fda825bfc967e71efd014a3b03f5b05aed4eda94"
   ],
   "tests/test_connected_routes.py": [
     "362a1413cca662428960171ae427d9260b0eadaf",
-    "8bd79e4e370697a9e1d42eb01084c230ddd7aab5"
+    "8bd79e4e370697a9e1d42eb01084c230ddd7aab5",
+    "f637f557a4f120c72cd994ce966214c8499ae17c"
   ],
   "tests/test_continuation_cancel.py": [
-    "872a1f743faf932984c3686fea1a6969af106803"
+    "872a1f743faf932984c3686fea1a6969af106803",
+    "b02f9cabfa315fcc3196d721af9f33988bfa9650"
   ],
   "tests/test_continuation_upload.py": [
     "e6f2c518cb898cae1a7e694df726a059233ca565",
-    "e3fa2d99f208f15735d1c71e9052d580ba4af831"
+    "e3fa2d99f208f15735d1c71e9052d580ba4af831",
+    "318da6f61cab2a5d342c91312c56b6b466259c64"
   ],
   "tests/test_control.py": [
     "27b5d1942b96c8ab0e6b541653180008a0d3a006",
-    "6e3254ba92510d84348997078615f11d44b6a3d5"
+    "6e3254ba92510d84348997078615f11d44b6a3d5",
+    "ab9978848f040a4f1cc9918cc15b3686417a8152"
   ],
   "tests/test_control_prepare_routes.py": [
     "cf7266c667fc80942e380e4c8d6c9623d2f1d850",
-    "4ff9ce46ac7f6ead4c958de4767eef61de91960c"
+    "4ff9ce46ac7f6ead4c958de4767eef61de91960c",
+    "bab494c535f195e0326660a41dfc08a01c859d55"
   ],
   "tests/test_control_preprocess.py": [
-    "951f42b7930766c47f24e554b18b773c699825ea"
+    "951f42b7930766c47f24e554b18b773c699825ea",
+    "4f59f9b6a2143a3033eff061e57b2e99e47549fa"
   ],
   "tests/test_control_preprocessor_install.py": [
     "969bd44cd3627d0d216e5d1ceb9a901f501b4e1a",
-    "b7202128d522735982f41b725b68c8a5f6f2f03d"
+    "b7202128d522735982f41b725b68c8a5f6f2f03d",
+    "505a59cd90cb6a537206a3a08ecbda4165c076a6"
   ],
   "tests/test_control_prompt_context.py": [
-    "9208f21a00b62badf89678ec105621666a169f4a"
+    "9208f21a00b62badf89678ec105621666a169f4a",
+    "21a797713c8f78ce8301233ab79f95dc39654a45"
   ],
   "tests/test_control_still.py": [
-    "738664c063d397ba9abbdc3ce64655a07a69a8c3"
+    "738664c063d397ba9abbdc3ce64655a07a69a8c3",
+    "3dd904b2558f4ee6aaec4495d7235e5939dbc851"
   ],
   "tests/test_deployment_contract.py": [
     "18fef3ed627e8dcd3d993bb83d9750a3f3679973",
     "ade0e1edd6783869278647f05290146e8da83281",
-    "f309f11274841890c9b05d14ca9cddd5d891b04d"
+    "f309f11274841890c9b05d14ca9cddd5d891b04d",
+    "a4947463c1ccfdabee76a04956e927de87b6e0f7",
+    "4c961b8fc817cd404bed9959aa9c236381af1a9f"
   ],
   "tests/test_export_jobs.py": [
-    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e"
+    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e",
+    "a156a6a3fe857654b08777f9a4f9e2df9dc2f362"
   ],
   "tests/test_h3_asset_leases.py": [
-    "0511b912d51687acf05243e7f9de722839a0432b"
+    "0511b912d51687acf05243e7f9de722839a0432b",
+    "3939dd942441a732fdc89f2b753173401bb4b76b",
+    "f167a1f0c5540b1798e9df143dc0a6e53cd8cdcc"
   ],
   "tests/test_h3_backend_integrity.py": [
-    "46b3b1e61fbf1388d9da2ad3936ff63b1d24b6fa"
+    "46b3b1e61fbf1388d9da2ad3936ff63b1d24b6fa",
+    "91b7009a81da05c082a9ab7cc038929a43e8165b"
   ],
   "tests/test_h3_contexts.py": [
     "14fbd814277f3d6d9e5307ef4dcf0ab97ad31604",
-    "8aab9317b13ec99452dbdaebfc27346035851645"
+    "8aab9317b13ec99452dbdaebfc27346035851645",
+    "f2368f379d6ae2139214238e45a05a61a0d9e741"
   ],
   "tests/test_h3_jobs.py": [
     "011f495a92d3bf0c0a2810e54e4eb3a164407236",
@@ -1153,18 +1377,23 @@
     "9b0c9d8aac3019da62ed4bf7872fcd1de3bc3e7e",
     "d8a7e5cf141b1c8a72d8f9534359e88f9de3d6e8",
     "1fc8159696d85e807d65bb7b47e76c0057b07da7",
-    "1f43d75f4f9754b8b12640567ac6fcc104f3e5f0"
+    "1f43d75f4f9754b8b12640567ac6fcc104f3e5f0",
+    "9a7643c123d0fc493034d5b68a28b171241d649f"
   ],
   "tests/test_h3_landing.py": [
-    "e849a96a4b59178861e58093accf216508e06264"
+    "e849a96a4b59178861e58093accf216508e06264",
+    "135b59f9c8696c2544831aadb59a999c16b22a78"
   ],
   "tests/test_h3_projects.py": [
     "266f1a7eee0b3bfcdc5bd53e5135362d006034e5",
     "6455bd416e44fa23309cd3fb04125b60197cbb71",
-    "949a23257c5c8388110160f747651b271c6ace48"
+    "949a23257c5c8388110160f747651b271c6ace48",
+    "bf45c3e775177323cfe7a21e0905030e7f026a62",
+    "443efbd9a6152e79a0246e249883b302dea43561"
   ],
   "tests/test_h3_quality.py": [
-    "7813fa91dba1c2fd9c0114e53453ed597894d998"
+    "7813fa91dba1c2fd9c0114e53453ed597894d998",
+    "a978abda1e843e0f4897513f258cae0e9d109ea1"
   ],
   "tests/test_h3_routes.py": [
     "177d107eee42f20cc7a317375842060c10ce9373",
@@ -1172,118 +1401,155 @@
     "89eaf2d672f62974bbae3b982eb0fb728d4b36e8",
     "101662b5c5c894443c7c99085e2341dce02555a4",
     "06cb7f6cc14b4e4cf056e52395f6e034236003ed",
-    "f635bf26fcf4d83da312c874406e5ef7970ff944"
+    "f635bf26fcf4d83da312c874406e5ef7970ff944",
+    "6a04c547dd5deffd90c64059993e6053ec1eebfb"
   ],
   "tests/test_h3_runtime_contract.py": [
     "278df5d0d4e89763261d827be814940099541cc9",
-    "1c98c0f51ad32e21fe56ffc85909f5546e512644"
+    "1c98c0f51ad32e21fe56ffc85909f5546e512644",
+    "a514bb70473ed82e842e0057d89230bd83d710f1"
   ],
   "tests/test_h3_timing.py": [
-    "5ed77e147dcdf8ddd74dd869d750a289045956a8"
+    "5ed77e147dcdf8ddd74dd869d750a289045956a8",
+    "d3590ff99ef69d115c8aa05773f222bf1b7214dc"
   ],
   "tests/test_image_ui_contract.py": [
     "665df29e08ec68196da2e0aab4b95069d45e896f",
     "a7271c3236ef893fd01ad959b7ebc7dcd9db4bfe",
-    "f2d9313b043ba22f47c259ebda1064efc05d122a"
+    "f2d9313b043ba22f47c259ebda1064efc05d122a",
+    "f9a5ac2c7b9498ce5d0227a26e7e0b4b20be68b4"
   ],
   "tests/test_installer_python_safety.py": [
-    "c759555b55356fcf1bc26b51b1b41d5111c9ceeb"
+    "c759555b55356fcf1bc26b51b1b41d5111c9ceeb",
+    "a42b5b4f0518f8c4b9a6478a4d081a00efaa88ac"
   ],
   "tests/test_launcher.py": [
     "6803058eaf5ec27f4db3b0ab182c0a6a97f18aa0",
-    "0c9669317a198858d223d7ed6f12e101ad6ab008"
+    "0c9669317a198858d223d7ed6f12e101ad6ab008",
+    "c555e542ec0ed779e0fcfa5061c5aedad03ec74e",
+    "0d46e89d673afd3bf12a25a5f4c381c1a5c02b70"
   ],
   "tests/test_launcher_models.py": [
-    "46e4af4e5e68204c72088d8249def24327120947"
+    "46e4af4e5e68204c72088d8249def24327120947",
+    "71854f101cf0dde9c4966eca1fba2b5b10a5b40d"
   ],
   "tests/test_launcher_smoke.py": [
-    "46ec348a962de86adb21879a75a3f53f614dc7fe"
+    "46ec348a962de86adb21879a75a3f53f614dc7fe",
+    "ccac272b61af7e8ed42d743d0b6dbd7c0b099f26"
   ],
   "tests/test_media_export.py": [
     "8022ee26d5cc71fbd87782a1500f613988ecb6c7",
-    "99483abb3dcf8c223d41b561ffad1307214f9430"
+    "99483abb3dcf8c223d41b561ffad1307214f9430",
+    "c88a506a5ae4347f9fcc7a667a5fa301e269537c"
   ],
   "tests/test_modernization.py": [
     "021a5edea8b0d8d2351204ddd3b28cdb639d77de",
-    "28b22e5301adc3a7976797e25496efd35a2f8f26"
+    "28b22e5301adc3a7976797e25496efd35a2f8f26",
+    "591599ac55ccdeadc0be61c335d5c10b808d8ed3",
+    "7aaa7aa7eeec528fe70ef0505805ddf9da20557b"
   ],
   "tests/test_optional_dependencies.py": [
-    "fd916b3642c6472e76f6c3931d933c642e008551"
+    "fd916b3642c6472e76f6c3931d933c642e008551",
+    "bbfde0e5a126b441b1b48df53fac52973bad0bfa"
   ],
   "tests/test_portrait_resource_contract.py": [
-    "ad5011897f1e6f62592418a5ef0128951f054d13"
+    "ad5011897f1e6f62592418a5ef0128951f054d13",
+    "2972d8dbe692ce293f39ee5bf3ab18032ba3d702"
   ],
   "tests/test_project_workspace.py": [
     "2aa0412c70641df234beb820026fd32a7424a57d",
-    "9062aae4fde2bb53dbeaa7a1e5adb81670852537"
+    "9062aae4fde2bb53dbeaa7a1e5adb81670852537",
+    "9efa125d422aabf6edd13f88f2f554eaa251e823",
+    "885b71d452fc27107b90049e6d796fb7c3c6bab1",
+    "7cf3694d1522c3ab7235d3502f13b7a689bf8882"
   ],
   "tests/test_prompt_context.py": [
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f",
     "22a8b5237b86308259bbad30e61c9ceb448b4e2d",
-    "d45ec4ee697485df942b0382c44121cf020d3a5d"
+    "d45ec4ee697485df942b0382c44121cf020d3a5d",
+    "2b77ab07335f875629b787fe5c70555b8c5d228b"
   ],
   "tests/test_qwen_downloader.py": [
-    "57e8840579810f3075d4141053cab9abcd09a64e"
+    "57e8840579810f3075d4141053cab9abcd09a64e",
+    "19438447c2c8fdbab062182f4d63fb345569c181"
   ],
   "tests/test_qwen_image.py": [
     "144935ca3e837895688a850b20d385a926b79f24",
     "339060786d565e3ccaee59a08d27ca8c58e85978",
     "5a9b8945af7558546ccab8bd2c8f1347849efdf8",
-    "ed9046891c618ca890192000ca372fdc3bb66e77"
+    "ed9046891c618ca890192000ca372fdc3bb66e77",
+    "03e4d3a87d283f5adf379e53f9214e3909e3d0df"
   ],
   "tests/test_qwen_routes.py": [
-    "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0"
+    "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0",
+    "7cdd7b4c343bc90abd0c117881794b8e05b73f76"
   ],
   "tests/test_runtime_attention.py": [
-    "2e7e8a1cbd1f43ccf28131230f15632d7781797f"
+    "2e7e8a1cbd1f43ccf28131230f15632d7781797f",
+    "50a23a4c5c667d41c17236427d5b6106ac0b2c39"
   ],
   "tests/test_runtime_patches.py": [
-    "c9b4242c86149ba5a8f8d4bcc9967e6932ae5624"
+    "c9b4242c86149ba5a8f8d4bcc9967e6932ae5624",
+    "e01675231bea365c2249b211ca000cff9cd8ef2b"
   ],
   "tests/test_shared_timing.py": [
-    "f01a50a7cf32e175df5f6662a047837142bf7731"
+    "f01a50a7cf32e175df5f6662a047837142bf7731",
+    "2175ff1a3744201b8bc8542650db865fa33a0f4c"
   ],
   "tests/test_source_update.py": [
-    "ad13f5a8aef7a52a00e65b60c02e6aafd6410e36"
+    "ad13f5a8aef7a52a00e65b60c02e6aafd6410e36",
+    "bee50db0b7e22eee23516083fa9d3805b29f66ab"
   ],
   "tests/test_storage.py": [
-    "858b909080eadf33dd3ebc6333aa8cbe4379dbd4"
+    "858b909080eadf33dd3ebc6333aa8cbe4379dbd4",
+    "7a07d5b592062610fce7aa41ca0e81cf3602b94f"
   ],
   "tests/test_timing_progress.py": [
-    "656f8038a3a138cc05c55b5226cb5c9af5f38993"
+    "656f8038a3a138cc05c55b5226cb5c9af5f38993",
+    "0a816b7d32c55e1cd2567698183090cb229ebf67"
   ],
   "tests/test_uninstall_h3.py": [
-    "6f047b73bb3d127b566bf2a37b92b2631fc121bb"
+    "6f047b73bb3d127b566bf2a37b92b2631fc121bb",
+    "6de2b3cd66549a5a7b0f64eb0dd231153016c286"
   ],
   "tests/test_v2_promotion_install.py": [
     "5fb9751360a909ae1044b8497a54a1c733a6fe73",
-    "30129767de834db2491eb19210354f1f642764fb"
+    "30129767de834db2491eb19210354f1f642764fb",
+    "72585d7d34baf6513c017f105258518e556f76bf"
   ],
   "tests/test_v2_standby.py": [
-    "1225fdefbb75b4c72398cfbced8a4b8736eeb07a"
+    "1225fdefbb75b4c72398cfbced8a4b8736eeb07a",
+    "03589206a96c1b3e14781c0841214e3b9b3e1dfe"
   ],
   "tests/test_video_delete.py": [
-    "6ea44a02586ab2db30b9db94e77068739c4e01c3"
+    "6ea44a02586ab2db30b9db94e77068739c4e01c3",
+    "2f5b0503bb9c1815a23db0e47715e34a60e6dcb6"
   ],
   "tests/test_video_source_padding.py": [
     "2947a0670b2eecf83ceeee0eef4773ff6810828c",
-    "c24130adaa52d4219ac2fcdaa9527fe0803ed165"
+    "c24130adaa52d4219ac2fcdaa9527fe0803ed165",
+    "ef751f7a05de5a6bf807d55f7199f5d9c141c963"
   ],
   "tools/prompt-parsers/build.cjs": [
-    "982ee77b92199e4c2c166f952694a364540898e2"
+    "982ee77b92199e4c2c166f952694a364540898e2",
+    "0241ed484aed20ee515b1d3e3a6b113cfc02e893"
   ],
   "tools/prompt-parsers/entry.js": [
-    "2abc557d486e05d77129345df11dd8884af02868"
+    "2abc557d486e05d77129345df11dd8884af02868",
+    "d1205bdfd38c11a5c18d1a22686cd606b34f478a"
   ],
   "tools/prompt-parsers/package-lock.json": [
-    "df3b5f7102201e6a68c4905d929d3a34b03793b9"
+    "df3b5f7102201e6a68c4905d929d3a34b03793b9",
+    "60ef1055054b5efce75b17d64bb00f18983e6a0f"
   ],
   "tools/prompt-parsers/package.json": [
-    "594dc3b4cd56e8bb12be55bade823d0c671baf1b"
+    "594dc3b4cd56e8bb12be55bade823d0c671baf1b",
+    "7799a57bc8de63ec7bb0cdd9556f119d488cac93"
   ],
   "uninstall.ps1": [
-    "1a5f60c1c842d453ddfb6dd1b466171777296c42"
+    "1a5f60c1c842d453ddfb6dd1b466171777296c42",
+    "eeecbeb28c7461538635e6a10897ca360ac5f1ea"
   ],
   "uninstall.sh": [
     "84a03e050f9abd7b76743abe2fd919ab068100cd"
@@ -1295,12 +1561,16 @@
     "92d42dc260622d8db2784afa79574cda1fac2d63",
     "414c388fd51faddc9dd119e6ff92416e653078e7",
     "3321c8ffb64b559a54421365567ec16addc36707",
-    "e9e6e211857fd50a4056a2bdc15f542e14eddf57"
+    "e9e6e211857fd50a4056a2bdc15f542e14eddf57",
+    "d6d579f17bc963422ff017a91b8e9961387704cc",
+    "c482b33f5d57ca9884762b312deaa0ae60451d9c"
   ],
   "web/h3/configuration.js": [
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
     "fbd5908d1852f16daa7328c5bb7c14c25865e36e",
-    "baba9c6dd61a002d9b37de7b3d8a9fa7a1f7532f"
+    "baba9c6dd61a002d9b37de7b3d8a9fa7a1f7532f",
+    "38420d73c9af4753be5c1092c245319996a4a051",
+    "32722bbedd173319c5d65ab3e8c5e79ea7c936f0"
   ],
   "web/h3/connected-studio.js": [
     "19c62c6ecb84b4011dde3673ff67fc35517df1ea",
@@ -1310,7 +1580,9 @@
     "8d5949c7c25f7ec7cb0d9b6f0a8b1b839b7ed94d",
     "ab2fd65e3b4595b1f8208201a597f1d251f46310",
     "d061f6487143dd358cb8fad1e7bab3d861bddaf0",
-    "2e887ffa0dbe3308c993650ef0055d938d600e8c"
+    "2e887ffa0dbe3308c993650ef0055d938d600e8c",
+    "05445d1988f82e0755addcae209c73a03773c2d5",
+    "8f97eee4f227cb762733742cb320243fce59b056"
   ],
   "web/h3/graph-builder.js": [
     "0f9c1ab31c91706a905e1a17e8124399757ba37f",
@@ -1324,20 +1596,29 @@
     "9a968066a064a2995abdff1c6ccd23b921d2d90b",
     "af81cd2d54805782b35410e4679fa54211030f4b",
     "bfb02d735bcb32c6ac0e2092fab258736599ccbe",
-    "f985627acb68c4bcbe56026c3080ed823427fc0d"
+    "f985627acb68c4bcbe56026c3080ed823427fc0d",
+    "0d83af1001b8227dd5cb4a9847216e7c9e947f93"
+  ],
+  "web/h3/guidance-language.js": [
+    "a25bf5c5d2b394ce1914622df36165835f6d44a0"
   ],
   "web/h3/image-reference-store.js": [
     "2d72e1ebdcec94f37ddf4f889092cac297e4a680",
-    "9f3ef0820ac75e878bff97aef5308d30579b5859"
+    "9f3ef0820ac75e878bff97aef5308d30579b5859",
+    "7e4c052d3cfb814508f1eb0229774d0e893f0624"
   ],
   "web/h3/organization-ui.js": [
-    "6af93fb34bea0666b6831ab9265170698b91421f"
+    "6af93fb34bea0666b6831ab9265170698b91421f",
+    "386b3d7a819ae7ea7953a6158090d6454b2d8975",
+    "872b742c18530be0795623f17c4f9b7deda706bf"
   ],
   "web/h3/project-controller.js": [
     "77ccbd811ba7ff87bbf7e06a8f02f0325a743d0a",
     "e73081e71b7bcd97869c33e78b9c2419fa81fe53",
     "6383a9e2de0f117d384db71ff7d39d83df666b6c",
-    "36eb6eec08a795df5498f6613e230e7a4c0c8506"
+    "36eb6eec08a795df5498f6613e230e7a4c0c8506",
+    "65cc6462fe43570187b0a48f1260b2f9f8cc2e65",
+    "dc30e3836f5f3116875814f1f6000858166bae08"
   ],
   "web/h3/project-workspace.js": [
     "6680ea888acc5f33cd33d7676820dfd90f31be98",
@@ -1345,7 +1626,9 @@
     "71071c6f6b1d256cf03967cb11ef04b5c12f967c",
     "a36c74ecc013930392aac234e0b80a740e2ffce0",
     "bc3b76e3419d41708e1eb5cd5184d06d412958fb",
-    "f34c8c2eacc598c27c484c359a53239bdc1c59e5"
+    "f34c8c2eacc598c27c484c359a53239bdc1c59e5",
+    "b21762ff1743c937ca2144a67a583da9f4433c52",
+    "8b1044195c8a6fa5858fc1c75d3ac87310653286"
   ],
   "web/h3/prompt-compiler.js": [
     "19683249836c69fcebd128f1c34b52e0c81c100f",
@@ -1361,42 +1644,59 @@
     "b11483ff3ba47272223f7f631c527b40931ee7bc",
     "cb7e3a2df821d25f05fa576881743600048627bf",
     "d4d9b0408714396ba301e3090ec1769957d47fd5",
-    "fdedc57e292465feb05635c7035b7666c6e14f70"
+    "fdedc57e292465feb05635c7035b7666c6e14f70",
+    "d2e68c944d8b104d432b135a58ff6b576bee5958",
+    "5c506290d193512fccace9fb414590cf66e98308"
   ],
   "web/h3/prompt-input.js": [
-    "ed1f09592a48476882617150357d1967c1dc42b3"
+    "ed1f09592a48476882617150357d1967c1dc42b3",
+    "f5dd8b43352520ffcabff1f0558594db4f1e91aa"
   ],
   "web/h3/queue-ui.js": [
     "a240b2ce0d7fdf72d35d2ae242bb54d48f0eb639",
-    "b452382d39aad0d808312832a0648159ac686cf2"
+    "b452382d39aad0d808312832a0648159ac686cf2",
+    "b6558c7cc1c5f17942be3265c7f21d51e5157aae"
   ],
   "web/h3/render-values.js": [
-    "acb042c276e6faed20c7b25de70e8696b662a49f"
+    "acb042c276e6faed20c7b25de70e8696b662a49f",
+    "d050f7bf60ddd8c14cbdf0e4229cdfeb4377ca8f"
   ],
   "web/h3/studio-ux.js": [
-    "6faa39c53326aee1991a5d08c446a4ae8baa8e7b"
+    "6faa39c53326aee1991a5d08c446a4ae8baa8e7b",
+    "0940c6ea6e021035718eb6a9b0d0239eaf633187",
+    "6e1a7683a713080c0f9e1d1f24fbb5359d772130"
   ],
   "web/h3/tab-draft-store.js": [
-    "68556a3a18fc1fbf2fde94b2016f0db107a8105c"
+    "68556a3a18fc1fbf2fde94b2016f0db107a8105c",
+    "b0fc33d7defe2dbed1358a6fb6ebe8244f4aed8a"
   ],
   "web/h3/timing-estimator.js": [
-    "adc61f21642bb68cffcd7859b3350d33afecffba"
+    "adc61f21642bb68cffcd7859b3350d33afecffba",
+    "de37777fb35a25c43c2d2cb928020638bc3ae866"
+  ],
+  "web/h3/updates-ui.js": [
+    "6d70588776e9023da76078bd09f53a83bac4efe0"
   ],
   "web/h3/uuid.js": [
-    "c07457e3fda152147b3974f307e8f15eccc37182"
+    "c07457e3fda152147b3974f307e8f15eccc37182",
+    "a2770f65270dece193708af915f32c066dd76b20"
   ],
   "web/h3/vendor/LICENSES.txt": [
-    "3eb79e16be01905b63b839b99e30a79184d9e255"
+    "3eb79e16be01905b63b839b99e30a79184d9e255",
+    "3e28913132ca0abf76064f710ca0b87f409daf41"
   ],
   "web/h3/vendor/manifest.json": [
-    "61c655575dc32be6c58578866662bd0bc4fb9d53"
+    "61c655575dc32be6c58578866662bd0bc4fb9d53",
+    "d5244d6512172f46cff3c3d13ad0e49bc311cfca"
   ],
   "web/h3/vendor/prompt-parsers.js": [
-    "eedda330e95ef427e78b198f225651f69c271b66"
+    "eedda330e95ef427e78b198f225651f69c271b66",
+    "375103a5e9c5d93e15446f201e67c30fcacff9e8"
   ],
   "web/h3/video-tab-state.js": [
     "30c54e48f87a9b074a7247b105195f7bcd284238",
-    "7dd9605320a180894b88b55fdfa0630b1eee4db3"
+    "7dd9605320a180894b88b55fdfa0630b1eee4db3",
+    "5fabd90d7bfee323064428a9cabdbca387a27b13"
   ],
   "web/image-studio.js": [
     "1896a75ee124fc471c735599a21f02d18332aee6",
@@ -1412,7 +1712,8 @@
     "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d",
     "3a29f68d27546ed880eac572d5cb8ba93fabffe9",
     "d63f32928fc8aa51164b3c00c28990ae0cf33568",
-    "34be922ade06dc4ff1cc4aa492ae7c6839f8755a"
+    "34be922ade06dc4ff1cc4aa492ae7c6839f8755a",
+    "48e8c8f69d0651eb1e47a0bf66b6cf1a786ea454"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",
@@ -1430,7 +1731,10 @@
     "7b1ce70c5c49af23db5beff63aac436fce56d428",
     "bb87b774388e936f28837699e47c4ff700eae139",
     "3cb0756a7cd8f6b41a132a292e4bcdcacee82853",
-    "5a13aa47dcf9852c4379eae524ee71d5d0712c53"
+    "5a13aa47dcf9852c4379eae524ee71d5d0712c53",
+    "38cde3068d021a56018b32b8fc20d2d5f7faeada",
+    "671c43665cda4a52fd4f72f4af9eb83d8d792edb",
+    "5a647abea2af1bbfb30cd0d6ab797a627db9fea5"
   ],
   "web/index.html": [
     "089178e1b9bbdce9eaff135d605ea400b9d23875",
@@ -1492,7 +1796,10 @@
     "b3ae4c8d8295ae9bb762a8e77edea34cf7a3d325",
     "d19178503671372420c80e59b5b87bcc8fde9398",
     "2350e7aa2befde5e93b552a62ce915f7c8f56096",
-    "f93169a8b3359f220d5c3a2fa0e02b483817f05b"
+    "f93169a8b3359f220d5c3a2fa0e02b483817f05b",
+    "051539fadfb199ea67679997e0bb04c848fdb6eb",
+    "b32698f584a753a5507b3991b0885af8b5a0a7e3",
+    "b521438eb3b250e6a439c1d0b1b8268656d08fa4"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1510,10 +1817,13 @@
     "fb4e6a66c6a317b5db929ae06d91fadda1f8a53f",
     "8594cb7408232a5503687f31ef3ea680bcdeec9c",
     "6cb6dc4dadb4f99de39eb2cc8880ffb733fcf565",
-    "f9f89932d464d0fe26c1e9162444cade25d7e719"
+    "f9f89932d464d0fe26c1e9162444cade25d7e719",
+    "88afecbbf324b2d816dbbd50d8c4ed7d422cd913"
   ],
   "web/organization.css": [
-    "8f12219012fda1cde9e51c099ea41b6f4193a449"
+    "8f12219012fda1cde9e51c099ea41b6f4193a449",
+    "cb07b9e63f20c0cde5c2390b565747e7655a41d2",
+    "1424d366d4b48ec0f87a5e40dd22157c4191026e"
   ],
   "web/studio-ux.css": [
     "144de27d02cd5636ed520a6b4ec9c90f54991d0f",
@@ -1522,7 +1832,9 @@
     "9d8c91fcff3b9bb79ec02f820b634a4e30ace8e3",
     "93cda709700ee81322d4a4fe460e73d676c7e64a",
     "b351a94b6f91806693524d2f4afb780acbe0fbba",
-    "be94563957fa5900a9a31819b35ffd3bdbd5da0d"
+    "be94563957fa5900a9a31819b35ffd3bdbd5da0d",
+    "278b9fa8119369fb62d2017e8671187397de1c58",
+    "91345bc30c585d617ff84ee1daeee145357d222f"
   ],
   "web/studio.js": [
     "00fb9696bfa52a4699497ce3205ead9aab724735",
@@ -1576,25 +1888,28 @@
     "e98919f6e80e714721de69a19668f06890812c02",
     "f2b5e2265b33a7eed5d4c38967e089c6f970d7c8",
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
-    "ff233a13bdfeeab696adf484010a326f5048548e"
+    "ff233a13bdfeeab696adf484010a326f5048548e",
+    "42c36c1a72479405b70c4d2aa59b42adf2cda1c8",
+    "43d78e7dfef39da5b10ec2182ed20e4d4a524aaf"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
-    "c0b4db0352d26d4a38391b47744b2280ca72cd02"
+    "c0b4db0352d26d4a38391b47744b2280ca72cd02",
+    "69c3845bcc422f612f17011d1eafa3343b1496ec"
   ],
   "workflows/h3_t2v_smoke_api.json": [
     "f8494d64fe74d3484996ff77c455e228ecf5ed09",
-    "fa80b4b22e8fba94954506f5573251257c43d237"
+    "fa80b4b22e8fba94954506f5573251257c43d237",
+    "7ddb0d4aee131bdf0cd958e59c8eb86a0799629e"
   ],
   "workflows/h3_t2v_smoke_ui.json": [
     "9a93b9e444ef6d0c9b9d60b5eb6bad09174c124d",
-    "eadcaef4441db06e5ee7eab4fdba184f12e77abb"
+    "eadcaef4441db06e5ee7eab4fdba184f12e77abb",
+    "20f4daabf830fc487268bda51080d86359e7ecd2"
   ],
   "workflows/h3_t2v_ui.json": [
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
-    "9cb19921308b0e8234abf56652540d84b8f97945"
-  ],
-  "h3_lab/reference_upload.py": [
-    "085087cdac33b1c8166bb397167b6c90e898c6a8"
+    "9cb19921308b0e8234abf56652540d84b8f97945",
+    "ca95b72d2bec41c96b5a1c3031ca9a472d83ba1a"
   ]
 }

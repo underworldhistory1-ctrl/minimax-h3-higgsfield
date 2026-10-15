@@ -41,7 +41,7 @@ The extension's `/h3_studio/readiness` route checks model sizes and registered n
 
 During an active render, `/h3_studio/job_progress` reads ComfyUI's sampler progress for node 8. The Studio also saves the last observed step in browser session storage. On refresh it restores that step and polls the server, so a lost or replaced WebSocket does not reset the visible progress. This endpoint becomes available after ComfyUI loads the updated extension on restart; deployment must not restart an active render.
 
-`MiniMaxH3AddGuide` and latent `denoise_mask` are supported by newer ComfyUI builds but are not part of the Studio graphs above. Arbitrary timeline anchors and masked regeneration require explicit user inputs and separate graph paths; they do not silently enhance Text, Frames, or References. `Use as` reference roles affect prompt guidance, while actual reference files continue to use node 6's image, video and audio inputs.
+The dynamic Studio graph chains `MiniMaxH3AddGuide` for explicitly supplied timed images when the server advertises AddGuide support. A storyboard sheet is not automatically split into keyframes. Continuation and supported inpaint controls use explicit masked-context paths; ControlNet with continuation/refinement and Refine with continuation are rejected. The static workflow files show baseline graphs; the dynamic builder owns optional combinations. `Use as` reference roles affect prompt guidance, while actual reference files continue to use node 6's image, video and audio inputs.
 
 ## Qwen Image 2.1 graphs
 

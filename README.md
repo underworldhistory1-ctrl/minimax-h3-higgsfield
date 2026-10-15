@@ -1,4 +1,4 @@
-# H3 Higgsfield 2.5.4
+# H3 Higgsfield 2.5.5
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -12,82 +12,13 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 **Storyboard direction + character appearance → a cinematic shot.** [Watch with audio](docs/demo/superman/superman-excerpt.mp4), then [open the references, setup and full prompt](docs/demo/superman/README.md).
 
-## New in 2.5.4
+## Current release
 
-- **Video workspace reference uploads:** stream images, video, audio, keyframes and control inputs through the shared validated upload route without multipart. Filenames, trim/resize, progress and cancellation are preserved. Image workspace JSON uploads remain supported.
-- **Combined graph checks:** Anime2Realism + Combat V2 + image/video references + timed keyframes preserve all links across Original, MotionCache and Spectrum. This verifies wiring, not combined visual quality; Combat in Ref2VA remains experimental.
-
-## New in 2.5.3
-
-- **Image uploads through hosted gateways:** bounded JSON image transport avoids the multipart rejection reproduced on HyperAI, with the same image verification and25 MB raw limit. Upload errors show HTTP or connection details; inputs remain saved.
-- **Change the image canvas anytime:** aspect ratio and output size stay available after adding references. Changing either selects an explicit output canvas; turn off Use selected output size to follow the first reference. Prompts, named images and sizing choices survive refresh independently per tab. [Evidence and rollback](docs/IMAGE_WORKSPACE_FIX_AR.md).
-
-## New in 2.5.2
-
-- **Dedicated Anime → Realism:** the launcher now installs LiseTY’s pinned 310 MB Ref2VA adapter, previously missing. Video style transformation → Prepare selects it, inserts `LumiReal`, retains additional character/style references, and preserves your sampling overrides. Frontend and server enforce Original Ref2VA plus a source video. The reverse direction remains explicitly prompt-guided. [Compatibility, evidence and rollback](docs/ANIME_TO_REALISM_AR.md).
-
-## New in 2.5.1
-
-- **Refresh-safe work per tab:** unsaved references and settings survive refresh independently, including copied tabs and image BF16 settings. Clear a tab’s setup explicitly; failed storage never silently overwrites a recoverable snapshot. [Behavior and browser evidence](docs/TAB_PERSISTENCE_AR.md).
-
-- **Native audio enhancement:** an optional extra audio pass preserves the exact final video latent, including after image refinement. Published AudioRefine evidence supports its Original H3 mechanism; it does not establish improved quality for every model, adapter or prompt.
-- **One saved setup:** audio controls persist in projects, drafts and Reuse, appear in take settings, and have their own progress label and timing signature. Source soundtrack reuse bypasses the pass; continuation protects its existing audio prefix.
-- **No new models or caching:** the pass uses the selected shifted model and LoRAs without MotionCache, Spectrum or structural patches. Existing renders and presets keep their behavior. The launcher ships the local nodes, license and official-upgrade fingerprints.
-
-[Audio evidence, controls, compatibility, screenshots and rollback](docs/AUDIO_ENHANCEMENT_AR.md). No new GPU quality test was performed in this release.
-
-## New in 2.4.0
-
-- **Organized projects:** visible naming inside Production, project folders, Unfiled migration, scoped search and sorting. New projects use the selected folder.
-- **Asset folders and transfers:** folders independent of reference roles, multi-selection, copy/move between projects with revision checks, dependency protection and interrupted-operation recovery. Stable reference IDs and source takes survive transfers.
-- **Reuse every recorded take:** a visible card action restores the saved prompt, settings, references, LoRAs and advanced inputs into the chosen project's Production workspace. Missing inputs stay visible and block generation after Save/reload; using a changed setup requires explicit acknowledgement. Older videos without recorded inputs cannot claim full restoration.
-- **Portable projects:** exported ZIPs use the project name and include unused catalog materials. The launcher includes all new runtime files and recognizes official 2.4.0 files for upgrades.
-
-[Organization, Reuse, screenshots, tests and rollback](docs/ORGANIZATION_AND_REUSE_AR.md). Previous seed and short-duration fixes remain supported: [behavior and limits](docs/SEED_AND_DURATION_AR.md).
-
-## Workspace improvements
-
-- **Separate workspaces:** persistent navigation for Projects, Production, Elements, Generations, Favorites and Activity. Upload once in the full-page Elements library; filter, preview and reuse assets without crowding generation settings. Drag-and-drop and cached image thumbnails reduce unnecessary media loading.
-
-- **Operation-aware updates:** audio/video exports, prompt/source/control preparation and quality checks block installation even when the ComfyUI render queue is empty. Other browsers can see those shared operation states.
-
-- **Projects first:** create, name and open a production project. Its reusable catalog includes Characters, Locations, Props, Style, Audio, Storyboards, Custom and additional named categories. Multi-file uploads, editable names, notes and @ suggestions use the existing native reference compiler. Display-name edits preserve stable prompt aliases.
-- **Project isolation:** the default gallery shows the project's takes. Older unassigned videos remain accessible under All server videos. Exported project bundles retain unused catalog assets, and durable job ownership recovers completed project takes after the initiating browser closes.
-- **Shared export progress:** CPU upscale jobs are owned by the server. Every connected browser sees queue, encoding frames, verification, failures and completed downloads after refresh. Closing the initiating tab does not cancel the job. Launcher installation waits for both renders and exports to finish.
-
-[Project workspace and shared exports](docs/PROJECT_WORKSPACE_AR.md).
-
-![Project Elements workspace — browser verified with local project and asset APIs](docs/demo/interface-elements.png)
-
-- **Video library actions:** every generated video has visible Reuse, Options and Delete buttons. Options opens per-video enlargement, transfer of project takes, download, playback and settings; pinned deletion requires explicit confirmation.
-
-- **Explicit attention baseline:** launcher paths use PyTorch dense attention. The actual server backend is visible and saved with each render; estimates separate different backends. Checkpoints can retain their native per-layer kernels.
-
-- **Preserve an approved shot:** CPU Lanczos enlargement from the existing video, verified frame count, timing and copied audio. Generation resolution and generative refinement are clearly separate.
-
-- **Live-server fixes:** static-image ControlNet sources, Arabic contextual guidance, correct final-video selection, restored Automatic preparation, and checkpoint labels that match the actual mode. [Server verification and limits](docs/SERVER_VERIFICATION_2026_10_13_AR.md).
-
-- **Shared settings:** checkpoint, sampler, scheduler, shifts, precision, refinement and supported acceleration widgets stay synchronized with the submitted graph. Valid user overrides and project presets remain available.
-- **Model choices:** Original H3, independent Singularity, FL2VA reference conditioning and a separate tensor-overlay Hybrid loader. Availability depends on installed models and required nodes.
-- **References + structural control:** supported Fun ControlNet controls also work in References when ComfyUI includes the required PR #16020 implementation.
-- **Character Swap:** a source-video + replacement-image preset on Original Ref2VA, strength 1 and pinned verified weights. No Turbo or training assistant dependency. [Usage and limits](docs/CHARACTER_SWAP_AR.md).
-- **Video style direction:** separate Anime → realism and Realism → anime preparation, with separately selected installed style LoRAs and optional source soundtrack reuse. Automatic shot segmentation is not included.
-- **Updated workspace:** wider resizable sidebar, larger type, compact previews, multi-image upload, editable aliases and ordered reference roles.
-- **Automatic maintenance:** the launcher fast-forwards official `main` to the latest project source before installation, waits for an idle queue, preserves local edits and records rollback. Runtime dependencies remain pinned; assets are verified and reused. `--no-update` disables fetching; `--update-policy notify` only reports new versions.
-
-**Validation:** Version 2.4.0 checks are recorded in [verified behavior](docs/VERIFIED_BEHAVIOR.md) and [project workspace](docs/PROJECT_WORKSPACE_AR.md); historical 2.1.1 checks included 289 Python tests and 139 JavaScript tests. [Current release checks](docs/VERIFIED_BEHAVIOR.md) distinguish code tests from historical GPU renders. Live RTX 5090 verification covers Original Ref2VA with an image reference and static-image Canny ControlNet: 124 frames, 864×480, 24fps and AAC audio. Singularity is installed, but independent Singularity, Hybrid and Character Swap GPU renders remain unverified.
-
-![Character replacement controls](docs/modernization/character-swap.png)
-
-## Your scene, with every reference given a job
-
-Start with an idea, an opening frame, or a set of references. Tell Studio what each asset should contribute: the character, the location, the visual style, the camera movement, or the storyboard. Name it, mention it in the prompt, and inspect the result before rendering.
-
-The workspace brings generation, reference handling, progress, projects and finished takes together. ComfyUI powers the work behind the page; the everyday creation flow stays in the studio.
-
-![Creator-supplied H3 production workspace](docs/demo/superman/production-workspace-preview.jpg)
-
-*Production capture from the Superman example. Historical production example; version 2.1.1 adds the capabilities described below.*
+- Project Elements use stable asset identities, named mentions and immediate reference attachment. Display names and legacy aliases are reconciled before native tag compilation.
+- Video, audio, image, keyframe and control uploads share validated backend handling. Qwen references and working setups persist per tab.
+- English is the default for workflow explanations; Help language switches those explanations to Arabic.
+- Studio checks official source updates and exposes safe installation status. Updates preserve user data and require idle generation and preparation work; see [update behavior](docs/LAUNCHER.md).
+- [Changelog](CHANGELOG.md) records release history. [Current audit](docs/PRODUCTION_READINESS_2026_10_15.md) distinguishes tests, browser/API checks and unverified GPU rendering.
 
 ## Built around the way you create
 
@@ -133,8 +64,6 @@ H3 Higgsfield focuses on a dedicated browser workspace: reference roles, project
 These are workflow choices, not a render-quality ranking. H3 Higgsfield is an independent project built on MiniMax H3 and ComfyUI, with no affiliation to Higgsfield or MiniMax. Its optional prompt preparation is separate from MiniMax’s hosted H3-Context-IR.
 
 ## Get started
-
-Version **2.1.1** adds shared model/workflow settings, independent Singularity and distinct Hybrid profiles, References + ControlNet readiness checks, Character Swap, compact multi-image references and a resizable desktop sidebar. Turbo is retired. See the [compatibility/deployment guide](docs/MODERNIZATION_2026_10_13_AR.md) and [Character Swap guide](docs/CHARACTER_SWAP_AR.md). New configurations have code/browser coverage; GPU rendering acceptance remains pending.
 
 **Windows or NVIDIA Linux:** follow the [installation guide](docs/INSTALL.md). It covers existing ComfyUI installations, first-time setup and verified model reuse. Once installed, open the studio page at your ComfyUI server address.
 

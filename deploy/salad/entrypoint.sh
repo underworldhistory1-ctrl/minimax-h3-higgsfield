@@ -90,7 +90,7 @@ download_models() {
         prepare_feature_model download_control_models.py "ControlNet 2.0"
     fi
     if python "$H3_NODE/deploy/download_h3_models.py" "$COMFY_ROOT" --offline-check >/dev/null 2>&1 \
-       && python "$H3_NODE/deploy/download_optional_loras.py" "$COMFY_ROOT" >/dev/null 2>&1 \
+       && python "$H3_NODE/deploy/download_optional_loras.py" "$COMFY_ROOT" --offline-check >/dev/null 2>&1 \
        && python "$H3_NODE/deploy/download_qwen_image_models.py" "$COMFY_ROOT" \
             --profiles "$QWEN_IMAGE_PROFILES" --offline-check >/dev/null 2>&1; then
         log "Verified cached H3 and Qwen Image model sets."
@@ -143,6 +143,8 @@ restore_data
 restore_models
 download_models
 
+python "$H3_NODE/deploy/runtime_patches.py" --comfy-root "$COMFY_ROOT"
+
 python - <<'PY'
 import torch
 if not torch.cuda.is_available():
@@ -155,7 +157,7 @@ PY
 
 log "Starting ComfyUI privately on 127.0.0.1:8188."
 cd "$COMFY_ROOT"
-python main.py --listen 127.0.0.1 --port 8188 --use-pytorch-cross-attention &
+python main.py --listen 127.0.0.1 --port 8188 --reserve-vram 3.0 --cache-none --fp16-intermediates --use-pytorch-cross-attention &
 COMFY_PID=$!
 
 for _ in $(seq 1 360); do

@@ -31,7 +31,7 @@ preprocessors, and Qwen Image INT8. Original remains the default rendering metho
 The launcher's short validation render also uses Original.
 
 Turbo is retired. Existing files are retained but are not selected or downloaded.
-Character Swap requires Original Ref2VA; the studio Hybrid and Singularity profiles are not validated for this adapter.
+Character Swap requires reference conditioning with a source video and replacement image. Installed Singularity and Hybrid profiles are available for experimentation; graph wiring is checked, while visual quality remains unverified.
 Use `--video-only` / `-VideoOnly` to omit Qwen weights, `--no-controlnet` /
 `-SkipControlNet`, or `--no-refine` / `-SkipRefine` to omit optional features.
 Omitting a feature never deletes previously installed files.
@@ -69,6 +69,8 @@ Readiness has three independent flags:
 | `files_prepared` | Required source, dependencies and model files prepared |
 | `api_ready` | Current H3 endpoints and required UI/model/node checks pass |
 | `gpu_validated` | The launcher's saved MP4 passed video and audio validation |
+
+The API verifier also compares every expected LoRA in the pinned installation manifest with the live server's discovered LoRA list. Missing names make verification fail with recovery guidance, even when base H3 models are ready. An installed LoRA is intentionally off until selected for a shot.
 
 `--no-start` / `-NoStart` prepares files only. `--skip-smoke` / `-SkipSmoke` avoids
 the GPU job and leaves `gpu_validated=false`. Neither is a full validation result.
@@ -125,15 +127,14 @@ saved output rather than the last sampler step. Legacy timing samples that lack
 the full settings are excluded; new renders build the calibrated history.
 
 
-## Update 2026-10-12
+## Source updates
 
-Default `--update-policy latest` fetches and fast-forwards official `main` before installation. It waits for an idle queue, records `refs/h3-launcher/previous-source`, preserves local edits and rejects divergent commits. `--update-policy notify` reports only; `--update-policy verified` applies manifest-approved commits. Windows accepts `-UpdatePolicy`. `--no-update` is an explicit offline/custom-checkout option; `--preflight` and `--status` remain read-only. ZIP copies must be downloaded again for source updates. Verified ComfyUI and acceleration-node revisions remain pinned.
+Official clean Git checkouts on main use --update-policy latest by default. The launcher fetches and fast-forwards, records refs/h3-launcher/previous-source, and preserves local edits and divergent commits by refusing automatic replacement. Notify reports without applying; verified accepts only manifest-approved commits. --no-update is explicit offline/custom-checkout use. Preflight/status are read-only. ComfyUI and acceleration dependencies retain their compatible pins.
 
-The installer now includes the shared queue/cancellation/stage observer, bounded H3 MLP scratch allocations, CPU MotionCache residual storage, a 3 GB VRAM reserve for newly started workers, and the narrowly scoped public Studio document navigation fix. H3 Studio rejects oversized unsupported graphs before submission. Model weights, projects, inputs, and generated outputs are preserved.
+## Updates in Studio
 
-Qwen image references persist as original files in this browser's IndexedDB, including names, order, and dimensions. Wait for “saved in this browser” before refresh. Persistence belongs to the same browser and URL origin; changing tunnel hostname creates a separate browser draft. Removing a reference also updates its saved draft.
+The Updates control checks official main and reports a newer source commit. Installation uses the existing launcher with GPU smoke disabled and automatic restart disabled. A verified local installation receipt associates the source checkout, deployed runtime and ComfyUI root. Unknown archives or customized checkouts can show update information but require the administrator's launcher for installation.
 
-Validation: 115 JavaScript tests, CPU stage/core patch tests, and real-browser refresh checks. No AI render was submitted for this update. These checks do not prove zero OOMs for every GPU workload.
+Before applying, Studio closes admission to new mutations and verifies both the ComfyUI queue and shared preparation/export operations. Existing work blocks the update. The launcher still validates runtime edits, installation locks, backups and source revision. User models, input/output media, project manifests and settings are retained.
 
-
-Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache; Turbo is retired. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
+Successful code installation requires an explicit ComfyUI restart and browser reload. The old worker remains paused until then. Interrupted or failed updates retain a recovery state and installation log; rerun the launcher after resolving its reported error. Installing code is not GPU or quality validation. [Current audit](PRODUCTION_READINESS_2026_10_15.md).

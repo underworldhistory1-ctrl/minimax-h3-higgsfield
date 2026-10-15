@@ -201,27 +201,13 @@ class ProjectService(OrganizationMixin):
                 item = next((a for a in project["assets"] if a["asset_id"] == operation.get("asset_id")), None)
                 if not item:
                     raise ValueError("Asset is not in this project")
-                old_alias = item.get("alias", "")
                 if "name" in operation:
-                    item["name"] = workspace_name(operation["name"])
-                    used = {a["alias"].casefold() for a in project["assets"] if a is not item and a.get("alias")}
-                    new_alias = reference_alias(pathlib.Path(item["name"]).stem, used)
-                    item["alias"] = new_alias
-                    if old_alias and old_alias != new_alias:
-                        # Synchronize active draft references and prompt mentions so existing project references stay intact
-                        draft = project.get("draft")
-                        if isinstance(draft, dict):
-                            for ref in draft.get("refs", []):
-                                if isinstance(ref, dict) and (ref.get("assetId") == item["asset_id"] or ref.get("alias") == old_alias):
-                                    ref["alias"] = new_alias
-                            pattern = re.compile(r"@" + re.escape(old_alias) + r"(?=$|[^\w-])", flags=re.UNICODE)
-                            prompts = draft.get("prompts")
-                            if isinstance(prompts, dict):
-                                for k, text in list(prompts.items()):
-                                    if isinstance(text, str):
-                                        prompts[k] = pattern.sub("@" + new_alias, text)
-                            if isinstance(draft.get("source_prompt"), str):
-                                draft["source_prompt"] = pattern.sub("@" + new_alias, draft["source_prompt"])
+                    name = workspace_name(operation["name"])
+                    if name != item.get("name") and item.get("name"):
+                        item["mention_names"] = list(dict.fromkeys([*item.get("mention_names", []), item["name"]]))
+                    item["name"] = name
+                    # The display name is also a mention; the canonical alias and
+                    # saved take/draft bindings remain backward compatible.
                 if "notes" in operation:
                     if not isinstance(operation["notes"], str) or len(operation["notes"]) > 4000:
                         raise ValueError("Notes must contain at most 4000 characters")
@@ -259,6 +245,7 @@ class ProjectService(OrganizationMixin):
                                 "canvas": data.get("canvas"),
                                 "updated_at": data.get("updated_at"),
                                 "asset_count": len(data.get("assets", [])),
+                                "preview_asset_id": next((asset.get("asset_id") for asset in data.get("assets", []) if asset.get("kind") == "image"), None),
                                 "take_count": len(data.get("takes", [])),
                                 "folder_id": data.get('folder_id'),
                             })

@@ -1,4 +1,4 @@
-# خريطة اختيارات H3 Studio — 2.5.0
+# خريطة اختيارات H3 Studio — 2.5.5
 
 الـSeed الافتراضي42 للتكرار، مش ترتيب جودة. الأرقام الصحيحة حتى الحد الأصلي64-bit محفوظة بدقة؛ العشوائي يتحدد مرة قبل الإرسال. Text/Frames/References بيسمحوا5–362فريم على شبكة5+17k؛ تحت124فريم خارج نطاق التدريب المعتاد وجودةGPUغير مختبرة هنا. [التفاصيل والحدود](SEED_AND_DURATION_AR.md).
 
@@ -32,7 +32,7 @@
 | Realism People | ثلاثة أوضاع،trigger r34l1sm،اختيار صريح |
 | Combat V2 | ناشره اختبر FL2VA؛ References مسموح مع إشعار تجريبي |
 | Motion Repair V2 | لورا مستقلة اختيارية، ليست تلقائية أو اعتمادًا إلزاميًا |
-| Character Swap | Original Ref2VA فقط + video source + replacement image،قوة1 كبداية،لاtrigger؛ تفاصيلها في CHARACTER_SWAP_AR.md؛ رندر مستقل غير مختبر هنا |
+| Character Swap | References مع الموديل المختار + video source + replacement image،قوة1 كبداية،لاtrigger؛ تفاصيلها في CHARACTER_SWAP_AR.md؛ رندر مستقل غير مختبر هنا |
 | Turbo/Lightx2v | متقاعدان من الاختيار والجرافس والتنزيل؛ الملفات القديمة لا تُحذف |
 
 الإعدادات المتقدمة تبقى محفوظة في المشاريع وتُرسل إلى الجراف، مع فحص توافق الموديل والنودز. وجود وزن أو نود لا يثبت جودة كل prompt أو دقة/مدة/LoRA. اقرأ [دليل السيرفر والدليل الفعلي](SERVER_VERIFICATION_2026_10_13_AR.md) و[دليل التشغيل](LAUNCHER.md).
@@ -61,8 +61,8 @@
 
 | المكوّن | التوافق وحدود الدليل |
 |---|---|
-| LiseTY `Anime2Realsim__H3.safetensors` | تدريب Ref2VA، مسار Original References مع فيديو مصدر؛ Trigger `LumiReal` |
-| FL2VA / Singularity / Hybrid | لا يوجد إثبات لهذا الملف؛ الواجهة والخادم يمنعان الاختيار |
+| LiseTY `Anime2Realsim__H3.safetensors` | تدريب Ref2VA؛ References مع فيديو مصدر وTrigger `LumiReal`، مع إتاحة الموديل المختار |
+| FL2VA / Singularity / Hybrid | متاحة للتجربة مع References والكي فريمز واللورات المختارة؛ توصيل الجراف متحقق، وجودة GPU غير مختبرة |
 | Native rendering | مسار Prepare؛ المقاس والسيد والعينة يُحفظون، قوة 1 بداية قابلة للتعديل وليست أفضل قيمة مثبتة |
 | MotionCache / Spectrum / Refine / ControlNet / LoRA stacking | تظل خيارات متقدمة؛ لا يوجد اختبار جودة محلي لهذه التركيبات |
 | Realism → Anime | قالب prompt-guided؛ لا يستخدم اللورا أحادية الاتجاه |

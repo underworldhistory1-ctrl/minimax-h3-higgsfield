@@ -27,6 +27,21 @@ REQUIRED_IMAGE_NODES = (
 )
 
 
+def missing_loras(items):
+    """Validate live discovery against the same pinned manifest as installation."""
+    if not isinstance(items, list) or any(not isinstance(name, str) for name in items):
+        raise ValueError('Invalid LoRA discovery response; readiness could not be verified.')
+    try:
+        from .download_optional_loras import LORAS
+    except ImportError:
+        try:
+            from download_optional_loras import LORAS
+        except ImportError:
+            from deploy.download_optional_loras import LORAS
+    registered = {name.replace('\\', '/').rsplit('/', 1)[-1].casefold() for name in items}
+    return [name for name, _, _, _ in LORAS if name.casefold() not in registered]
+
+
 def v2_problems(capabilities):
     problems = []
     for key in ("ready", "guides_ready", "continuation_ready"):
@@ -101,6 +116,7 @@ def main():
     missing_image_profiles = [name for name in selected_profiles if not image_ready.get("profiles", {}).get(name, {}).get("ready")]
     missing_image_nodes = [name for name in REQUIRED_IMAGE_NODES if not image_ready.get("nodes", {}).get(name)]
     names = loras.get("items", [])
+    unavailable_loras = missing_loras(names)
     print(json.dumps({
         "gpu": [item.get("name") for item in stats.get("devices", [])],
         "models_ready": not missing_models,
@@ -110,6 +126,9 @@ def main():
         "missing_nodes": missing_nodes,
         "h3_vae_tile_fix": vae_tile_fix,
         "installed_loras": names,
+        "loras_ready": not unavailable_loras,
+        "missing_loras": unavailable_loras,
+        "lora_recovery": ("Run the full launcher to verify/download missing weights. If files already exist, check the active ComfyUI model paths and refresh LoRAs; restart only after work is idle." if unavailable_loras else None),
         "video_count": len(library.get("items", [])),
         "qwen_profiles_ready": not missing_image_profiles,
         "missing_qwen_profiles": missing_image_profiles,
@@ -118,7 +137,7 @@ def main():
         "running_jobs": len(queue.get("queue_running", [])),
         "pending_jobs": len(queue.get("queue_pending", [])),
     }, indent=2, ensure_ascii=False))
-    if missing_models or missing_nodes or not vae_tile_fix or missing_image_profiles or missing_image_nodes or missing_v2:
+    if missing_models or missing_nodes or not vae_tile_fix or missing_image_profiles or missing_image_nodes or missing_v2 or unavailable_loras:
         raise SystemExit(1)
 
 

@@ -1,6 +1,6 @@
 # H3 Studio handoff for a new assistant
 
-The user operates MiniMax H3 through the **English H3 Studio web UI**. ComfyUI nodes are backend infrastructure. Read `START_HERE_AR.md`, then `README.md`, `docs/GRAPH_MAP.md`, and `docs/COMPATIBILITY_MATRIX_AR.md` before changing or deploying anything.
+The user operates MiniMax H3 through the **English H3 Studio web UI**, with English-default bilingual contextual help. ComfyUI nodes are backend infrastructure. Read `START_HERE_AR.md`, then `README.md`, `docs/GRAPH_MAP.md`, and `docs/COMPATIBILITY_MATRIX_AR.md` before changing or deploying anything.
 
 ## What this folder contains
 
@@ -24,4 +24,8 @@ The user operates MiniMax H3 through the **English H3 Studio web UI**. ComfyUI n
 
 ## Proven scope and limits
 
-The current RTX 5090 server produced a 5.2 s smoke clip and 15.1 s Original clip with decodable video/audio. The dated audit records the evidence. No finite check proves every prompt, LoRA combination, visual detail, or audio sync. Before claiming a new server fully ready, report the live readiness result and what was or was not rendered on that specific server.
+A historical RTX 5090 server produced a 5.2 s smoke clip and 15.1 s Original clip with decodable video/audio. The dated audit records the evidence. No finite check proves every prompt, LoRA combination, visual detail, or audio sync. Before claiming a new server fully ready, report the live readiness result and what was or was not rendered on that specific server.
+
+## Current source audit
+
+Read `docs/PRODUCTION_READINESS_2026_10_15.md` for the latest local software evidence. No server is currently assumed connected. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.

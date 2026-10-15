@@ -1,6 +1,6 @@
 # H3 Studio UI behavior
 
-The interface language is English. The layout follows the public Higgsfield Create Video pattern: a compact creation rail, a large preview workspace, and a generated video library. It uses H3 Studio branding and its own controls.
+Controls use English. Contextual workflow explanations default to English and can switch to Arabic through Help language; the choice persists in this browser. The layout follows the public Higgsfield Create Video pattern: a compact creation rail, a large preview workspace, and a generated video library. It uses H3 Studio branding and its own controls.
 
 ## Creation modes
 
@@ -10,7 +10,7 @@ The interface language is English. The layout follows the public Higgsfield Crea
 | Frames | Start/end upload and prompt | FL2VA | At least one frame; start-frame aspect must be close to the canvas |
 | References | Named image/video/audio cards and prompt | Ref2VA | At least one reference; every attached asset mentioned with `@name` |
 
-Each mode keeps a separate prompt draft when switching tabs. The server readiness response checks the required model files and actual registered ComfyUI node classes. Modes and reference types whose checkpoint or loader is absent are disabled; the connection message names missing dependencies for the selected mode. Uploaded files remain in browser memory during the tab session and are re-uploaded for each run. A draft prompt and settings survive browser reload in local storage; file objects do not. The UI asks the user to reattach files after restoring a Frames or References draft.
+Each mode keeps a separate prompt draft when switching tabs. The server readiness response checks the required model files and actual registered ComfyUI node classes. Modes and reference types whose checkpoint or loader is absent are disabled; the connection message names missing dependencies for the selected mode. Original working inputs and settings persist independently per tab in IndexedDB. Project assets additionally retain server-owned stable IDs. Refresh restores available media; missing or inaccessible inputs remain visible and block generation. Changing origin creates separate browser storage.
 
 Image reference mentions become `<Subject N>` and are tied to `<Picture N>` in the six-section Ref2VA prompt. Video and audio mentions become `<Video N>` and `<Audio N>`; a selected video soundtrack gets the matching paired audio input and its own audio tag. Reference order is images, videos, then standalone audio. A selected soundtrack counts toward the conservative three-audio-reference and 15-second combined audio limits. Frame mode uses the MiniMax first/last alignment line and the three-section base prompt schema.
 
@@ -45,7 +45,7 @@ The initial ETA is a broad estimate. A job stores its settings on the server whe
 
 ## Library and closing
 
-- **All generated videos:** The server scans its H3 output folder every refresh and the page refreshes the library while open or on focus. It shows the total count, eight cards at a time, and a Show more button until every file is visible. Each card has a server-generated thumbnail, date, video length, render time when recorded, and a Details button.
+- **All generated videos:** The server scans its H3 output folder every refresh and the page refreshes the library while open or on focus. It shows the total count, paged cards, and a Show more button until every file is visible. Each card has a server-generated thumbnail, date, video length, render time when recorded, and a Details button.
 - **Details:** A small, scrollable dialog shows mode, model, canvas, length, render method, steps, seed, LoRAs, frame/reference inputs and prompt when that metadata exists. Escape, Close, or backdrop click dismisses it; focus returns to its opening button. Older clips can have partial or unavailable settings.
 - **Pin:** Marks a favorite. Pinning is optional; every video remains on this server until deletion or loss of server storage.
 - **Download:** Downloads the selected video to the browser's device.
@@ -59,7 +59,7 @@ Cloud GPU rendering, media decoding, and LoRA compatibility require a real conne
 
 `image.html` is one Qwen Image workspace with optional named references. With no image attached, it builds the empty-latent text-to-image graph. With one to ten images, it attaches them to `TextEncodeQwenImage21`; `@name` in the visible prompt resolves to the corresponding `<imageN>` in the current UI order. Move up/down changes the order before upload. The first reference determines the output canvas unless the user selects a new output size, which center-crops that first image if the aspect changes. A reference can guide a new composition or an edit; this is not a pixel-preserving editing guarantee. The interface explains that multi-image prompts should specify the role of each reference. It offers optional fitting of oversized references before upload and only enables installed model profiles. Transparent output is offered only without references.
 
-Upload progress precedes the Comfy queue. Sampling progress and ETA use WebSocket step events; refresh restores the active prompt ID and polls the server's sampler state as well as queue/history. Completed PNGs appear in the current preview and a paged server library with settings, measured time, download and delete. Failed, interrupted, or missing server outputs never appear as completed images. Browser-selected reference files must be reattached after a fresh page load for a new render.
+Upload progress precedes the Comfy queue. Sampling progress and ETA use WebSocket step events; refresh restores the active prompt ID and polls the server's sampler state as well as queue/history. Completed PNGs appear in the current preview and a paged server library with settings, measured time, download and delete. Failed, interrupted, or missing server outputs never appear as completed images. Browser-selected reference files restore from per-tab IndexedDB when available; missing stored files must be reattached before a new render.
 
 The interface supports one submitted render at a time. Its queue display counts all ComfyUI jobs and shows this job's position. After it finishes or is cancelled, a new render can be sent. History cards include server file time and measured render time when recorded. Settings metadata and measured samples for new clips survive a ComfyUI restart while the output disk persists.
 

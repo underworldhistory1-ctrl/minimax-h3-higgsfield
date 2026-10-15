@@ -67,6 +67,34 @@
     }
     container.append(list);
   }
-  root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards };
-  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => attachPrompt(document.getElementById('prompt')));
+  function arrangeWorkspace() {
+    const rail = document.querySelector('.sidebar-scroll');
+    if (!rail || !document.getElementById('modelConfiguration') || rail.dataset.arranged) return;
+    rail.dataset.arranged = 'true';
+    const panels = [...rail.children];
+    const panelFor = id => document.getElementById(id)?.closest('.panel');
+    const heading = (id, text) => {
+      const node = document.createElement('h2'); node.id = id; node.className = 'workspace-step'; node.textContent = text; return node;
+    };
+    const prompt = panelFor('prompt');
+    const generation = panelFor('renderMethod');
+    const refinement = panelFor('enableRefine');
+    const loras = panelFor('loraList');
+    const advanced = panelFor('seed');
+    const order = [document.getElementById('projectPanel'), document.getElementById('openProjectElements'),
+      heading('shotInputsHeading', '1 · Direct the shot'), rail.querySelector('.modes'),
+      document.getElementById('framesSection'), document.getElementById('refsSection'), prompt,
+      document.getElementById('preparationPanel'), heading('renderSetupHeading', '2 · Render setup'),
+      generation, document.getElementById('modelConfiguration'), loras, refinement,
+      heading('optionalGuidanceHeading', '3 · Optional guidance'), document.getElementById('sourcePanel'),
+      document.getElementById('continuationPanel'), document.getElementById('guidesPanel'),
+      document.getElementById('controlPanel'), advanced];
+    // Move the existing controls, preserving listeners, values and capability gates.
+    for (const node of order.filter(Boolean)) rail.append(node);
+    for (const node of panels) if (!order.includes(node)) node.classList.add('workspace-intro');
+  }
+  root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards, arrangeWorkspace };
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
+    attachPrompt(document.getElementById('prompt')); arrangeWorkspace();
+  });
 })(globalThis);

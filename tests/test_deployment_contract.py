@@ -14,6 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DeploymentContractTests(unittest.TestCase):
+    def test_salad_applies_shared_runtime_patches_before_start_and_reserves_memory(self):
+        entrypoint = (ROOT / 'deploy/salad/entrypoint.sh').read_text(encoding='utf-8')
+        patch_command = 'python "$H3_NODE/deploy/runtime_patches.py" --comfy-root "$COMFY_ROOT"'
+        self.assertIn(patch_command, entrypoint)
+        self.assertLess(entrypoint.index(patch_command), entrypoint.index('python main.py'))
+        command = next(line for line in entrypoint.splitlines() if line.startswith('python main.py'))
+        for option in ('--reserve-vram 3.0', '--cache-none', '--fp16-intermediates'):
+            self.assertIn(option, command)
+
     def test_salad_feature_weights_default_skip_and_remote_fail_closed(self):
         bash = shutil.which("bash")
         if not bash and Path("C:/Program Files/Git/bin/bash.exe").is_file():

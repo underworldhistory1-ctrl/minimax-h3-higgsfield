@@ -1088,6 +1088,13 @@ _lab_assets = _lab_services["assets"]
 _lab_jobs = _lab_services["jobs"]
 _lab_exports = _lab_services["exports"]
 
+from .h3_lab.updates import UpdateService, register_update_routes
+
+_update_service = UpdateService(
+    pathlib.Path(__file__).parent, pathlib.Path(folder_paths.base_path),
+    _storage_queue_count, _lab_services['active_operations'])
+register_update_routes(PromptServer.instance.app, _update_service)
+
 _metadata.update(_load_metadata())
 _registered_jobs.update(_load_jobs())
 for _saved_name in _load_kept():

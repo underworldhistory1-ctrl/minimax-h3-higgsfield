@@ -30,9 +30,9 @@ class ProjectWorkspaceTests(unittest.TestCase):
         project=self.projects.save_project(self.pid,project,project['revision'])
         history=json.dumps(project['takes'])
         renamed=self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':item['asset_id'],'name':'لوحة البداية','category':'props'},project['revision'])
-        self.assertEqual(renamed['assets'][0]['alias'],'لوحة_البداية')
-        self.assertEqual(renamed['draft']['refs'][0]['alias'],'لوحة_البداية')
-        self.assertEqual(renamed['draft']['prompts']['refs'],'@لوحة_البداية')
+        self.assertEqual(renamed['assets'][0]['alias'],item['alias'])
+        self.assertEqual(renamed['draft']['refs'][0]['alias'],item['alias'])
+        self.assertEqual(renamed['draft']['prompts']['refs'],'@'+item['alias'])
         self.assertEqual(json.dumps(renamed['takes']),history)
         with self.assertRaises(ValueError) as error:self.projects.update_workspace(self.pid,{'action':'rename_project','name':'Wrong'},project['revision'])
         self.assertEqual(error.exception.status_code,409);self.assertEqual(self.projects.get_project(self.pid)['name'],'Film')
@@ -96,3 +96,13 @@ class ProjectWorkspaceTests(unittest.TestCase):
         with patch('h3_lab.projects.owned_video',return_value=self.root/'video.mp4'):
             self.projects.attach_completed_job(job)
         self.assertEqual(self.projects.get_project(self.pid)['takes'][0]['unique_frames'],362)
+
+    def test_display_rename_keeps_canonical_alias_and_draft_bindings(self):
+        project=self.projects.attach_asset(self.pid,self.asset(1),'characters','uploaded-file.png')
+        original=project['assets'][0].copy()
+        project['draft']={'refs':[{'assetId':original['asset_id'],'alias':original['alias']}],'prompts':{'refs':'@'+original['alias']}}
+        project=self.projects.save_project(self.pid,project,project['revision'])
+        renamed=self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':original['asset_id'],'name':'Named Hero'},project['revision'])
+        self.assertEqual(renamed['assets'][0]['name'],'Named Hero')
+        self.assertEqual(renamed['assets'][0]['alias'],original['alias'])
+        self.assertEqual(renamed['draft'],project['draft'])

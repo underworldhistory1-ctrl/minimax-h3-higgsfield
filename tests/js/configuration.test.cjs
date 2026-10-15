@@ -2,13 +2,13 @@ const {test}=require('node:test');const assert=require('node:assert/strict');
 const C=require('../../web/h3/configuration');const {buildGraph}=require('../../web/h3/graph-builder');
 const singular='Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors';
 const caps={model_catalog:[{name:singular,profiles:['singularity']},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader']}],hybrid_loader_ready:true,controlnet_ready:true,controlnet_references_ready:true,continuation_ready:true,sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple','normal'],weight_dtypes:['default','fp8_e4m3fn']}};
-test('Anime → Realism binds the dedicated adapter only to Original Ref2VA video conditioning',()=>{
+test('Anime → Realism defaults to Original and supports selected experimental checkpoint profiles',()=>{
  const spec={mode:'refs',loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124},{kind:'image',alias:'hero'}],sampling:{sampler_name:'euler',shift_video:9}};
  const g=buildGraph(spec,{shot:'shot.mp4',hero:'hero.png'},caps);
  assert.equal(g['1'].inputs.unet_name,C.REF);assert.equal(g['8'].inputs.sampler_name,'euler');assert.equal(g['2'].inputs.shift_video,9);
  const adapter=Object.values(g).find(n=>n.class_type==='LoraLoaderModelOnly');assert.equal(adapter.inputs.lora_name,C.ANIME_TO_REALISM);assert.equal(adapter.inputs.strength_model,.8);
  assert.ok(C.isAnimeToRealism('styles/'+C.ANIME_TO_REALISM.toUpperCase()));
- for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.throws(()=>buildGraph({...spec,model_profile,checkpoint:singular},{},caps),/Ref2VA/);
+ for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.doesNotThrow(()=>buildGraph({...spec,model_profile,checkpoint:singular},{shot:'shot.mp4',hero:'hero.png'},caps));
  for(const mode of ['text','frames'])assert.throws(()=>buildGraph({...spec,mode},{},caps),/Ref2VA/);
  assert.throws(()=>buildGraph({...spec,references:[{kind:'image',alias:'hero'}]},{},caps),/source video/);
 });
@@ -53,20 +53,20 @@ test('advanced accelerator widgets use live schemas and cannot overwrite MODEL l
  for(const options of [{reuse_threshold:2},{model:['1',0]},{invented:1}])assert.throws(()=>buildGraph({render_method:'motioncache',node_options:{MiniMaxH3MotionCache:options}},{},schemaCaps));
 });
 
-test('Character Swap uses only documented Ref2VA and requires both media types',()=>{
+test('Character Swap supports selected profiles and requires both reference media types',()=>{
  const spec={mode:'refs',loras:[{name:C.CHARACTER_SWAP,enabled:true,strength:1}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124},{kind:'image',alias:'replacement',role:'custom'}]};
  const g=buildGraph(spec,{shot:'shot.mp4',replacement:'new.png'},caps);
  assert.equal(g['1'].inputs.unet_name,C.REF);
  const adapter=Object.values(g).find(n=>n.class_type==='LoraLoaderModelOnly');assert.equal(adapter.inputs.lora_name,C.CHARACTER_SWAP);assert.equal(adapter.inputs.strength_model,1);
- for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.throws(()=>buildGraph({...spec,model_profile,checkpoint:singular},{},caps),/Character Swap/);
+ for(const model_profile of ['singularity','hybrid_conditioning','hybrid_loader'])assert.doesNotThrow(()=>buildGraph({...spec,model_profile,checkpoint:singular},{shot:'shot.mp4',replacement:'new.png'},caps));
  for(const mode of ['text','frames'])assert.throws(()=>buildGraph({...spec,mode},{},caps),/Character Swap/);
  for(const kind of ['image','video'])assert.throws(()=>buildGraph({...spec,references:spec.references.filter(r=>r.kind===kind)},{},caps),/source video/);
  assert.ok(C.isCharacterSwap('folder/'+C.CHARACTER_SWAP));
 });
 test('Anime plus Combat with image/video references and timed keyframes stays connected for every renderer',()=>{
- for(const render_method of ['native','motioncache','spectrum']){
- const spec={mode:'refs',render_method,target_frames:124,loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8},{name:'H3_Combat_V2.safetensors',enabled:true,strength:.6}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124,use_audio:true},{kind:'image',alias:'hero'}],guides:[{kind:'image',file:'start.jpg',frame_idx:0},{kind:'image',file:'end.jpg',frame_idx:123}]};
+ for(const model_profile of Object.keys(C.profiles))for(const render_method of ['native','motioncache','spectrum']){
+ const spec={mode:'refs',model_profile,checkpoint:singular,render_method,target_frames:124,loras:[{name:C.ANIME_TO_REALISM,enabled:true,strength:.8},{name:'H3_Combat_V2.safetensors',enabled:true,strength:.6}],references:[{kind:'video',alias:'shot',fps:24,frame_count:124,use_audio:true},{kind:'image',alias:'hero'}],guides:[{kind:'image',file:'start.jpg',frame_idx:0},{kind:'image',file:'end.jpg',frame_idx:123}]};
  const g=buildGraph(spec,{shot:'shot.mp4',hero:'hero.png'},caps),l=Object.entries(g).filter(([id,n])=>n.class_type==='LoraLoaderModelOnly'),guides=Object.entries(g).filter(([id,n])=>n.class_type==='MiniMaxH3AddGuide');
- assert.equal(g['1'].inputs.unet_name,C.REF);assert.equal(l.length,2);assert.deepEqual(l[1][1].inputs.model,[l[0][0],0]);assert.deepEqual(g['2'].inputs.model,[l[1][0],0]);assert.equal(guides.length,2);assert.deepEqual(guides[0][1].inputs.positive,['6',0]);assert.deepEqual(guides[1][1].inputs.positive,[guides[0][0],0]);assert.deepEqual(g['8'].inputs.positive,[guides[1][0],0]);assert.ok(g['6'].inputs['ref_images.ref_image_0']);assert.ok(g['6'].inputs['ref_videos.ref_video_0']);assert.ok(g['6'].inputs['ref_video_audios.ref_video_audio_0']);
+ assert.equal(g['1'].class_type,model_profile==='hybrid_loader'?'MinimaxH3_HybridLoader':'UNETLoader');if(model_profile!=='hybrid_loader')assert.equal(g['1'].inputs.unet_name,model_profile==='singularity'?singular:model_profile==='hybrid_conditioning'?C.FL:C.REF);assert.equal(l.length,2);assert.deepEqual(l[1][1].inputs.model,[l[0][0],0]);assert.deepEqual(g['2'].inputs.model,[l[1][0],0]);assert.equal(guides.length,2);assert.deepEqual(guides[0][1].inputs.positive,['6',0]);assert.deepEqual(guides[1][1].inputs.positive,[guides[0][0],0]);assert.deepEqual(g['8'].inputs.positive,[guides[1][0],0]);assert.ok(g['6'].inputs['ref_images.ref_image_0']);assert.ok(g['6'].inputs['ref_videos.ref_video_0']);assert.ok(g['6'].inputs['ref_video_audios.ref_video_audio_0']);
  }
 });

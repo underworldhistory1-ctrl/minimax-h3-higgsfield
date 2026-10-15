@@ -32,7 +32,7 @@ let browser;const submissions=[];
  await page.locator('#newProjectName').fill('Film A');await page.locator('#projectHubCreate').click();await page.waitForFunction(()=>state.currentProject?.name==='Film A'&&!state.projectLoading);
  const sourceId=await page.evaluate(()=>state.activeProjectId);
  const target=(await (await page.request.post('http://127.0.0.1:18925/h3_studio/lab/projects',{data:{name:'Film B'}})).json());
- await page.locator('#renameCurrentProject').click();await page.locator('#workspaceNameInput').fill('Named production');await page.locator('#workspaceNameDialog').getByRole('button',{name:'Save name'}).click();await page.waitForFunction(()=>state.currentProject.name==='Named production');
+ await page.locator('#renameCurrentProject').click();await page.locator('#workspaceNameInput').fill('Named production');await page.locator('#workspaceNameDialog').getByRole('button',{name:'Save name'}).click();await page.waitForFunction(()=>state.currentProject.name==='Named production'&&!workspaceLocked());
  await page.locator('[data-workspace-nav=projects]').click();await page.locator('#newProjectFolder').click();await page.locator('#workspaceNameDialog').getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await page.locator('#workspaceNameDialog').evaluate(d=>d.open),false);
  const folderCount=await page.locator('#projectFolderFilter option').count();await page.locator('#newProjectFolder').click();await page.locator('#workspaceNameInput').fill('Thrillers '+Date.now());await page.locator('#workspaceNameDialog').getByRole('button',{name:'Save name'}).click();
  await page.waitForFunction(n=>document.getElementById('projectFolderFilter').options.length===n+1,folderCount);

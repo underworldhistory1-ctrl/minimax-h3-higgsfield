@@ -69,14 +69,16 @@ class TestH3Projects(unittest.TestCase):
         }
         self.project_service.save_project(pid, attached, attached["revision"])
 
-        # 2. Renaming the element immediately updates its alias and synchronizes draft refs & prompt mentions
+        # Display names resolve through the compiler; renaming preserves canonical
+        # aliases and authored saved prompts while retaining prior display names.
         renamed = self.project_service.update_workspace(pid, {"action": "edit_asset", "asset_id": item["asset_id"], "name": "Vanguard Shepard"}, attached["revision"] + 1)
         renamed_item = renamed["assets"][0]
         self.assertEqual(renamed_item["name"], "Vanguard Shepard")
-        self.assertEqual(renamed_item["alias"], "Vanguard_Shepard")
-        self.assertEqual(renamed["draft"]["refs"][0]["alias"], "Vanguard_Shepard")
-        self.assertEqual(renamed["draft"]["prompts"]["refs"], "Close-up of @Vanguard_Shepard walking into the light.")
-        self.assertEqual(renamed["draft"]["source_prompt"], "Close-up of @Vanguard_Shepard walking into the light.")
+        self.assertEqual(renamed_item["alias"], "Commander_Shepard")
+        self.assertIn('Commander Shepard', renamed_item['mention_names'])
+        self.assertEqual(renamed["draft"]["refs"][0]["alias"], "Commander_Shepard")
+        self.assertEqual(renamed["draft"]["prompts"]["refs"], "Close-up of @Commander_Shepard walking into the light.")
+        self.assertEqual(renamed["draft"]["source_prompt"], "Close-up of @Commander_Shepard walking into the light.")
 
     def test_bundle_export_and_safe_import(self):
         proj = self.project_service.create_project(name="Bundle Test")

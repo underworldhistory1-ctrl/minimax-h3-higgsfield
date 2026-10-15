@@ -88,6 +88,8 @@ web/h3/image-reference-store.js
 h3_lab/shared_timing.py
 deploy/runtime_patches.py
 deploy/update_source.py
+deploy/ui_update.py
+VERSION
 h3_lab/storage.py
 web/h3/configuration.js
 web/h3/configuration-ui.js
@@ -100,10 +102,13 @@ web/h3/project-workspace.js
 web/h3/render-values.js
 h3_lab/render_values.py
 h3_lab/organization.py
+h3_lab/updates.py
 web/h3/organization-ui.js
 web/organization.css
 web/h3/tab-draft-store.js
 web/h3/video-tab-state.js
+web/h3/guidance-language.js
+web/h3/updates-ui.js
 h3_audio_refine.py
 docs/licenses/H3-AudioRefine-MIT.txt
 docs/AUDIO_ENHANCEMENT_AR.md

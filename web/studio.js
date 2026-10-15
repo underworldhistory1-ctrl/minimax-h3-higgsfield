@@ -146,11 +146,8 @@ function uploadMessage(message,pct=null){
   if(pct!==null)$("uploadProgressFill").style.width=Math.max(0,Math.min(100,pct))+"%";
 }
 function loraModeCompatible(name,mode){
-  if(H3Configuration.isCharacterSwap(name)||H3Configuration.isAnimeToRealism(name))return mode==='refs'&&(state.modelProfile||'original')==='original';
+  if(H3Configuration.isCharacterSwap(name)||H3Configuration.isAnimeToRealism(name))return mode==='refs';
   if(/turbo|lightx2v/i.test(name))return false;
-  if(mode==="refs"){
-    if(/fl2v|fl2va|t2v/i.test(name)&&!/ref2v|r2v/i.test(name))return false;
-  }else if(/ref2v|r2v/i.test(name)&&!/fl2v|t2v/i.test(name))return false;
   return true;
 }
 const info = (message, bad=false) => {
@@ -187,8 +184,7 @@ function updateMethodAvailability(){
   // Preserve saved intent while a server is offline or a patch is missing.
   // Generation validates availability before uploading; it never silently changes methods.
   const ready=[...select.options].filter(option=>!option.disabled&&option.value!=="native").map(option=>option.textContent.split(" · ")[0]);
-  $("methodAvailability").textContent=(state.nodesReady?ready.length?"Ready on this server: "+ready.join(", ")+".":"Original quality is ready. Optional methods are not installed yet.":"Connect ComfyUI to check installed speed methods.")
-    +(state.mode==="refs"&&state.loras.some(item=>item.name===turboName)?" Turbo is FL2VA-only; use Text or Frames.":"");
+  H3Guidance.setText($("methodAvailability"),(state.nodesReady?(ready.length?"methodsReady":"methodsOriginal"):"methodsOffline")+(state.mode==="refs"&&state.loras.some(item=>item.name===turboName)?"Turbo":""),{methods:ready.join(", ")});
   select.disabled=state.busy;
   renderMethodInfo();
 }
@@ -198,7 +194,7 @@ function renderMethodInfo(){
   $("steps").max=value==="turbo"?"8":"100";
   $("stepPresets").hidden=value==="turbo";
   document.querySelector(".steps-hint").innerHTML=value==="turbo"?"<strong>6 recommended</strong> · Enter 4–8 steps for Turbo.":"<strong>20 recommended</strong> · Choose a preset or enter a custom value.";
-  $("stepAdvice").textContent=value==="turbo"?"Turbo uses 4–8 steps. More steps do not make it equivalent to Original quality.":"20 is the standard H3 setting. More steps take longer and may not improve quality. Custom range: 8–100.";
+  H3Guidance.setText($("stepAdvice"),value==="turbo"?"stepsTurbo":"stepsStandard");
   document.querySelectorAll("#stepPresets button").forEach(button=>button.classList.toggle("active",Number(button.dataset.steps)===Number($("steps").value)));
   $("profile").replaceChildren();
   const strong=document.createElement("strong");strong.textContent=info.title+(Number.isInteger(steps)&&steps>=Number($("steps").min)&&steps<=Number($("steps").max)?" · "+steps+" steps":" · choose valid steps");
@@ -231,11 +227,7 @@ function selectMode(mode, internal=false) {
   });
   $("framesSection").hidden = mode !== "frames";
   $("refsSection").hidden = mode !== "refs";
-  $("promptTip").textContent = mode === "refs"
-    ? "Type @ and select a named asset. Its thumbnail and H3 reference number appear below the prompt."
-    : mode === "frames"
-      ? "Use @start and @end to refer to uploaded frames. Their thumbnails and H3 picture numbers appear below."
-      : "Sent directly to H3. Describe both the motion and the sound.";
+  H3Guidance.setText($("promptTip"),mode==="refs"?"promptRefs":mode==="frames"?"promptFrames":"promptText");
   updateMethodAvailability();
   renderEstimates();
   renderLoras();
@@ -409,8 +401,8 @@ function renderLoras() {
     const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=anime?"Anime → Realism · LumiReal / Ref2VA":swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
     if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply this adapter at strength 0.9.";row.append(note);}
-    if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · Original Ref2VA only · strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
-    if(anime){const note=document.createElement('div');note.className='tip';note.textContent='LiseTY · trained on Ref2VA · trigger LumiReal. Video style transformation → Prepare selects this adapter. Strength 1 is a starting value, not a publisher-certified optimum. Other adapters, acceleration and refinement combinations are not quality-validated.';row.append(note);}
+    if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · References with your selected checkpoint · initial strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
+    if(anime){const note=document.createElement('div');note.className='tip';note.textContent='LiseTY · trained on Ref2VA · trigger LumiReal. Style prompt presets can enable this adapter, or select it here directly. Strength 1 is a starting value, not a publisher-certified optimum. Other adapters, acceleration and refinement combinations are not quality-validated.';row.append(note);}
     if(combat||realism){const source=document.createElement("div");source.className="tip";source.textContent=combat?"Creator tested FL2VA only · optional triggers prfight2, prfin1":"All three modes · trigger r34l1sm · 1.0 intended strength";row.append(source);}
     if(combat&&state.mode==="refs"){const warning=document.createElement("div");warning.className="tip";warning.textContent="Experimental with Ref2VA: the creator tested FL2VA only. Appearance, motion and audio may change.";row.append(warning);}
     if(incompatible&&!managed){const warning=document.createElement("div");warning.className="tip error";warning.textContent="This adapter appears to target a different H3 checkpoint.";row.append(warning);}
@@ -671,6 +663,11 @@ $("refFile").onchange=()=>{
   $("refFile").value="";renderRefs();renderEstimates();info(errors.join(" "),!!errors.length);saveDraft();
 };
 
+function referenceDisplay(ref){
+  const asset=state.currentProject?.assets?.find(item=>item.asset_id===ref.assetId);
+  const name=asset?.name||ref.name||ref.label||ref.alias;
+  return {name,label:name,mention_names:asset?.mention_names||ref.mention_names||[]};
+}
 function mentionItems(){
   if(state.mode==="frames"){
     const items=[];
@@ -681,7 +678,7 @@ function mentionItems(){
   if(state.mode!=="refs")return typeof projectCatalogItems==='function'?projectCatalogItems():[];
   let bindings=[];
   try{bindings=H3PromptCompiler.compilePrompt({mode:"refs",source_prompt:state.refs.map(r=>"@"+r.alias).join(" "),references:currentRenderSpec().references}).bindings||[];}catch{}
-  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),label:ref.label||ref.name||ref.alias||ref.kind,name:ref.name||ref.label||ref.alias,assetId:ref.assetId}));
+  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),...referenceDisplay(ref),assetId:ref.assetId}));
   return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias||(ref.assetId&&ref.assetId===item.assetId))):[]);
 }
 function mentionPreview(item){
@@ -696,23 +693,31 @@ function mentionPreview(item){
 }
 function renderPromptAssets(){
   const wrap=$("promptAssets");wrap.replaceChildren();
-  const prompt=$("prompt").value;
+  let prompt=$("prompt").value;
+  if(state.mode==='refs'){try{prompt=H3PromptCompiler.normalizeReferenceMentions(prompt,currentRenderSpec().references);}catch{}}
   const items=mentionItems().filter(item=>!item.catalog);
   for(const item of items){
     const chip=document.createElement("button");chip.type="button";chip.className="prompt-asset";
     if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt))chip.classList.add("used");
     chip.disabled=state.busy;
-    chip.title="Insert @"+item.alias+" into the prompt";
+    chip.title="Insert @"+preferredReferenceMention(item.alias)+" into the prompt";
     chip.onclick=()=>item.catalog?insertProjectMention(item).catch(error=>info(error.message,true)):insertReferenceMention(item.alias,false);
     const preview=mentionPreview(item);if(preview)chip.append(preview);
-    const name=document.createElement("span");name.textContent="@"+item.alias;
+    const name=document.createElement("span");name.textContent="@"+preferredReferenceMention(item.alias);
     const tag=document.createElement("small");tag.textContent=item.tag;
     chip.append(name,tag);wrap.append(chip);
   }
 }
+function preferredReferenceMention(alias){
+  const refs=currentRenderSpec().references||[],ref=refs.find(item=>item.alias===alias);
+  if(!ref)return alias;
+  const name=H3PromptCompiler.mentionName(ref);
+  try{if(H3PromptCompiler.normalizeReferenceMentions('@'+name,refs)==='@'+alias)return name;}catch{}
+  return alias;
+}
 function insertReferenceMention(alias,scroll){
   const input=$("prompt"),at=input.selectionStart;
-  input.setRangeText("@"+alias+" ",at,input.selectionEnd,"end");
+  input.setRangeText("@"+preferredReferenceMention(alias)+" ",at,input.selectionEnd,"end");
   input.focus();if(scroll)input.scrollIntoView({behavior:"smooth",block:"center"});
   renderPromptAssets();saveDraft();
 }
@@ -735,7 +740,7 @@ function mentionState() {
     const choose=()=>{
       const start=input.selectionStart-match[0].length,end=input.selectionStart;
       if(item.catalog){insertProjectMention(item,{start,end}).catch(error=>info(error.message,true));return;}
-      input.setRangeText("@"+item.alias+" ",start,end,"end");
+      input.setRangeText("@"+preferredReferenceMention(item.alias)+" ",start,end,"end");
       menu.classList.add("hidden");input.focus();renderPromptAssets();saveDraft();
     };
     b.onmousedown=e=>{e.preventDefault();choose();};
@@ -775,7 +780,7 @@ $("prompt").addEventListener("keydown",e=>{
 });
 $("prompt").addEventListener("blur",()=>{
   setTimeout(()=>$("mentionMenu").classList.add("hidden"),120);
-  if(typeof syncPromptMentionsToReferences==='function')syncPromptMentionsToReferences();
+  if(typeof syncPromptMentionsToReferences==='function')syncPromptMentionsToReferences().catch(error=>info(error.message,true));
 });
 
 function currentRenderSpec() {
@@ -789,6 +794,7 @@ function currentRenderSpec() {
       asset_id: r.assetId || r.alias,
       panel_order:r.panelOrder||"",
       alias: r.alias,
+      ...referenceDisplay(r),
       kind: r.kind,
       role: r.role || (r.kind === "image" ? "character identity" : r.kind === "video" ? "motion" : "voice"),
       instruction: r.instruction || "",
@@ -1207,6 +1213,10 @@ async function generate() {
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.tabDraftRestoreError){info("Restore this tab’s setup or explicitly clear it before rendering: "+state.tabDraftRestoreError,true);return;}
   if(state.restoreMissing?.length){info("Reattach missing inputs and Save the project before rendering: "+state.restoreMissing.join(", "),true);return;}
+  try{
+    if(typeof syncPromptMentionsToReferences==='function')await syncPromptMentionsToReferences();
+    if(typeof workspaceLocked==='function'&&workspaceLocked())throw Error('Wait for the current project operation to finish.');
+  }catch(error){info(error.message,true);return;}
   if($("preparationMode")?.value==="auto"&&state.promptProviderCheck)await state.promptProviderCheck;
   if(state.busy||state.running)return;
   const epoch=++state.generationEpoch;
@@ -2100,25 +2110,12 @@ function updateProjectUI(proj) {
     for (const asset of proj.assets) {
       const matchingRef = state.refs.find(r => r.assetId === asset.asset_id);
       if (matchingRef) {
-        const oldAlias = matchingRef.alias;
-        const newAlias = asset.alias;
         const assignedName = asset.name || asset.alias;
-        if (matchingRef.label !== assignedName) {
+        matchingRef.mention_names = asset.mention_names || [];
+        if (matchingRef.label !== assignedName || matchingRef.name !== assignedName) {
           matchingRef.label = assignedName;
+          matchingRef.name = assignedName;
           refsChanged = true;
-        }
-        if (oldAlias && newAlias && oldAlias !== newAlias) {
-          matchingRef.alias = newAlias;
-          refsChanged = true;
-          const pattern = new RegExp("@" + oldAlias + "(?=$|[^\\p{L}\\p{N}_-])", "gu");
-          if ($("prompt")) {
-            $("prompt").value = $("prompt").value.replace(pattern, "@" + newAlias);
-          }
-          for (const m of ["text", "frames", "refs"]) {
-            if (state.prompts[m]) {
-              state.prompts[m] = state.prompts[m].replace(pattern, "@" + newAlias);
-            }
-          }
         }
       }
     }

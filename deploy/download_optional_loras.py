@@ -61,12 +61,18 @@ def valid(path, digest, size):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("comfy_root", type=pathlib.Path)
+    parser.add_argument("--offline-check", action="store_true", help="Verify cached files without downloading or changing storage")
     parser.add_argument("--combat-file", type=pathlib.Path, help="Previously downloaded Combat V2 safetensors file")
     args = parser.parse_args()
     root = args.comfy_root.resolve()
     if not (root / "main.py").is_file():
         parser.error("ComfyUI main.py not found")
     target_dir = root / "models" / "loras"
+    if args.offline_check:
+        missing = [name for name, _, digest, size in LORAS if not valid(target_dir / name, digest, size)]
+        if missing:
+            print("Missing or invalid optional LoRAs: " + ", ".join(missing), file=sys.stderr)
+        return int(bool(missing))
     target_dir.mkdir(parents=True, exist_ok=True)
     for name, url, digest, size in LORAS:
         target = target_dir / name

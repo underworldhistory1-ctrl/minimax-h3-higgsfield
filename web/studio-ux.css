@@ -22,7 +22,7 @@ body{font-size:16px}.panel p,.tip,.notice,.profile,.details,.steps-hint,.duratio
 
 #projectHub{display:none;max-width:1100px;margin:0 auto;padding:40px 24px;height:calc(100dvh - 68px);overflow:auto;box-sizing:border-box}
 .project-hub-open #projectHub{display:block}.project-hub-open main.shell{display:none}
-.project-hub-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}#projectHubList{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}.project-card{background:#1e1f1b;border:1px solid #393d31;border-radius:12px;padding:20px;overflow-wrap:anywhere}
+.project-hub-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
 .asset-group{border-top:1px solid #353831;margin-top:12px;padding-top:10px}.asset-group summary{cursor:pointer;font-weight:650}.catalog-asset{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2c2e27}.catalog-asset img,.asset-kind{width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0}.asset-kind{display:grid;place-items:center;background:#292c23;font-size:22px}.catalog-description{min-width:0;flex:1;overflow-wrap:anywhere}.catalog-description strong,.catalog-description small{display:block}.catalog-description small{color:var(--muted)}.catalog-actions{display:flex;gap:5px}#projectAssetList{max-height:420px;overflow:auto}#assetEditDialog{width:min(500px,90vw);border:1px solid #555;border-radius:12px;background:#1d1e1a;color:var(--text);padding:24px}#assetEditDialog::backdrop{background:#0009}#assetEditDialog input,#assetEditDialog select,#assetEditDialog textarea{width:100%;box-sizing:border-box}#assetEditDialog textarea{height:100px}
 @media(max-width:720px){#projectHub{padding:24px 16px}#projectHub .row{flex-wrap:wrap}.catalog-actions{flex-direction:column}}
 /* Separate workspaces retain the original production controls and controller. */
@@ -53,3 +53,27 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 .project-hub-tools{margin-top:22px;max-width:850px}.project-hub-tools summary{cursor:pointer;color:var(--muted)}body[data-workspace-view] #projectsHome{display:none}
 
 .activity-badge{margin-left:auto;background:var(--acid);color:#1a200e;border-radius:12px;padding:1px 7px;font-size:12px}.activity-badge[hidden]{display:none}@media(max-width:720px){.activity-badge{position:absolute;top:3px;right:3px}.workspace-nav{position:relative}}
+
+/* Language choice applies to contextual workflow explanations. */
+.guidance-language{display:flex;align-items:center;gap:6px;flex:0 0 auto}.guidance-language label{font-size:11px;color:var(--muted);margin:0}.guidance-language select{width:auto;margin:0;padding:5px 7px;font-size:12px}@media(max-width:720px){.guidance-language label{display:none}}
+
+/* Follow the shot, render setup, then optional guidance without duplicating controls. */
+.sidebar-scroll[data-arranged]>.workspace-intro{display:none}
+.workspace-step{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acid);margin:22px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+#shotInputsHeading{margin-top:16px}
+.sidebar-scroll[data-arranged] #projectPanel{padding:10px 13px}
+.sidebar-scroll[data-arranged] #projectPanel h2{font-size:13px}
+.sidebar-scroll[data-arranged] .panel>details+details{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.sidebar-scroll[data-arranged] summary{overflow-wrap:anywhere}
+.top>*{min-width:0}
+@media(max-width:1100px) and (min-width:721px){body[data-workspace-view] .shell{grid-template-columns:minmax(0,1fr)}body[data-workspace-view] .left{overflow:visible}body[data-workspace-view] .sidebar-scroll{overflow:visible}body[data-workspace-view] .shell{height:auto}body[data-workspace-view] .sidebar-resizer{display:none}body[data-workspace-view] .right{overflow:visible}}
+@media(max-width:720px){
+  .top{height:auto;min-height:100px;flex-wrap:wrap;gap:6px 10px;padding:8px 12px;align-content:center}
+  .top .brand{order:0;flex:0 0 32px}
+  .top .topnav{order:1;flex:1 0 calc(100% - 52px);justify-content:flex-end;overflow:visible;gap:8px;margin:0}
+  .top .topnav a{height:32px;padding:0 8px}
+  .top .guidance-language{order:2;margin-left:auto}
+  .top .h3-updates-trigger{order:3;flex:0 0 auto}
+  .top .connection{order:4;margin-left:0;max-width:none}
+  body[data-workspace-view] .workspace-page,body[data-workspace-view] #projectHub{height:calc(100dvh - 168px)}
+}

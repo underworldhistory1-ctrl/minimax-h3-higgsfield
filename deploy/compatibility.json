@@ -27,7 +27,7 @@
     "lightx2v"
   ],
   "gpu_evidence": "No GPU was available for this modernization. Historical baseline renders do not validate new configurations.",
-  "project_version": "2.5.0",
+  "project_version": "2.5.5",
   "audio_enhancement": {
     "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
     "source_commit": "d78d34f2f1100b0422047e9d784a3bdb4e1061d3",

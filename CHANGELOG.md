@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.5.5 - 2026-10-15
+
+- Fail server API verification when an expected pinned LoRA is absent from live discovery; report exact names and model-path/launcher recovery guidance.
+
+- Repair sequential project @mention attachment, display-name resolution and backward aliases while preserving stable asset identities and saved takes.
+- Add official-source update discovery, guarded installation and durable restart/recovery status. Installation never submits a GPU smoke job from the UI.
+- Default contextual workflow help to English with a persisted Arabic choice.
+- Reorder existing controls into shot direction, render setup and optional guidance; preserve settings/listeners and verify expanded layouts across desktop, tablet and mobile.
+- Reconcile current README/start/graph documentation and release history. See the dated production-readiness report for exact checks and runtime limitations.
+
+## 2.5.4 - 2026-10-15
+
+- Stream video-workspace image, video, audio, keyframe and control uploads through the shared validated route, retaining progress and cancellation.
+- Verify Anime2Realism + Combat V2 + media references + timed keyframes across native, MotionCache and Spectrum graphs.
+- Correct Element naming integration and canonical 24 fps reference-video metadata; lifecycle regressions are addressed in 2.5.5.
+
+## 2.5.3 - 2026-10-15
+
+- Use bounded JSON transport for Qwen images through hosted gateways; retain errors and working inputs.
+- Keep canvas/aspect selection editable after adding references and persist selections independently per tab.
+
+## 2.5.2 - 2026-10-15
+
+- Install the pinned LiseTY Anime → Realism Ref2VA adapter and enforce its source-video, Original References and trigger requirements.
+
 ## 2.5.1
 
 - Project card actions unlock after initial workspace loading and after catalog operations; active operations still keep them disabled.

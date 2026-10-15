@@ -43,6 +43,34 @@ def atomic_json(path, value):
         temporary.unlink(missing_ok=True)
 
 
+def write_source_receipt(root):
+    """Expose updates only for a clean, official main checkout kept outside runtime."""
+    root = Path(root).resolve()
+    receipt = root / '.h3-launcher/source.json'
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(PROJECT), *args], text=True, stderr=subprocess.DEVNULL).strip()
+    try:
+        accepted = {'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git',
+                    'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
+        runtime = runtime_target(root).resolve()
+        if (PROJECT.resolve() == runtime or git('remote', 'get-url', 'origin') not in accepted
+                or git('branch', '--show-current') != 'main'
+                or git('status', '--porcelain', '--untracked-files=no')):
+            receipt.unlink(missing_ok=True)
+            return False
+        commit = git('rev-parse', 'HEAD')
+        if not re.fullmatch(r'[0-9a-f]{40}', commit):
+            receipt.unlink(missing_ok=True)
+            return False
+    except (OSError, subprocess.CalledProcessError):
+        receipt.unlink(missing_ok=True)
+        return False
+    atomic_json(receipt, {'source_root': str(PROJECT.resolve()), 'comfy_root': str(root),
+                          'runtime_root': str(runtime), 'installed_commit': commit})
+    return True
+
+
 def load_state(path, config):
     fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     if Path(path).is_file():
@@ -315,7 +343,7 @@ def runtime_snapshot(root, state_dir):
     extension = runtime_target(root)
     if extension.is_dir():
         backup = state_dir / "backups" / dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-        names = ["__init__.py", "h3_video_save.py", "qwen_image.py", "h3_continuation.py", "h3_queue_bridge.py", "promptwriter.py", "web", "h3_lab", "corpus", "tools"]
+        names = ["__init__.py", "h3_video_save.py", "qwen_image.py", "h3_continuation.py", "h3_queue_bridge.py", "h3_audio_refine.py", "prompt_formats.py", "promptwriter.py", "web", "h3_lab", "corpus", "tools"]
         for name in names:
             old = extension / name
             target = backup / name
@@ -607,6 +635,8 @@ def start_server(api, root, python, args, runner, state, save):
 
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
+    result.add_argument('--ui-update', help=argparse.SUPPRESS)
+    result.add_argument('--ui-update-staged', action='store_true', help=argparse.SUPPRESS)
     result.add_argument("--comfy-root")
     result.add_argument("--comfy-python", default=os.environ.get("COMFY_PYTHON"))
     result.add_argument("--models-root", action="append", default=[], help="Attached storage directory; repeat for multiple disks")
@@ -637,6 +667,14 @@ def parser():
 
 def main():
     args = parser().parse_args()
+    if args.ui_update:
+        if not args.comfy_root:
+            raise RuntimeError('UI update requires the verified ComfyUI root')
+        if __package__:
+            from .ui_update import code_only_update
+        else:
+            from ui_update import code_only_update
+        return code_only_update(args.comfy_root, args.ui_update, args.ui_update_staged)
     if args.turbo:
         raise RuntimeError('Turbo has been removed. Existing files are preserved but not loaded or downloaded.')
     if not (args.no_update or args.status or args.plan):
@@ -784,6 +822,7 @@ def main():
             state["runtime_changed"] = state["runtime_changed"] or overlay_changed
             state["models"] = stage("models", lambda: prepare_models(root, roots, artifacts, directory, emit=runner.emit))
             state["files_prepared"] = True
+            write_source_receipt(root)
             save()
             if args.no_start:
                 state.update(status="files_prepared", next_action="Start ComfyUI, then rerun without --no-start")
@@ -803,6 +842,11 @@ def main():
                          studio_url=url.rstrip("/") + "/extensions/" + runtime_target(root).name + "/index.html", next_action=None)
             save()
             runner.emit("H3 ready: " + state["studio_url"])
+            if __package__:
+                from .ui_update import complete_recovery
+            else:
+                from ui_update import complete_recovery
+            complete_recovery(root, state)
             runner.emit("GPU video/audio validation: " + ("passed" if state["gpu_validated"] else "not run"))
             runner.emit("Report: " + str(directory / "report.json"))
             return 0

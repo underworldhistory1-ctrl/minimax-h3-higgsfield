@@ -48,12 +48,13 @@
       return await (globalThis.H3RenderValues?H3RenderValues.readJson(res):res.json());
     }
 
-    async uploadAsset(file, projectId = this.currentProject?.project_id) {
-      const body = new FormData();
-      body.append('file', file);
-      if (projectId) body.append('project_id', projectId);
-      const query = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
-      const data = await this.fetchJson('/h3_studio/lab/assets' + query, { method: 'POST', body });
+    async uploadAsset(file, projectId = this.currentProject?.project_id, options = {}) {
+      const query = new URLSearchParams({filename: file.name || 'reference.png'});
+      if (projectId) query.set('project_id', projectId);
+      for (const key of ['category', 'name']) if (options[key]) query.set(key, options[key]);
+      const data = await this.fetchJson('/h3_studio/lab/assets?' + query, {
+        method: 'POST', body: file, headers: {'Content-Type': 'application/octet-stream'},
+      });
       return data.asset || data;
     }
 

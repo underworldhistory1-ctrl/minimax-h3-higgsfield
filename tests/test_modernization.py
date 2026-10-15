@@ -12,6 +12,19 @@ from h3_lab.model_catalog import discover, reference_control_supported
 
 
 class ModernizationTests(unittest.TestCase):
+    def test_experimental_adapter_graphs_pass_actual_backend_configuration_admission(self):
+        from h3_lab.configuration import validate_configuration
+        script = """const C=require('./web/h3/configuration'),B=require('./web/h3/graph-builder');
+const caps={model_catalog:[{name:'community.safetensors',profiles:['singularity']},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader']}],hybrid_loader_ready:true};
+const specs=[];for(const model_profile of Object.keys(C.profiles))for(const render_method of ['native','motioncache','spectrum']){
+const spec={mode:'refs',model_profile,checkpoint:'community.safetensors',render_method,loras:[{enabled:true,name:C.ANIME_TO_REALISM,strength:.8},{enabled:true,name:C.CHARACTER_SWAP,strength:.7},{enabled:true,name:'H3_Combat_V2.safetensors',strength:.6}],references:[{kind:'image',alias:'hero'},{kind:'video',alias:'shot',fps:24,frame_count:124,use_audio:true}],guides:[{kind:'image',file:'key.png',frame_idx:17}]};
+spec.workflow=B.buildGraph(spec,{hero:'hero.png',shot:'shot.mp4'},caps);specs.push(spec);}console.log(JSON.stringify({specs,caps}));"""
+        data = json.loads(subprocess.check_output(['node', '-e', script], cwd=Path(__file__).resolve().parents[1], text=True))
+        self.assertEqual(len(data['specs']), 12)
+        for spec in data['specs']:
+            with self.subTest(profile=spec['model_profile'], method=spec['render_method']):
+                validate_configuration(spec, data['caps'])
+
     def test_anime_realism_manifest_and_admission(self):
         import copy, json, subprocess
         from pathlib import Path
@@ -35,7 +48,11 @@ class ModernizationTests(unittest.TestCase):
             else:bad['workflow']['8']['inputs']['model']=['1',0]
             with self.assertRaises(ValueError):validate_anime_to_realism(bad)
         for profile in ('singularity','hybrid_loader','hybrid_conditioning'):
-            with self.assertRaisesRegex(ValueError,'Ref2VA'):validate_anime_to_realism({**spec,'model_profile':profile})
+            candidate = copy.deepcopy(spec)
+            candidate['model_profile'] = profile
+            candidate['checkpoint'] = 'community.safetensors'
+            candidate['workflow']['1'] = ({'class_type':'MinimaxH3_HybridLoader','inputs':{'base_model':'minimax_h3_fl2va_pruned_int8_convrot.safetensors','overlay_model':'','overlay_preset':'none'}} if profile == 'hybrid_loader' else {'class_type':'UNETLoader','inputs':{'unet_name': candidate['checkpoint'] if profile == 'singularity' else 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'}})
+            validate_anime_to_realism(candidate)
         with self.assertRaisesRegex(ValueError,'source video'):validate_anime_to_realism({**spec,'references':[{'kind':'image'}]})
 
     def test_character_swap_manifest_and_admission(self):
@@ -64,7 +81,11 @@ class ModernizationTests(unittest.TestCase):
             else:adapter['class_type']='LoraLoader'
             with self.assertRaises(ValueError):validate_character_swap(bad)
         for profile in ('singularity','hybrid_loader','hybrid_conditioning'):
-            with self.assertRaisesRegex(ValueError,'Ref2VA'):validate_character_swap({**spec,'model_profile':profile})
+            candidate = copy.deepcopy(spec)
+            candidate['model_profile'] = profile
+            candidate['checkpoint'] = 'community.safetensors'
+            candidate['workflow']['1'] = ({'class_type':'MinimaxH3_HybridLoader','inputs':{'base_model':'minimax_h3_fl2va_pruned_int8_convrot.safetensors','overlay_model':'','overlay_preset':'none'}} if profile == 'hybrid_loader' else {'class_type':'UNETLoader','inputs':{'unet_name': candidate['checkpoint'] if profile == 'singularity' else 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'}})
+            validate_character_swap(candidate)
         with self.assertRaisesRegex(ValueError,'replacement'):validate_character_swap({**spec,'references':[{'kind':'video'}]})
         with self.assertRaisesRegex(ValueError,'disagrees'):validate_character_swap({**spec,'loras':[]})
         with self.assertRaisesRegex(ValueError,'conditioning'):

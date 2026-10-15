@@ -11,6 +11,41 @@ from deploy import launcher
 
 
 class LauncherTests(unittest.TestCase):
+    def test_source_receipt_requires_clean_official_main_and_separate_source(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            receipt = root / '.h3-launcher/source.json'
+            def git(*args, **kwargs):
+                command = args[0]
+                if 'get-url' in command:
+                    return 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git\n'
+                if '--show-current' in command:
+                    return 'main\n'
+                if 'status' in command:
+                    return ''
+                return 'a' * 40 + '\n'
+            with patch.object(launcher.subprocess, 'check_output', side_effect=git):
+                self.assertTrue(launcher.write_source_receipt(root))
+            saved = json.loads(receipt.read_text())
+            self.assertEqual(saved['installed_commit'], 'a' * 40)
+            self.assertEqual(saved['runtime_root'], str(launcher.runtime_target(root).resolve()))
+            with patch.object(launcher.subprocess, 'check_output', return_value='custom\n'):
+                self.assertFalse(launcher.write_source_receipt(root))
+            self.assertFalse(receipt.exists())
+
+    def test_snapshot_preserves_all_deployed_python_modules(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            extension = root / 'custom_nodes/h3_studio'
+            for name in ('__init__.py', 'h3_audio_refine.py', 'prompt_formats.py'):
+                path = extension / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('original ' + name)
+            snapshot = launcher.runtime_snapshot(root, root / '.h3-launcher')
+            backup = Path(snapshot['extension_backup'])
+            for name in ('h3_audio_refine.py', 'prompt_formats.py'):
+                self.assertEqual((backup / name).read_text(), 'original ' + name)
+
     def test_ambiguous_comfy_is_not_guessed(self):
         with tempfile.TemporaryDirectory() as folder:
             roots = [Path(folder) / name for name in ("a", "b")]

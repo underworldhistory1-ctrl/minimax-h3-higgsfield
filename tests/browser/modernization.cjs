@@ -71,14 +71,14 @@ let browser;
  await page.screenshot({path:path.join(out,'same-take-upscale.png'),fullPage:false});
  await page.evaluate(()=>{window.__export=null;});await page.locator('#upscaleTake').click();await page.waitForFunction(()=>window.__export);
  await page.evaluate(()=>{
-   localStorage.setItem(baseKey,'https://new-server.invalid');
+   sessionStorage.setItem(baseKey,'https://new-server.invalid');
    showVideo({file:{filename:'h3_studio_fedcba654321_00001_.mp4',subfolder:'video'}});
    window.__export.resolve(new Response(JSON.stringify({download_url:'/h3_studio/lab/exports/second.mp4',filename:'second.mp4',width:1728,height:960,frames:311}),{status:201}));
  });
  await page.waitForFunction(()=>!state.mediaExporting);
  assert.equal(await page.locator('#upscaleStatus').innerText(),'');
  assert.ok(!(await page.evaluate(()=>window.__downloads.at(-1))).includes('new-server.invalid'));
- await page.evaluate(()=>{localStorage.removeItem(baseKey);window.fetch=window.__originalFetch;HTMLAnchorElement.prototype.click=window.__originalAnchorClick;});
+ await page.evaluate(()=>{sessionStorage.removeItem(baseKey);window.fetch=window.__originalFetch;HTMLAnchorElement.prototype.click=window.__originalAnchorClick;});
  assert.equal(await page.evaluate(()=>JSON.stringify(captureSettings())===window.__settingsBefore),true);
  // Every saved card exposes its own actions without changing generation settings.
  await page.evaluate(()=>{
@@ -137,9 +137,9 @@ let browser;
  await page.evaluate(()=>{window.fetch=(url,options)=>String(url).includes('/delete_video')?new Promise(resolve=>window.__lateDelete=resolve):window.__libraryFetch(url,options);});
  await page.evaluate(()=>setWorkspaceView('generations'));
  await page.locator('.result-actions').first().getByRole('button',{name:'Delete'}).click();await page.waitForFunction(()=>window.__lateDelete);
- await page.evaluate(()=>{localStorage.setItem(baseKey,'https://new-server.invalid');state.results=[{...window.__libraryB}];renderResults();window.__lateDelete(new Response(JSON.stringify({ok:true}),{status:200}));});
+ await page.evaluate(()=>{sessionStorage.setItem(baseKey,'https://new-server.invalid');state.results=[{...window.__libraryB}];renderResults();window.__lateDelete(new Response(JSON.stringify({ok:true}),{status:200}));});
  await page.waitForFunction(()=>videoDeletions.size===0);assert.equal(await page.locator('.result').count(),1);
- await page.evaluate(()=>{localStorage.removeItem(baseKey);window.fetch=window.__libraryFetch;HTMLAnchorElement.prototype.click=window.__cardAnchor;renderResults();});
+ await page.evaluate(()=>{sessionStorage.removeItem(baseKey);window.fetch=window.__libraryFetch;HTMLAnchorElement.prototype.click=window.__cardAnchor;renderResults();});
  await page.screenshot({path:path.join(out,'library-actions.png')});
  // Bulk unpinned deletion keeps server-side pin protection and locks source exports.
  await page.evaluate(()=>{
@@ -153,9 +153,9 @@ let browser;
  await page.waitForFunction(()=>videoDeletions.size===0);assert.equal(await page.locator('.result').count(),1);
  await page.locator('#videoActionsClose').click();
  await page.evaluate(()=>window.__bulkPending=[]);await page.locator('#wipe').click();await page.waitForFunction(()=>window.__bulkPending.length===1);
- await page.evaluate(()=>{localStorage.setItem(baseKey,'https://new-server.invalid');state.results=[{...window.__libraryB}];showVideo(state.results[0]);renderResults();window.__bulkPending[0].resolve(new Response(JSON.stringify({ok:true}),{status:200}));});
+ await page.evaluate(()=>{sessionStorage.setItem(baseKey,'https://new-server.invalid');state.results=[{...window.__libraryB}];showVideo(state.results[0]);renderResults();window.__bulkPending[0].resolve(new Response(JSON.stringify({ok:true}),{status:200}));});
  await page.waitForFunction(()=>videoDeletions.size===0);assert.equal(await page.locator('.result').count(),1);assert.equal(await page.locator('#resultCard').isVisible(),true);
- await page.evaluate(()=>{localStorage.removeItem(baseKey);window.fetch=window.__libraryFetch;renderResults();});
+ await page.evaluate(()=>{sessionStorage.removeItem(baseKey);window.fetch=window.__libraryFetch;renderResults();});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'mobile.png'),fullPage:false});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({status:'passed',checks:['740px desktop sidebar','keyboard resize persistence','multi-image upload','compact expandable references','rename and reorder bindings','Singularity loader and sampler overrides','refresh persistence','mobile overflow','Character Swap guided preset, native tags and stable IDs','server dense backend visible and saved','same-take export keeps settings','export lifecycle and source-server/result races','per-video options and pinned deletion','failed deletion retains card','bulk pin and source-server guards','card-specific upscale and server-switch protection','zero uncaught errors'],gpu_rendered:false,fixture_backend:true},null,2));await browser.close();console.log('Browser contracts passed; no GPU inference was performed.');
 })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exitCode=1;});

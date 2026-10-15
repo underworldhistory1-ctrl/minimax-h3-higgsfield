@@ -10,13 +10,13 @@
   function isAnimeToRealism(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===ANIME_TO_REALISM.toLowerCase();}
   function validateAnimeToRealism(spec){
     if(!(spec.loras||[]).some(x=>x.enabled&&isAnimeToRealism(x.name)))return;
-    if(spec.mode!=='refs'||(spec.model_profile||'original')!=='original')throw Error('Anime → Realism requires Original H3 Ref2VA; other checkpoint families are not validated.');
+    if(spec.mode!=='refs')throw Error('Anime → Realism requires Ref2VA reference conditioning.');
     if(!(spec.references||[]).some(r=>r.kind==='video'))throw Error('Anime → Realism requires a source video in References.');
   }
   function isCharacterSwap(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===CHARACTER_SWAP;}
   function validateCharacterSwap(spec){
     if(!(spec.loras||[]).some(x=>x.enabled&&isCharacterSwap(x.name)))return;
-    if(spec.mode!=='refs'||(spec.model_profile||'original')!=='original')throw Error('Character Swap requires Original H3 Ref2VA. Singularity and this studio hybrid are not validated.');
+    if(spec.mode!=='refs')throw Error('Character Swap requires Ref2VA reference conditioning.');
     const refs=spec.references||[];
     if(!refs.some(r=>r.kind==='video')||!refs.some(r=>r.kind==='image'))throw Error('Character Swap requires a source video and replacement character image in References.');
   }

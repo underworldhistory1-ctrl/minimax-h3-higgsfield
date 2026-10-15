@@ -69,10 +69,15 @@ def _validate_ref2va_adapter(spec, filename, label, replacement_image):
         return
     if declared != bool(loaded):
         raise ValueError(label + ' selection disagrees with the submitted LoRA graph')
-    if spec.get('mode') != 'refs' or spec.get('model_profile', 'original') != 'original':
-        raise ValueError(label + ' requires Original H3 Ref2VA; selected checkpoint is not validated')
-    if graph.get('1', {}).get('class_type') != 'UNETLoader' or graph['1'].get('inputs', {}).get('unet_name') != REF or graph.get('6', {}).get('class_type') != 'MiniMaxH3ReferenceToVideo':
-        raise ValueError(label + ' requires the original Ref2VA loader and conditioning')
+    if spec.get('mode') != 'refs':
+        raise ValueError(label + ' requires Ref2VA reference conditioning')
+    profile = spec.get('model_profile', 'original')
+    loader = graph.get('1', {})
+    expected = spec.get('checkpoint') if profile == 'singularity' else FL if profile in ('hybrid_conditioning', 'hybrid_loader') else REF
+    loader_type = 'MinimaxH3_HybridLoader' if profile == 'hybrid_loader' else 'UNETLoader'
+    model_name = loader.get('inputs', {}).get('base_model' if profile == 'hybrid_loader' else 'unet_name')
+    if loader.get('class_type') != loader_type or model_name != expected or graph.get('6', {}).get('class_type') != 'MiniMaxH3ReferenceToVideo':
+        raise ValueError(label + ' requires the selected loader and Ref2VA conditioning')
     def model_chain(link):
         chain = []
         seen = set()
@@ -83,12 +88,12 @@ def _validate_ref2va_adapter(spec, filename, label, replacement_image):
             seen.add(key)
             node = graph[key]
             chain.append(node)
-            if node.get('class_type') == 'UNETLoader':
-                if node.get('inputs', {}).get('unet_name') != REF:
-                    raise ValueError(label + ' model chain requires Original Ref2VA')
+            if node.get('class_type') in ('UNETLoader', 'MinimaxH3_HybridLoader'):
+                if key != '1':
+                    raise ValueError(label + ' model chain requires the selected checkpoint loader')
                 return chain
             link = node.get('inputs', {}).get('model')
-        raise ValueError(label + ' model chain is not connected to Original Ref2VA')
+        raise ValueError(label + ' model chain is not connected to the selected checkpoint loader')
     generation_chain = model_chain(graph.get('8', {}).get('inputs', {}).get('model'))
     if not any(n is adapter for n in generation_chain for adapter in loaded):
         raise ValueError(label + ' is not connected to the generation sampler')

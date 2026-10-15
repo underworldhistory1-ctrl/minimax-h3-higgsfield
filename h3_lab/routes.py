@@ -562,11 +562,14 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             return web.json_response({"error": str(e)}, status=400)
 
     async def handle_upload_asset(request):
-        reader = await request.multipart()
-        field = await reader.next()
-        if not field or not field.filename:
-            return web.json_response({"error": "Upload a media file"}, status=400)
-        suffix = pathlib.Path(field.filename).suffix.lower()
+        from .reference_upload import reference_upload
+        try:
+            filename, read_chunk = await reference_upload(request, 'image', 500 * 1024 * 1024)
+            if not filename or len(filename) > 255 or any(c in filename for c in ('/', '\\', '\0')):
+                raise ValueError('Invalid asset filename.')
+        except (ValueError, AssertionError) as error:
+            return web.json_response({'error': str(error)}, status=400)
+        suffix = pathlib.Path(filename).suffix.lower()
         kinds = {".png": "image", ".jpg": "image", ".jpeg": "image", ".webp": "image",
                  ".mp4": "video", ".mov": "video", ".webm": "video", ".wav": "audio", ".mp3": "audio", ".flac": "audio", ".m4a": "audio"}
         if suffix not in kinds:
@@ -579,11 +582,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         limit_mb = {"image": 25, "audio": 100, "video": 500}[kinds[suffix]]
         try:
             with temporary.open("wb") as stream:
-                while chunk := await field.read_chunk():
+                while chunk := await read_chunk(size=65536):
                     size += len(chunk)
                     if size > limit_mb * 1024 * 1024:
                         return web.json_response({"error": f"Asset exceeds {limit_mb} MB"}, status=413)
                     await asyncio.to_thread(stream.write, chunk)
+            if not size:
+                raise ValueError('Asset file is empty.')
             metadata = {}
             if kinds[suffix] == "video":
                 def process_video_asset(source_path):
@@ -639,7 +644,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                     except Exception:
                         return {"fps": 24}
                 metadata = await asyncio.to_thread(process_video_asset, temporary)
-            rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], field.filename, pid, metadata)
+            rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], filename, pid, metadata)
             if pid:
                 await asyncio.to_thread(projects.attach_asset, pid, rec, request.query.get("category"), request.query.get("name"))
             return web.json_response({"asset": rec}, status=201)
@@ -869,14 +874,19 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         except (ValueError, FileNotFoundError, subprocess.SubprocessError) as error:
             return web.json_response({"error": str(error)}, status=400)
 
-    async def handle_export_jobs(request):
+    def active_operations():
         operations = [name for name, lock in (
             ('media_export', media_export_lock), ('prompt_preparation', preparation_lock),
             ('source_preparation', source_upload_lock), ('quality_analysis', quality_lock)) if lock.locked()]
         with control_tasks_lock:
             if any(record['state'] in ('waiting', 'processing') for record in control_tasks.values()):
                 operations.append('control_preparation')
-        return web.json_response({"jobs": await asyncio.to_thread(exports.list), "active_operations": operations})
+        return operations
+
+    services['active_operations'] = active_operations
+
+    async def handle_export_jobs(request):
+        return web.json_response({"jobs": await asyncio.to_thread(exports.list), "active_operations": active_operations()})
 
     async def handle_export_job(request):
         record = await asyncio.to_thread(exports.get, request.match_info["id"])

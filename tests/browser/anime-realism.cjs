@@ -33,6 +33,15 @@ let browser,animeInstalled=true;
  assert.equal(restyle.profile,'original');assert.equal(restyle.model,C.REF);assert.equal(restyle.method,'native');assert.ok(restyle.prompt.includes('LumiReal'));assert.equal(restyle.loras.length,1);assert.equal(restyle.loras[0].name,C.ANIME_TO_REALISM);assert.equal(restyle.sampler,'euler');assert.equal(restyle.shift,9);assert.deepEqual(restyle.ids,['replacement-id','source-id']);
  assert.ok((await page.locator('#styleAdapterNotice').innerText()).includes('installed'));
  await page.screenshot({path:path.join(out,'anime-realism-prepared.png'),fullPage:false});
+ for(const profile of ['singularity','hybrid_conditioning','hybrid_loader']){
+   await page.evaluate(async profile=>{state.modelProfile=profile;state.checkpoint=null;await H3ConfigurationUI.refresh();$('renderMethod').value='motioncache';state.loras.find(l=>H3Configuration.isCharacterSwap(l.name)).enabled=true;},profile);
+   await page.locator('#applyStyle').click();
+   assert.equal(await page.evaluate(()=>state.modelProfile),profile,'Preset preserves selected checkpoint family');
+   assert.equal(await page.evaluate(()=>method()),'motioncache','Preset preserves render method');
+   assert.equal(await page.evaluate(()=>state.loras.filter(l=>l.enabled).length),2,'Preset preserves other selected LoRAs');
+   const graph=await page.evaluate(()=>{const spec=currentRenderSpec();return H3GraphBuilder.buildGraph({...spec,compiled_prompt:H3PromptCompiler.compilePrompt(spec).compiled_prompt},{source:'s.mp4',replacement:'r.png'},state.labCapabilities);});
+   assert.equal(Object.values(graph).filter(n=>n.class_type==='LoraLoaderModelOnly').length,2);
+ }
  await page.locator('#styleDirection').selectOption('realism_to_anime');await page.locator('#applyStyle').click();assert.equal(await page.evaluate(()=>state.loras.some(l=>l.enabled&&H3Configuration.isAnimeToRealism(l.name))),false);assert.ok(!(await page.locator('#prompt').inputValue()).includes('LumiReal'));
  animeInstalled=false;await page.evaluate(async()=>{await loadLoras();});
  await page.locator('#styleDirection').selectOption('anime_to_realism');const previousPrompt=await page.locator('#prompt').inputValue();await page.locator('#applyStyle').click();assert.equal(await page.locator('#prompt').inputValue(),previousPrompt);assert.ok((await page.locator('#error').innerText()).includes('missing'));

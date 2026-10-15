@@ -26,7 +26,7 @@ let browser;const submissions=[];
  });
 
 
- await page.addInitScript(()=>localStorage.setItem('h3studio.draft.v3',JSON.stringify({seed:'1.25',duration:'73',durationRequested:'3',mode:'text',prompts:{text:'A quiet room.'}})));
+ await page.addInitScript(()=>sessionStorage.setItem('h3studio.draft.v3',JSON.stringify({seed:'1.25',duration:'73',durationRequested:'3',mode:'text',prompts:{text:'A quiet room.'}})));
  await page.goto('http://127.0.0.1:18925/web/index.html');await page.waitForFunction(()=>projectCtrl&&!state.projectLoading&&state.modelsReady&&state.nodesReady);
  assert.equal(await page.locator('#seed').inputValue(),'42');assert.equal(await page.locator('#duration').inputValue(),'73');
  await page.locator('#newProjectName').fill('Seed and short-duration verification');await page.locator('#projectHubCreate').click();await page.waitForFunction(()=>!state.projectLoading&&workspaceView==='studio');

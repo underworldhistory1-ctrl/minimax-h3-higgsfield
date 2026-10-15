@@ -68,8 +68,14 @@ async function renderProjectHub(){
 }
 async function activateProjectAsset(item){
   if(workspaceLocked())throw Error('Wait for the current operation to finish.');
+  if(!state.currentProject?.assets?.some(asset=>asset.asset_id===item.assetId))throw Error('This element is not in the active project.');
   const existing=state.refs.find(ref=>ref.assetId===item.assetId);
-  if(existing){selectMode('refs');if(state.mode!=='refs')throw Error('References mode is unavailable.');return existing;}
+  if(existing){
+    const prompt=$('prompt').value,mode=state.mode;
+    selectMode('refs');if(state.mode!=='refs')throw Error('References mode is unavailable.');
+    if(mode!=='refs'){state.prompts.refs=prompt;$('prompt').value=prompt;saveDraft();}
+    return existing;
+  }
   if(state.refs.length>=12||state.refs.filter(ref=>ref.kind===item.kind).length>=maxRefs[item.kind]||
     item.kind==='audio'&&state.refs.filter(ref=>ref.kind==='audio'||ref.kind==='video'&&ref.useAudio).length>=3)
     throw Error('This shot has reached the H3 reference limit. Remove a shot reference first; the project asset will stay saved.');
@@ -78,18 +84,21 @@ async function activateProjectAsset(item){
   const referenceCheckpoint=state.modelProfile&&state.modelProfile!=='original'?selectedCheckpoint():modelRef;
   if(state.continuation?.type==='generated'&&state.continuation.source_model!==referenceCheckpoint)
     throw Error('Use Active continuation → References to re-encode this source before adding project references.');
-  const controller=projectCtrl,pid=state.activeProjectId;workspaceCatalogBusy=true;
+  const controller=projectCtrl,pid=state.activeProjectId,initialMode=state.mode,initialPrompt=$('prompt').value;workspaceCatalogBusy=true;
   let url;
   try{
     const record=await controller.getAsset(item.assetId);
     const blob=await controller.mediaBlob(item.assetId);
     if(controller!==projectCtrl||pid!==state.activeProjectId)throw Error('Project changed while loading the asset.');
+    if(state.mode!==initialMode||$('prompt').value!==initialPrompt)throw Error('The prompt changed while loading the element. Select it again to attach it.');
     // Readiness gates apply before committing a reference, including selected checkpoint compatibility.
     selectMode('refs');if(state.mode!=='refs')throw Error('References mode is unavailable on this server.');
+    if(initialMode!=='refs'){state.prompts.refs=initialPrompt;$('prompt').value=initialPrompt;}
     url=URL.createObjectURL(blob);
     const videoMeta=record?.metadata||item.metadata||{};
     const ref={assetId:item.assetId,file:new File([blob],record.original_name||item.alias,{type:blob.type}),kind:item.kind,alias:item.alias,
       label:item.label||item.name||item.alias,name:item.name||item.label||item.alias,
+      mention_names:item.mention_names||[],
       role:item.role||(item.kind==='image'?'character identity':item.kind==='video'?'motion':'voice'),
       previewUrl:item.kind==='audio'?null:url,url,useAudio:false,trimEnabled:false,trimStart:0,trimDuration:15,fitVideo:true,instruction:item.notes||'',
       meta:item.kind==='video'?{fps:24,frame_count:videoMeta.frame_count||120,duration:videoMeta.duration||5,...videoMeta}:(record?.metadata||{}),
@@ -114,41 +123,40 @@ async function activateProjectAsset(item){
     state.refs.push(ref);url=null;renderRefs();renderEstimates();saveDraft();return ref;
   }finally{if(url)URL.revokeObjectURL(url);workspaceCatalogBusy=false;renderProjectCatalog();}
 }
-let syncMentionsTimer=null;
+let syncMentionsTimer=null,syncMentionsPending=null;
 function syncPromptMentionsToReferences(){
-  if(!state.currentProject||!state.currentProject.assets||workspaceLocked())return;
-  const promptInput=$('prompt');if(!promptInput)return;
-  const text=promptInput.value||'';
-  const mentions=new Set();
-  const re=/@([\p{L}\p{N}_-]+)/gu;
-  let match;
-  while((match=re.exec(text))!==null){mentions.add(match[1].toLocaleLowerCase());}
-  if(!mentions.size)return;
-  const catalog=typeof projectCatalogItems==='function'?projectCatalogItems():[];
-  for(const item of catalog){
-    const aliasLower=(item.alias||'').toLocaleLowerCase();
-    const labelAlias=(item.label?item.label.trim().replace(/[\s/\\-]+/g,'_'):'').toLocaleLowerCase();
-    const nameAlias=(item.name?item.name.trim().replace(/[\s/\\-]+/g,'_'):'').toLocaleLowerCase();
-    const isMentioned=mentions.has(aliasLower)||mentions.has(labelAlias)||mentions.has(nameAlias);
-    if(!isMentioned)continue;
-    const active=state.refs.some(r=>r.assetId===item.assetId||(r.alias&&r.alias.toLocaleLowerCase()===aliasLower));
-    if(active)continue;
-    if(state.refs.length>=12||state.refs.filter(r=>r.kind===item.kind).length>=(maxRefs[item.kind]||4))continue;
-    activateProjectAsset(item).catch(()=>{});
-  }
+  if(syncMentionsPending)return syncMentionsPending;
+  if(!state.currentProject?.assets||workspaceLocked())return Promise.resolve();
+  const pid=state.activeProjectId;
+  syncMentionsPending=(async()=>{
+    for(const item of projectCatalogItems()){
+      if(pid!==state.activeProjectId)return;
+      const text=H3PromptCompiler.normalizeReferenceMentions($('prompt').value||'',projectCatalogItems());
+      const mentions=new Set([...text.matchAll(/@([\p{L}\p{N}_-]+)/gu)].map(match=>match[1]));
+      if(!mentions.has(item.alias)||state.refs.some(ref=>ref.assetId===item.assetId))continue;
+      await activateProjectAsset(item);
+    }
+  })().finally(()=>{syncMentionsPending=null;});
+  return syncMentionsPending;
 }
 function queueSyncPromptMentions(){
   clearTimeout(syncMentionsTimer);
-  syncMentionsTimer=setTimeout(syncPromptMentionsToReferences,200);
+  syncMentionsTimer=setTimeout(()=>syncPromptMentionsToReferences().catch(error=>info(error.message,true)),200);
 }
 async function insertProjectMention(item,range=null){
   const input=$('prompt'),start=range?.start??input.selectionStart,end=range?.end??input.selectionEnd;
-  const pid=state.activeProjectId,mode=state.mode;
+  const pid=state.activeProjectId,initialPrompt=input.value,alreadyAttached=state.refs.some(ref=>ref.assetId===item.assetId);
   const ref=item.catalog?await activateProjectAsset(item):item;
   if(pid!==state.activeProjectId)throw Error('Project changed before inserting the reference.');
-  // Switching Text/Frames to References keeps the user's current prompt.
-  if(mode!=='refs'&&item.catalog){state.prompts.refs=state.prompts[mode]||'';input.value=state.prompts.refs;}
-  input.setRangeText('@'+ref.alias+' ',Math.min(start,input.value.length),Math.min(end,input.value.length),'end');
+  if(input.value!==initialPrompt){
+    if(item.catalog&&!alreadyAttached){state.refs=state.refs.filter(candidate=>candidate!==ref);if(ref.url)URL.revokeObjectURL(ref.url);renderRefs();saveDraft();}
+    throw Error('The prompt changed while loading the element. Select it again to insert it.');
+  }
+  const catalog=projectCatalogItems(),preferred=H3PromptCompiler.mentionName(item);
+  const token='@'+preferred;
+  let name=ref.alias;
+  try{if(H3PromptCompiler.normalizeReferenceMentions(token,catalog.length?catalog:[ref])==='@'+ref.alias)name=preferred;}catch{}
+  input.setRangeText('@'+name+' ',Math.min(start,input.value.length),Math.min(end,input.value.length),'end');
   $('mentionMenu').classList.add('hidden');input.focus();renderPromptAssets();saveDraft();
 }
 function refreshProjectHubControls(){
@@ -194,7 +202,7 @@ function editProjectAsset(item){
   $('assetEditStatus').textContent='';$('assetEditName').value=item.label;$('assetEditNotes').value=item.notes||'';
   const updateAliasPreview=()=>{
     const custom=$('assetEditName').value.trim();
-    const alias=typeof aliasName==='function'?aliasName(custom||'element'):custom.replace(/[\s/\\-]+/g,'_');
+    const alias=H3PromptCompiler.mentionName({name:custom,alias:item.alias});
     $('assetEditAlias').textContent='Mention identifier: @'+alias;
   };
   $('assetEditName').oninput=updateAliasPreview;
@@ -222,8 +230,7 @@ function initProjectWorkspace(){
     if(!pid||workspaceLocked())return;workspaceCatalogBusy=true;renderProjectCatalog();
     try{
       let done=0;for(const file of files){
-        const body=new FormData();body.append('file',file);
-        await controller.fetchJson(`/h3_studio/lab/assets?project_id=${encodeURIComponent(pid)}&category=${encodeURIComponent(category)}&name=${encodeURIComponent(file.name)}`,{method:'POST',body});
+        await controller.uploadAsset(file,pid,{category,name:file.name});
         $('assetUploadStatus').textContent=`Saved ${++done}/${files.length} assets`;
       }
     }catch(error){$('assetUploadStatus').textContent=error.message;}
