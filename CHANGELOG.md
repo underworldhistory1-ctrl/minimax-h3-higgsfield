@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.5.6 - 2026-10-15
+
+- Require native CUDA 13 acceleration and verify the actual loaded worker, attention backend and runtime identity; preserve virtual-environment interpreter symlinks.
+- Offer explicit CK INT8 attention alongside the PyTorch fused SDPA default. A matched RTX 5090 Original workload measured 582.94 s versus 1201.28 s; this is not a universal speed or perceptual-equivalence claim.
+- Supervise Linux workers, use cgroup-aware RAM-pressure caching, atomically save completed latents before decode and track supported decode recovery with cancellation-safe child jobs. Sampling itself has no resumable checkpoint.
+- Close update admission before asynchronous source validation and reject stale restart authorization while runtime writes are in progress.
+- Fix Qwen Image readiness, uploads and WebSocket routing behind provider proxy prefixes; verify reference upload and INT8 graph selection in the live browser.
+- Refresh owned gzip assets during installation and back up/remove obsolete Brotli sidecars so the server cannot keep serving the previous interface.
+- Preserve current project selection in Elements, locked picker behavior and mobile layout.
+- Reconcile H3 Higgsfield naming, current release metadata, model/profile names and current versus historical deployment evidence across the repository guides. Mark the existing CUDA 12.8 Salad image as a legacy artifact, not a newly verified CUDA 13 build.
+- Verified for 2.5.6: 453 Python tests, 170 JavaScript tests, root/provider-proxy browser regressions and a real-server Qwen reference upload with INT8 graph capture (no extra GPU job).
+- Production evidence before this presentation refresh: 452 Python tests,170 JavaScript tests, real project/asset API browser navigation, full Original and Singularity video/audio decoding and an owned idle-worker automatic restart. Current docs/version checks are recorded in the release notes.
+
 ## 2.5.5 - 2026-10-15
 
 - Fail server API verification when an expected pinned LoRA is absent from live discovery; report exact names and model-path/launcher recovery guidance.

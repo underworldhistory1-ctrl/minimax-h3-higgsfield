@@ -1,10 +1,33 @@
 # Verified behavior and production boundaries
 
+## Current runtime evidence — 2.5.6, 15 October 2026
+
+The current audit records a loaded Torch 2.9.1+cu130 worker with native CUDA 13
+acceleration and verified CK INT8 attention. Original Ref2VA INT8 + Combat V2
+produced 362 frames at 1024×576; Singularity v1.3 INT8 + Anime → Realism produced
+209 frames at 1024×576. Both MP4 s passed complete video/audio decoding. A matched
+Original comparison measured1201.28 s with PyTorch Flash and 582.94 s with CK INT8
+attention; coherent frame spot checks are not perceptual equivalence.
+
+452 Python tests,170 JavaScript tests and real project/asset API browser navigation
+passed. An owned idle worker was stopped and automatically restarted; the new
+worker retained native CUDA and the selected attention backend. Update admission
+and restart authorization races have regression coverage. Completed sampler
+latents support tracked decode recovery; sampling in progress cannot resume.
+The40 GB host still approached its RAM limit, with no new OOM kills in these
+production checks. Hybrid, Character Swap, optional audio-refinement quality and
+all combinations remain outside this evidence.
+
+See [the current audit](PRODUCTION_READINESS_2026_10_15.md) and
+[measurement details](LAUNCHER.md#performance-and-recovery-limits). The versioned
+sections below are historical and retain their original evidence boundaries.
+
+
 ## 2.5.0 tab working setups and native audio enhancement
 
 Per-tab browser checks additionally cover unsaved media, two tabs for one project, copied-session isolation, image BF16 preservation, explicit Clear, no-project media, lease renewal, injected quota failure, missing-blob protection, valid-project recovery and delayed-restore rejection. [Working setup boundaries](TAB_PERSISTENCE_AR.md).
 
-353 Python tests and151 JavaScript tests passed, including72 graph combinations. CPU tensors verify bit-exact final video restoration and continuation audio-prefix protection. Browser tests with the real local project API verify audio controls, Save/reload, Reuse, actual Generate capture, source soundtrack bypass and mobile layout. The previous organization/transfer browser regression passed. Reviewers approved backend and frontend changes. Published upstream quality evidence uses low-step Turbo Original H3 followed by undistilled audio refinement; it does not prove improvement across Studio native20-step, community checkpoints or adapters. No new GPU render was run. [Sources, compatibility, screenshot, deployment and rollback](AUDIO_ENHANCEMENT_AR.md).
+353 Python tests and 151 JavaScript tests passed, including72 graph combinations. CPU tensors verify bit-exact final video restoration and continuation audio-prefix protection. Browser tests with the real local project API verify audio controls, Save/reload, Reuse, actual Generate capture, source soundtrack bypass and mobile layout. The previous organization/transfer browser regression passed. Reviewers approved backend and frontend changes. Published upstream quality evidence uses low-step Turbo Original H3 followed by undistilled audio refinement; it does not prove improvement across Studio native20-step, community checkpoints or adapters. No new GPU render was run. [Sources, compatibility, screenshot, deployment and rollback](AUDIO_ENHANCEMENT_AR.md).
 
 ## 2.4.0 project organization and Reuse
 
@@ -14,7 +37,7 @@ This release was prepared in the repository only. The server was not contacted a
 
 ## 2.3.2 seed and short-duration repair
 
-331 Python tests and 148 JavaScript tests passed. The actual browser Generate path captured Text, Frames and References submissions at73frames/3.042seconds without enqueueing GPU work. A real local project/asset API verified saving/reloading the exact uint64 maximum, invalid saved fractional seed repair, Random resolution before submission and refinement seed rollover. Native node schemas permit5+17kframes; the UI and prompt preparation no longer impose124frames as a minimum. Below124frames remains outside the usual trained range and GPU output quality is unverified in this repair. Video-reference trim and continuation-context minimums remain genuine constraints. [Behavior and limits](SEED_AND_DURATION_AR.md).
+331 Python tests and 148 JavaScript tests passed. The actual browser Generate path captured Text, Frames and References submissions at 73 frames/3.042seconds without enqueueing GPU work. A real local project/asset API verified saving/reloading the exact uint64 maximum, invalid saved fractional seed repair, Random resolution before submission and refinement seed rollover. Native node schemas permit5+17kframes; the UI and prompt preparation no longer impose124 frames as a minimum. Below124 frames remains outside the usual trained range and GPU output quality is unverified in this repair. Video-reference trim and continuation-context minimums remain genuine constraints. [Behavior and limits](SEED_AND_DURATION_AR.md).
 
 On the project's RTX 5090 server, Original mode produced a short clip and a 15.1-second clip with decodable video and audio. A 25 fps clip with audio was accepted as a reference, converted to 24 fps, and cleaned up afterward. New installs require the upstream H3 VAE tile fix before the UI permits generation. Qwen's graphs match the pinned ComfyUI 2.1 schemas and the source project's graph contract.
 
@@ -30,19 +53,19 @@ This evidence does not guarantee every prompt, LoRA combination, speed method, o
 
 
 
-## Current software checks — 2.1.0, 13 October 2026
+## Historical software checks — 2.1.0, 13 October 2026
 
 Version 2.1.0 passed 283 Python tests and 133 JavaScript tests. Browser fixtures cover the sidebar, reference aliases/order, model/sampling persistence and Character Swap native tag bindings. Release checks additionally exercise automatic source updates and rollback ordering. No new GPU render was performed for this release; Singularity, Hybrid and Character Swap quality remain unverified locally. Historical GPU results do not certify those profiles.
 
 ## Live-server verification — 2.1.1, 13 October 2026
 
-289 Python tests and 139 JavaScript tests passed. A real browser checked the live HTTPS UI without fixture APIs. The current RTX 5090 server's existing Original Ref2VA + static-image Canny ControlNet output was independently decoded and checked: 864×480,124frames,24fps,H.264/AAC. This review submitted no additional GPU render. Singularity availability is verified, but independent Singularity, Hybrid and Character Swap rendering remains untested. See [server evidence and limitations](SERVER_VERIFICATION_2026_10_13_AR.md).
+289 Python tests and 139 JavaScript tests passed. A real browser checked the live HTTPS UI without fixture APIs. The current RTX 5090 server's existing Original Ref2VA + static-image Canny ControlNet output was independently decoded and checked: 864×480,124 frames,24 fps,H.264/AAC. This review submitted no additional GPU render. Singularity availability is verified, but independent Singularity, Hybrid and Character Swap rendering remains untested. See [server evidence and limitations](SERVER_VERIFICATION_2026_10_13_AR.md).
 
 ## Resolution and same-take export — 2.1.2, 14 October 2026
 
 296 Python tests and 140 JavaScript tests passed. Browser fixtures verified existing references/model flows plus same-take export, unchanged generation settings and export/project/server/result race recovery. Five real FFmpeg export tests also passed on the current Linux server in an isolated staging folder while preserving the active render. This feature uses CPU post-processing of existing media; no new GPU inference is claimed. Direct high-resolution diffusion remains experimental and is not guaranteed to reproduce a successful draft. [Details](RESOLUTION_AND_SAME_TAKE_AR.md).
 
-A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311 frames at24fps, approximately12.96seconds. Original SHA-256 was unchanged; copied audio framemd5, including packet timing, matched exactly. The isolated test took26.55CPU seconds and did not modify the live runtime or submit a GPU job.
+A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311 frames at 24 fps, approximately12.96seconds. Original SHA-256 was unchanged; copied audio framemd5, including packet timing, matched exactly. The isolated test took26.55CPU seconds and did not modify the live runtime or submit a GPU job.
 
 ## Explicit attention baseline — 2.1.3, 14 October 2026
 
@@ -57,7 +80,7 @@ A real existing H3 draft was enlarged on that server: 864×480 to 1728×960, 311
 
 321 Python tests and 141 JavaScript tests passed. Existing browser contracts passed. A browser used real local project and asset routes to create/open/rename projects, upload multiple images, edit category/name/notes, add a custom category, insert project @ references, preserve edits during delayed media loading and restore drafts/catalogs after switching and reload. Backend tests cover concurrent attachment, immutable historical identity, conflicts, unused-asset bundles and completed-job recovery without repeatedly probing already attached videos.
 
-A real CPU export enlarged a synthetic 13-second 864×480 video to 1728×960, 312 frames at24fps. A separate browser context observed actual encoding frames after the initiating page closed, reloaded and recovered verified completion and its download. Full decoding, source audio preservation and SHA256 passed. HTTP cancellation regressions cover both durable admission and duplicate synchronous waiters. Launcher idle checks include CPU exports. GPU readiness fixtures are explicitly simulated in these browser tests; no new GPU render was performed.
+A real CPU export enlarged a synthetic 13-second 864×480 video to 1728×960, 312 frames at 24 fps. A separate browser context observed actual encoding frames after the initiating page closed, reloaded and recovered verified completion and its download. Full decoding, source audio preservation and SHA256 passed. HTTP cancellation regressions cover both durable admission and duplicate synchronous waiters. Launcher idle checks include CPU exports. GPU readiness fixtures are explicitly simulated in these browser tests; no new GPU render was performed.
 
 
 ## Off-queue operation readiness — 2.2.1
@@ -68,4 +91,4 @@ The shared status reports media export, prompt/source preparation, control work 
 
 Actual local project/asset API browser coverage: separate pages, stable reference aliases, multi-upload, editing, custom categories, preview dialog, browser back/forward, preserving prompt edits during delayed asset fetches, project switching/reload and mobile Generate hit-testing. Thumbnail tests exercise concurrent cache requests, bounded dimensions, EXIF rotation, transparency and unchanged originals. Legacy recovered jobs use their saved target_frames, without inventing a124-frame length. GPU rendering quality for the new UI is not claimed from these checks.
 
-Final 2.3.0 checks:327 Python tests and141 JavaScript tests passed; actual local project/asset browser navigation and the existing production UI regressions passed. Actual CPU upscale preserved312 frames at24fps and audio, produced1728×960 from864×480, and survived closing the submitting browser and refreshing a second independent browser context. Library image fixture:228890 original bytes vs9484 cached thumbnail bytes; this measures image transfer reduction, not whole-app speed.
+Final 2.3.0 checks:327 Python tests and 141 JavaScript tests passed; actual local project/asset browser navigation and the existing production UI regressions passed. Actual CPU upscale preserved312 frames at 24 fps and audio, produced 1728×960 from864×480, and survived closing the submitting browser and refreshing a second independent browser context. Library image fixture:228890 original bytes vs9484 cached thumbnail bytes; this measures image transfer reduction, not whole-app speed.

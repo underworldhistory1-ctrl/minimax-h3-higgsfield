@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>H3 Higgsfield 2.5.5 — Create Video</title>
+<title>H3 Higgsfield 2.5.6 — Create Video</title>
 <style>
 .file-picker{position:absolute;width:1px;height:1px;opacity:0;clip-path:inset(50%);pointer-events:none}
 :root{color-scheme:dark;--bg:#101010;--surface:#181818;--surface2:#222;--line:#343434;--line2:#4b4b4b;--text:#f7f7f7;--muted:#a9a9a9;--quiet:#747474;--acid:#d6ff20;--bad:#ff817b;font-family:Inter,"Segoe UI",Arial,sans-serif}
@@ -52,11 +52,11 @@
 }
 </style>
 <link rel="stylesheet" href="./studio-ux.css?v=20261015-elements-project-switch">
-<link rel="stylesheet" href="./organization.css?v=20261015-production-2.5.5">
+<link rel="stylesheet" href="./organization.css?v=20261015-production-2.5.6">
 </head>
 <body class="project-hub-open">
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.5.5</div></div>
+ <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield · 2.5.6</div></div>
  <nav class="topnav" aria-label="Studio workspace"><button type="button" class="button alt smallbtn" id="projectsHome">Projects</button><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="guidance-language"><label for="guidanceLanguage">Help language</label><select id="guidanceLanguage" aria-label="Help language"><option value="en">English</option><option value="ar">العربية</option></select></div>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
@@ -195,33 +195,33 @@
 <dialog id="assetPreviewDialog" class="settings-dialog"><div class="settings-head"><h2 id="assetPreviewTitle">Asset preview</h2><button id="assetPreviewClose" class="button alt">Close</button></div><p id="assetPreviewInfo" class="tip"></p><div id="assetPreviewContent"></div><button id="assetPreviewUse" class="button">Use in current shot</button></dialog>
 <dialog id="videoActionsDialog" class="settings-dialog" aria-labelledby="videoActionsTitle"><div class="settings-head"><h2 id="videoActionsTitle">Video options</h2><button id="videoActionsClose" class="button alt smallbtn" type="button">Close</button></div><p id="videoActionsName" class="video-options-name"></p><div class="secondary-actions"><button id="videoActionsPreview" class="button alt">Play video</button><button id="videoActionsReuse" class="button">Reuse setup</button><button id="videoActionsTransfer" class="button alt">Copy / move take</button><button id="videoActionsSettings" class="button alt">Settings</button><button id="videoActionsDownload" class="button">Download</button><button id="videoActionsDelete" class="button alt danger">Delete video</button></div><h3>Upscale same take</h3><p data-guidance-key="videoHelp26" lang="en" dir="ltr">Enlarge this existing video without regenerating it. Keeps the shot and copies its audio; does not generate new detail.</p><label for="videoActionsTarget">Export size · original aspect ratio is kept</label><div class="row"><select id="videoActionsTarget"><option value="2x">2× current dimensions</option><option value="1080">1080 px short edge</option><option value="1440">1440 px short edge</option></select><button id="videoActionsUpscale" class="button">Upscale &amp; download</button></div><p id="videoActionsStatus" class="tip" role="status" aria-live="polite"></p></dialog>
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle"><div class="settings-head"><h2 id="settingsTitle">Video settings</h2><button id="settingsClose" class="button alt smallbtn" type="button" aria-label="Close settings">✕ Close</button></div><div id="settingsContent"></div></dialog>
-<script src="./h3/guidance-language.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/render-values.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/uuid.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/vendor/prompt-parsers.js?v=20261015-production-2.5.5"></script>
+<script src="./h3/guidance-language.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/render-values.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/uuid.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/vendor/prompt-parsers.js?v=20261015-production-2.5.6"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
-<script src="./h3/prompt-input.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/prompt-compiler.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/configuration.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/graph-builder.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/project-controller.js?v=20261015-production-2.5.5"></script>
-<script src="./lab-ui.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/studio-ux.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/queue-ui.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/timing-estimator.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/tab-draft-store.js?v=20261015-production-2.5.5"></script>
-<script src="./studio.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/updates-ui.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/connected-studio.js?v=20261015-production-2.5.5"></script>
-<script src="./h3/configuration-ui.js?v=20261015-production-2.5.5"></script>
+<script src="./h3/prompt-input.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/prompt-compiler.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/configuration.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/graph-builder.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/project-controller.js?v=20261015-production-2.5.6"></script>
+<script src="./lab-ui.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/studio-ux.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/queue-ui.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/timing-estimator.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/tab-draft-store.js?v=20261015-production-2.5.6"></script>
+<script src="./studio.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/updates-ui.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/connected-studio.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/configuration-ui.js?v=20261015-production-2.5.6"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>
 <dialog id="fileAssetsDialog" class="organization-dialog" aria-labelledby="fileAssetsTitle"><h2 id="fileAssetsTitle">Organize selected assets</h2><p data-guidance-key="videoHelp28" lang="en" dir="ltr">Folders organize media independently of its reference role.</p><label for="fileAssetsFolder">DESTINATION FOLDER</label><select id="fileAssetsFolder"></select><p id="fileAssetsStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileAssetsApply" class="button">Move selected assets</button></div></dialog>
 <dialog id="transferDialog" class="organization-dialog" aria-labelledby="transferTitle"><h2 id="transferTitle">Transfer materials</h2><p id="transferSummary"></p><label for="transferTarget">DESTINATION PROJECT</label><select id="transferTarget"></select><label for="transferMode">ACTION</label><select id="transferMode"><option value="copy">Copy · preserve source</option><option value="move">Move · check dependencies</option></select><p id="transferStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="transferApply" class="button">Transfer selected materials</button></div></dialog>
 <dialog id="reuseDialog" class="organization-dialog" aria-labelledby="reuseTitle"><h2 id="reuseTitle">Reuse video setup</h2><p data-guidance-key="videoHelp29" lang="en" dir="ltr">Restore the recorded prompt, references and settings into Production. The original take stays unchanged. Reuse does not start a render or guarantee an identical result.</p><p id="reuseSummary"></p><label for="reuseTarget">DESTINATION PROJECT</label><select id="reuseTarget"></select><div id="reuseNewName"><label for="reuseProjectName">NEW PROJECT NAME</label><input id="reuseProjectName" maxlength="160"></div><p id="reuseStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="reuseApply" class="button">Restore into Production</button></div></dialog>
-<script src="./h3/organization-ui.js?v=20261015-production-2.5.5"></script>
+<script src="./h3/organization-ui.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/project-workspace.js?v=20261015-elements-project-switch"></script>
 
-<script src="./h3/video-tab-state.js?v=20261015-production-2.5.5"></script>
+<script src="./h3/video-tab-state.js?v=20261015-production-2.5.6"></script>
 </body>
 </html>

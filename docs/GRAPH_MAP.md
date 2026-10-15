@@ -1,6 +1,6 @@
 # H3 Studio graph contract
 
-The user-facing app is `web/index.html` + `web/studio.js`. Keep these files byte-for-byte when moving to a new server; rebuilding a similar UI will lose behavior. The ComfyUI graphs for Frames and References are assembled by `graph()` in `web/studio.js` from the user's controls and uploaded file names. The four JSON files in `workflows/` are the fixed quality and short smoke starting points.
+The user-facing app is web/index.html and web/studio.js with the modules in web/h3/. Deploy the matching interface and backend together. The dynamic graph is assembled by web/h3/graph-builder.js from the user’s controls and uploaded files; web/studio.js connects the workspace. The fixed quality/smoke workflows are starting points, not the contract for every optional branch.
 
 ## Common graph
 
@@ -13,7 +13,8 @@ The user-facing app is `web/index.html` + `web/studio.js`. Keep these files byte
 | 6 | `MiniMaxH3ImageToVideo` or `MiniMaxH3ReferenceToVideo` | Prompt, output width/height and length; Ref2VA also gets audio VAE and reference detail |
 | 7 | `ConditioningZeroOut` | Negative conditioning from node 6 |
 | 8 | `KSampler` | Positive and latent from node 6, negative from node 7, model from node 2 or optional speed patch |
-| 9 / 10 | `VAEDecode` / `VAEDecodeAudio` | Decode video and audio from the **same** sampler samples |
+| 13 | H3ReleaseForDecode | Atomically save the completed sampler latent and release generation models before decoding |
+| 9 / 10 | VAEDecode / VAEDecodeAudio | Decode video and audio from the same released samples at node13 |
 | 11 | `CreateVideo` | The decoded video frames plus decoded native audio, 24 fps |
 | 12 | `H3SaveVideo` | MP4/H.264 with audio; retries through FFmpeg if PyAV fails, prefix `video/h3_studio_<token>` |
 
@@ -22,7 +23,7 @@ The Original method uses 20 steps by default with `res_multistep`, `simple`, CFG
 ## Mode branches
 
 - **Text:** Node 6 is FL2VA with no picture inputs.
-- **Frames:** Node 6 is FL2VA. Node 13 (`LoadImage`) connects `first_frame` when selected; node 14 connects `last_frame` when selected. One or both frames are required.
+- **Frames:** Node 6 is FL2VA. Node15 (LoadImage) connects first_frame when selected; node16 connects last_frame when selected. Node13 is reserved for H3ReleaseForDecode. One or both frames are required.
 - **References:** Node 6 is Ref2VA. Uploaded images connect through `LoadImage` to `ref_images.ref_image_N`; videos through `LoadVideo` and `GetVideoComponents` to `ref_videos.ref_video_N`; optional matching video audio goes to `ref_video_audios.ref_video_audio_N` with the **same video index**; audio files connect through `LoadAudio` to `ref_audios.ref_audio_N`. IDs start at 20 and grow as needed. The UI orders references by image, video, audio and rewrites their `@name` mentions to H3 tags before submitting.
 
 Video `Use as` choices are prompt guidance over the same Ref2VA video input, not separate identity or motion conditioning channels. `Performance + camera` asks the model to follow movement and camera without retaining the source actor or location; `Whole scene` follows source subjects and setting only where the shot prompt does not explicitly replace them. Neither provides frame-locked actor replacement. The source video soundtrack reaches Ref2VA only when its audio checkbox is enabled; a visual video reference alone does not supply spoken words. For exact dialogue with a new voice, the user must write the lines and language in the prompt, and the generated audio still requires review.
@@ -37,11 +38,13 @@ An image selected as **Storyboard · shot guide** remains on the same `ref_image
 - Turbo is retired from selection, graph construction and downloads; historical metadata and existing files remain available.
 - Spectrum **or** MotionCache occupies ID 61 after Sigma Shift and before KSampler. They are exclusive. Both are experimental approximations; neither is part of Original quality.
 
-The extension's `/h3_studio/readiness` route checks model sizes and registered node names. The frontend checks mode-specific nodes and installed LoRA file names before `/prompt`. The readiness result does not prove output quality or audio sync. Keep the `web/` implementation and backend API together when deploying; copying only workflows is insufficient.
+The extension’s /h3_studio/readiness route checks model sizes, registered node names, the actual loaded attention implementation, native CUDA readiness and runtime identity. The frontend checks mode-specific nodes and installed LoRA file names before `/prompt`. The readiness result does not prove output quality or audio sync. Keep the `web/` implementation and backend API together when deploying; copying only workflows is insufficient.
 
 During an active render, `/h3_studio/job_progress` reads ComfyUI's sampler progress for node 8. The Studio also saves the last observed step in browser session storage. On refresh it restores that step and polls the server, so a lost or replaced WebSocket does not reset the visible progress. This endpoint becomes available after ComfyUI loads the updated extension on restart; deployment must not restart an active render.
 
 The dynamic Studio graph chains `MiniMaxH3AddGuide` for explicitly supplied timed images when the server advertises AddGuide support. A storyboard sheet is not automatically split into keyframes. Continuation and supported inpaint controls use explicit masked-context paths; ControlNet with continuation/refinement and Refine with continuation are rejected. The static workflow files show baseline graphs; the dynamic builder owns optional combinations. `Use as` reference roles affect prompt guidance, while actual reference files continue to use node 6's image, video and audio inputs.
+
+A supported decode recovery replaces node13 with H3LoadSavedLatent in a tracked child job and retains both original decoders and output settings. It never re-runs KSampler. [Recovery contract](DECODE_RECOVERY.md).
 
 ## Qwen Image 2.1 graphs
 
@@ -58,6 +61,6 @@ Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 an
 
 Native detail is 1344×768. Direct 1664×928 / Full HD choices generate a new latent canvas and are experimental; identical seeds across sizes do not lock a shot. `Upscale same take` uses the existing managed video through `/h3_studio/lab/media/export` (`upscaled_mp4`), outside the diffusion graph. CPU Lanczos resize, no crop or interpolation, preserves timing and copied audio. [Evidence and limits](RESOLUTION_AND_SAME_TAKE_AR.md).
 
-## Optional native audio refinement (2.5.0)
+## Optional native audio refinement
 
 After the final image KSampler, graph-builder allocates H3StudioAudioRefineMask → KSampler → H3StudioAudioRestoreVideo. Video noise mask is0; audio is1 except the protected continuation prefix. The audio sampler uses shifted/LoRA model node2, existing positive/negative conditioning, CFG1, six Euler/Simple steps and denoise0.5 by default. It bypasses acceleration/ControlNet model patches and uses base LoRA strengths. Exact source video is restored, prefix audio copied, and node13 receives the restored packed latent before both decoders. Source soundtrack reuse bypasses the stage. Server admission checks declared settings, source/final-image branch, model, conditioning, seed rollover and both decoder links.

@@ -24,8 +24,8 @@ The user operates MiniMax H3 through the **English H3 Studio web UI**, with Engl
 
 ## Proven scope and limits
 
-A historical RTX 5090 server produced a 5.2 s smoke clip and 15.1 s Original clip with decodable video/audio. The dated audit records the evidence. No finite check proves every prompt, LoRA combination, visual detail, or audio sync. Before claiming a new server fully ready, report the live readiness result and what was or was not rendered on that specific server.
+The 15 October runtime audit records complete Original Ref2VA INT8 + Combat V2 and Singularity v1.3 INT8 + Anime Realism outputs with full video/audio decoding, a matched CK INT8 attention speed check and an owned idle-worker restart. No finite check proves every prompt, LoRA combination, visual detail, or audio sync. Before claiming a new server fully ready, report the live readiness result and what was or was not rendered on that specific server.
 
 ## Current source audit
 
-Read `docs/PRODUCTION_READINESS_2026_10_15.md` for the latest local software evidence. No server is currently assumed connected. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.
+Read `docs/PRODUCTION_READINESS_2026_10_15.md` for the current software and connected-server evidence. Do not assume an earlier rental is still connected in a new session. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.

@@ -1,4 +1,6 @@
-# H3 Higgsfield 2.5.5
+# H3 Higgsfield
+
+**Current release: 2.5.6 · native INT8 acceleration and render recovery**
 
 ### Direct the shot. Keep the whole workflow in view.
 
@@ -14,11 +16,14 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 ## Current release
 
+- CUDA 13 native acceleration is checked on the actual running worker. Optional Comfy Kitchen INT8 attention is selected explicitly and verified after startup.
+- Linux workers restart under supervision. Completed sampler latents are saved before decode; supported decode recovery is tracked and preserves cancellation.
+
 - Project Elements use stable asset identities, named mentions and immediate reference attachment. Display names and legacy aliases are reconciled before native tag compilation.
-- Video, audio, image, keyframe and control uploads share validated backend handling. Qwen references and working setups persist per tab.
+- Video, audio, image, keyframe and control uploads share validated backend handling. Qwen references and working setups persist per tab, including provider proxy URLs. Installation refreshes compressed interface assets to prevent stale pages.
 - English is the default for workflow explanations; Help language switches those explanations to Arabic.
 - Studio checks official source updates and exposes safe installation status. Updates preserve user data and require idle generation and preparation work; see [update behavior](docs/LAUNCHER.md).
-- [Changelog](CHANGELOG.md) records release history. [Current audit](docs/PRODUCTION_READINESS_2026_10_15.md) distinguishes tests, browser/API checks and unverified GPU rendering.
+- [Changelog](CHANGELOG.md) records release history. [Current audit](docs/PRODUCTION_READINESS_2026_10_15.md) records 452 Python tests, 170 JavaScript tests, real browser/API checks and completed Original and Singularity video/audio renders.
 
 ## Built around the way you create
 
@@ -35,6 +40,22 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 | **Create supporting images** | A separate Qwen Image 2.1 workspace for creation and reference-based editing. |
 
 Start with **Original quality**. Try the available render methods and LoRAs when you want a different tradeoff; Studio shows what is installed on your server.
+
+## Models and acceleration
+
+| Name | What it selects |
+| --- | --- |
+| **Original quality** | MiniMax H3 INT8 ConvRot: FL2VA for Text/Frames, Ref2VA for References. |
+| **Singularity v1.3 INT8** | An optional independent Ref2VA checkpoint; a complete render with Anime → Realism passed video/audio decoding. |
+| **Hybrid conditioning / Hybrid loader** | Two distinct experimental paths; complete GPU output quality remains unverified. |
+| **Qwen Image 2.1** | Separate image creation/editing workspace; INT8 is installed by default, BF16 is optional. |
+| **PyTorch / CK INT8 attention** | Server attention choices, separate from model precision and the Spectrum/MotionCache render methods. |
+
+A matched RTX 5090 Ref2VA test took **9m43 s with CK INT8 attention versus 20m01 s
+with PyTorch Flash** at 1024×576,362 frames,20 steps,seed42 and identical references.
+This measures one workload; quantized attention changes arithmetic and can change
+the result. BF16/FP16 operations alongside INT8 weights are expected.
+[Measured settings, verification and limits](docs/LAUNCHER.md#attention-selection-and-supervised-workers).
 
 ## Try it: Superman above Earth
 
@@ -72,8 +93,8 @@ These are workflow choices, not a render-quality ranking. H3 Higgsfield is an in
 | Windows or Linux | [Install the studio](docs/INSTALL.md) |
 | One-command setup, attached storage and recovery | [Automatic launcher](docs/LAUNCHER.md) |
 | Existing OpenBayes workspace | [Setup and recovery](docs/OPENBAYES.md) |
-| SaladCloud | [Container deployment](deploy/SALAD_DEPLOYMENT.md) |
-| Upgrading an existing V2 project | [Upgrade and rollback](docs/V2_UPGRADE_AR.md) |
+| SaladCloud legacy image | [Image status and deployment requirements](deploy/SALAD_DEPLOYMENT.md) |
+| Upgrade or roll back an existing installation | [Upgrade and rollback](docs/V2_UPGRADE_AR.md) |
 | Restore the ComfyUI home page or remove Studio | [Uninstall safely](docs/UNINSTALL.md) |
 
 The code is open source. You provide the GPU environment and download the model weights; cloud GPU and optional AI-provider costs depend on your setup.
@@ -102,7 +123,3 @@ Post a shot, a reference experiment or a setup question in [Discussions](https:/
 [Connected Studio guide](docs/CONNECTED_STUDIO.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Graph map](docs/GRAPH_MAP.md)
 
 Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Code: [MIT](LICENSE).
-
-### 2.3.0 — separate production workspaces
-
-Persistent navigation separates Projects, Production, Elements, Generations, Favorites and Activity. Project assets have a full-page searchable library, category/media filters, multi-upload and drag-and-drop, editable names/categories/notes and on-demand previews. `Use` keeps stable reference aliases and returns to Production. Cached 320×240 image thumbnails leave original conditioning assets untouched. Shared CPU export/preparation operations also block unsafe launcher restarts. See [the workspace guide](docs/PROJECT_WORKSPACE_AR.md) for behavior and evidence boundaries.

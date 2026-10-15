@@ -23,7 +23,20 @@ and `--status` / `-Status` to read the saved report. See the launcher guide for
 profiles, remote handoff, authentication and recovery boundaries. The legacy
 platform details below remain useful for interpreter and provider requirements.
 
-Both installers require an NVIDIA GPU with a working driver. The launcher plan reports exact download sizes after checking available storage. Qwen Image INT8 is included by default; use `--video-only` (Linux) or `-VideoOnly` (Windows) to omit it. BF16 is available through `--qwen-image-profiles bf16` or `-QwenImageProfiles bf16`. An empty disk cannot be ready in seconds because the models must download.
+Both installers require an NVIDIA GPU, a CUDA 13-compatible driver (R580+) and a supported Python environment. The launcher verifies the actual native CUDA backend, not GPU visibility alone. Compatible pins currently use Torch 2.9.1+cu130; an older CUDA 12.x environment must be repaired before readiness. The launcher plan reports exact download sizes after checking available storage. Qwen Image INT8 is included by default; use `--video-only` (Linux) or `-VideoOnly` (Windows) to omit it. BF16 is available through `--qwen-image-profiles bf16` or `-QwenImageProfiles bf16`. An empty disk cannot be ready in seconds because the models must download.
+
+### Attention and system memory
+
+INT8 H3 weights still use BF16/FP16/FP32 for appropriate operations; those dtypes
+are not evidence that native INT8 kernels are disabled. PyTorch fused SDPA is the
+server default. On Linux, add --attention-backend ck-int8 to the launcher command
+to choose Kitchen INT8 attention explicitly. It changes arithmetic and requires
+a matched workload/quality check. [Measured evidence](LAUNCHER.md#attention-selection-and-supervised-workers).
+
+Long reference-heavy renders need system RAM as well as VRAM. A40 GB host completed
+the documented1024×576 workloads but approached its limit;64 GB or more gives
+additional headroom for larger settings. RAM-pressure caching and completed-latent
+recovery reduce specific risks, not all possible interruptions.
 
 ### Windows (native PowerShell; no WSL)
 
@@ -57,5 +70,5 @@ Model downloads can require accepting the [MiniMax H3 license](https://huggingfa
 
 ### SaladCloud
 
-The repository includes a dedicated RTX 5090 image in `Dockerfile.salad`. It keeps all weights outside the container image, defaults to H3 plus Qwen INT8, verifies exact pinned sizes and SHA-256 values before reporting ready, protects both workspaces and WebSocket with one login, and can sync outputs to S3-compatible storage. See [the Salad deployment settings](../deploy/SALAD_DEPLOYMENT.md).
+The published Salad image and Dockerfile still use an older CUDA 12.8 environment; they have not been rebuilt or validated for the current native CUDA 13 acceleration contract. See [legacy image status and deployment requirements](../deploy/SALAD_DEPLOYMENT.md) before using it. A main-branch source update is not proof that a published container image changed.
 

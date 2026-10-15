@@ -1,20 +1,24 @@
-`screenshot.webp` is what the main README embeds. WebP because the same
-image is 142 KB against 1.1 MB as PNG, and GitHub renders it fine.
+# H3 Higgsfield documentation
 
-`social-preview.png` is the 1280x640 card for Settings -> General -> Social
-preview, cropped to the clip and the references row so it stays legible at
-the size GitHub actually shows it.
+Current release: **2.5.6**. The main [README](../README.md) introduces the studio;
+[CHANGELOG](../CHANGELOG.md) records release history. “H3 Studio” is the workspace
+name used in controls and historical guides; “V2” describes the earlier migration,
+not a separate current product release.
 
-The best shot for discovery shows the app doing the thing that is hard to find
-elsewhere: a subject reference photo in the Subjects slot, the resulting
-character-consistent clip playing in the preview, the Ref2VA pill visible, and
-the filmstrip with a few clips in it.
+| Task | Guide |
+| --- | --- |
+| Install on Windows or NVIDIA Linux | [Installation](INSTALL.md) |
+| Update, reuse weights or inspect readiness | [Automatic launcher](LAUNCHER.md) |
+| Understand model and method names | [Compatibility matrix](COMPATIBILITY_MATRIX_AR.md) |
+| Learn the video/image workflow | [Studio workflow](UX_FLOW.md) · [Graph contract](GRAPH_MAP.md) |
+| Save projects, assets and takes | [Projects](PROJECT_WORKSPACE_AR.md) · [Organization and Reuse](ORGANIZATION_AND_REUSE_AR.md) |
+| Recover after a worker restart | [Render recovery](RENDER_RECOVERY.md) · [Tracked decode recovery](DECODE_RECOVERY.md) |
+| Upgrade an older V2 install or roll back | [Upgrade guide](V2_UPGRADE_AR.md) |
+| Check what was actually verified | [Current audit](PRODUCTION_READINESS_2026_10_15.md) · [Evidence history](VERIFIED_BEHAVIOR.md) |
+| Provider-specific deployment | [OpenBayes](OPENBAYES.md) · [Legacy Salad image](../deploy/SALAD_DEPLOYMENT.md) |
+| Review the published example | [Superman reference walkthrough](demo/superman/README.md) |
 
-Keep it wide (roughly 16:9, ~1600px) so GitHub renders it without cropping the
-sidebar, and take it on a dark desktop so the panel edges do not blend into the
-page background.
-
-GitHub also renders a social preview card: Settings -> General -> Social preview.
-That image is what appears when the repo is linked on X, Reddit or Discord, and
-it is cropped to 1280x640 — put the preview and the reference photo in the
-middle so nothing important is lost at the edges.
+Dated reports and older version headings describe the checks performed at that
+time. Consult the current audit before treating an old limitation or test count
+as the current status. Screenshots and public demos are examples, not a promise
+of quality for every prompt or adapter combination.

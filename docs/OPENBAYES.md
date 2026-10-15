@@ -1,95 +1,68 @@
-# OpenBayes workspace notes
+# OpenBayes workspace setup and recovery
 
-H3 Studio can run on an OpenBayes RTX 5090 workspace with the ComfyUI checkout
-and this repository under `/output/h3-stack`, and the reusable model dataset
-mounted read/write at `/input0/h3-models`. Keep input and output media in the
-workspace's `/output`, not in the model dataset. Use `install.sh` to prepare a
-new Linux ComfyUI checkout. The optional `deploy/openbayes_h3.sh` is for an
-existing persistent stack with the paths below; it is not a fresh machine
-installer.
+Use the current [automatic launcher](LAUNCHER.md) for an NVIDIA Linux workspace.
+Keep the source checkout and ComfyUI on persistent workspace storage and attach
+verified model storage separately. Provider mount paths vary; the examples below
+use /output for the workspace and /input0/h3-models for weights.
 
-If a new workspace attaches only the model dataset and has no `/output/h3-stack`,
-run `deploy/openbayes_fresh_workspace.sh` from a clone of this repository. It
-installs the pinned ComfyUI checkout and dependencies under the new workspace's
-`/output`, links `ComfyUI/models` to `/input0/h3-models`, and reuses verified
-weights instead of downloading them again. It refuses to proceed if port 8188
-already serves ComfyUI or if an existing repository checkout has local edits.
+~~~bash
+git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
+cd minimax-h3-higgsfield
+bash launcher.sh --comfy-root /output/ComfyUI --models-root /input0/h3-models
+~~~
 
-For that existing stack, copy `deploy/openbayes_h3.sh` to `/output/h3-stack/h3`
-and run `bash /output/h3-stack/h3 up`. It checks mounts and model sizes,
-installs the pinned Spectrum and MotionCache nodes, checks for an active render
-before any restart, and verifies the live API before reporting readiness.
-`bash /output/h3-stack/h3 verify` reports the current server state without
-restarting it. Its default ComfyUI bind address is localhost; use the SSH
-tunnel below to reach the Studio UI.
+The launcher uses official main updates by default, preserves local edits by
+refusing replacement, reuses verified weights and resumes interrupted downloads.
+It waits for admitted requests, background operations and queued renders before
+runtime changes. Credentials belong in the documented environment variables or
+interactive prompts, never in saved scripts or the repository.
 
-The prepared H3 plus Qwen INT8 model set uses about 83 GB of the 100 GB model
-dataset. The three H3 LoRAs are included. BF16 Qwen needs another 31.8 GB and
-does not fit beside INT8 in that dataset. If `/output` has a separate 50 GB
-quota and at least 40 GB available, `deploy/openbayes_prepare_bf16.py` can put
-BF16 there and link it into the current workspace's model tree. It checks
-downloaded files against the pinned size and SHA-256 before exposing them to
-ComfyUI. This leaves INT8 intact. A second workspace bound to the same model
-dataset can use H3 and INT8 immediately, but its `/output` is separate and it
-will not inherit the first workspace's BF16 files through those links.
+## Native CUDA and attention
 
-For a local UI tunnel, install Paramiko on the local machine and run:
+A visible GPU is insufficient. The current NVIDIA contract requires CUDA 13+
+PyTorch, a compatible driver (R580+) and an enabled comfy-kitchen CUDA backend.
+The verified RTX 5090 environment used Torch 2.9.1+cu130. A provider image with
+Torch 2.8/CUDA 12.8 may expose the GPU while disabling the native INT8 backend.
+Use the selected persistent virtual environment; resolving its Python symlink to
+the system interpreter can silently select the wrong packages.
 
-```powershell
-$env:H3_SSH_PASSWORD = Read-Host 'OpenBayes SSH password'
-python deploy/openbayes_tunnel.py --ssh-port YOUR_CURRENT_PORT --local-port 8766
-```
+PyTorch fused SDPA remains the default. To opt into native Kitchen quantized
+attention for a measured workload, add --attention-backend ck-int8 to the Linux
+launcher command. Changing an existing supervisor's choice requires an idle
+managed relaunch; a Manager reboot retains its supervisor's original arguments.
+Check the actual loaded attention and native_cuda_ready in /h3_studio/readiness.
 
-Open `http://127.0.0.1:8766/extensions/h3_studio/index.html`. The tunnel
-listens on localhost only. Replace the SSH port whenever the workspace gets
-a new one. Never put the password in Git or a saved script.
+## Memory, caching and recovery
 
-After installing optional Spectrum and MotionCache nodes, restart ComfyUI only
-when its queue is empty. Confirm readiness from the running server, then use
-the Studio UI. A ready API does not prove a full video or image render.
+The Linux worker uses cgroup-aware RAM-pressure node caching and FP16
+intermediates. It does not disable all result reuse with --cache-none. This cache
+is separate from the optional Spectrum/MotionCache sampling approximations.
+Generation models are released after the completed latent is atomically saved,
+before audio/video VAE decode. The detached supervisor restarts a failed owned
+worker and checks supported tracked decode recovery when admission is open and
+the queue is idle. [Recovery contract and cancellation](DECODE_RECOVERY.md).
 
-## System RAM for full Ref2VA renders
+A40 GB workspace completed the tested1024×576 Original362-frame and Singularity
+209-frame outputs with full video/audio decoding. Sampling still approached the
+RAM limit. Older1280×704 long-reference jobs exhausted RAM; do not treat the
+smaller successful workloads as proof that larger ones fit. At least64 GB
+advertised system RAM gives more headroom for long reference-heavy work, but is
+not a guarantee. Multiple GPUs do not automatically pool their VRAM.
 
-The 40 GB RAM OpenBayes RTX 5090 workspace hit its cgroup memory limit during
-Video VAE decoding of a 362-frame, 1280×704 Ref2VA render after completing
-20 sampling steps. A second 345-frame, 1280×704 MotionCache render completed
-20 sampling steps in 50 minutes and was killed during Video VAE decoding.
-`memory.events` recorded an `oom_kill`, and no output was saved. This is system
-RAM, not the RTX 5090's VRAM. A later 362-frame MotionCache run on the 40 GB
-workspace again completed all 26 sampler calls in about 23 minutes, then hit
-`oom_kill` while loading the Video VAE. Studio warns but does not block this
-combination. On hosts with under 56 GiB cgroup RAM, the installer starts
-ComfyUI with `--cache-none --fp16-intermediates` to reduce retained node state
-and halve intermediate frame buffers. This is a mitigation, not a confirmed
-successful full-length render. Choose at least 64 GB advertised system RAM
-for the more reliable long Ref2VA path; shorter or smaller combinations remain
-unverified on the 40 GB host.
-The Studio graph also saves the sampled latent under `ComfyUI/output/latent/`
-and releases generation models before audio/video VAE decoding. On success,
-the checkpoint is removed after MP4 save; on a decode failure it remains for a
-decode-only recovery using `H3LoadSavedLatent`, both VAE loaders,
-`VAEDecode`/`VAEDecodeAudio`, `CreateVideo`, and `H3SaveVideo`. The previous
-OOM happened before this checkpoint node was installed, so that run cannot
-be decoded without sampling again.
-For unattended OpenBayes operation, start
-`python3 deploy/openbayes_h3_supervisor.py --comfy-root /output/h3-stack/ComfyUI/ComfyUI`
-from the repository after stopping any standalone ComfyUI process. The
-supervisor restarts a worker that exits and submits each orphaned checkpoint
-for decode once in a clean worker. It does not retry a repeatedly failing
-checkpoint forever; the `.recovery-attempted` marker records that limit.
-The observed sampler alone took about 88 minutes (~264 seconds per step), so
-the initial uncalibrated ETA on that host was too optimistic. A successful
-completed render is needed before Studio can calibrate its saved timing.
+The matched Original test took1201.28 s with PyTorch Flash and 582.94 s with CK INT8
+attention. Compare only identical model, references, dimensions, seed and sampler
+settings. See [full measurement and limits](LAUNCHER.md#attention-selection-and-supervised-workers).
 
-## RTX 5090 CUDA runtime
+## Storage and provider boundaries
 
-The OpenBayes PyTorch 2.8 image includes CUDA 12.8 and can report the 5090 as
-available while ComfyUI disables `comfy_kitchen`'s optimized CUDA backend.
-On a 2×5090 workspace, a 1280×704 Ref2VA MotionCache job then failed in the
-first sampling call inside the eager INT8 linear fallback with a GPU allocation
-error. The two 32 GB cards do not form one 64 GB pool for a single ComfyUI
-process. `install.sh` now pins PyTorch 2.9.1 with CUDA 13.0 in the persistent
-virtual environment. Restart ComfyUI after upgrading and check its log for
-`pytorch version: 2.9.1+cu130` and a `comfy_kitchen backend cuda` entry with
-`disabled: False`. This removes the fallback seen in that failure; a completed
-full-length render remains the required proof of end-to-end stability.
+Keep user input/output media, projects and context files on persistent workspace
+storage. A separately mounted weight dataset does not transfer those user files
+to a new workspace. The launcher's plan reports exact missing weights and free
+space; optional BF16 Qwen and community checkpoints need additional storage.
+Export project ZIPs or use the documented library backup for migration.
+
+Older openbayes_h3.sh and fresh-workspace helpers describe a legacy h3-stack
+layout. Use them only for that layout after checking their paths; they are not the
+recommended universal entry point. No supervisor prevents provider eviction,
+container deletion or loss of unsynced storage. Sampling has no resumable solver
+checkpoint. [Current verified scope](PRODUCTION_READINESS_2026_10_15.md).

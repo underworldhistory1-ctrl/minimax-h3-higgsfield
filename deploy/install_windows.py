@@ -3,6 +3,7 @@
 
 import argparse
 import datetime
+import gzip
 import json
 import os
 import pathlib
@@ -280,15 +281,33 @@ def copy_runtime(root):
         backup = target / ".h3-backup" / stamp
         for name in RUNTIME_FILES:
             old = target / name
-            if old.is_file():
-                saved = backup / name
-                saved.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(old, saved)
+            candidates = [old]
+            if name.startswith('web/'):
+                candidates.extend(pathlib.Path(str(old) + suffix) for suffix in ('.gz', '.br'))
+            for candidate in candidates:
+                if candidate.is_file():
+                    saved = backup / candidate.relative_to(target)
+                    saved.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(candidate, saved)
         print("Previous H3 UI/backend saved at:", backup)
     for name in RUNTIME_FILES:
         dest = target / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(PROJECT / name, dest)
+        if name.startswith('web/'):
+            compressed = pathlib.Path(str(dest) + '.gz')
+            if compressed.is_file():
+                temporary = None
+                try:
+                    with tempfile.NamedTemporaryFile(dir=dest.parent, delete=False) as handle:
+                        temporary = pathlib.Path(handle.name)
+                        handle.write(gzip.compress(dest.read_bytes(), mtime=0))
+                    os.replace(temporary, compressed)
+                finally:
+                    if temporary is not None:
+                        temporary.unlink(missing_ok=True)
+            # Brotli is optional; remove an obsolete encoded copy after backing it up.
+            pathlib.Path(str(dest) + '.br').unlink(missing_ok=True)
     print("Installed H3 custom node and interface:", target)
 
 
