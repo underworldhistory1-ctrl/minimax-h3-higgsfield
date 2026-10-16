@@ -35,6 +35,8 @@ async function workspaceMutation(operation,project=state.currentProject){
 async function saveWorkspaceDraft(){
   if(!projectCtrl?.currentProject)return;
   const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
+  if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
+  if(typeof H3TabDraftStore!=='undefined')await H3TabDraftStore.save(tabProjectDraftKey(state.activeProjectId),captureProjectDraft(true));
 }
 async function openProjectWorkspace(id,{view='studio'}={}){
   if(workspaceLocked())throw Error('Wait for the current operation before changing projects.');
@@ -166,6 +168,7 @@ function refreshProjectHubControls(){
 }
 function renderProjectCatalog(){
   refreshProjectHubControls();
+  if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   const list=$('projectAssetList');if(!list)return;list.replaceChildren();
   const project=state.currentProject;
   if(typeof H3OrganizationUI!=='undefined')H3OrganizationUI.assetTools();
@@ -212,13 +215,14 @@ function editProjectAsset(item){
   $('assetEditCategory').value=item.category;dialog.showModal();
 }
 function initProjectWorkspace(){
+  H3ScenesUI.init();
   $('btnNewProject').onclick=()=>showProjectHub().then(()=>$('newProjectName').focus()).catch(error=>info(error.message,true));
   $('projectsHome').onclick=()=>showProjectHub().catch(error=>info(error.message,true));
   $('projectHubRefresh').onclick=()=>renderProjectHub().catch(error=>{$('projectHubStatus').textContent=error.message;});
   $('projectHubCreate').onclick=async()=>{
     if(workspaceLocked()||!projectCtrl)return;
     const name=$('newProjectName').value.trim();if(!name){$('newProjectName').focus();return;}
-    try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const project=await H3OrganizationUI.fileNewProject(await projectCtrl.createProject(name,{width:state.width,height:state.height}));state.currentClipId=null;state.current=null;await hydrateProjectDraft({mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});updateProjectUI(project);});document.body.classList.remove('project-hub-open');setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';}
+    try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const project=await H3OrganizationUI.fileNewProject(await projectCtrl.createProject(name,{width:state.width,height:state.height}));H3ScenesUI.restore(project);state.current=null;await hydrateProjectDraft({mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});updateProjectUI(project);});document.body.classList.remove('project-hub-open');setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';}
     catch(error){$('projectHubStatus').textContent=error.message;}
   };
   $('assetSearch').oninput=renderProjectCatalog;

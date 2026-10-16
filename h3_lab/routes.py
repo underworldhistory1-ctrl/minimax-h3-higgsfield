@@ -314,7 +314,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                                for r in records]
                 if any(r and r.get('state') not in ('completed','failed','cancelled') for r in records):
                     return web.json_response({'error':'Finish active project jobs before replacing its draft.'}, status=409)
-                result = await asyncio.to_thread(projects.apply_reuse, body.get('output_file'), target, body.get('expected_revision'), jobs)
+                result = await asyncio.to_thread(projects.apply_reuse, body.get('output_file'), target, body.get('expected_revision'), jobs, body.get('target_scene_id'), body.get('target_shot_id'))
             else:
                 result = await asyncio.to_thread(projects.prepare_reuse, body.get('output_file'), jobs)
             return web.json_response(result)
@@ -327,7 +327,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             body = await request.json()
             proj_data = body.get("project", {})
             expected_rev = body.get("expected_revision")
-            saved = await asyncio.to_thread(projects.save_project, pid, proj_data, expected_rev)
+            saved = await asyncio.to_thread(projects.save_project, pid, proj_data, expected_rev, jobs)
             return web.json_response(saved)
         except ValueError as e:
             code = getattr(e, "status_code", 400)
@@ -481,7 +481,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             pid = body.get("project_id")
             tid = body.get("take_id")
             job_rec, is_dup = await asyncio.to_thread(
-                jobs.submit_job, req_id, spec, leases, pid, tid
+                projects.submit_owned_job, jobs, req_id, spec, leases, pid, tid
             )
             if not is_dup:
                 try:
@@ -555,6 +555,9 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             return web.json_response({"error": "Project not found"}, status=404)
 
         takes_map = {t["take_id"]: t for t in proj.get("takes", [])}
+        owned_scenes = {takes_map[tid].get('scene_id') for tid in take_ids if tid in takes_map}
+        if len(owned_scenes) > 1:
+            return web.json_response({'error':'Assemble one scene at a time; cross-scene ownership is ambiguous'}, status=400)
         clip_paths = []
         overlaps = []
         if output_root is None:
@@ -713,7 +716,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             body = await request.json()
             if not isinstance(body, dict) or not isinstance(body.get('expected_revision'), int):
                 raise ValueError('Workspace updates require an expected revision')
-            project = await asyncio.to_thread(projects.update_workspace, request.match_info['id'], body.get('operation'), body['expected_revision'])
+            project = await asyncio.to_thread(projects.update_workspace, request.match_info['id'], body.get('operation'), body['expected_revision'], jobs)
             return web.json_response(project)
         except ValueError as error:
             return web.json_response({'error': str(error)}, status=getattr(error, 'status_code', 400))

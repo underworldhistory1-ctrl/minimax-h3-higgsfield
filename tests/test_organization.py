@@ -68,6 +68,35 @@ class OrganizationTests(unittest.TestCase):
         self.assertEqual(result['source']['takes'],[]);self.assertEqual(result['target']['takes'][0]['draft'],take['draft']);self.assertEqual(len(result['target']['assets']),1)
         self.service.attach_completed_job({'state':'completed','project_id':self.source['project_id'],'take_id':take['take_id'],'output':{'filename':'h3_studio_123abc456def_00001_.mp4','subfolder':'video'}})
         self.assertEqual(self.service.get_project(self.source['project_id'])['takes'],[])
+    def test_legacy_child_transfer_refuses_scene_owned_ancestor_before_any_write(self):
+        source_id = self.source['project_id']
+        self.source = self.service.update_workspace(source_id, {'action':'create_scene','name':'Opening'}, self.source['revision'])
+        scene_id = self.source['scenes'][0]['scene_id']
+        self.source = self.service.update_workspace(source_id, {'action':'create_shot','scene_id':scene_id,'name':'First shot'}, self.source['revision'])
+        shot_id = self.source['scenes'][0]['shots'][0]['shot_id']
+        self.source['takes'] = [
+            {'take_id':'scene-parent','scene_id':scene_id,'shot_id':shot_id,'clip_id':shot_id},
+            {'take_id':'legacy-child','clip_id':'legacy','parent_take_id':'scene-parent'},
+        ]
+        self.source = self.service.save_project(source_id, self.source, self.source['revision'])
+        before_source = copy.deepcopy(self.source)
+        before_target = copy.deepcopy(self.service.get_project(self.target['project_id']))
+        source_path = self.root/'projects'/source_id/'project.json'
+        target_path = self.root/'projects'/self.target['project_id']/'project.json'
+        source_bytes, target_bytes = source_path.read_bytes(), target_path.read_bytes()
+        asset_before = copy.deepcopy(self.assets.get_asset(self.asset['asset_id']))
+        for mode in ('copy','move'):
+            with self.subTest(mode=mode):
+                body = self.body(mode=mode, take_ids=['legacy-child'])
+                with self.assertRaisesRegex(ValueError, 'Scene-owned takes'):
+                    self.service.transfer(source_id, body)
+                self.assertEqual(self.service.get_project(source_id), before_source)
+                self.assertEqual(self.service.get_project(self.target['project_id']), before_target)
+                self.assertEqual(source_path.read_bytes(), source_bytes)
+                self.assertEqual(target_path.read_bytes(), target_bytes)
+                self.assertEqual(self.assets.get_asset(self.asset['asset_id']), asset_before)
+                self.assertFalse((self.root/'transfers'/(body['request_id']+'.json')).exists())
+
     def test_accepted_sequence_take_move_is_refused(self):
         take=self.take();self.source['accepted_take_ids']=[take['take_id']];self.source=self.service.save_project(self.source['project_id'],self.source,self.source['revision'])
         with self.assertRaisesRegex(ValueError,'Accepted'):self.service.transfer(self.source['project_id'],self.body(asset_ids=[],take_ids=[take['take_id']],mode='move'))

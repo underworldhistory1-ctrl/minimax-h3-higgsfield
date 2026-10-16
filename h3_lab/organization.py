@@ -137,6 +137,9 @@ class OrganizationMixin:
                     if parent not in takes:
                         raise ValueError('Take ancestry is incomplete; repair the source project first')
                     closure.add(parent); pending.append(parent)
+            # Inherited parents are transferred too, and must satisfy the same ownership boundary.
+            if any(takes[t].get('scene_id') or takes[t].get('shot_id') for t in closure):
+                raise ValueError('Scene-owned takes require a scene-aware destination; transfer stopped')
             if mode == 'move':
                 if any(t.get('parent_take_id') in closure and t['take_id'] not in closure for t in takes.values()):
                     raise ValueError('Other takes depend on this lineage. Copy it or move all descendants together.')
@@ -150,7 +153,7 @@ class OrganizationMixin:
                 if not self.asset_service or not self.asset_service.get_asset(aid):
                     raise ValueError('Required reference media is missing; transfer stopped')
             if mode == 'move':
-                retained = asset_ids(source.get('draft', {})) | asset_ids(source.get('clips', [])) | asset_ids([t for t in takes.values() if t['take_id'] not in closure])
+                retained = asset_ids(source.get('scenes', [])) | asset_ids(source.get('draft', {})) | asset_ids(source.get('clips', [])) | asset_ids([t for t in takes.values() if t['take_id'] not in closure])
                 if selected_assets & retained:
                     raise ValueError('These assets are used by saved shots. Copy them to preserve the original references.')
             used = {a['alias'].casefold() for a in target['assets']}
@@ -265,13 +268,17 @@ class OrganizationMixin:
             'draft':draft, 'settings':settings, 'assets':records, 'missing':missing, 'warnings':warnings,
             'source_project_id':(source or {}).get('project_id'), 'source_take_id':(candidate or {}).get('take_id'), 'output_file':output_file}
 
-    def apply_reuse(self, output_file, target_id, expected_revision, jobs=None):
+    def apply_reuse(self, output_file, target_id, expected_revision, jobs=None, target_scene_id=None, target_shot_id=None):
         with self._lock:
             prepared = self.prepare_reuse(output_file, jobs)
             if not prepared['available']: raise ValueError(prepared['warnings'][0])
             target = self.get_project(target_id)
             if not target: raise ValueError('Destination project not found')
             self._check_revision(target, expected_revision)
+            destination = target
+            if target_scene_id is not None or target_shot_id is not None:
+                from .scenes import target_shot
+                destination = target_shot(target, target_scene_id, target_shot_id)
             for rec in prepared['assets']:
                 if not any(a['asset_id'] == rec['asset_id'] for a in target['assets']):
                     # Catalog naming is independent of the immutable source draft aliases.
@@ -284,8 +291,8 @@ class OrganizationMixin:
                         'name':rec['original_name'],'alias':pathlib.Path(rec['original_name']).stem,'category':'custom','role':'custom','notes':''}
                     if not any(c['id']==item['category'] for c in target['asset_categories']): item['category']='custom'
                     item['alias']=reference_alias(item['alias'],used);item['folder_id']=None;target['assets'].append(item)
-            target['draft'] = prepared['draft']
-            target['draft']['reuse_missing'] = prepared['missing']
-            target['draft']['reuse_source'] = {'output_file':output_file,'take_id':prepared['source_take_id'],'project_id':prepared['source_project_id']}
+            destination['draft'] = prepared['draft']
+            destination['draft']['reuse_missing'] = prepared['missing']
+            destination['draft']['reuse_source'] = {'output_file':output_file,'take_id':prepared['source_take_id'],'project_id':prepared['source_project_id']}
             saved = self.save_project(target_id,target,expected_revision)
             return {'project':saved,'warnings':prepared['warnings'],'missing':prepared['missing'],'complete':prepared['complete']}

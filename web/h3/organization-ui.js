@@ -92,10 +92,14 @@ const H3OrganizationUI=(()=>{
   try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const id=$('reuseTarget').value;let target;
     if(id==='new'){const name=$('reuseProjectName').value.trim();if(!name)throw Error('Name the destination project.');target=await projectCtrl.createProject(name);}
     else target=await projectCtrl.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(id));
-    const result=await projectCtrl.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:ctx.output,target_project_id:target.project_id,expected_revision:target.revision})});
-    await projectCtrl.loadProject(result.project.project_id);state.currentClipId=null;state.current=null;await hydrateProjectDraft(result.project.draft);
-    const missingAdapters=(result.project.draft.loras||[]).filter(l=>l.enabled&&!state.loras.some(current=>current.name===l.name&&current.enabled)).map(l=>'LoRA '+l.name);
-    const checkpoint=result.project.draft.configuration?.checkpoint,missingCheckpoint=checkpoint&&checkpoint!==selectedCheckpoint()?['Checkpoint '+checkpoint]:[];
+    const destinationScope=id==='new'?{}:target.project_id===state.activeProjectId?(projectCtrl.draftScope||{}):(H3ScenesUI.storedScope?.(target)||{});
+    if(destinationScope.scene_id&&!destinationScope.shot_id)throw Error('Create or select a destination shot before reusing this video.');
+    const result=await projectCtrl.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:ctx.output,target_project_id:target.project_id,...(destinationScope.shot_id?{target_scene_id:destinationScope.scene_id,target_shot_id:destinationScope.shot_id}:{}),expected_revision:target.revision})});
+    await projectCtrl.loadProject(result.project.project_id);state.current=null;H3ScenesUI.restore(result.project);const restoredDraft=H3Scenes.draft(result.project,projectCtrl.draftScope);await hydrateProjectDraft(restoredDraft);
+    if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
+    if(typeof H3TabDraftStore!=='undefined')await H3TabDraftStore.save(tabProjectDraftKey(result.project.project_id),captureProjectDraft(true));
+    const missingAdapters=(restoredDraft.loras||[]).filter(l=>l.enabled&&!state.loras.some(current=>current.name===l.name&&current.enabled)).map(l=>'LoRA '+l.name);
+    const checkpoint=restoredDraft.configuration?.checkpoint,missingCheckpoint=checkpoint&&checkpoint!==selectedCheckpoint()?['Checkpoint '+checkpoint]:[];
     state.restoreMissing=[...new Set([...(state.restoreMissing||[]),...result.missing,...missingAdapters,...missingCheckpoint])];if(state.restoreMissing.length)info('Reused setup needs inputs: '+state.restoreMissing.join(', '),true);else info('Saved prompt, references and settings restored. Review and Generate when ready.');
    });$('reuseDialog').close();setWorkspaceView('studio');showStageMessage('Reused shot','Review the restored setup before generating.');saveDraft();}
   catch(error){$('reuseStatus').textContent=error.message;}

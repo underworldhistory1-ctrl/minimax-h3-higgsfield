@@ -20,6 +20,7 @@ async function refreshLabCapabilities(){
   if(window.H3ConnectedStudio)H3ConnectedStudio.refreshAvailability();
 }
 function refreshLabControls(){
+  if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if(typeof refreshProjectHubControls==="function")refreshProjectHubControls();
   const paused=state.labCapabilities?.inference_enabled===false;
   $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject;
@@ -130,11 +131,16 @@ async function renderFrameItem(which){
 }
 async function persistProjectDraft(){
   if(!projectCtrl?.currentProject)throw Error("Open or create a project before saving inputs.");
+  const controller=projectCtrl,original=controller.currentProject,scope={...controller.draftScope};
+  if(scope.scene_id&&!scope.shot_id)throw Error("Create or select a shot before saving inputs.");
   for(const item of allInputItems())if(!item.assetId){const rec=await projectCtrl.uploadAsset(item.file);item.assetId=rec.asset_id;}
-  const refreshed=await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(projectCtrl.currentProject.project_id)}`);projectCtrl.currentProject=refreshed;updateProjectUI(refreshed);
+  const refreshed=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(original.project_id)}`);
+  if(controller!==projectCtrl||controller.currentProject?.project_id!==original.project_id)throw Error("Project changed while saving inputs.");
+  if(typeof H3Scenes!=='undefined')H3Scenes.assertCanRebase(original,refreshed,scope);
+  controller.currentProject=refreshed;updateProjectUI(refreshed);
   return captureProjectDraft();
 }
-function tabProjectDraftKey(projectId){return (api("")||location.origin)+"/project/"+projectId;}
+function tabProjectDraftKey(projectId){const scope=projectCtrl?.draftScope;return (api("")||location.origin)+"/project/"+projectId+(scope?.scene_id?"/scene/"+scope.scene_id+"/shot/"+(scope.shot_id||"empty"):"");}
 function captureProjectDraft(local=false){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!(local&&!item.assetId?["url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]:["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]).includes(key))):null;
   return {version:1,...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
@@ -149,10 +155,13 @@ function captureProjectDraft(local=false){
 }
 async function hydrateWorkspaceDraft(project){
   const controller=projectCtrl,id=project?.project_id||'unassigned';
+  if(project&&typeof H3ScenesUI!=='undefined')H3ScenesUI.restore(project);
+  const scopeKey=tabProjectDraftKey(id);
   state.tabDraftRestoreError=null;let local=null;
-  try{local=await H3TabDraftStore.load(tabProjectDraftKey(id));}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
-  if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;
-  await hydrateProjectDraft(local||project?.draft||{mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[]},{preserveFailedLocal:!!state.tabDraftRestoreError});
+  try{local=await H3TabDraftStore.load(scopeKey);}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
+  if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
+  const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
+  await hydrateProjectDraft(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||{mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[],canvas:{width:1344,height:768},settings:{duration:'124',durationSeconds:'5.167',steps:'20',seed:'42',refSize:'max',renderMethod:'native'}},{preserveFailedLocal:!!state.tabDraftRestoreError});
   return true;
 }
 async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
@@ -215,7 +224,7 @@ function initLabUI(){
     try{const p=await controller.loadProject(id);if(controller!==projectCtrl)return;state.currentClipId=null;await hydrateWorkspaceDraft(p);}
     catch(e){info(e.message,true);}finally{state.projectLoading=false;controls.forEach(k=>$(k).disabled=state.busy);}
   };
-  $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{try{await withProjectLoading(async()=>{const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateProjectDraft(p.draft);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};
+  $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{try{await withProjectLoading(async()=>{if(typeof saveWorkspaceDraft==='function'&&projectCtrl.currentProject)await saveWorkspaceDraft();const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateWorkspaceDraft(p);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};
   $("promptMode").onchange=()=>{state.promptMode=$("promptMode").value;updatePreviewLive();saveDraft();};
   $("frameFit").onchange=()=>Promise.all([renderFrameItem("first"),renderFrameItem("last")]);
   $("addGuide").onclick=()=>{const kind=$("guideKind").value;$("guideFile").accept=kind==="image"?"image/png,image/jpeg,image/webp":kind==="audio"?".wav,.mp3,.m4a,.flac":".mp4,.mov,.webm";$("guideFile").click();};$("guideFile").onchange=()=>{const file=$("guideFile").files[0];if(file&&!state.busy){state.guides.push({asset_id:crypto.randomUUID(),kind:$("guideKind").value,file,url:URL.createObjectURL(file),frame_idx:0});renderGuides();}$("guideFile").value="";};

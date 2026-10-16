@@ -117,3 +117,7 @@ h3_audio_refine.py
 docs/licenses/H3-AudioRefine-MIT.txt
 docs/AUDIO_ENHANCEMENT_AR.md
 docs/TAB_PERSISTENCE_AR.md
+h3_lab/scenes.py
+web/h3/scenes-ui.js
+web/scenes.css
+docs/PROJECT_SCENES_AR.md

@@ -1207,6 +1207,7 @@ function usePromptAI() {
 }
 
 async function generate() {
+  if(projectCtrl?.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id){info("Create or select a shot in this scene before generating.",true);return;}
   if(state.busy)return;
   if(!state.currentProject){info("Open or create a project before generating.",true);return;}
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
@@ -1385,10 +1386,10 @@ async function generate() {
     const units=workUnits(),sample_key=sampleKey();
     await post("/h3_studio/register_job",{token,settings,units,sample_key});
     const draft=await persistProjectDraft();
-    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title})),project_id:state.currentProject?.project_id,continuation:state.continuation?{...state.continuation}:null,draft};
+    const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title})),project_id:state.currentProject?.project_id,...H3Scenes.ownership(projectCtrl?.draftScope,state.currentClipId),continuation:state.continuation?{...state.continuation}:null,draft};
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     state.runMeta=submittedMeta;
-    const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,clip_id:state.currentClipId,parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
+    const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,...H3Scenes.ownership(projectCtrl?.draftScope,state.currentClipId),parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
     state.runMeta.request_id=token;state.runMeta.submission=submission;state.running="request:"+token;saveSession();
     const r=await fetch(api("/h3_studio/lab/jobs"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(submission)});
     const response=await H3RenderValues.readJson(r);
@@ -1469,7 +1470,8 @@ function thumbnailURL(file){return api("/h3_studio/thumbnail?"+new URLSearchPara
 function projectVisibleResults(){
   const project=state.currentProject,owned=new Set((project?.takes||[]).map(take=>take.output_file));
   const entries=project&&$("libraryScope")?.value!=="all"?state.results.filter(entry=>owned.has(resultOutputPath(entry))||entry.meta?.project_id===project.project_id):state.results;
-  return document.body.dataset.workspaceView==="favorites"?entries.filter(entry=>entry.kept):entries;
+  const scoped=project&&$("libraryScope")?.value!=="all"?entries.filter(entry=>H3Scenes.matches((project.takes||[]).find(t=>t.output_file===resultOutputPath(entry))||entry.meta||{},projectCtrl?.draftScope)):entries;
+  return document.body.dataset.workspaceView==="favorites"?scoped.filter(entry=>entry.kept):scoped;
 }
 function renderResults(){
   const renderOrigin=api("");
@@ -1634,7 +1636,7 @@ async function completeImpl(file){
   if(projectCtrl && meta.project_id){
     try {
       const proj=await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(meta.project_id)}`);
-      const take={take_id:takeId,clip_id:state.currentClipId||("clip_"+takeId.slice(0,8)),
+      const take={take_id:takeId,clip_id:meta.clip_id||("clip_"+takeId.slice(0,8)),scene_id:meta.scene_id||null,shot_id:meta.shot_id||null,
         output_file:"video/"+file.filename,effective_settings:meta.settings||{},draft:meta.draft,
         parent_take_id:meta.continuation?.source_take_id||null,overlap_frames:0,
         unique_frames:meta.settings?.frames||124,
@@ -1800,7 +1802,7 @@ async function restoreLinkedJob(){
   ++state.generationEpoch;
   state.labJobId=id;state.running=job.prompt_id;state.started=Number(job.created_at)*1000;
   state.renderStarted=state.started;state.lastStep=0;state.stepDurations=[];
-  state.runMeta={...meta,request_id:job.request_id,lab_job_id:id,project_id:job.project_id,
+  state.runMeta={...H3Scenes.recoveredMeta(spec,meta),request_id:job.request_id,lab_job_id:id,project_id:job.project_id,
     samplerNodes:Object.entries(spec.workflow||{}).filter(([,n])=>n.class_type==='KSampler').map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title}))};
   setBusy(true);setProgress('Restoring render progress',4,null,true);saveSession();
   await pollHistory();await pollQueue();
@@ -2103,6 +2105,7 @@ function updateProjectUI(proj) {
   if (!proj) return;
   state.currentProject = proj;
   state.activeProjectId = proj.project_id;
+  if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if ($("projectNameDisplay")) $("projectNameDisplay").textContent = `${proj.name || 'Project'} (${proj.project_id.slice(0, 8)})`;
   if ($("projectRevision")) $("projectRevision").textContent = `Rev ${proj.revision || 1}`;
   if (Array.isArray(proj.assets) && Array.isArray(state.refs)) {
@@ -2155,7 +2158,7 @@ function renderSequenceCard() {
   const proj = state.currentProject;
   const acceptedTakeIds = proj?.accepted_take_ids || [];
   const takes = proj?.takes || [];
-  const acceptedTakes = acceptedTakeIds.map(id => takes.find(t => t.take_id === id)).filter(Boolean);
+  const acceptedTakes = H3Scenes.sequenceTakes(proj,projectCtrl?.draftScope);
 
   if (!acceptedTakes.length && !state.results.length) {
     card.classList.add("hidden");
@@ -2228,7 +2231,8 @@ if ($("btnExportProject")) {
 if ($("btnAssembleSequence")) {
   $("btnAssembleSequence").onclick = async () => {
     const proj = state.currentProject;
-    if (!proj || !proj.accepted_take_ids?.length) {
+    const scopedTakeIds=H3Scenes.sequenceTakes(proj,projectCtrl?.draftScope).map(t=>t.take_id);
+    if (!proj || !scopedTakeIds.length) {
       info("No accepted takes in the current sequence to assemble.", true);
       return;
     }
@@ -2236,9 +2240,9 @@ if ($("btnAssembleSequence")) {
     if (status) status.textContent = "Assembling sequence with FFmpeg (single AAC encode)...";
     try {
       const res = await post(`/h3_studio/lab/projects/${encodeURIComponent(proj.project_id)}/assemble`, {
-        accepted_take_ids: proj.accepted_take_ids
+        accepted_take_ids: scopedTakeIds
       });
-      if (status) status.textContent = `Assembled ${res.assembly?.clips_joined || proj.accepted_take_ids.length} clips into ${res.output_file} (${res.assembly?.duration?.toFixed(2)}s).`;
+      if (status) status.textContent = `Assembled ${res.assembly?.clips_joined || scopedTakeIds.length} clips into ${res.output_file} (${res.assembly?.duration?.toFixed(2)}s).`;
       loadLibrary(true);
     } catch (e) {
       if (status) status.textContent = "Assembly failed: " + e.message;

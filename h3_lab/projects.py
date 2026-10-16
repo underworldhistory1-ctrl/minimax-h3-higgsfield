@@ -88,6 +88,7 @@ class ProjectService(OrganizationMixin):
             "assets": [],
             "asset_categories": copy.deepcopy(ASSET_CATEGORIES),
             "clips": [],
+            "scenes": [],
             "accepted_take_ids": [],
             "exports": [],
             "created_at": now,
@@ -111,6 +112,7 @@ class ProjectService(OrganizationMixin):
     def _workspace_manifest(self, project):
         """Add catalog fields in memory without rewriting historical takes or IDs."""
         project.setdefault("asset_categories", copy.deepcopy(ASSET_CATEGORIES))
+        project.setdefault("scenes", [])
         project.setdefault("folder_id", None)
         project.setdefault("asset_folders", [])
         refs = {item.get("assetId"): item for item in project.get("draft", {}).get("refs", [])}
@@ -147,7 +149,7 @@ class ProjectService(OrganizationMixin):
                     "name": label, "alias": alias, "category": category, "role": role, "notes": ""})
             return self.save_project(project_id, project, project["revision"])
 
-    def update_workspace(self, project_id, operation, expected_revision):
+    def update_workspace(self, project_id, operation, expected_revision, jobs=None):
         with self._lock:
             project = self.get_project(project_id)
             if not project:
@@ -155,7 +157,11 @@ class ProjectService(OrganizationMixin):
             if not isinstance(operation, dict):
                 raise ValueError("Workspace operation must be an object")
             action = operation.get("action")
-            if action == "rename_project":
+            from .scenes import ACTIONS, operate
+            self._check_revision(project, expected_revision)
+            if action in ACTIONS:
+                operate(project, operation, jobs)
+            elif action == "rename_project":
                 project["name"] = workspace_name(operation.get("name"))
             elif action == "file_project":
                 folder = operation.get('folder_id')
@@ -265,7 +271,7 @@ class ProjectService(OrganizationMixin):
             os.fsync(f.fileno())
         os.replace(tmp, target)
 
-    def save_project(self, project_id: str, data: dict, expected_revision: int) -> dict:
+    def save_project(self, project_id: str, data: dict, expected_revision: int, jobs=None) -> dict:
         """
         Atomic update with optimistic concurrency check.
         Raises ValueError with status_code=409 on stale revision.
@@ -281,7 +287,30 @@ class ProjectService(OrganizationMixin):
                 err.status_code = 409
                 raise err
 
+            from .scenes import validate_scenes, protect_delete
+            validate_scenes(data.get("scenes", current.get("scenes", [])))
+            new_scenes = data.get("scenes", current.get("scenes", []))
+            new_owners = {sh['shot_id']: sc['scene_id'] for sc in new_scenes for sh in sc['shots']}
+            for sc in current.get('scenes', []):
+                for sh in sc['shots']:
+                    if sh['shot_id'] in new_owners and new_owners[sh['shot_id']] != sc['scene_id']:
+                        raise ValueError('Shot scene ownership is immutable')
+            new_ids = set(new_owners)
+            scene_ids = {sc["scene_id"] for sc in new_scenes}
+            for sc in current.get("scenes", []):
+                removed = [sh["shot_id"] for sh in sc["shots"] if sh["shot_id"] not in new_ids]
+                if removed or sc["scene_id"] not in scene_ids:
+                    protect_delete(current, sc["scene_id"], removed, jobs, whole_scene=sc["scene_id"] not in scene_ids)
+            for take in data.get("takes", []):
+                if take.get("scene_id") is not None or take.get("shot_id") is not None:
+                    self.validate_snapshot({"scenes": new_scenes}, take)
+            old_takes = {t["take_id"]: t for t in current.get("takes", [])}
+            for take in data.get("takes", []):
+                old = old_takes.get(take.get("take_id"))
+                if old and any(take.get(k) != old.get(k) for k in ("scene_id", "shot_id", "clip_id")):
+                    raise ValueError("Saved take ownership is immutable")
             updated = dict(data)
+            updated.setdefault("scenes", copy.deepcopy(current.get("scenes", [])))
             updated["project_id"] = project_id
             updated["revision"] = current_rev + 1
             updated["updated_at"] = time.time()
@@ -292,6 +321,30 @@ class ProjectService(OrganizationMixin):
 
             self._write_manifest(project_id, updated)
             return updated
+
+    def submit_owned_job(self, jobs, request_id, spec, leases, project_id, take_id):
+        """Serialize scene admission with deletion through durable job persistence."""
+        with self._lock:
+            snapshot = spec.get('project_snapshot', {})
+            if not isinstance(snapshot, dict):
+                raise ValueError('Project snapshot must be an object')
+            if project_id:
+                owner = self.get_project(project_id)
+                if not owner:
+                    raise ValueError('Project not found')
+                self.validate_snapshot(owner, snapshot)
+            elif snapshot.get('scene_id') is not None or snapshot.get('shot_id') is not None:
+                raise ValueError('Scene rendering requires a project')
+            return jobs.submit_job(request_id, spec, leases, project_id, take_id)
+
+    def validate_snapshot(self, project, snapshot):
+        from .scenes import target_shot
+        if not isinstance(snapshot, dict):
+            raise ValueError('Project snapshot must be an object')
+        if snapshot.get('scene_id') is not None or snapshot.get('shot_id') is not None:
+            target_shot(project, snapshot.get('scene_id'), snapshot.get('shot_id'))
+            if snapshot.get('clip_id') != snapshot.get('shot_id'):
+                raise ValueError('Shot clip identity does not match snapshot')
 
     def append_source_take(self, project_id, asset, take, metadata):
         """Append an imported source without overwriting a concurrent project save."""
@@ -342,6 +395,12 @@ class ProjectService(OrganizationMixin):
                 'parent_take_id': snapshot.get('parent_take_id'), 'overlap_frames': 0,
                 'unique_frames': settings.get('frames') if isinstance(settings.get('frames'), int) else spec.get('target_frames') if isinstance(spec.get('target_frames'), int) else None, 'context_token': token,
                 'created_at': job.get('created_at', time.time()), 'status': 'completed'}
+            from .scenes import target_shot
+            if snapshot.get('scene_id') is not None or snapshot.get('shot_id') is not None:
+                target_shot(project, snapshot.get('scene_id'), snapshot.get('shot_id'))
+                if snapshot.get('clip_id') != snapshot.get('shot_id'):
+                    raise ValueError('Shot clip identity does not match snapshot')
+                take.update(scene_id=snapshot['scene_id'], shot_id=snapshot['shot_id'], clip_id=snapshot['shot_id'])
             if isinstance(snapshot.get('draft'), dict):
                 take['draft'] = snapshot['draft']
             project.setdefault('takes', []).append(take)
@@ -388,6 +447,7 @@ class ProjectService(OrganizationMixin):
                     for item in value:
                         collect_references(item)
             collect_references(snapshot.get("draft", {}))
+            collect_references(snapshot.get("scenes", []))
             collect_references(snapshot.get("takes", []))
             collect_references(snapshot.get("clips", []))
             if referenced_assets:
@@ -561,6 +621,10 @@ class ProjectService(OrganizationMixin):
                     return [remap(item) for item in value]
                 return reference_remap.get(value, value) if isinstance(value, str) else value
             manifest_data = remap(manifest_data)
+            from .scenes import validate_scenes
+            validate_scenes(manifest_data.get("scenes", []))
+            for take in manifest_data.get("takes", []):
+                self.validate_snapshot(manifest_data, take)
             self._write_manifest(new_project_id, manifest_data)
             return manifest_data
 

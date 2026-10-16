@@ -88,6 +88,11 @@
         body: JSON.stringify({ name, canvas }),
       });
       this.currentProject = data;
+      this.draftScope = {};
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(this._storageKey('scene_scope.' + data.project_id)) || '{}');
+        if (globalThis.H3Scenes) this.draftScope = globalThis.H3Scenes.validateScope(data, stored);
+      } catch {}
       sessionStorage.setItem(this._storageKey('active_project_id'), data.project_id);
       this.onProjectChanged(this.currentProject);
       return data;
@@ -96,6 +101,11 @@
     async loadProject(projectId) {
       const data = await this.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(projectId)}`);
       this.currentProject = data;
+      this.draftScope = {};
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(this._storageKey('scene_scope.' + data.project_id)) || '{}');
+        if (globalThis.H3Scenes) this.draftScope = globalThis.H3Scenes.validateScope(data, stored);
+      } catch {}
       sessionStorage.setItem(this._storageKey('active_project_id'), data.project_id);
       this.onProjectChanged(this.currentProject);
       return data;
@@ -106,7 +116,12 @@
         throw new Error('No active project loaded');
       }
       const expectedRev = this.currentProject.revision;
-      const merged = { ...this.currentProject, ...updates };
+      let merged = { ...this.currentProject, ...updates };
+      if (Object.prototype.hasOwnProperty.call(updates, "draft") && this.draftScope?.scene_id) {
+        merged = globalThis.H3Scenes.withDraft(merged, this.draftScope, updates.draft);
+        merged.draft = this.currentProject.draft;
+      }
+      const savingProjectId = this.currentProject.project_id;
 
       const saved = await this.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(this.currentProject.project_id)}`, {
         method: 'POST',
@@ -116,8 +131,10 @@
         }),
       });
 
-      this.currentProject = saved;
-      this.onProjectChanged(this.currentProject);
+      if (this.currentProject?.project_id === savingProjectId) {
+        this.currentProject = saved;
+        this.onProjectChanged(this.currentProject);
+      }
       return saved;
     }
 
@@ -132,6 +149,7 @@
         body: JSON.stringify({ name: newName }),
       });
       this.currentProject = copy;
+      this.draftScope = {};
       sessionStorage.setItem(this._storageKey('active_project_id'), copy.project_id);
       this.onProjectChanged(this.currentProject);
       return copy;

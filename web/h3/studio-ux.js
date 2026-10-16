@@ -81,7 +81,7 @@
     const refinement = panelFor('enableRefine');
     const loras = panelFor('loraList');
     const advanced = panelFor('seed');
-    const order = [document.getElementById('projectPanel'), document.getElementById('openProjectElements'),
+    const order = [document.getElementById('projectPanel'), document.getElementById('scenesPanel'), document.getElementById('openProjectElements'),
       heading('shotInputsHeading', '1 · Direct the shot'), rail.querySelector('.modes'),
       document.getElementById('framesSection'), document.getElementById('refsSection'), prompt,
       document.getElementById('preparationPanel'), heading('renderSetupHeading', '2 · Render setup'),

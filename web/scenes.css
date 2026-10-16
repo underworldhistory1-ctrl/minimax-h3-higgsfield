@@ -1,0 +1,15 @@
+.scenes-panel{margin:14px 0;padding:14px;min-width:0;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.scenes-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.scene-list,.shot-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-width:0}
+.shot-list{padding-top:12px;border-top:1px solid var(--line)}
+.shot-list>small,.shot-list>.tip{flex-basis:100%;overflow-wrap:anywhere}
+.scene-row{display:flex;align-items:center;gap:2px;max-width:100%;min-width:0}
+.scene-row>button{min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.scenes-panel .selected{border-color:var(--acid);background:#2c351c;color:var(--text)}
+.scenes-panel button:focus-visible,.scene-actions summary:focus-visible{outline:2px solid var(--acid);outline-offset:3px}
+.scene-actions{position:relative;flex-shrink:0}
+.scene-actions summary{cursor:pointer;padding:9px;list-style:none}
+.scene-actions[open]{z-index:5;background:var(--surface2);border:1px solid var(--line);border-radius:8px}
+.scene-actions[open] button{display:block;margin:3px;white-space:normal;max-width:130px}
+.scene-actions:not([open]) button{display:none}
+@media(max-width:600px){.scenes-heading{align-items:flex-start}.scene-list,.shot-list{gap:6px}.scenes-panel{padding:12px}}
