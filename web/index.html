@@ -202,19 +202,19 @@
 <script src="./h3/vendor/prompt-parsers.js?v=20261015-production-2.5.6"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
 <script src="./h3/prompt-input.js?v=20261015-production-2.5.6"></script>
-<script src="./h3/prompt-compiler.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/prompt-compiler.js?v=20261016-reuse-materials"></script>
 <script src="./h3/configuration.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/graph-builder.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/scenes-ui.js?v=20261016-scenes"></script>
-<script src="./h3/project-controller.js?v=20261016-scenes"></script>
-<script src="./lab-ui.js?v=20261016-scenes"></script>
+<script src="./h3/project-controller.js?v=20261016-reuse-materials"></script>
+<script src="./lab-ui.js?v=20261016-reuse-materials"></script>
 <script src="./h3/studio-ux.js?v=20261016-scenes"></script>
 <script src="./h3/queue-ui.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/timing-estimator.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/tab-draft-store.js?v=20261015-production-2.5.6"></script>
-<script src="./studio.js?v=20261016-scenes"></script>
+<script src="./studio.js?v=20261016-reuse-materials"></script>
 <script src="./h3/updates-ui.js?v=20261015-production-2.5.6"></script>
-<script src="./h3/connected-studio.js?v=20261015-production-2.5.6"></script>
+<script src="./h3/connected-studio.js?v=20261016-reuse-materials"></script>
 <script src="./h3/configuration-ui.js?v=20261015-production-2.5.6"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>

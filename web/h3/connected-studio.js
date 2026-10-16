@@ -62,7 +62,7 @@
     }}finally{if(epoch===state.generationEpoch||signal?.aborted){state.waitingPreparation=false;if(epoch===state.generationEpoch)await pollQueue();}}
     if(epoch!==state.generationEpoch||signal?.aborted)throw Error('Cancelled');
     // Revalidate through the same native compiler used by the graph.
-    H3PromptCompiler.compilePrompt({...currentRenderSpec(),source_prompt:result.compiled_prompt,prompt_mode:'structured'});
+    result.compiled_prompt=H3PromptCompiler.compilePrompt({...currentRenderSpec(),source_prompt:result.compiled_prompt,prompt_mode:'structured'}).compiled_prompt;
     state.preparedContext=result;state.lastCompiledPrompt=result.compiled_prompt;state.lastBindings=result.bindings;
     $('compiledPromptDisplay').textContent=result.compiled_prompt;
     $('preparationStatus').textContent=(result.warnings||[]).join(' ')||'Prepared. This exact prompt will be sent to H3.';
@@ -74,6 +74,11 @@
     const processor=state.labCapabilities?.control_preprocessors?.[kind];
     return processor?.ready===true?'':processor?.reason||(Array.isArray(processor?.reasons)?processor.reasons.join('. '):'')||'Extraction for this goal is not configured on this server.';
   }
+  function renderControlInputStatus(key){
+    const selected=state.controlInputs[key],status=$('controlStatus');status.replaceChildren();
+    if(selected?.restoreError)status.append(missingInputCard(selected,()=>{state.controlInputs[key]=null;restoreControl();}));
+    else status.textContent=selected?'Selected '+selected.file.name:'';
+  }
   function refreshControlInputs(){
     const type=$('controlInputType').value,still=['image','prepared_image'].includes(type),ordinary=['video','image'].includes(type),kind=$('controlKind').value,masked=kind==='inpaint';
     for(const option of $('controlInputType').options){const image=['image','prepared_image'].includes(option.value);option.disabled=image&&!state.labCapabilities?.control_still_ready;option.title=option.disabled?'Update this server to enable verified still-image preparation.':'';}
@@ -82,7 +87,7 @@
     $('controlVideoHelp').textContent=still?'Upload one image. The guidance is held for the full video; the image is fitted with a centered crop.':ordinary?'Upload an ordinary video. Studio extracts guidance and aligns the selected span.':'Upload a video that already contains the selected control map.';
     H3Guidance.setText($('controlGuide'),still?'controlStill':masked?'controlMasked':ordinary?'controlVideo':'controlPrepared');
     $('controlStartSeconds').hidden=still;controlPanel.querySelector('label[for=controlStartSeconds]').hidden=still;
-    const selected=state.controlInputs[still?'image':'video'];if(!masked)$('controlStatus').textContent=selected?'Selected '+selected.file.name:'';
+    if(!masked)renderControlInputStatus(still?'image':'video');
     for(const option of $('controlKind').options){
       const reason=still&&option.value==='inpaint'?'Masked editing requires a source video and static mask.':option.value==='inpaint'||!ordinary?'':preprocessorReason(option.value);
       option.disabled=!!reason;option.title=reason;
@@ -256,7 +261,7 @@
     $('controlStartPercent').value=state.control?.start_percent??0;$('controlEndPercent').value=state.control?.end_percent??1;
     $('controlKind').value=state.control?.kind||'pose';$('controlStrength').value=state.control?.strength??1;
     refreshControlInputs();
-    const selected=state.controlInputs[['image','prepared_image'].includes(state.control.input_type)?'image':state.control.kind==='inpaint'?'source':'video'];$('controlStatus').textContent=selected?'Selected '+selected.file.name:'';
+    renderControlInputStatus(['image','prepared_image'].includes(state.control.input_type)?'image':state.control.kind==='inpaint'?'source':'video');
   }
   window.H3ConnectedStudio={prepare,controlUploads,refreshProvider,refreshAvailability,currentControl,restoreControl,validateControl,planControl};
   $('durationSeconds').addEventListener('input',refreshControlInputs);

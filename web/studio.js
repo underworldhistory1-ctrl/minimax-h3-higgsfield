@@ -397,7 +397,7 @@ function renderLoras() {
     const row=document.createElement("div");row.className="ref";
     const main=document.createElement("label");main.style.cssText="display:flex;align-items:center;gap:8px;margin:0;color:var(--text)";
     const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=managed?method()==="turbo":item.enabled;toggle.disabled=managed||state.busy||incompatible||state.nodesReady?.LoraLoaderModelOnly===false;
-    toggle.onchange=()=>{item.enabled=toggle.checked;renderLoras();renderEstimates();};
+    toggle.onchange=()=>{item.enabled=toggle.checked;renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
     const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=anime?"Anime → Realism · LumiReal / Ref2VA":swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
     if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply this adapter at strength 0.9.";row.append(note);}
@@ -532,6 +532,7 @@ function updateRefDurationNotice() {
 function renderRefs() {
   $("refs").replaceChildren();
   state.refs.forEach((ref,index) => {
+    if(ref.restoreError){$("refs").append(missingInputCard(ref,()=>state.refs.splice(index,1)));return;}
     const card=document.createElement("details");card.className="ref compact-ref";card.open=!!ref.expanded;card.ontoggle=()=>ref.expanded=card.open;
     const head=document.createElement("summary");head.className="refhead";
     const icon=document.createElement("div");icon.className="icon";
@@ -1213,7 +1214,10 @@ async function generate() {
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.tabDraftRestoreError){info("Restore this tab’s setup or explicitly clear it before rendering: "+state.tabDraftRestoreError,true);return;}
-  if(state.restoreMissing?.length){info("Reattach missing inputs and Save the project before rendering: "+state.restoreMissing.join(", "),true);return;}
+  if(allInputItems().some(item=>item.restoreError)){
+    try{await withProjectLoading(retryRestoredInputs);}catch(error){info(error.message,true);return;}
+  }
+  if(syncRestoredInputStatus().length){info("Retry, replace or remove unavailable inputs before rendering: "+state.restoreMissing.join(", "),true);return;}
   try{
     if(typeof syncPromptMentionsToReferences==='function')await syncPromptMentionsToReferences();
     if(typeof workspaceLocked==='function'&&workspaceLocked())throw Error('Wait for the current project operation to finish.');
@@ -1245,8 +1249,6 @@ async function generate() {
     if(method()==="turbo"&&state.loras.some(item=>item.enabled))throw Error("Turn off other LoRAs before Turbo. This combination is not verified yet.");
     for(const item of state.loras.filter(x=>x.enabled)){
       if(!Number.isFinite(item.strength)||item.strength<0||item.strength>2)throw Error("LoRA strength must be between 0 and 2.");
-      if(/^h3-realism-people-t2v-i2v-r2v\.safetensors$/i.test(item.name)&&!/(^|\W)r34l1sm(?=\W|$)/i.test($("prompt").value))
-        throw Error("Include the Realism People trigger r34l1sm in your prompt before generating.");
       if(state.mode==="refs"&&/fl2v|fl2va|t2v/i.test(item.name)&&!/ref2v|r2v/i.test(item.name))
         throw Error("LoRA "+item.name+" appears to target FL2VA, not the Ref2VA checkpoint.");
       if(state.mode!=="refs"&&/ref2v|r2v/i.test(item.name)&&!/fl2v|t2v/i.test(item.name))
@@ -1305,6 +1307,8 @@ async function generate() {
   focusWorkspace();
   $("resultCard").classList.add("hidden");
   try{
+    await persistProjectDraft();
+    if(epoch!==state.generationEpoch)throw Error("Cancelled");
     const uploads={first:null,last:null,refs:new Map(),guides:new Map()};
     const controlFiles=state.control?.enabled?(state.control.kind==="inpaint"?Number(!!state.controlInputs?.source)+Number(!!state.controlInputs?.mask):Number(!!state.controlInputs?.[['image','prepared_image'].includes(state.control.input_type)?'image':'video'])):0;
     const totalFiles=controlFiles+(state.mode==="frames"?Number(!!state.first)+Number(!!state.last):state.mode==="refs"?state.refs.length:0)+state.guides.length;
@@ -2212,7 +2216,7 @@ if ($("btnSaveProject")) {
         assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems()),
       };
       await projectCtrl.saveCurrentProject(updates);
-      state.restoreMissing=[...(state.reuseUnresolved||[])];info(state.restoreMissing.length?'Project saved; unresolved Reuse requirements still block rendering.':'Project saved successfully.');
+      syncRestoredInputStatus();info(state.restoreMissing.length?'Project saved; unresolved Reuse requirements still block rendering.':'Project saved successfully.');
     } catch (e) {
       info("Failed to save project: " + e.message, true);
     }

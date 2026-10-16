@@ -202,7 +202,20 @@
     });
   }
 
+  const REQUIRED_LORA_TRIGGERS = {
+    'h3-realism-people-t2v-i2v-r2v.safetensors': 'r34l1sm',
+    'anime2realsim__h3.safetensors': 'LumiReal',
+  };
+  function adapterTriggerWords(loras = []) {
+    return [...new Set((Array.isArray(loras)?loras:[]).filter(l => l.enabled !== false).map(l => REQUIRED_LORA_TRIGGERS[String(l.name || '').replace(/\\/g, '/').split('/').pop().toLowerCase()]).filter(Boolean))];
+  }
   function compilePrompt(spec) {
+    const result = compilePromptCore(spec);
+    const words = adapterTriggerWords(spec.loras).filter(word => !new RegExp('(^|[^a-z0-9_])' + word + '(?=$|[^a-z0-9_])', 'i').test(result.compiled_prompt));
+    if (words.length) result.compiled_prompt = result.compiled_prompt.replace(/(^|\n)(detailed_description|integrated_multimodal_description):[ \t]*/, '$&' + words.join(' ') + ' ');
+    return result;
+  }
+  function compilePromptCore(spec) {
     const mode = spec.mode || 'text';
     const promptMode = spec.prompt_mode || 'guided';
     const refs = spec.references || [];
@@ -474,6 +487,7 @@
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
+        if ((!nativeSections || supplementGuidedCards) && binding.role==='custom' && binding.instruction.trim()) return false;
         if (!nativeSections) return true;
         const tags = [binding.tag];
         if (binding.picture_idx) tags.push(`<Picture ${binding.picture_idx}>`);
@@ -593,6 +607,7 @@
     mentionName,
     normalizeReferenceMentions,
     compilePrompt,
+    adapterTriggerWords,
     referenceVideoSpan,
     validateNativeBindings,
     parseStructuredSections,

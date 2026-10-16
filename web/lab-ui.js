@@ -2,6 +2,37 @@
 // Server-owned project inputs, native keyframes and review actions.
 function restoredPreparationMode(value){return ['auto','ai','native'].includes(value)?value:'auto';}
 function allInputItems(){return [state.first,state.last,...state.refs,...state.guides,...Object.values(state.controlInputs||{})].filter(Boolean);}
+// Preserve failed descriptors so a network error cannot erase an input on Save.
+async function restoreInputItem(desc,controller=projectCtrl){
+  if(!desc)return null;
+  try{
+    let file=desc.file;
+    if(!(file instanceof Blob)){
+      if(!desc.assetId)throw Error('Missing asset identifier');
+      const rec=await controller.getAsset(desc.assetId),blob=await controller.mediaBlob(desc.assetId);
+      file=new File([blob],rec.original_name||'reference',{type:blob.type});
+    }else if(!(file instanceof File))file=new File([file],file.name||'reference',{type:file.type});
+    if(!file.size)throw Error('The reference file is empty');
+    const result={...desc,file,url:URL.createObjectURL(file),previewUrl:URL.createObjectURL(file)};
+    delete result.restoreError;return result;
+  }catch(error){return {...desc,file:null,url:null,previewUrl:null,restoreError:error.message||'Reference download failed'};}
+}
+function syncRestoredInputStatus(){
+  state.restoreMissing=[...new Set([...(state.reuseUnresolved||[]),...(state.restoreExtraMissing||[]),...allInputItems().filter(item=>item.restoreError).map(item=>item.alias||item.assetId||'reference')])];
+  return state.restoreMissing;
+}
+async function retryRestoredInputs(){
+  const controller=projectCtrl,epoch=state.hydrationEpoch;
+  const slots=[['first',state],['last',state],...state.refs.map((_,i)=>[i,state.refs]),...state.guides.map((_,i)=>[i,state.guides]),...Object.keys(state.controlInputs||{}).map(k=>[k,state.controlInputs])];
+  for(const [key,owner] of slots){const item=owner[key];if(!item?.restoreError)continue;const restored=await restoreInputItem(item,controller);if(controller===projectCtrl&&epoch===state.hydrationEpoch&&owner[key]===item)owner[key]=restored;else{for(const url of new Set([restored.url,restored.previewUrl]))if(url)URL.revokeObjectURL(url);if(controller!==projectCtrl||epoch!==state.hydrationEpoch)return;}}
+  syncRestoredInputStatus();await Promise.all([renderFrameItem('first'),renderFrameItem('last')]);renderRefs();renderGuides();if(window.H3ConnectedStudio)H3ConnectedStudio.restoreControl();updatePreviewLive();
+}
+function missingInputCard(item,remove){
+  const card=document.createElement('div');card.className='ref';
+  const message=document.createElement('p');message.textContent='Unavailable reference @'+(item.alias||item.assetId||'input')+': '+item.restoreError;
+  const retry=document.createElement('button');retry.type='button';retry.className='button alt smallbtn';retry.textContent='Retry reference download';retry.disabled=!!state.busy;retry.onclick=()=>withProjectLoading(retryRestoredInputs).then(()=>info(syncRestoredInputStatus().length?'Some inputs are still unavailable. Retry or remove them to use an edited setup.':'References restored.')).catch(error=>info(error.message,true));
+  const discard=document.createElement('button');discard.type='button';discard.className='button alt smallbtn';discard.textContent='Remove unavailable reference';discard.disabled=retry.disabled;discard.onclick=()=>{remove();syncRestoredInputStatus();renderRefs();renderGuides();saveDraft();};card.append(message,retry,discard);return card;
+}
 function mergeProjectAssetDescriptors(assets,items){
   const merged=new Map(assets.map(asset=>[asset.asset_id,{...asset}]));
   for(const item of items.filter(item=>item.assetId)){
@@ -98,6 +129,7 @@ async function useContinuationReferences(){
 function renderGuides(){
   const wrap=$("guideList");if(!wrap)return;wrap.replaceChildren();
   state.guides.forEach((guide,index)=>{
+    if(guide.restoreError){wrap.append(missingInputCard(guide,()=>state.guides.splice(index,1)));return;}
     const card=document.createElement("div");card.className="ref";
     const img=document.createElement(guide.kind==="audio"?"audio":guide.kind==="video"?"video":"img");img.src=guide.url;img.alt="Guide "+(index+1);if(guide.kind==="audio"||guide.kind==="video")img.controls=true;img.style.cssText="width:100%;max-height:100px;object-fit:contain";
     const label=document.createElement("label");label.textContent=state.continuation?"TIME IN NEW CONTENT (seconds)":"TIME (seconds)";
@@ -126,6 +158,7 @@ async function fitFrameImage(file,fitOverride=null){
 async function renderFrameItem(which){
   const item=state[which],box=$(which==="first"?"firstBox":"lastBox");box.replaceChildren();
   if(!item){box.textContent=which==="first"?"+ Add start frame":"+ Add end frame";$(which==="first"?"clearFirst":"clearLast").classList.add("hidden");return;}
+  if(item.restoreError){box.append(missingInputCard(item,()=>{state[which]=null;void renderFrameItem(which);}));$(which==='first'?'clearFirst':'clearLast').classList.remove('hidden');return;}
   const fitted=await fitFrameImage(item.file);if(state[which]!==item)return;
   const img=document.createElement("img");img.src=URL.createObjectURL(fitted);img.alt=which+" frame fit preview";img.onload=()=>URL.revokeObjectURL(img.src);box.append(img);$(which==="first"?"clearFirst":"clearLast").classList.remove("hidden");
 }
@@ -133,7 +166,7 @@ async function persistProjectDraft(){
   if(!projectCtrl?.currentProject)throw Error("Open or create a project before saving inputs.");
   const controller=projectCtrl,original=controller.currentProject,scope={...controller.draftScope};
   if(scope.scene_id&&!scope.shot_id)throw Error("Create or select a shot before saving inputs.");
-  for(const item of allInputItems())if(!item.assetId){const rec=await projectCtrl.uploadAsset(item.file);item.assetId=rec.asset_id;}
+  for(const item of allInputItems())if(!item.assetId){if(item.restoreError||!item.file)throw Error("Reattach or remove the unavailable input @"+(item.alias||"reference"));const rec=await projectCtrl.uploadAsset(item.file);item.assetId=rec.asset_id;}
   const refreshed=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(original.project_id)}`);
   if(controller!==projectCtrl||controller.currentProject?.project_id!==original.project_id)throw Error("Project changed while saving inputs.");
   if(typeof H3Scenes!=='undefined')H3Scenes.assertCanRebase(original,refreshed,scope);
@@ -168,11 +201,11 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   if(!draft)return;
   if(!preserveFailedLocal)state.tabDraftRestoreError=null;
   state.tabRestoredView=draft.tab_view||null;
-  const epoch=++state.hydrationEpoch;const missing=[...(draft.reuse_missing||[])];
-  async function item(desc){if(!desc)return null;try{if(desc.file instanceof Blob){const file=desc.file instanceof File?desc.file:new File([desc.file],desc.file.name||"reference",{type:desc.file.type});return {...desc,file,url:URL.createObjectURL(file),previewUrl:URL.createObjectURL(file)};}if(!desc.assetId)throw Error("Missing asset identifier");const rec=await projectCtrl.getAsset(desc.assetId);const blob=await projectCtrl.mediaBlob(desc.assetId);return {...desc,file:new File([blob],rec.original_name||"asset.png",{type:blob.type}),url:URL.createObjectURL(blob),previewUrl:URL.createObjectURL(blob)};}catch{missing.push(desc.alias||desc.assetId||"frame");return null;}}
+  const epoch=++state.hydrationEpoch;const missing=[];
+  const controller=projectCtrl;const item=desc=>restoreInputItem(desc,controller);
   const first=await item(draft.first),last=await item(draft.last),refs=await Promise.all((draft.refs||[]).map(item)),guides=await Promise.all((draft.guides||[]).map(item));
   const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
-  if(epoch!==state.hydrationEpoch)return;
+  if(epoch!==state.hydrationEpoch||controller!==projectCtrl){for(const input of [first,last,...refs,...guides,...Object.values(controlInputs)].filter(Boolean))for(const url of new Set([input.url,input.previewUrl]))if(url)URL.revokeObjectURL(url);return;}
   for(const old of allInputItems())for(const url of new Set([old.url,old.previewUrl,old.originalPreviewUrl]))if(url)URL.revokeObjectURL(url);
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
   Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
@@ -192,16 +225,18 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   state.mode=draft.mode||"text";$("prompt").value=state.prompts[state.mode]||"";selectMode(state.mode,true);state.loras=state.loras.map(x=>({...x,enabled:!!draft.loras?.some(l=>l.name===x.name),strength:draft.loras?.find(l=>l.name===x.name)?.strength??x.strength}));
   await Promise.all([renderFrameItem("first"),renderFrameItem("last")]);renderRefs();renderGuides();renderContinuation();updatePreviewLive();
   if(state.continuation?.source_asset_id){try{await projectCtrl.getAsset(state.continuation.source_asset_id);}catch{missing.push("continuation source");}}
-  state.restoreMissing=missing;
-  state.reuseUnresolved=[...(draft.reuse_missing||[])];
+  state.restoreExtraMissing=missing;
+  const mediaRequirements=new Set([draft.first,draft.last,...(draft.refs||[]),...(draft.guides||[]),...Object.values(draft.controlInputs||{})].filter(Boolean).flatMap(item=>[item.assetId,item.alias||'Unrecorded reference']));
+  state.reuseUnresolved=(draft.reuse_missing||[]).filter(name=>!mediaRequirements.has(name));
   state.reuseSource=draft.reuse_source||null;state.reuseRequiredLoras=[];state.reuseCheckpoint=null;
   if(draft.reuse_source){
     for(const adapter of draft.loras||[])if(adapter.enabled&&!state.loras.some(l=>l.name===adapter.name&&l.enabled)){state.reuseUnresolved.push('LoRA '+adapter.name);state.reuseRequiredLoras.push(adapter);}
     if(draft.configuration?.checkpoint&&draft.configuration.checkpoint!==selectedCheckpoint()){state.reuseUnresolved.push('Checkpoint '+draft.configuration.checkpoint);state.reuseCheckpoint=draft.configuration.checkpoint;}
     state.restoreMissing=[...new Set([...missing,...state.reuseUnresolved])];
   }
+  syncRestoredInputStatus();
   if($('confirmEditedSetup'))$('confirmEditedSetup').hidden=!state.reuseUnresolved.length;
-  if(missing.length)info("Project has unavailable inputs: "+missing.join(", ")+". Reattach them and Save before rendering.",true);
+  if(state.restoreMissing.length)info("Project has unavailable inputs: "+state.restoreMissing.join(", ")+". Reattach them and Save before rendering.",true);
   for(const id of draft.tab_details||[])if($(id)?.tagName==='DETAILS')$(id).open=true;
 }
 async function refreshProjectList(){

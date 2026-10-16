@@ -70,9 +70,16 @@
     }
 
     async mediaBlob(assetId) {
-      const res = await fetch(this.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}/file`));
-      if (!res.ok) throw new Error(`Cannot load asset media: HTTP ${res.status}`);
-      return res.blob();
+      for(let attempt=0;attempt<3;attempt++){
+        try{
+          const res=await fetch(this.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}/file`));
+          if(!res.ok){const error=new Error(`Cannot load asset media: HTTP ${res.status}`);error.status=res.status;throw error;}
+          return await res.blob();
+        }catch(error){
+          if(attempt===2||(error.status&&![408,429,500,502,503,504].includes(error.status)))throw error;
+          await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+        }
+      }
     }
 
     async importBundle(file) {
