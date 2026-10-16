@@ -84,6 +84,8 @@ const H3OrganizationUI=(()=>{
    reuseContext={prepared,controller,origin,output};populate($('reuseTarget'),response.projects.map(p=>[p.project_id,p.name]),['new','New project']);$('reuseTarget').value=state.activeProjectId||prepared.source_project_id||'new';$('reuseProjectName').value='Reused shot';$('reuseNewName').hidden=$('reuseTarget').value!=='new';
    $('reuseStatus').textContent=prepared.available?(prepared.complete?'Full saved setup available. No render starts automatically.':prepared.warnings.join('\n')):prepared.warnings.join('\n');$('reuseApply').disabled=!prepared.available;
    $('reuseSummary').textContent=prepared.available?`${prepared.draft.mode} · ${prepared.draft.settings?.duration||'?'} frames · seed ${prepared.draft.settings?.seed??'?'} · ${prepared.assets.length} stored inputs`:entry.file.filename;
+   // Restore directly; retain the dialog for actionable recovery errors.
+   if(prepared.available)await applyReuse();
   }catch(error){$('reuseStatus').textContent=error.message;}
  }
  async function applyReuse(){const ctx=reuseContext;if(!ctx?.prepared.available||ctx.controller!==projectCtrl||ctx.origin!==api('')||workspaceLocked())return;const button=$('reuseApply');button.disabled=true;

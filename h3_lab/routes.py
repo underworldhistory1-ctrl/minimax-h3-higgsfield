@@ -306,7 +306,13 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             target = body.get('target_project_id')
             if target:
                 records = await asyncio.to_thread(jobs.project_jobs, target)
-                if any(r.get('state') not in ('completed','failed','cancelled') for r in records):
+                # Durable states can outlive a worker. Reconcile before deciding
+                # whether replacing the editable draft would affect active work.
+                if comfy_client:
+                    records = [await jobs.reconcile_submission_gap(r['job_id'], comfy_client)
+                               if r.get('state') not in ('completed','failed','cancelled') else r
+                               for r in records]
+                if any(r and r.get('state') not in ('completed','failed','cancelled') for r in records):
                     return web.json_response({'error':'Finish active project jobs before replacing its draft.'}, status=409)
                 result = await asyncio.to_thread(projects.apply_reuse, body.get('output_file'), target, body.get('expected_revision'), jobs)
             else:
