@@ -133,7 +133,13 @@ function syncPromptMentionsToReferences(){
   syncMentionsPending=(async()=>{
     for(const item of projectCatalogItems()){
       if(pid!==state.activeProjectId)return;
-      const text=H3PromptCompiler.normalizeReferenceMentions($('prompt').value||'',projectCatalogItems());
+      // Shot aliases are authoritative, including numeric aliases restored by Reuse.
+      // Catalog names/history must never reinterpret an attached @1 as another asset.
+      const attachedIds=new Set(state.refs.map(ref=>ref.assetId));
+      const attachedAliases=new Set(state.refs.map(ref=>ref.alias.toLocaleLowerCase()));
+      const catalog=projectCatalogItems().filter(ref=>!attachedIds.has(ref.assetId)&&!attachedAliases.has(ref.alias.toLocaleLowerCase()));
+      if(!catalog.some(ref=>ref.assetId===item.assetId))continue;
+      const text=H3PromptCompiler.normalizeReferenceMentions($('prompt').value||'',[...catalog,...state.refs]);
       const mentions=new Set([...text.matchAll(/@([\p{L}\p{N}_-]+)/gu)].map(match=>match[1]));
       if(!mentions.has(item.alias)||state.refs.some(ref=>ref.assetId===item.assetId))continue;
       await activateProjectAsset(item);

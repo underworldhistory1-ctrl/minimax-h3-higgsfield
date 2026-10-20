@@ -15,6 +15,32 @@ test('typed mention paste attaches every project asset serially',async()=>{
  context.activateProjectAsset=async item=>{if(vm.runInContext('workspaceCatalogBusy',context))throw Error('busy');vm.runInContext('workspaceCatalogBusy=true',context);await new Promise(r=>setTimeout(r,2));state.refs.push(item);vm.runInContext('workspaceCatalogBusy=false',context);};
  await context.syncPromptMentionsToReferences();await new Promise(r=>setTimeout(r,20));assert.equal(state.refs.length,2);
 });
+
+test('shot numeric aliases cannot auto-attach unrelated catalog names or history',async()=>{
+ const {context,state}=workspace([
+  {asset_id:'ghost',alias:'victor',name:'1',mention_names:['2'],kind:'image'},
+  {asset_id:'collision',alias:'1',kind:'image'},
+ ],'Create a cinematic sequence featuring @1 inside the alley shown in @2.');
+ state.refs=[{assetId:'person',alias:'1',kind:'image'},{assetId:'alley',alias:'2',kind:'image'}];
+ context.activateProjectAsset=async()=>assert.fail('No catalog asset should be attached');
+ await context.syncPromptMentionsToReferences();
+ assert.deepEqual(state.refs.map(ref=>ref.alias),['1','2']);
+ assert.doesNotThrow(()=>compiler.compilePrompt({mode:'refs',source_prompt:'@1 inside @2',references:state.refs}));
+});
+
+test('renamed attached asset never reappears under its old catalog alias',async()=>{
+ const {context,state}=workspace([{asset_id:'person',alias:'victor',name:'1',kind:'image'},{asset_id:'alley',alias:'old_alley',name:'2',kind:'image'}],'@1 walks inside @2');
+ state.refs=[{assetId:'person',alias:'1',kind:'image'},{assetId:'alley',alias:'2',kind:'image'}];
+ context.activateProjectAsset=async()=>assert.fail('Existing assets must keep their shot aliases');
+ await context.syncPromptMentionsToReferences();assert.equal(state.refs.length,2);
+});
+
+test('unattached named catalog assets still attach alongside numeric shot aliases',async()=>{
+ const {context,state}=workspace([{asset_id:'ghost',alias:'victor',name:'1',kind:'image'},{asset_id:'room',alias:'room',name:'Alley',kind:'image'}],'@1 enters @Alley');
+ state.refs=[{assetId:'person',alias:'1',kind:'image'}];
+ context.activateProjectAsset=async item=>state.refs.push(item);
+ await context.syncPromptMentionsToReferences();assert.deepEqual(state.refs.map(ref=>ref.alias),['1','room']);
+});
 test('display names compile to canonical IDs while legacy aliases remain valid',()=>{
  const references=[{asset_id:'a',alias:'old_filename',name:'Bathroom set',kind:'image',role:'custom'}];
  for(const name of ['Bathroom set','Bathroom_set','old_filename'])assert.match(compiler.compilePrompt({mode:'refs',source_prompt:'Film @'+name+'.',references}).compiled_prompt,/<Picture 1>\./);
