@@ -2185,11 +2185,9 @@ function renderSequenceCard() {
   if (!card || !strip) return;
 
   const proj = state.currentProject;
-  const acceptedTakeIds = proj?.accepted_take_ids || [];
-  const takes = proj?.takes || [];
   const acceptedTakes = H3Scenes.sequenceTakes(proj,projectCtrl?.draftScope);
 
-  if (!acceptedTakes.length && !state.results.length) {
+  if (!acceptedTakes.length) {
     card.classList.add("hidden");
     return;
   }

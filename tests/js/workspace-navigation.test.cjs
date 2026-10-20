@@ -109,3 +109,9 @@ test('explicit Save and Export never claim to persist an empty scene with no sho
  const {context,calls}=workspace();context.projectCtrl.draftScope={scene_id:'empty'};
  await assert.rejects(context.saveWorkspaceSetup(),/Create or select a shot/);await assert.rejects(context.exportWorkspaceProject(),/Create or select a shot/);assert.deepEqual(calls,[]);
 });
+
+test('unrelated server videos do not expose an empty Assemble sequence action',()=>{
+ const source=fs.readFileSync('web/studio.js','utf8'),start=source.indexOf('function renderSequenceCard()'),end=source.indexOf('\nif ($("btnAssembleSequence"))',start);
+ let hidden=false;const card={classList:{add:value=>hidden=value==='hidden'}};
+ const context={state:{currentProject:{},results:[{file:'other-project.mp4'}]},projectCtrl:{},H3Scenes:{sequenceTakes:()=>[]},$:id=>id==='sequenceCard'?card:{}};vm.createContext(context);vm.runInContext(source.slice(start,end)+';renderSequenceCard();',context);assert.equal(hidden,true);
+});
