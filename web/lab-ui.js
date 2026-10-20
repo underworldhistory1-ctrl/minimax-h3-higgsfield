@@ -21,6 +21,17 @@ function syncRestoredInputStatus(){
   state.restoreMissing=[...new Set([...(state.reuseUnresolved||[]),...(state.restoreExtraMissing||[]),...allInputItems().filter(item=>item.restoreError).map(item=>item.alias||item.assetId||'reference')])];
   return state.restoreMissing;
 }
+function syncRestoredAdapterStatus(){
+  const previous=state.reuseUnresolved||[];
+  const available=new Set((state.loras||[]).filter(l=>l.enabled).map(l=>'LoRA '+l.name));
+  if(state.reuseCheckpoint&&state.reuseCheckpoint===selectedCheckpoint())available.add('Checkpoint '+state.reuseCheckpoint);
+  state.reuseUnresolved=previous.filter(name=>!available.has(name));
+  state.reuseRequiredLoras=(state.reuseRequiredLoras||[]).filter(l=>!available.has('LoRA '+l.name));
+  if(available.has('Checkpoint '+state.reuseCheckpoint))state.reuseCheckpoint=null;
+  syncRestoredInputStatus();
+  if($('confirmEditedSetup'))$('confirmEditedSetup').hidden=!state.reuseUnresolved.length;
+  if(previous.length&&!state.restoreMissing.length)info('Saved prompt, references, adapters and settings restored.');
+}
 async function retryRestoredInputs(){
   const controller=projectCtrl,epoch=state.hydrationEpoch;
   const slots=[['first',state],['last',state],...state.refs.map((_,i)=>[i,state.refs]),...state.guides.map((_,i)=>[i,state.guides]),...Object.keys(state.controlInputs||{}).map(k=>[k,state.controlInputs])];
@@ -234,7 +245,7 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
     if(draft.configuration?.checkpoint&&draft.configuration.checkpoint!==selectedCheckpoint()){state.reuseUnresolved.push('Checkpoint '+draft.configuration.checkpoint);state.reuseCheckpoint=draft.configuration.checkpoint;}
     state.restoreMissing=[...new Set([...missing,...state.reuseUnresolved])];
   }
-  syncRestoredInputStatus();
+  syncRestoredAdapterStatus();
   if($('confirmEditedSetup'))$('confirmEditedSetup').hidden=!state.reuseUnresolved.length;
   if(state.restoreMissing.length)info("Project has unavailable inputs: "+state.restoreMissing.join(", ")+". Reattach them and Save before rendering.",true);
   for(const id of draft.tab_details||[])if($(id)?.tagName==='DETAILS')$(id).open=true;

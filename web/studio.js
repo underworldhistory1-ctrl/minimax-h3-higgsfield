@@ -425,6 +425,7 @@ async function loadLoras(){
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}
     const managed=state.loras.find(item=>item.name===turboName);if(managed)managed.enabled=false;
     state.lorasLoaded=true;
+    if(typeof syncRestoredAdapterStatus==='function')syncRestoredAdapterStatus();
     updateMethodAvailability();
     renderLoras();renderEstimates();
   }catch{

@@ -34,3 +34,7 @@ test('Reuse landing recovers results without inheriting old active render or bus
 test('Reuse helper loads before immediate studio initialization',()=>{
  const html=fs.readFileSync('web/index.html','utf8');assert.ok(html.indexOf('src="./h3/reuse-navigation.js')<html.indexOf('src="./studio.js'));
 });
+
+test('Late installed adapter catalog clears false missing warnings without dropping actual missing inputs',()=>{
+ const source=fs.readFileSync('web/lab-ui.js','utf8');const start=source.indexOf('function syncRestoredInputStatus(){'),end=source.indexOf('async function retryRestoredInputs()',start);const state={reuseUnresolved:['LoRA Combat','LoRA Missing','reference-id'],reuseRequiredLoras:[{name:'Combat'},{name:'Missing'}],loras:[{name:'Combat',enabled:true,strength:.3}],restoreExtraMissing:[]};const ctx={state,allInputItems:()=>[],$:()=>({hidden:false}),selectedCheckpoint:()=>'',info:()=>{}};vm.createContext(ctx);vm.runInContext(source.slice(start,end)+';syncRestoredAdapterStatus();',ctx);assert.deepEqual(Array.from(state.reuseUnresolved),['LoRA Missing','reference-id']);assert.equal(state.reuseRequiredLoras.length,1);assert.equal(state.loras[0].strength,.3);
+});
