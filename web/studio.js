@@ -76,6 +76,12 @@ function selectedModelReady(mode=state.mode){
 }
 const storeKey = "h3studio.render.v2";
 const baseKey = "h3studio.comfyBase";
+const projectConnectionURL=new URL(location.href);
+if(projectConnectionURL.searchParams.has('api_base')){
+  sessionStorage.setItem(baseKey,projectConnectionURL.searchParams.get('api_base')||'');
+  projectConnectionURL.searchParams.delete('api_base');
+  history.replaceState(null,'',projectConnectionURL.href);
+}
 if(sessionStorage.getItem(baseKey)===null)sessionStorage.setItem(baseKey,localStorage.getItem(baseKey)||"");
 const draftKey = "h3studio.draft.v3";
 const sessionKey = "h3studio.session.v3";

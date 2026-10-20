@@ -25,7 +25,7 @@
 #projectHubList .project-card h2{margin:7px 0 12px;font-size:18px;line-height:1.35;letter-spacing:-.4px;overflow-wrap:anywhere}
 .project-card-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#a3ad9c;font-size:11px}.project-card-meta time{margin-left:auto;color:#85917c;font-size:10px}
 .project-card-actions{display:grid;grid-template-columns:auto auto;gap:7px;margin:0;padding:0 18px 18px;min-width:0}.project-card-actions .button{min-width:0;white-space:normal;font-size:11px;line-height:1.35;padding:8px 9px;border-radius:7px;background:#252e21;color:#c5d0bc;border-color:#3c4933;flex:none}
-.project-card-actions .project-open{background:var(--acid);border-color:var(--acid);color:#151914;font-weight:800}.project-card-actions .button:hover{border-color:#94ad6b}
+.project-card-actions .project-open{display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--acid);border-color:var(--acid);color:#151914;font-weight:800}.project-card-actions .project-open:focus-visible{outline:2px solid var(--acid);outline-offset:3px}.project-card-actions .button:hover{border-color:#94ad6b}
 #projectHubList[data-view=list]{grid-template-columns:minmax(0,1fr);gap:10px}
 #projectHubList[data-view=list] .project-card{grid-template-columns:148px minmax(0,1fr) minmax(220px,auto);grid-template-rows:auto;align-items:center}
 #projectHubList[data-view=list] .project-card-preview{aspect-ratio:4/3;height:100%;min-height:112px;border-bottom:0;border-right:1px solid #343e2f}

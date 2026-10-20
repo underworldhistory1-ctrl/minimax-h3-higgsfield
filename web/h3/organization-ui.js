@@ -45,7 +45,7 @@ const H3OrganizationUI=(()=>{
     const meta=workspaceElement('div',undefined,'project-card-meta');meta.append(workspaceElement('span',(project.asset_count||0)+' assets'),workspaceElement('span',(project.take_count||0)+' takes'));
     const date=Number(project.updated_at);if(Number.isFinite(date)&&date>0){const time=document.createElement('time');const updated=new Date(date<1e12?date*1000:date);time.dateTime=updated.toISOString();time.textContent=updated.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});time.title='Last updated '+updated.toLocaleString();meta.append(time);}body.append(meta);
     const actions=workspaceElement('div',undefined,'project-card-actions');
-    const open=workspaceButton('Open',()=>openProjectWorkspace(project.project_id));open.classList.add('project-open');
+    const open=projectOpenAction(project);
     actions.append(open,workspaceButton('Rename',async()=>{const name=await askName('Rename project',project.name);if(name?.trim())await workspaceMutation({action:'rename_project',name},project);}),workspaceButton('Move to folder',()=>fileProject(project)),workspaceButton('Duplicate',async()=>{const name=await askName('Duplicate project',project.name+' (Copy)');if(!name)return;await projectCtrl.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(project.project_id)+'/duplicate',{method:'POST',body:JSON.stringify({name})});await renderProjectHub();}));
     for(const button of actions.children)button.disabled=workspaceLocked();card.append(media,body,actions);list.append(card);
    }

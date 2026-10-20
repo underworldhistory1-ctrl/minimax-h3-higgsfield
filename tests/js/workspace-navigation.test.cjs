@@ -36,6 +36,33 @@ test('project links are durable from a bare URL and preserve pending Reuse trans
  const pending='https://studio.test/index.html?reuse=video.mp4#studio';assert.equal(reuse.projectLink(pending,'p'),pending);
 });
 
+test('Open remains a separate-tab link during a render and never mutates the running editor',async()=>{
+ const {context,state,calls}=workspace();context.URL=URL;context.location={href:'https://studio.test/index.html?job=old&reuse=video&reuse_request=old#projects'};
+ context.document={createElement:()=>({dataset:{}})};state.busy=true;state.running='job1';
+ const refs=state.refs,link=context.projectOpenAction({project_id:'other'});let prevented=false;
+ await link.onclick({preventDefault(){prevented=true;},button:0});
+ assert.equal(prevented,false);assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener');
+ const url=new URL(link.href);assert.equal(url.searchParams.get('project'),'other');assert.equal(url.hash,'#studio');assert.equal(url.searchParams.has('job'),false);assert.equal(url.searchParams.has('reuse'),false);
+ assert.equal(state.running,'job1');assert.equal(state.refs,refs);assert.deepEqual(calls,[]);
+ state.busy=false;context.openProjectWorkspace=async id=>calls.push(id);await link.onclick({preventDefault(){prevented=true;},button:0});assert.equal(prevented,true);assert.deepEqual(calls,['other']);
+});
+
+test('new tab boot uses its explicit API base instead of a different legacy server',()=>{
+ const {context}=workspace();context.URL=URL;context.location={href:'https://studio.test/index.html#projects'};context.document={createElement:()=>({dataset:{}})};
+ const source=fs.readFileSync('web/studio.js','utf8');
+ for(const selected of ['https://api-b.test/comfy','']){
+  context.projectCtrl.apiBase=selected;const link=context.projectOpenAction({project_id:'p'});
+  const memory=new Map(),boot={URL,location:new URL(link.href),history:{replaceState(_a,_b,href){boot.location=new URL(href);}},sessionStorage:{setItem:(k,v)=>memory.set(k,v),getItem:k=>memory.has(k)?memory.get(k):null},localStorage:{getItem:()=> 'https://api-a.test'}};
+  vm.createContext(boot);vm.runInContext(source.slice(source.indexOf('const baseKey ='),source.indexOf('const draftKey =')),boot);
+  assert.equal(memory.get('h3studio.comfyBase'),selected);assert.equal(boot.location.searchParams.has('api_base'),false);
+ }
+});
+
+test('browsing Projects during a render does not save or replace its active setup',async()=>{
+ const {context,state,calls}=workspace();state.busy=true;context.document={body:{classList:{add(){}}}};context.renderProjectHub=async()=>calls.push('hub');
+ await context.showProjectHub();assert.deepEqual(calls,['projects','hub']);assert.equal(state.activeProjectId,'p');
+});
+
 test('explicit project refresh retains Projects and Elements pages instead of forcing Production',async()=>{
  const source=fs.readFileSync('web/studio.js','utf8');
  for(const view of ['projects','elements','studio']){

@@ -5,6 +5,20 @@ function workspaceElement(tag,text,className){
   if(className)element.className=className;return element;
 }
 function workspaceButton(text,action){const button=workspaceElement('button',text,'button alt smallbtn');button.type='button';button.onclick=()=>Promise.resolve().then(action).catch(error=>info(error.message,true));return button;}
+function projectOpenAction(project){
+  const link=workspaceElement('a','Open','button project-open'),url=new URL(location.href);
+  for(const key of ['job','reuse','reuse_request','api_base'])url.searchParams.delete(key);
+  url.searchParams.set('project',project.project_id);url.hash='studio';
+  // A noopener tab has fresh sessionStorage: carry this tab's selected server.
+  url.searchParams.set('api_base',projectCtrl?.apiBase||'');
+  link.href=url.href;link.target='_blank';link.rel='noopener';link.dataset.projectOpen=project.project_id;
+  link.title='Open project. During rendering or loading, opens in a separate tab.';
+  link.onclick=event=>{
+    if(workspaceLocked()||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button>0)return;
+    event.preventDefault();return openProjectWorkspace(project.project_id).catch(error=>info(error.message,true));
+  };
+  return link;
+}
 let workspaceCatalogBusy=false;
 function workspaceLocked(){return state.busy||state.projectLoading||workspaceCatalogBusy;}
 function projectCatalogItems(){
@@ -55,8 +69,8 @@ async function openProjectWorkspace(id,{view='studio'}={}){
   document.body.classList.remove('project-hub-open');setWorkspaceView(view);renderProjectCatalog();refreshLabControls();
 }
 async function showProjectHub(save=true){
-  if(workspaceLocked())throw Error('Wait for the current operation before leaving this project.');
-  if(save&&projectCtrl?.currentProject)await withProjectLoading(saveWorkspaceDraft);
+  if(state.projectLoading||workspaceCatalogBusy)throw Error('Wait for the current project operation to finish.');
+  if(save&&projectCtrl?.currentProject&&!state.busy)await withProjectLoading(saveWorkspaceDraft);
   document.body.classList.add('project-hub-open');setWorkspaceView('projects');await renderProjectHub();
 }
 let projectHubEpoch=0;
@@ -70,7 +84,7 @@ async function renderProjectHub(){
     const card=workspaceElement('article',undefined,'project-card');card.dataset.projectId=project.project_id;
     card.append(workspaceElement('h2',project.name),workspaceElement('p',`${project.asset_count||0} assets · ${project.take_count||0} takes`,'tip'));
     const actions=workspaceElement('div',undefined,'row');
-    actions.append(workspaceButton('Open',()=>openProjectWorkspace(project.project_id)),workspaceButton('Rename',async()=>{
+    actions.append(projectOpenAction(project),workspaceButton('Rename',async()=>{
       const name=prompt('Project name',project.name);if(name?.trim())await workspaceMutation({action:'rename_project',name},project);
     }));card.append(actions);list.append(card);
   }
