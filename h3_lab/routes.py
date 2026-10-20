@@ -304,7 +304,9 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         try:
             body = await request.json()
             target = body.get('target_project_id')
-            if target:
+            if body.get('create_grouped') is True:
+                result = await asyncio.to_thread(projects.create_reuse_project, body.get('output_file'), body.get('request_id'), jobs)
+            elif target:
                 records = await asyncio.to_thread(jobs.project_jobs, target)
                 # Durable states can outlive a worker. Reconcile before deciding
                 # whether replacing the editable draft would affect active work.

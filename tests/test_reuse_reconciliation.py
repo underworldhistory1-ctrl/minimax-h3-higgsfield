@@ -39,5 +39,16 @@ class ReuseTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 409)
             apply.assert_not_called()
 
+    async def test_grouped_reuse_creates_independent_workspace_without_touching_active_source(self):
+        request=Request()
+        request.json=AsyncMock(return_value={'output_file':'video/take.mp4','create_grouped':True,'request_id':'token'})
+        with patch('h3_lab.routes.ProjectService.create_reuse_project',return_value={'project':{'project_id':'independent'}}) as create, \
+             patch('h3_lab.routes.ProjectService.apply_reuse') as apply, \
+             patch('h3_lab.routes.JobService.project_jobs') as active:
+            response=await self.handler(request)
+            self.assertEqual(response.status,200)
+            self.assertEqual(create.call_args.args[:2],('video/take.mp4','token'))
+            apply.assert_not_called();active.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

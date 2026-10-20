@@ -1,7 +1,7 @@
 /* Shared organization/reuse flows operate on durable project IDs, never browser-only copies. */
 'use strict';
 const H3OrganizationUI=(()=>{
- let organization={revision:1,folders:[]},selected=new Set(),selectedProject=null,transferContext=null,reuseContext=null,hubEpoch=0,reuseEpoch=0,projectCache=[];
+ let organization={revision:1,folders:[]},selected=new Set(),selectedProject=null,transferContext=null,hubEpoch=0,projectCache=[];
  async function refreshFolders(){const controller=projectCtrl;const value=await controller.fetchJson('/h3_studio/lab/organization');if(controller===projectCtrl)organization=value.folders?value:{revision:1,folders:[]};return organization;}
  function populate(select,values,first){const before=select.value;select.replaceChildren();for(const [value,label] of [first,...values]){const option=workspaceElement('option',label);option.value=value;select.append(option);}if([...select.options].some(o=>o.value===before))select.value=before;}
  async function askName(title,value=''){
@@ -25,6 +25,16 @@ const H3OrganizationUI=(()=>{
   bar.append(label,views);list.before(bar);let saved='grid';try{saved=localStorage.getItem('h3studio.projects.view')||'grid';}catch(_){}projectView(saved);
   $('projectSearch').setAttribute('placeholder','Search project names…');$('projectSearch').setAttribute('type','search');
  }
+ function listing(projects,folders,{query='',folder='all',sort='recent'}={}){
+  query=query.trim().toLocaleLowerCase();
+  const groups=folders.filter(f=>f.kind==='reuse').map(f=>({...f,projects:projects.filter(p=>p.folder_id===f.id)}));
+  const grouped=new Set(groups.map(f=>f.id));
+  const visible=projects.filter(p=>p.name.toLocaleLowerCase().includes(query)&&(folder==='all'?(query||!grouped.has(p.folder_id)):(folder==='unfiled'?!p.folder_id:p.folder_id===folder)));
+  visible.sort(sort==='name'?(a,b)=>a.name.localeCompare(b.name):(a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  return {projects:visible,groups,folders:folder==='all'&&!query?groups.filter(f=>f.projects.length):[]};
+ }
+ function browseFolder(id){$('projectSearch').value='';$('projectFolderFilter').value=id;return renderProjects(projectCache,$('projectHubList'),false);}
+ function folderButton(label,id){const button=workspaceButton(label,()=>browseFolder(id));button.dataset.browseFolder=id;return button;}
  async function renderProjects(projects,list,refresh=true){
   libraryControls(list);const epoch=++hubEpoch,controller=projectCtrl;list.setAttribute('aria-busy','true');
   try{
@@ -32,8 +42,14 @@ const H3OrganizationUI=(()=>{
    populate($('projectFolderFilter'),[['unfiled','Unfiled'],...organization.folders.map(f=>[f.id,f.name])],['all','All project folders']);
    const query=$('projectSearch').value.trim().toLocaleLowerCase(),folder=$('projectFolderFilter').value,sort=$('projectSort').value;
    $('renameProjectFolder').disabled=!organization.folders.some(f=>f.id===folder)||workspaceLocked();
-   const filtered=projects.filter(p=>p.name.toLocaleLowerCase().includes(query)&&(folder==='all'||(folder==='unfiled'?!p.folder_id:p.folder_id===folder)));
-   filtered.sort(sort==='name'?(a,b)=>a.name.localeCompare(b.name):(a,b)=>(b.updated_at||0)-(a.updated_at||0));list.replaceChildren();
+   const display=listing(projects,organization.folders,{query,folder,sort}),filtered=display.projects;list.replaceChildren();
+   if(folder!=='all'){const back=folderButton('← All projects','all');back.classList.add('project-folder-back');list.append(back);}
+   for(const group of display.folders){
+    const card=workspaceElement('article',undefined,'project-card project-reuse-folder');card.dataset.folderId=group.id;
+    const preview=workspaceElement('div',undefined,'project-card-preview');preview.append(workspaceElement('span','↻','project-preview-monogram'));
+    const body=workspaceElement('div',undefined,'project-card-body');body.append(workspaceElement('small','Reuse folder','project-folder-label'),workspaceElement('h2',group.name),workspaceElement('p',group.projects.length+' saved setups','tip'));
+    const actions=workspaceElement('div',undefined,'project-card-actions');actions.append(folderButton('Open folder',group.id));card.append(preview,body,actions);list.append(card);
+   }
    for(const project of filtered){
     const card=workspaceElement('article',undefined,'project-card');card.dataset.projectId=project.project_id;
     const title=workspaceElement('h2',project.name);title.id='project-title-'+project.project_id;card.setAttribute('aria-labelledby',title.id);
@@ -47,10 +63,11 @@ const H3OrganizationUI=(()=>{
     const actions=workspaceElement('div',undefined,'project-card-actions');
     const open=projectOpenAction(project);
     actions.append(open,workspaceButton('Rename',async()=>{const name=await askName('Rename project',project.name);if(name?.trim())await workspaceMutation({action:'rename_project',name},project);}),workspaceButton('Move to folder',()=>fileProject(project)),workspaceButton('Duplicate',async()=>{const name=await askName('Duplicate project',project.name+' (Copy)');if(!name)return;await projectCtrl.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(project.project_id)+'/duplicate',{method:'POST',body:JSON.stringify({name})});await renderProjectHub();}));
-    for(const button of actions.children)button.disabled=workspaceLocked();card.append(media,body,actions);list.append(card);
+    const reuseFolder=display.groups.find(f=>f.source_project_id===project.project_id);if(reuseFolder?.projects.length)actions.append(folderButton('Reuse ('+reuseFolder.projects.length+')',reuseFolder.id));
+    for(const button of actions.children)button.disabled=button.dataset.browseFolder?false:workspaceLocked();card.append(media,body,actions);list.append(card);
    }
-   if(!filtered.length){const empty=workspaceElement('div',undefined,'project-library-empty');empty.append(workspaceElement('span',query||folder!=='all'?'No matching projects':'Your next film starts here','empty-title'),workspaceElement('p',query||folder!=='all'?'Try another project name or folder.':'Name a project above to keep its references, shot settings and takes together.'));const action=workspaceButton(query||folder!=='all'?'Clear filters':'Name your first project',()=>{if(query||folder!=='all'){$('projectSearch').value='';$('projectFolderFilter').value='all';renderProjects(projectCache,list,false).catch(error=>info(error.message,true));}else $('newProjectName').focus();});empty.append(action);H3Guidance.setText(empty.querySelector('p'),query||folder!=='all'?'projectLibraryNoMatch':'projectLibraryEmpty');list.append(empty);}
-   $('projectHubStatus').textContent=filtered.length+' of '+projects.length+' projects';$('projectHubStatus').dataset.state='ready';
+   if(!filtered.length&&!display.folders.length){const empty=workspaceElement('div',undefined,'project-library-empty');empty.append(workspaceElement('span',query||folder!=='all'?'No matching projects':'Your next film starts here','empty-title'),workspaceElement('p',query||folder!=='all'?'Try another project name or folder.':'Name a project above to keep its references, shot settings and takes together.'));const action=workspaceButton(query||folder!=='all'?'Clear filters':'Name your first project',()=>{if(query||folder!=='all'){$('projectSearch').value='';$('projectFolderFilter').value='all';renderProjects(projectCache,list,false).catch(error=>info(error.message,true));}else $('newProjectName').focus();});empty.append(action);H3Guidance.setText(empty.querySelector('p'),query||folder!=='all'?'projectLibraryNoMatch':'projectLibraryEmpty');list.append(empty);}
+   $('projectHubStatus').textContent=filtered.length+' projects'+(display.folders.length?' · '+display.folders.length+' Reuse folders':'')+' · '+projects.length+' total';$('projectHubStatus').dataset.state='ready';
   }catch(error){if(epoch===hubEpoch){$('projectHubStatus').textContent='Could not load the project library. '+error.message;$('projectHubStatus').dataset.state='error';}throw error;}
   finally{if(epoch===hubEpoch)list.setAttribute('aria-busy','false');}
  }
@@ -95,14 +112,13 @@ const H3OrganizationUI=(()=>{
   $('assetFolderFilter').onchange=renderProjectCatalog;$('assetSort').onchange=renderProjectCatalog;
   $('clearSelectedAssets').onclick=()=>{selected.clear();renderProjectCatalog();};$('transferAssets').onclick=()=>openTransfer([...selected]).catch(error=>info(error.message,true));
   $('fileSelectedAssets').onclick=()=>{$('fileAssetsStatus').textContent='';$('fileAssetsDialog').showModal();};$('fileAssetsApply').onclick=async()=>{try{await workspaceMutation({action:'file_assets',asset_ids:[...selected],folder_id:$('fileAssetsFolder').value||null});selected.clear();$('fileAssetsDialog').close();renderProjectCatalog();}catch(error){$('fileAssetsStatus').textContent=error.message;}};
-  $('transferApply').onclick=applyTransfer;$('reuseTarget').onchange=()=>{$('reuseNewName').hidden=$('reuseTarget').value!=='new';};$('reuseApply').onclick=()=>openReuse(videoActionsEntry);
-  $('reuseDialog').addEventListener('close',()=>{++reuseEpoch;reuseContext=null;});
+  $('transferApply').onclick=applyTransfer;
   $('videoActionsReuse').onclick=()=>openReuse(videoActionsEntry).catch(error=>info(error.message,true));
   $('videoActionsTransfer').onclick=()=>{const entry=videoActionsEntry;$('videoActionsDialog').close();const take=state.currentProject?.takes?.find(t=>t.take_id===entry?.takeId);if(!take){info('Open the owning project to transfer this take. Older unassigned videos can be reused when saved inputs exist.',true);return;}openTransfer([],[take.take_id]).catch(error=>info(error.message,true));};
   $('restoreTake').onclick=()=>openReuse(state.current).catch(error=>info(error.message,true));
   for(const dialog of document.querySelectorAll('.organization-dialog'))dialog.querySelectorAll('[data-close-dialog]').forEach(button=>button.onclick=()=>dialog.close('cancel'));
   assetTools();
  }
- async function fileNewProject(project){const folder=$('projectFolderFilter').value;if(!organization.folders.some(f=>f.id===folder))return project;const updated=await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}/workspace`,{method:'POST',body:JSON.stringify({operation:{action:'file_project',folder_id:folder},expected_revision:project.revision})});projectCtrl.currentProject=updated;return updated;}
- return {init,renderProjects,assetSelection,assetTools,openReuse,openTransfer,askName,fileNewProject};
+ async function fileNewProject(project){const folder=$('projectFolderFilter').value;if(!organization.folders.some(f=>f.id===folder&&f.kind!=='reuse'))return project;const updated=await projectCtrl.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}/workspace`,{method:'POST',body:JSON.stringify({operation:{action:'file_project',folder_id:folder},expected_revision:project.revision})});projectCtrl.currentProject=updated;return updated;}
+ return {init,renderProjects,listing,assetSelection,assetTools,openReuse,openTransfer,askName,fileNewProject};
 })();

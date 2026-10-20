@@ -6,6 +6,7 @@ import pathlib
 import time
 import uuid
 from .paths import owned_path, owned_video
+from .reuse_groups import ReuseGroupsMixin
 
 
 def asset_ids(value):
@@ -41,7 +42,7 @@ def atomic_json(path, value):
         temp.unlink(missing_ok=True)
 
 
-class OrganizationMixin:
+class OrganizationMixin(ReuseGroupsMixin):
     def organization(self):
         with self._lock:
             path = self.storage_root / 'organization.json'
@@ -54,6 +55,8 @@ class OrganizationMixin:
             if type(expected_revision) is not int or expected_revision != record['revision']:
                 raise conflict('Project folders changed. Refresh before editing.')
             action = operation.get('action')
+            if action == 'group_existing_reuse':
+                return self.group_existing_reuse()
             if action == 'create_folder':
                 name = workspace_name(operation.get('name'))
                 if any(f['name'].casefold() == name.casefold() for f in record['folders']):
@@ -279,20 +282,24 @@ class OrganizationMixin:
             if target_scene_id is not None or target_shot_id is not None:
                 from .scenes import target_shot
                 destination = target_shot(target, target_scene_id, target_shot_id)
-            for rec in prepared['assets']:
-                if not any(a['asset_id'] == rec['asset_id'] for a in target['assets']):
-                    # Catalog naming is independent of the immutable source draft aliases.
-                    from .projects import reference_alias
-                    used = {a['alias'].casefold() for a in target['assets']}
-                    original = None
-                    if prepared['source_project_id']:
-                        original = next((a for a in self.get_project(prepared['source_project_id'])['assets'] if a['asset_id'] == rec['asset_id']), None)
-                    item = copy.deepcopy(original) if original else {'asset_id':rec['asset_id'],'kind':rec['kind'],'server_path':rec['server_path'],
-                        'name':rec['original_name'],'alias':pathlib.Path(rec['original_name']).stem,'category':'custom','role':'custom','notes':''}
-                    if not any(c['id']==item['category'] for c in target['asset_categories']): item['category']='custom'
-                    item['alias']=reference_alias(item['alias'],used);item['folder_id']=None;target['assets'].append(item)
-            destination['draft'] = prepared['draft']
-            destination['draft']['reuse_missing'] = prepared['missing']
-            destination['draft']['reuse_source'] = {'output_file':output_file,'take_id':prepared['source_take_id'],'project_id':prepared['source_project_id']}
+            self._populate_reuse(target, prepared, destination)
             saved = self.save_project(target_id,target,expected_revision)
             return {'project':saved,'warnings':prepared['warnings'],'missing':prepared['missing'],'complete':prepared['complete']}
+
+    def _populate_reuse(self, target, prepared, destination=None):
+        destination = target if destination is None else destination
+        for rec in prepared['assets']:
+            if not any(a['asset_id'] == rec['asset_id'] for a in target['assets']):
+                # Catalog naming is independent of the immutable source draft aliases.
+                from .projects import reference_alias
+                used = {a['alias'].casefold() for a in target['assets']}
+                original = None
+                if prepared['source_project_id']:
+                    original = next((a for a in self.get_project(prepared['source_project_id'])['assets'] if a['asset_id'] == rec['asset_id']), None)
+                item = copy.deepcopy(original) if original else {'asset_id':rec['asset_id'],'kind':rec['kind'],'server_path':rec['server_path'],
+                    'name':rec['original_name'],'alias':pathlib.Path(rec['original_name']).stem,'category':'custom','role':'custom','notes':''}
+                if not any(c['id']==item['category'] for c in target['asset_categories']): item['category']='custom'
+                item['alias']=reference_alias(item['alias'],used);item['folder_id']=None;target['assets'].append(item)
+        destination['draft'] = prepared['draft']
+        destination['draft']['reuse_missing'] = prepared['missing']
+        destination['draft']['reuse_source'] = {'output_file':prepared['output_file'],'take_id':prepared['source_take_id'],'project_id':prepared['source_project_id']}

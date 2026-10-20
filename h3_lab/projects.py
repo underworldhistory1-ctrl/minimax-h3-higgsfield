@@ -72,10 +72,13 @@ class ProjectService(OrganizationMixin):
         return self.projects_dir / project_id
 
     def create_project(self, name: str = "Untitled Project", canvas: dict = None) -> dict:
+        record = self._new_project_record(name, canvas)
+        self._write_manifest(record['project_id'], record)
+        return record
+
+    def _new_project_record(self, name, canvas=None, project_id=None):
         name = workspace_name(name)
-        project_id = str(uuid.uuid4())
-        pdir = self._project_dir(project_id)
-        pdir.mkdir(parents=True, exist_ok=True)
+        project_id = project_id or str(uuid.uuid4())
 
         now = time.time()
         record = {
@@ -86,6 +89,7 @@ class ProjectService(OrganizationMixin):
             "fps": 24,
             "canvas": canvas or {"width": 1280, "height": 704, "aspect_ratio": "16:9"},
             "assets": [],
+            "asset_folders": [],
             "asset_categories": copy.deepcopy(ASSET_CATEGORIES),
             "clips": [],
             "scenes": [],
@@ -95,7 +99,6 @@ class ProjectService(OrganizationMixin):
             "updated_at": now,
         }
 
-        self._write_manifest(project_id, record)
         return record
 
     def get_project(self, project_id: str) -> dict:
@@ -254,6 +257,7 @@ class ProjectService(OrganizationMixin):
                                 "preview_asset_id": next((asset.get("asset_id") for asset in data.get("assets", []) if asset.get("kind") == "image"), None),
                                 "take_count": len(data.get("takes", [])),
                                 "folder_id": data.get('folder_id'),
+                                "reuse_root_project_id": data.get('reuse_root_project_id'),
                             })
                         except Exception:
                             pass
@@ -282,6 +286,9 @@ class ProjectService(OrganizationMixin):
                 raise KeyError(f"Project not found: {project_id}")
 
             current_rev = current.get("revision", 1)
+            for field in ('reuse_request', 'reuse_root_project_id'):
+                if field in current and data.get(field) != current[field]:
+                    raise ValueError('Reuse provenance cannot be changed')
             if expected_revision is not None and expected_revision != current_rev:
                 err = ValueError(f"Stale revision: expected {expected_revision}, but server has {current_rev}")
                 err.status_code = 409
@@ -415,7 +422,7 @@ class ProjectService(OrganizationMixin):
         new_proj = self.create_project(name=new_name, canvas=current.get("canvas"))
 
         for key, value in current.items():
-            if key not in ("project_id", "name", "revision", "created_at", "updated_at"):
+            if key not in ("project_id", "name", "revision", "created_at", "updated_at", "reuse_request"):
                 new_proj[key] = copy.deepcopy(value)
         if self.asset_service:
             for asset in new_proj.get("assets", []):
@@ -522,6 +529,9 @@ class ProjectService(OrganizationMixin):
             # Re-key project
             manifest_data["project_id"] = new_project_id
             manifest_data['folder_id'] = None
+            # Imported bundles are independent projects, not the original Reuse request.
+            manifest_data.pop('reuse_request', None)
+            manifest_data.pop('reuse_root_project_id', None)
             manifest_data['transferred_take_ids'] = []
             manifest_data["revision"] = 1
             manifest_data["name"] = f"{manifest_data.get('name', 'Imported')} (Imported)"

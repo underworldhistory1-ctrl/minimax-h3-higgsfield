@@ -197,6 +197,7 @@ function captureProjectDraft(local=false){
     reuse_source:state.reuseSource||null,reuse_missing:state.reuseUnresolved||[],
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:[...state.loras.filter(x=>x.enabled),...(state.reuseRequiredLoras||[]).filter(l=>!state.loras.some(current=>current.name===l.name&&current.enabled))]};
 }
+function emptyWorkspaceDraft(){return {mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[],canvas:{width:1344,height:768},settings:{duration:'124',durationSeconds:'5.167',steps:'20',seed:'42',refSize:'max',renderMethod:'native'},loras:[]};}
 async function hydrateWorkspaceDraft(project){
   const controller=projectCtrl,id=project?.project_id||'unassigned';
   if(project&&typeof H3ScenesUI!=='undefined')H3ScenesUI.restore(project);
@@ -205,7 +206,7 @@ async function hydrateWorkspaceDraft(project){
   try{local=await H3TabDraftStore.load(scopeKey);}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
   if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
   const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
-  await hydrateProjectDraft(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||{mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[],canvas:{width:1344,height:768},settings:{duration:'124',durationSeconds:'5.167',steps:'20',seed:'42',refSize:'max',renderMethod:'native'}},{preserveFailedLocal:!!state.tabDraftRestoreError});
+  await hydrateProjectDraft(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft(),{preserveFailedLocal:!!state.tabDraftRestoreError});
   return true;
 }
 async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
@@ -269,14 +270,7 @@ function initLabUI(){
   $("continuationReferences").onclick=()=>useContinuationReferences().catch(e=>info(e.message,true));
   $("refreshContextStorage").onclick=async()=>{try{const data=await projectCtrl.fetchJson("/h3_studio/lab/contexts/usage");$("contextStorage").textContent=`${data.count} contexts · ${data.total_mb} MB. Accepted/active contexts are protected.`;}catch(e){info(e.message,true);}};
   $("refreshProjects").onclick=()=>refreshProjectList().catch(e=>info(e.message,true));
-  $("projectSelect").onchange=async()=>{
-    if(state.busy||state.projectLoading||!$("projectSelect").value)return;
-    state.projectLoading=true;const controller=projectCtrl;const id=$("projectSelect").value;
-    const controls=["projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject"];controls.forEach(k=>$(k).disabled=true);
-    try{const p=await controller.loadProject(id);if(controller!==projectCtrl)return;state.currentClipId=null;await hydrateWorkspaceDraft(p);}
-    catch(e){info(e.message,true);}finally{state.projectLoading=false;controls.forEach(k=>$(k).disabled=state.busy);}
-  };
-  $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{try{await withProjectLoading(async()=>{if(typeof saveWorkspaceDraft==='function'&&projectCtrl.currentProject)await saveWorkspaceDraft();const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateWorkspaceDraft(p);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};
+  $("importProject").onclick=()=>$("projectBundleFile").click();$("projectBundleFile").onchange=async()=>{if(!$("projectBundleFile").files[0])return;try{await withProjectLoading(async()=>{if(typeof saveWorkspaceDraft==='function'&&projectCtrl.currentProject)await saveWorkspaceDraft();const p=await projectCtrl.importBundle($("projectBundleFile").files[0]);await hydrateWorkspaceDraft(p);await refreshProjectList();});}catch(e){info(e.message,true);}finally{$("projectBundleFile").value="";}};
   $("promptMode").onchange=()=>{state.promptMode=$("promptMode").value;updatePreviewLive();saveDraft();};
   $("frameFit").onchange=()=>Promise.all([renderFrameItem("first"),renderFrameItem("last")]);
   $("addGuide").onclick=()=>{const kind=$("guideKind").value;$("guideFile").accept=kind==="image"?"image/png,image/jpeg,image/webp":kind==="audio"?".wav,.mp3,.m4a,.flac":".mp4,.mov,.webm";$("guideFile").click();};$("guideFile").onchange=()=>{const file=$("guideFile").files[0];if(file&&!state.busy){state.guides.push({asset_id:crypto.randomUUID(),kind:$("guideKind").value,file,url:URL.createObjectURL(file),frame_idx:0});renderGuides();}$("guideFile").value="";};

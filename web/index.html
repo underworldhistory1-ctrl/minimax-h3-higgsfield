@@ -76,14 +76,12 @@
    <section class="panel" id="projectPanel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
      <h2 style="margin:0">Project</h2>
-     <span id="projectRevision" class="tip">Rev 1</span>
     </div>
     <div class="row">
-     <button id="btnNewProject" class="button alt smallbtn" type="button">New</button>
-     <button id="btnSaveProject" class="button alt smallbtn" type="button">Save</button>
-     <button id="btnExportProject" class="button alt smallbtn" type="button">Export</button>
+     <button id="btnNewProject" class="button alt smallbtn" type="button">New project</button>
+     <button id="btnSaveProject" class="button alt smallbtn" type="button">Save setup</button>
     </div>
-    <div class="tip" id="contextStorage"></div><button id="refreshContextStorage" class="button alt smallbtn">Context storage</button>
+    <details id="projectTools" class="project-hub-tools"><summary>Project tools</summary><div class="row"><button id="btnExportProject" class="button alt smallbtn" type="button">Export project ZIP</button><button id="refreshContextStorage" class="button alt smallbtn" type="button">Continuation storage</button></div><div class="tip" id="contextStorage"></div><span id="projectRevision" class="tip">Rev 1</span></details>
     <div id="projectNameDisplay" class="tip" style="margin-top:6px;font-weight:600">Default Project</div>
     <label for="projectSelect">OPEN SAVED PROJECT</label><div class="row"><select id="projectSelect"><option value="">Choose project…</option></select><button id="refreshProjects" class="button alt smallbtn">Refresh</button><button id="importProject" class="button alt smallbtn">Import ZIP</button></div><input id="projectBundleFile" type="file" accept=".zip" hidden>
    </section>
@@ -221,7 +219,6 @@
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>
 <dialog id="fileAssetsDialog" class="organization-dialog" aria-labelledby="fileAssetsTitle"><h2 id="fileAssetsTitle">Organize selected assets</h2><p data-guidance-key="videoHelp28" lang="en" dir="ltr">Folders organize media independently of its reference role.</p><label for="fileAssetsFolder">DESTINATION FOLDER</label><select id="fileAssetsFolder"></select><p id="fileAssetsStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileAssetsApply" class="button">Move selected assets</button></div></dialog>
 <dialog id="transferDialog" class="organization-dialog" aria-labelledby="transferTitle"><h2 id="transferTitle">Transfer materials</h2><p id="transferSummary"></p><label for="transferTarget">DESTINATION PROJECT</label><select id="transferTarget"></select><label for="transferMode">ACTION</label><select id="transferMode"><option value="copy">Copy · preserve source</option><option value="move">Move · check dependencies</option></select><p id="transferStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="transferApply" class="button">Transfer selected materials</button></div></dialog>
-<dialog id="reuseDialog" class="organization-dialog" aria-labelledby="reuseTitle"><h2 id="reuseTitle">Reuse video setup</h2><p data-guidance-key="videoHelp29" lang="en" dir="ltr">Restore the recorded prompt, references and settings into Production. The original take stays unchanged. Reuse does not start a render or guarantee an identical result.</p><p id="reuseSummary"></p><label for="reuseTarget">DESTINATION PROJECT</label><select id="reuseTarget"></select><div id="reuseNewName"><label for="reuseProjectName">NEW PROJECT NAME</label><input id="reuseProjectName" maxlength="160"></div><p id="reuseStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="reuseApply" class="button">Restore into Production</button></div></dialog>
 <script src="./h3/organization-ui.js?v=20261020-reference-binding"></script>
 <script src="./h3/project-workspace.js?v=20261016-scenes"></script>
 

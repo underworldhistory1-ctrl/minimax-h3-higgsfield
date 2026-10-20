@@ -7,15 +7,11 @@
     const url=new URL(href);url.searchParams.delete('job');url.searchParams.delete('project');
     url.searchParams.set('reuse',output);url.searchParams.set('reuse_request',requestId);url.hash='studio';return url.href;
   }
-  async function restore(controller,{href,storage,replace}){
+  async function restore(controller,{href,replace}){
     const url=new URL(href),output=url.searchParams.get('reuse');if(!output)return null;
-    const prepared=await controller.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:output})});
-    if(!prepared.available)throw Error((prepared.warnings||[]).join('\n')||'This video has no saved setup.');
-    const key=controller._storageKey('reuse_navigation.'+(url.searchParams.get('reuse_request')||output));
-    let target,id=storage.getItem(key);
-    if(id){try{target=await controller.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(id));}catch(error){if(error.status!==404)throw error;}}
-    if(!target){target=await controller.createProject('Reused · '+output.split('/').pop());storage.setItem(key,target.project_id);}
-    const result=await controller.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:output,target_project_id:target.project_id,expected_revision:target.revision})});
+    let requestId=url.searchParams.get('reuse_request');
+    if(!requestId){requestId=crypto.randomUUID();url.searchParams.set('reuse_request',requestId);replace(url.href);}
+    const result=await controller.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:output,create_grouped:true,request_id:requestId})});
     const project=await controller.loadProject(result.project.project_id);
     url.searchParams.delete('reuse');url.searchParams.delete('reuse_request');url.searchParams.set('project',project.project_id);url.hash='studio';replace(url.href);
     return project;

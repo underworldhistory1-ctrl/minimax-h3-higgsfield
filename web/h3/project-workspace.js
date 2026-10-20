@@ -50,11 +50,15 @@ async function saveWorkspaceDraft(){
   if(!projectCtrl?.currentProject)return;
   if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
   if(typeof H3TabDraftStore!=='undefined')await H3TabDraftStore.save(tabProjectDraftKey(state.activeProjectId),captureProjectDraft(true));
+  // An empty scene has no shot draft to persist; its local checkpoint remains available.
+  if(projectCtrl.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id)return;
   const snapshot=captureProjectDraft(),project=projectCtrl.currentProject;
   const saved=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl.draftScope):project.draft;
   const signature=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
-  if(allInputItems().every(item=>item.assetId)&&signature(snapshot)===signature(saved))return;
-  const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
+  const rootCanvas=projectCtrl.draftScope?.scene_id?{}:{canvas:{width:state.width,height:state.height},fps:24};
+  const sameCanvas=projectCtrl.draftScope?.scene_id||(project.canvas?.width===state.width&&project.canvas?.height===state.height);
+  if(allInputItems().every(item=>item.assetId)&&signature(snapshot)===signature(saved)&&sameCanvas)return;
+  const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({...rootCanvas,draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
 }
 async function openProjectWorkspace(id,{view='studio'}={}){
   if(workspaceLocked())throw Error('Wait for the current operation before changing projects.');
@@ -191,7 +195,9 @@ async function insertProjectMention(item,range=null){
 function refreshProjectHubControls(){
   const locked=workspaceLocked();
   $('projectSelect').disabled=locked;
-  for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=locked;
+  for(const id of ['btnNewProject','projectHubCreate','newProjectFolder'])if($(id))$(id).disabled=locked;
+  for(const id of ['btnSaveProject','btnExportProject'])if($(id))$(id).disabled=locked||!state.currentProject;
+  for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=button.dataset.browseFolder?false:locked;
 }
 function renderProjectCatalog(){
   refreshProjectHubControls();
@@ -241,15 +247,44 @@ function editProjectAsset(item){
   $('assetEditCategory').replaceChildren();for(const category of state.currentProject.asset_categories){const option=workspaceElement('option',category.name);option.value=category.id;$('assetEditCategory').append(option);}
   $('assetEditCategory').value=item.category;dialog.showModal();
 }
+async function createWorkspaceProject(name){
+  if(workspaceLocked()||!projectCtrl)return;
+  name=name?.trim();if(!name)return;
+  await withProjectLoading(async()=>{
+    await saveWorkspaceDraft();
+    const blank=emptyWorkspaceDraft();
+    const project=await H3OrganizationUI.fileNewProject(await projectCtrl.createProject(name,blank.canvas));
+    H3ScenesUI.restore(project);state.current=null;state.currentClipId=null;
+    await hydrateProjectDraft(blank);updateProjectUI(project);
+  });
+  setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';
+}
+async function saveWorkspaceSetup(){
+  if(workspaceLocked()||!projectCtrl?.currentProject)return;
+  requireWorkspaceShot();
+  await withProjectLoading(saveWorkspaceDraft);syncRestoredInputStatus();
+  info(state.restoreMissing.length?'Setup saved; some restored inputs still need attention.':'Setup saved.');
+}
+async function exportWorkspaceProject(){
+  if(workspaceLocked()||!projectCtrl?.currentProject)return;
+  requireWorkspaceShot();
+  await withProjectLoading(async()=>{
+    await saveWorkspaceDraft();
+    const link=document.createElement('a');link.href=await projectCtrl.exportBundle();link.download='';document.body.append(link);link.click();link.remove();
+  });
+}
+function requireWorkspaceShot(){if(projectCtrl.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id)throw Error('Create or select a shot in this scene before saving or exporting its setup. Your local inputs are retained.');}
 function initProjectWorkspace(){
   H3ScenesUI.init();
-  $('btnNewProject').onclick=()=>showProjectHub().then(()=>$('newProjectName').focus()).catch(error=>info(error.message,true));
+  $('btnNewProject').onclick=async()=>{try{if(workspaceLocked())return;const name=await H3OrganizationUI.askName('New project');if(name)await createWorkspaceProject(name);}catch(error){info(error.message,true);}};
+  $('btnSaveProject').onclick=()=>saveWorkspaceSetup().catch(error=>info(error.message,true));
+  $('btnExportProject').onclick=()=>exportWorkspaceProject().catch(error=>info(error.message,true));
   $('projectsHome').onclick=()=>showProjectHub().catch(error=>info(error.message,true));
   $('projectHubRefresh').onclick=()=>renderProjectHub().catch(error=>{$('projectHubStatus').textContent=error.message;});
   $('projectHubCreate').onclick=async()=>{
     if(workspaceLocked()||!projectCtrl)return;
     const name=$('newProjectName').value.trim();if(!name){$('newProjectName').focus();return;}
-    try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const project=await H3OrganizationUI.fileNewProject(await projectCtrl.createProject(name,{width:state.width,height:state.height}));H3ScenesUI.restore(project);state.current=null;await hydrateProjectDraft({mode:'text',refs:[],guides:[],prompts:{text:'',frames:'',refs:''}});updateProjectUI(project);});document.body.classList.remove('project-hub-open');setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';}
+    try{await createWorkspaceProject(name);}
     catch(error){$('projectHubStatus').textContent=error.message;}
   };
   $('assetSearch').oninput=renderProjectCatalog;

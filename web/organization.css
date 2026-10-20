@@ -42,3 +42,9 @@
 @media(max-width:1100px){#projectHub>.organization-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}#projectHub>.organization-toolbar input{grid-column:1/-1}#projectHubList[data-view=list] .project-card{grid-template-columns:118px minmax(0,1fr)}#projectHubList[data-view=list] .project-card-actions{grid-column:2;padding-top:0;max-width:none;grid-template-columns:repeat(4,minmax(0,1fr))}#projectHubList[data-view=list] .project-card-preview{grid-row:1/3}.project-library-summary span{display:none}}
 @media(max-width:600px){#projectHubList{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}.project-card-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.project-library-summary strong{font-size:16px}#projectHub>.organization-toolbar{padding:12px;gap:8px}#projectHubList[data-view=list] .project-card{grid-template-columns:86px minmax(0,1fr)}#projectHubList[data-view=list] .project-card-body{padding:13px}#projectHubList[data-view=list] .project-card h2{font-size:16px}#projectHubList[data-view=list] .project-card-actions{grid-column:1/-1;padding:0 12px 12px;grid-template-columns:repeat(2,minmax(0,1fr))}#projectHubList[data-view=list] .project-card-preview{grid-row:1}.project-preview-empty{font-size:9px}.project-preview-monogram{font-size:20px;padding:8px}#elementsWorkspace .catalog-asset img,#elementsWorkspace .asset-kind{height:125px}}
 @media(prefers-reduced-motion:reduce){#projectHubList .project-card,#elementsWorkspace .catalog-asset{transition:none}}
+/* Reuse workspaces stay grouped without hiding their source project's card. */
+.project-folder-back{grid-column:1/-1;justify-self:start}
+.project-reuse-folder .project-card-preview{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#303b1e,#182016);min-height:150px}
+.project-reuse-folder .project-preview-monogram{font-size:3rem;color:var(--accent,#d3ff00)}
+#projectTools summary{cursor:pointer}
+#projectTools .row{margin-top:12px}

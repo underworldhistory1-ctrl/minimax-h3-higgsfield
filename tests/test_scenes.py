@@ -60,7 +60,7 @@ class SceneTests(unittest.TestCase):
         self.op('create_shot',scene_id=sid,name='A'); sh=self.p['scenes'][0]['shots'][0]
         self.p['draft']={'legacy':True}
         self.p=self.s.save_project(self.p['project_id'],self.p,self.p['revision'])
-        self.s.prepare_reuse=lambda *a: {'available':True,'assets':[],'draft':{'prompts':{'text':'reused'}},'missing':[],'warnings':[],'complete':True,'source_take_id':None,'source_project_id':None}
+        self.s.prepare_reuse=lambda *a: {'available':True,'output_file':'video/a.mp4','assets':[],'draft':{'prompts':{'text':'reused'}},'missing':[],'warnings':[],'complete':True,'source_take_id':None,'source_project_id':None}
         with self.assertRaises(ValueError): self.s.apply_reuse('video/a.mp4',self.p['project_id'],self.p['revision'],target_scene_id=sid,target_shot_id='foreign')
         result=self.s.apply_reuse('video/a.mp4',self.p['project_id'],self.p['revision'],target_scene_id=sid,target_shot_id=sh['shot_id'])['project']
         self.assertEqual(result['draft'],{'legacy':True})

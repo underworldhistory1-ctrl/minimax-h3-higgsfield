@@ -75,3 +75,37 @@ test('explicit project refresh retains Projects and Elements pages instead of fo
   await context.initProjectController();assert.deepEqual(seen,[view]);
  }
 });
+
+
+test('empty scene navigation checkpoints locally without sending an invalid shot draft',async()=>{
+ const {context,calls}=workspace();context.projectCtrl.draftScope={scene_id:'scene'};await context.saveWorkspaceDraft();assert.deepEqual(calls,['local-save']);
+});
+
+test('New project saves previous inputs and resets configuration instead of inheriting it',async()=>{
+ const {context,calls,state}=workspace();const controls=new Map();context.$=id=>{if(!controls.has(id))controls.set(id,{value:'old',close(){calls.push('close');}});return controls.get(id);};
+ context.emptyWorkspaceDraft=()=>({canvas:{width:1344,height:768},settings:{seed:'42',steps:'20'},refs:[],loras:[]});
+ context.withProjectLoading=async action=>{state.projectLoading=true;try{return await action();}finally{state.projectLoading=false;}};
+ context.projectCtrl.createProject=async(name,canvas)=>{calls.push(['create',name,canvas]);return {project_id:'new',name};};
+ context.H3OrganizationUI={fileNewProject:async p=>p};context.H3ScenesUI={restore:p=>calls.push(['scope',p.project_id])};context.hydrateProjectDraft=async draft=>calls.push(['hydrate',draft]);context.updateProjectUI=()=>{};context.showStageMessage=()=>{};
+ await context.createWorkspaceProject('  Film B  ');assert.equal(calls[0],'local-save');assert.equal(calls.find(x=>Array.isArray(x)&&x[0]==='create')[1],'Film B');const blank=calls.find(x=>Array.isArray(x)&&x[0]==='hydrate')[1];assert.equal(blank.settings.seed,'42');assert.deepEqual(blank.loras,[]);assert.equal(state.current,null);assert.equal(controls.get('newProjectName').value,'');
+});
+
+test('Save and Export share guarded saving and download includes the latest editor setup',async()=>{
+ const {context,state,calls}=workspace();context.withProjectLoading=async action=>{calls.push('lock');try{return await action();}finally{calls.push('unlock');}};context.syncRestoredInputStatus=()=>{};context.info=()=>{};state.restoreMissing=[];
+ await context.saveWorkspaceSetup();assert.deepEqual(calls,['lock','local-save','unlock']);calls.length=0;
+ context.projectCtrl.exportBundle=async()=>{calls.push('export');return 'https://studio.test/bundle.zip';};const link={click(){calls.push(['download',this.href]);},remove(){}};context.document={createElement:()=>link,body:{append(){}}};await context.exportWorkspaceProject();assert.deepEqual(calls,['lock','local-save','export',['download','https://studio.test/bundle.zip'],'unlock']);
+ state.busy=true;calls.length=0;await context.exportWorkspaceProject();await context.saveWorkspaceSetup();assert.deepEqual(calls,[]);
+});
+
+test('Reuse folders collapse only in unfiltered All view, while search exposes matching setups',()=>{
+ const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync('web/h3/organization-ui.js','utf8')+';globalThis.listing=H3OrganizationUI.listing;',ctx);
+ const projects=[{project_id:'root',name:'Film'},{project_id:'a',name:'Reuse one',folder_id:'reuse'},{project_id:'b',name:'Reuse two',folder_id:'reuse'},{project_id:'regular',name:'Regular',folder_id:'normal'}],folders=[{id:'reuse',kind:'reuse',source_project_id:'root'},{id:'normal'}];
+ let shown=ctx.listing(projects,folders);assert.deepEqual(Array.from(shown.projects,p=>p.project_id),['root','regular']);assert.equal(shown.folders[0].projects.length,2);
+ shown=ctx.listing(projects,folders,{query:'Reuse'});assert.equal(shown.projects.length,2);assert.equal(shown.folders.length,0);
+ shown=ctx.listing(projects,folders,{folder:'reuse'});assert.equal(shown.projects.length,2);assert.equal(shown.folders.length,0);assert.equal(ctx.listing(projects,folders,{folder:'unfiled'}).projects.length,1);
+});
+
+test('explicit Save and Export never claim to persist an empty scene with no shot',async()=>{
+ const {context,calls}=workspace();context.projectCtrl.draftScope={scene_id:'empty'};
+ await assert.rejects(context.saveWorkspaceSetup(),/Create or select a shot/);await assert.rejects(context.exportWorkspaceProject(),/Create or select a shot/);assert.deepEqual(calls,[]);
+});

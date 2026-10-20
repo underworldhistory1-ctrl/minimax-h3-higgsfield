@@ -12,7 +12,9 @@ Projects remain browsable during generation. **Open** uses a separate tab while 
 
 ## Reuse a saved take
 
-Click **Reuse** to reload directly into Production using a link to the selected output. The saved prompt, references, adapter strengths and render settings are copied into an independent project, so an active source render or an unselected destination shot does not block opening the setup. The final URL identifies the restored project and survives refresh. The source take and any backend render remain intact. Missing original files are reported in Production; Reuse does not invent missing inputs or start generation automatically.
+Click **Reuse** to reload directly into Production using a link to the selected output. The saved prompt, references, adapter strengths and render settings are copied into an independent workspace inside the original project's automatic **Reuse** folder. Reuse of a reused result stays with that same original project, including after renaming it. The library groups these setups under a folder card and an original-project **Reuse (count)** shortcut; searching also finds individual setups. A request retry reopens the same workspace without overwriting subsequent edits. The final URL identifies the restored project and survives refresh. The source take and any backend render remain intact. Missing original files are reported in Production; Reuse does not invent missing inputs or start generation automatically.
+
+**New project** in Production and **Create project** in the library share one creation flow: save the current setup, then start with clean defaults. **Save setup** uses the guarded workspace save, and **Project tools → Export project ZIP** saves the latest setup before downloading. A scene with no shot retains its local editor checkpoint when leaving; explicit Save/Export asks you to create or select a shot first.
 
 ## Direct the shot. Keep the whole workflow in view.
 

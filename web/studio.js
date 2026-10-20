@@ -2216,47 +2216,6 @@ function renderSequenceCard() {
   if (durationSpan) durationSpan.textContent = `${acceptedTakes.length} clip(s) · ${totalSec}s total`;
 }
 
-if ($("btnNewProject")) {
-  $("btnNewProject").onclick = async () => {
-    const name = prompt("Project name:", "New H3 Project");
-    if (!name) return;
-    try {
-      await withProjectLoading(async()=>{await projectCtrl.createProject(name, { width: state.width, height: state.height });
-      state.currentClipId=null;await hydrateProjectDraft({mode:"text",refs:[],guides:[],prompts:{text:"",frames:"",refs:""}});});
-      info(`Created project "${name}".`);
-    } catch (e) {
-      info("Failed to create project: " + e.message, true);
-    }
-  };
-}
-if ($("btnSaveProject")) {
-  $("btnSaveProject").onclick = async () => {
-    if (!projectCtrl?.currentProject) {info("Open or create a project first.",true);return;}
-    try {
-      const currentTakeId = state.current?.takeId;
-      const updates = {
-        canvas: { width: state.width, height: state.height },
-        fps: 24,
-        draft:await persistProjectDraft(),
-        assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems()),
-      };
-      await projectCtrl.saveCurrentProject(updates);
-      syncRestoredInputStatus();info(state.restoreMissing.length?'Project saved; unresolved Reuse requirements still block rendering.':'Project saved successfully.');
-    } catch (e) {
-      info("Failed to save project: " + e.message, true);
-    }
-  };
-}
-if ($("btnExportProject")) {
-  $("btnExportProject").onclick = async () => {
-    try {
-      const url = await projectCtrl.exportBundle();
-      window.open(url, "_blank");
-    } catch (e) {
-      info("Export bundle failed: " + e.message, true);
-    }
-  };
-}
 if ($("btnAssembleSequence")) {
   $("btnAssembleSequence").onclick = async () => {
     const proj = state.currentProject;

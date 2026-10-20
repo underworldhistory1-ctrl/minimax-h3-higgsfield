@@ -81,12 +81,12 @@ let browser;
  assert.equal(await page.locator('.catalog-asset').count(),0,'Previous project elements are cleared');
 
  await page.locator('[data-workspace-nav=projects]').click();await page.waitForFunction(()=>document.body.classList.contains('project-hub-open'));
- await page.locator('[data-project-id="'+pid+'"]').getByRole('button',{name:'Open',exact:true}).click();await page.waitForFunction(()=>state.activeProjectId===sessionStorage.getItem(projectCtrl._storageKey('active_project_id'))&&state.currentProject?.name==='Renamed thriller'&&!state.projectLoading);
+ await page.locator('[data-project-id="'+pid+'"]').getByRole('link',{name:'Open',exact:true}).click();await page.waitForFunction(()=>state.activeProjectId===sessionStorage.getItem(projectCtrl._storageKey('active_project_id'))&&state.currentProject?.name==='Renamed thriller'&&!state.projectLoading);
  assert.equal(await page.evaluate(()=>state.activeProjectId),pid);assert.equal(await page.locator('#prompt').inputValue(),'My newer prompt');assert.equal(await page.evaluate(()=>state.refs.length),1);
  assert.equal(await page.locator('.catalog-asset').count(),2);
  await page.reload();await page.waitForFunction(()=>state.currentProject?.name==='Renamed thriller'&&!state.projectLoading);assert.equal(await page.evaluate(()=>state.currentProject.assets.length),2);
  await page.locator('[data-workspace-nav=projects]').click();
- await page.locator('[data-project-id="'+pid+'"]').getByRole('button',{name:'Open',exact:true}).click();await page.waitForFunction(()=>!state.projectLoading&&!document.body.classList.contains('project-hub-open'));
+ await page.locator('[data-project-id="'+pid+'"]').getByRole('link',{name:'Open',exact:true}).click();await page.waitForFunction(()=>!state.projectLoading&&!document.body.classList.contains('project-hub-open'));
  await page.locator('[data-workspace-nav=elements]').click();
  await page.locator('.catalog-asset').first().getByRole('button',{name:'Preview',exact:true}).click();await page.locator('#assetPreviewContent img').waitFor();await page.locator('#assetPreviewClose').click();
  await page.locator('[data-workspace-nav=studio]').click();assert.equal(await page.locator('#prompt').inputValue(),'My newer prompt');

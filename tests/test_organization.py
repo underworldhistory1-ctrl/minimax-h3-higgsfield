@@ -11,6 +11,110 @@ from h3_lab.projects import ProjectService
 
 
 class OrganizationTests(unittest.TestCase):
+    def test_grouped_reuse_is_complete_retry_safe_and_preserves_source(self):
+        take=self.take();before=copy.deepcopy(self.source);request=str(uuid.uuid4())
+        result=self.service.create_reuse_project(take['output_file'],request);project=result['project']
+        self.assertEqual(self.service.get_project(before['project_id']),before)
+        self.assertEqual(project['reuse_root_project_id'],before['project_id'])
+        folder=self.service.organization()['folders'][0]
+        self.assertEqual((folder['kind'],folder['source_project_id']),('reuse',before['project_id']))
+        self.assertEqual(project['folder_id'],folder['id'])
+        self.assertEqual(project['draft']['settings']['seed'],'18446744073709551615')
+        self.assertEqual(project['draft']['loras'],take['draft']['loras'])
+        self.assertEqual(project['draft']['refs'],take['draft']['refs'])
+        self.assertIn(project['project_id'],self.assets.get_asset(self.asset['asset_id'])['projects'])
+        project['draft']['prompts']['refs']='User edited this restored setup'
+        saved=self.service.save_project(project['project_id'],project,project['revision'])
+        restarted=ProjectService(str(self.root),self.assets,output_root=self.root)
+        self.assertEqual(restarted.create_reuse_project(take['output_file'],request)['project'],saved)
+        self.assertEqual(len(restarted.list_projects()),3)
+        with self.assertRaises(ValueError):restarted.create_reuse_project('different.mp4',request)
+
+    def test_reuse_of_reuse_and_root_rename_share_one_stable_folder(self):
+        take=self.take();first=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        renamed=self.service.update_workspace(self.source['project_id'],{'action':'rename_project','name':'Renamed film'},self.source['revision'])
+        import shutil
+        output='video/h3_studio_abcdef123456_00001_.mp4';shutil.copyfile(self.root/take['output_file'],self.root/output)
+        first['takes']=[{**take,'take_id':'abcdef123456','output_file':output,'draft':copy.deepcopy(first['draft'])}]
+        self.service.save_project(first['project_id'],first,first['revision'])
+        second=self.service.create_reuse_project(output,str(uuid.uuid4()))['project']
+        self.assertEqual(second['reuse_root_project_id'],renamed['project_id'])
+        self.assertEqual(second['folder_id'],first['folder_id'])
+        self.assertEqual(len(self.service.organization()['folders']),1)
+        self.assertIn('Renamed film',second['name'])
+
+    def test_grouped_reuse_concurrent_retry_creates_one_project(self):
+        from concurrent.futures import ThreadPoolExecutor
+        take=self.take();request=str(uuid.uuid4())
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            results=list(pool.map(lambda _:self.service.create_reuse_project(take['output_file'],request)['project'],range(3)))
+        self.assertEqual(len({p['project_id'] for p in results}),1)
+        self.assertEqual(len(self.service.list_projects()),3)
+        self.assertEqual(len(self.service.organization()['folders']),1)
+
+    def test_failed_grouped_reuse_does_not_publish_an_empty_project(self):
+        take=self.take();request=str(uuid.uuid4())
+        with patch.object(self.service,'_write_manifest',side_effect=OSError('disk full')):
+            with self.assertRaises(OSError):self.service.create_reuse_project(take['output_file'],request)
+        self.assertEqual(len(self.service.list_projects()),2)
+        project=self.service.create_reuse_project(take['output_file'],request)['project']
+        self.assertEqual(len(project['assets']),1)
+        with self.assertRaises(ValueError):self.service.create_reuse_project(take['output_file'],'bad-request')
+        with self.assertRaises(FileNotFoundError):self.service.create_reuse_project('video/missing.mp4',str(uuid.uuid4()))
+        self.assertEqual(len(self.service.list_projects()),3)
+
+    def test_backfill_only_groups_proven_automatic_reuse_and_preserves_manual_folders(self):
+        take=self.take()
+        auto=self.service.create_project('Reused · saved video')
+        auto=self.service.apply_reuse(take['output_file'],auto['project_id'],auto['revision'])['project']
+        manual=self.service.create_project('My normal production')
+        manual=self.service.apply_reuse(take['output_file'],manual['project_id'],manual['revision'])['project']
+        filed=self.service.create_project('Reused · deliberately filed')
+        filed=self.service.apply_reuse(take['output_file'],filed['project_id'],filed['revision'])['project']
+        org=self.service.organize({'action':'create_folder','name':'User folder'},1)
+        filed=self.service.update_workspace(filed['project_id'],{'action':'file_project','folder_id':org['folders'][0]['id']},filed['revision'])
+        org=self.service.organize({'action':'group_existing_reuse'},org['revision'])
+        updated=self.service.get_project(auto['project_id'])
+        self.assertEqual(updated['reuse_root_project_id'],self.source['project_id'])
+        self.assertEqual(updated['draft'],auto['draft'])
+        self.assertEqual(updated['updated_at'],auto['updated_at'])
+        self.assertEqual(self.service.get_project(manual['project_id']),manual)
+        self.assertEqual(self.service.get_project(filed['project_id']),filed)
+        self.assertEqual(self.service.organize({'action':'group_existing_reuse'},org['revision']),org)
+        self.assertEqual(self.service.get_project(auto['project_id']),updated)
+
+    def test_grouped_reuse_provenance_cannot_be_changed_by_save(self):
+        take=self.take();project=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        for field in ('reuse_root_project_id','reuse_request'):
+            edited=copy.deepcopy(project);edited[field]=None
+            with self.assertRaisesRegex(ValueError,'provenance'):self.service.save_project(project['project_id'],edited,project['revision'])
+
+    def test_ordinary_project_draft_provenance_does_not_change_its_reuse_root(self):
+        take=self.take();self.source['draft']={'reuse_source':{'project_id':self.target['project_id']}}
+        self.source=self.service.save_project(self.source['project_id'],self.source,self.source['revision'])
+        grouped=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        self.assertEqual(grouped['reuse_root_project_id'],self.source['project_id'])
+
+    def test_backfill_preserves_explicit_assignment_to_another_reuse_folder(self):
+        take=self.take();first=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        other=self.service._reuse_folder(self.target)
+        moved=self.service.update_workspace(first['project_id'],{'action':'file_project','folder_id':other['id']},first['revision'])
+        self.service.group_existing_reuse()
+        self.assertEqual(self.service.get_project(first['project_id']),moved)
+
+    def test_cyclic_legacy_lineage_fails_before_creating_a_reuse_workspace(self):
+        take=self.take();a=self.service.create_project('Reused · A');b=self.service.create_project('Reused · B')
+        a['draft']={'reuse_source':{'project_id':b['project_id']}};b['draft']={'reuse_source':{'project_id':a['project_id']}}
+        self.service.save_project(a['project_id'],a,a['revision']);self.service.save_project(b['project_id'],b,b['revision'])
+        with self.assertRaisesRegex(ValueError,'cycle'):self.service._reuse_root(self.service.get_project(a['project_id']))
+
+    def test_imported_reuse_bundle_has_its_own_identity_without_old_request_ownership(self):
+        take=self.take();project=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        imported=self.service.import_bundle(str(self.service.export_bundle(project['project_id'])))
+        self.assertNotIn('reuse_request',imported);self.assertNotIn('reuse_root_project_id',imported)
+        self.assertIsNone(imported['folder_id'])
+        self.assertEqual(self.service._reuse_root(imported)['project_id'],imported['project_id'])
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name)
         self.assets=AssetService(str(self.root));self.service=ProjectService(str(self.root),self.assets,output_root=self.root)
