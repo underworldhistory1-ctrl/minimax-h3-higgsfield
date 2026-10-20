@@ -114,16 +114,48 @@
     return [...images, ...videos, ...audios];
   }
 
+  function subjectDefinitionBlocks(definitions = '') {
+    const starts = [...definitions.matchAll(/(?:^[ \t]*(?:[-*][ \t]+|\d+[.)][ \t]+)?<Subject\s+(\d+)>|<Subject\s+(\d+)>(?=[ \t]*(?:[:：]|is\b|are\b|represents\b|refers\b|means\b)))/gim)];
+    return starts.map((match,i)=>({start:match.index,end:starts[i+1]?.index??definitions.length,index:Number(match[1]||match[2])}));
+  }
+
   function subjectPictureRelations(definitions = '') {
     const relations = new Map();
-    const starts = [...definitions.matchAll(/(?:^[ \t]*(?:[-*][ \t]+|\d+[.)][ \t]+)?<Subject\s+(\d+)>|<Subject\s+(\d+)>(?=[ \t]*(?:[:：]|is\b|are\b|represents\b|refers\b|means\b)))/gim)];
-    for (let i = 0; i < starts.length; i++) {
-      const block = definitions.slice(starts[i].index, starts[i + 1]?.index ?? definitions.length);
-      const index = Number(starts[i][1] || starts[i][2]);
+    for (const {start,end,index} of subjectDefinitionBlocks(definitions)) {
+      const block = definitions.slice(start,end);
       const pictures = [...block.matchAll(/<Picture\s+(\d+)>/gi)].map(match => Number(match[1]));
       relations.set(index, [...new Set([...(relations.get(index) || []), ...pictures])]);
     }
     return relations;
+  }
+
+  function normalizeNativeReferenceTags(text) {
+    const kinds={picture:'Picture',pictre:'Picture',subject:'Subject',video:'Video',audio:'Audio'};
+    const result=text.replace(/<\s*(picture|pictre|subject|video|audio)[\s_]*([0-9٠-٩۰-۹]+)\s*>/gi,(_,kind,digits)=>{
+      const number=digits.replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0));
+      return '<'+kinds[kind.toLowerCase()]+' '+Number(number)+'>';
+    });
+    for(const match of result.matchAll(/<\s*(?:picture|pictre|subject|video|audio)(?=[\s_\-0-9٠-٩۰-۹])[^<>]*>/gi)){
+      if(!/^<(?:Picture|Subject|Video|Audio) [0-9]+>$/.test(match[0]))throw Error('Invalid reference tag '+match[0]+'. Use <Picture 1> or <Subject 1> with a connected reference.');
+    }
+    return result;
+  }
+
+  function resolveSubjectDefinitionPictures(definitions, references) {
+    const pictures=new Map(references.filter(ref=>ref.kind==='image').map((ref,i)=>[ref.alias,i+1]));
+    let result=definitions;
+    // Work backwards so replacing an alias cannot change the next block's offsets.
+    for(const {start,end,index} of subjectDefinitionBlocks(definitions).reverse()){
+      const block=definitions.slice(start,end),explicit=[...block.matchAll(/<Picture\s+(\d+)>/gi)].map(match=>Number(match[1]));
+      const resolved=block.replace(/@([\p{L}\p{N}_-]+)/gu,(whole,alias)=>{
+        if(!pictures.has(alias))return whole;
+        const picture=pictures.get(alias);
+        if(explicit.length&&!explicit.includes(picture))throw Error('Subject '+index+' links '+whole+' to <Picture '+picture+'>, conflicting with its explicit Picture definition.');
+        return '<Picture '+picture+'>';
+      });
+      result=result.slice(0,start)+resolved+result.slice(end);
+    }
+    return result;
   }
 
   function aliasDefinitionRelations(definitions, bindings) {
@@ -220,9 +252,12 @@
     const promptMode = spec.prompt_mode || 'guided';
     const refs = spec.references || [];
     const normalize = text => mode === 'refs' ? normalizeReferenceMentions(text, refs) : text;
-    const normalized = inputAdapter.normalize(normalize(spec.source_prompt || ''));
+    const mentioned = normalize(spec.source_prompt || '');
+    const canonical = mode==='refs'||mode==='frames'?normalizeNativeReferenceTags(mentioned):mentioned;
+    const normalized = inputAdapter.normalize(canonical);
     let source = normalized.text;
     const warnings = [...normalized.warnings];
+    if(canonical!==mentioned)warnings.push('Reference tag spelling and spacing normalized automatically.');
     const seconds = Number(spec.target_seconds ?? spec.duration_seconds ?? 124 / 24);
     const targetFrames = Number(spec.target_frames ?? (5 + 17 * Math.round((seconds * 24 - 5) / 17)));
     if (!Number.isInteger(targetFrames) || targetFrames < 5 || (targetFrames - 5) % 17) throw new Error('Target frames must follow the H3 5 + 17k grid.');
@@ -235,6 +270,11 @@
     let originalSections = normalized.opaque ? null : normalized.sections || parseStructuredSections(source, true);
     let hasNativeSections = Boolean(originalSections);
     if (originalSections) {
+      if(mode==='refs'&&originalSections.subject_definitions){
+        const definitions=originalSections.subject_definitions;
+        originalSections.subject_definitions=resolveSubjectDefinitionPictures(definitions,refs);
+        if(definitions!==originalSections.subject_definitions)warnings.push('Subject definitions linked to their attached image references automatically.');
+      }
       source = serializeSections(originalSections, Object.keys(originalSections));
       warnings.push('Prompt section formatting normalized automatically.');
     }
@@ -488,7 +528,6 @@
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
         if ((!nativeSections || supplementGuidedCards) && binding.role==='custom' && binding.instruction.trim()) return false;
-        if (!nativeSections) return true;
         const tags = [binding.tag];
         if (binding.picture_idx) tags.push(`<Picture ${binding.picture_idx}>`);
         return !tags.some(tag => source.includes(tag));
@@ -497,7 +536,7 @@
 
       // Card directives can mention a later card: resolve only after all bindings
       // are known, using the same map and rejection rules as the scene prompt.
-      const replaceMentions = text => text.replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
+      const replaceMentions = text => normalizeNativeReferenceTags(text).replace(/@([\p{L}\p{N}_-]+)/gu, (whole, name) => {
         if (!aliasToTag.has(name)) throw new Error('Unknown mention: ' + whole);
         return aliasToTag.get(name);
       });
@@ -606,6 +645,7 @@
   return {
     mentionName,
     normalizeReferenceMentions,
+    normalizeNativeReferenceTags,
     compilePrompt,
     adapterTriggerWords,
     referenceVideoSpan,

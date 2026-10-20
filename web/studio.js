@@ -680,8 +680,14 @@ function mentionItems(){
   }
   if(state.mode!=="refs")return typeof projectCatalogItems==='function'?projectCatalogItems():[];
   let bindings=[];
-  try{bindings=H3PromptCompiler.compilePrompt({mode:"refs",source_prompt:state.refs.map(r=>"@"+r.alias).join(" "),references:currentRenderSpec().references}).bindings||[];}catch{}
-  const attached=orderedRefs().map(ref=>({alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,tag:(()=>{const b=bindings.find(b=>b.alias===ref.alias);return b?b.tag+(b.paired_audio_tag?" + "+b.paired_audio_tag:""):ref.kind;})(),...referenceDisplay(ref),assetId:ref.assetId}));
+  const previewSpec={...currentRenderSpec(),preview_only:true};
+  try{bindings=H3PromptCompiler.compilePrompt(previewSpec).bindings||[];}catch{
+    try{bindings=H3PromptCompiler.compilePrompt({...previewSpec,source_prompt:state.refs.map(r=>"@"+r.alias).join(" "),prompt_mode:'guided'}).bindings||[];}catch{}
+  }
+  const attached=orderedRefs().map(ref=>{
+    const b=bindings.find(b=>b.alias===ref.alias),picture=b?.picture_idx?`<Picture ${b.picture_idx}>`:null;
+    return {alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,nativeTags:b?[...new Set([b.tag,picture,b.paired_audio_tag].filter(Boolean))]:[],tag:b?(picture&&b.subject_idx?picture+' → ':'')+b.tag+(b.paired_audio_tag?' + '+b.paired_audio_tag:''):ref.kind,...referenceDisplay(ref),assetId:ref.assetId};
+  });
   return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias||(ref.assetId&&ref.assetId===item.assetId))):[]);
 }
 function mentionPreview(item){
@@ -697,16 +703,16 @@ function mentionPreview(item){
 function renderPromptAssets(){
   const wrap=$("promptAssets");wrap.replaceChildren();
   let prompt=$("prompt").value;
-  if(state.mode==='refs'){try{prompt=H3PromptCompiler.normalizeReferenceMentions(prompt,currentRenderSpec().references);}catch{}}
+  if(state.mode==='refs'){try{prompt=H3PromptCompiler.normalizeNativeReferenceTags(H3PromptCompiler.normalizeReferenceMentions(prompt,currentRenderSpec().references));}catch{}}
   const items=mentionItems().filter(item=>!item.catalog);
   for(const item of items){
     const chip=document.createElement("button");chip.type="button";chip.className="prompt-asset";
-    if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt))chip.classList.add("used");
+    if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt)||(item.nativeTags||[]).some(tag=>prompt.includes(tag)))chip.classList.add("used");
     chip.disabled=state.busy;
     chip.title="Insert @"+preferredReferenceMention(item.alias)+" into the prompt";
     chip.onclick=()=>item.catalog?insertProjectMention(item).catch(error=>info(error.message,true)):insertReferenceMention(item.alias,false);
     const preview=mentionPreview(item);if(preview)chip.append(preview);
-    const name=document.createElement("span");name.textContent="@"+preferredReferenceMention(item.alias);
+    const name=document.createElement("span"),preferred=preferredReferenceMention(item.alias);name.textContent="@"+item.alias+(preferred!==item.alias?' · '+preferred:'');
     const tag=document.createElement("small");tag.textContent=item.tag;
     chip.append(name,tag);wrap.append(chip);
   }
