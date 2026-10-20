@@ -428,9 +428,9 @@ async function loadLoras(){
     if(typeof syncRestoredAdapterStatus==='function')syncRestoredAdapterStatus();
     updateMethodAvailability();
     renderLoras();renderEstimates();
-  }catch{
+  }catch(error){
     state.lorasLoaded=false;
-    $("loraList").innerHTML="<div class='tip'>Connect ComfyUI to see installed LoRAs.</div>";
+    $("loraList").textContent="LoRA list unavailable: "+error.message;
     $("loraRecommendation").hidden=true;
   }
 }

@@ -202,27 +202,27 @@
 <script src="./h3/vendor/prompt-parsers.js?v=20261015-production-2.5.6"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
 <script src="./h3/prompt-input.js?v=20261015-production-2.5.6"></script>
-<script src="./h3/prompt-compiler.js?v=20261020-reuse-navigation2"></script>
+<script src="./h3/prompt-compiler.js?v=20261020-reuse-navigation4"></script>
 <script src="./h3/configuration.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/graph-builder.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/scenes-ui.js?v=20261016-scenes"></script>
-<script src="./h3/project-controller.js?v=20261020-reuse-navigation2"></script>
-<script src="./lab-ui.js?v=20261020-reuse-navigation2"></script>
+<script src="./h3/project-controller.js?v=20261020-reuse-navigation4"></script>
+<script src="./lab-ui.js?v=20261020-reuse-navigation4"></script>
 <script src="./h3/studio-ux.js?v=20261016-scenes"></script>
 <script src="./h3/queue-ui.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/timing-estimator.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/tab-draft-store.js?v=20261015-production-2.5.6"></script>
-<script src="./h3/reuse-navigation.js?v=20261020-reuse-navigation2"></script>
-<script src="./studio.js?v=20261020-reuse-navigation2"></script>
+<script src="./h3/reuse-navigation.js?v=20261020-reuse-navigation4"></script>
+<script src="./studio.js?v=20261020-reuse-navigation4"></script>
 <script src="./h3/updates-ui.js?v=20261015-production-2.5.6"></script>
-<script src="./h3/connected-studio.js?v=20261020-reuse-navigation2"></script>
+<script src="./h3/connected-studio.js?v=20261020-reuse-navigation4"></script>
 <script src="./h3/configuration-ui.js?v=20261015-production-2.5.6"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>
 <dialog id="fileAssetsDialog" class="organization-dialog" aria-labelledby="fileAssetsTitle"><h2 id="fileAssetsTitle">Organize selected assets</h2><p data-guidance-key="videoHelp28" lang="en" dir="ltr">Folders organize media independently of its reference role.</p><label for="fileAssetsFolder">DESTINATION FOLDER</label><select id="fileAssetsFolder"></select><p id="fileAssetsStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileAssetsApply" class="button">Move selected assets</button></div></dialog>
 <dialog id="transferDialog" class="organization-dialog" aria-labelledby="transferTitle"><h2 id="transferTitle">Transfer materials</h2><p id="transferSummary"></p><label for="transferTarget">DESTINATION PROJECT</label><select id="transferTarget"></select><label for="transferMode">ACTION</label><select id="transferMode"><option value="copy">Copy · preserve source</option><option value="move">Move · check dependencies</option></select><p id="transferStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="transferApply" class="button">Transfer selected materials</button></div></dialog>
 <dialog id="reuseDialog" class="organization-dialog" aria-labelledby="reuseTitle"><h2 id="reuseTitle">Reuse video setup</h2><p data-guidance-key="videoHelp29" lang="en" dir="ltr">Restore the recorded prompt, references and settings into Production. The original take stays unchanged. Reuse does not start a render or guarantee an identical result.</p><p id="reuseSummary"></p><label for="reuseTarget">DESTINATION PROJECT</label><select id="reuseTarget"></select><div id="reuseNewName"><label for="reuseProjectName">NEW PROJECT NAME</label><input id="reuseProjectName" maxlength="160"></div><p id="reuseStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="reuseApply" class="button">Restore into Production</button></div></dialog>
-<script src="./h3/organization-ui.js?v=20261020-reuse-navigation2"></script>
+<script src="./h3/organization-ui.js?v=20261020-reuse-navigation4"></script>
 <script src="./h3/project-workspace.js?v=20261016-scenes"></script>
 
 <script src="./h3/video-tab-state.js?v=20261020-reuse-20261016-scenes"></script>
