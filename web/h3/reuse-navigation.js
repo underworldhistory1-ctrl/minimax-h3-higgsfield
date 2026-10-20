@@ -22,7 +22,8 @@
   }
   function projectLink(href,id){
     const url=new URL(href);
-    if(url.searchParams.has('project'))url.searchParams.set('project',id);
+    // Reuse owns its request URL until its restoration transaction is complete.
+    if(!url.searchParams.has('reuse'))url.searchParams.set('project',id);
     return url.href;
   }
   return {link,restore,projectLink};

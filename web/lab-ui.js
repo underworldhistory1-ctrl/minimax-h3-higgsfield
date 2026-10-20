@@ -9,11 +9,11 @@ async function restoreInputItem(desc,controller=projectCtrl){
     let file=desc.file;
     if(!(file instanceof Blob)){
       if(!desc.assetId)throw Error('Missing asset identifier');
-      const rec=await controller.getAsset(desc.assetId),blob=await controller.mediaBlob(desc.assetId);
+      const [rec,blob]=await Promise.all([controller.getAsset(desc.assetId),controller.mediaBlob(desc.assetId)]);
       file=new File([blob],rec.original_name||'reference',{type:blob.type});
     }else if(!(file instanceof File))file=new File([file],file.name||'reference',{type:file.type});
     if(!file.size)throw Error('The reference file is empty');
-    const result={...desc,file,url:URL.createObjectURL(file),previewUrl:URL.createObjectURL(file)};
+    const url=URL.createObjectURL(file),result={...desc,file,url,previewUrl:url};
     delete result.restoreError;return result;
   }catch(error){return {...desc,file:null,url:null,previewUrl:null,restoreError:error.message||'Reference download failed'};}
 }
@@ -214,8 +214,12 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   state.tabRestoredView=draft.tab_view||null;
   const epoch=++state.hydrationEpoch;const missing=[];
   const controller=projectCtrl;const item=desc=>restoreInputItem(desc,controller);
-  const first=await item(draft.first),last=await item(draft.last),refs=await Promise.all((draft.refs||[]).map(item)),guides=await Promise.all((draft.guides||[]).map(item));
-  const controlInputs=Object.fromEntries(await Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])));
+  const [first,last,refs,guides,controlEntries]=await Promise.all([
+    item(draft.first),item(draft.last),Promise.all((draft.refs||[]).map(item)),
+    Promise.all((draft.guides||[]).map(item)),
+    Promise.all(Object.entries(draft.controlInputs||{}).map(async([key,value])=>[key,await item(value)])),
+  ]);
+  const controlInputs=Object.fromEntries(controlEntries);
   if(epoch!==state.hydrationEpoch||controller!==projectCtrl){for(const input of [first,last,...refs,...guides,...Object.values(controlInputs)].filter(Boolean))for(const url of new Set([input.url,input.previewUrl]))if(url)URL.revokeObjectURL(url);return;}
   for(const old of allInputItems())for(const url of new Set([old.url,old.previewUrl,old.originalPreviewUrl]))if(url)URL.revokeObjectURL(url);
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
@@ -251,7 +255,9 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   for(const id of draft.tab_details||[])if($(id)?.tagName==='DETAILS')$(id).open=true;
 }
 async function refreshProjectList(){
-  if(!projectCtrl)return;const response=await projectCtrl.listProjects();const select=$("projectSelect");select.replaceChildren();
+  if(!projectCtrl)return;const controller=projectCtrl,epoch=state.projectListEpoch=(state.projectListEpoch||0)+1;
+  const response=await controller.listProjects();if(controller!==projectCtrl||epoch!==state.projectListEpoch)return;
+  const select=$("projectSelect");select.replaceChildren();
   const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="Choose project…";select.append(placeholder);
   for(const project of response.projects||[]){const option=document.createElement("option");option.value=project.project_id;option.textContent=project.name;select.append(option);}select.value=state.activeProjectId||"";
 }

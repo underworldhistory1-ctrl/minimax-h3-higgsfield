@@ -20,6 +20,9 @@
       this.serverKey = options.serverKey || 'default';
       this.currentProject = null;
       this.onProjectChanged = options.onProjectChanged || (() => {});
+      this.assetRecords = new Map();
+      this.assetMedia = new Map();
+      this.mediaBytes = 0;
     }
 
     _storageKey(key) {
@@ -31,6 +34,8 @@
     }
 
     async fetchJson(endpoint, options = {}) {
+      const mutation=options.method&&options.method.toUpperCase()!=='GET';
+      if(mutation)this.projectListRequest=null;
       const res = await fetch(this.apiUrl(endpoint), {
         ...options,
         headers: { ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...(options.headers || {}) },
@@ -45,7 +50,9 @@
         err.status = res.status;
         throw err;
       }
-      return await (globalThis.H3RenderValues?H3RenderValues.readJson(res):res.json());
+      const data=await (globalThis.H3RenderValues?H3RenderValues.readJson(res):res.json());
+      if(mutation)this.projectListRequest=null;
+      return data;
     }
 
     async uploadAsset(file, projectId = this.currentProject?.project_id, options = {}) {
@@ -59,8 +66,12 @@
     }
 
     async getAsset(assetId) {
-      const data = await this.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}`);
-      return data.asset || data;
+      if (!this.assetRecords.has(assetId)) {
+        const request = this.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}`,{signal:AbortSignal.timeout(45000)})
+          .then(data => data.asset || data).catch(error => { this.assetRecords.delete(assetId); throw error; });
+        this.assetRecords.set(assetId, request);
+      }
+      return this.assetRecords.get(assetId);
     }
 
     async resolveAsset(assetId) {
@@ -70,15 +81,41 @@
     }
 
     async mediaBlob(assetId) {
+      if (this.assetMedia.has(assetId)) {
+        const entry = this.assetMedia.get(assetId);
+        this.assetMedia.delete(assetId);this.assetMedia.set(assetId,entry);
+        return entry.promise;
+      }
+      const entry = {bytes:0};
+      entry.promise = this.downloadMedia(assetId).then(blob => {
+        // Originals are immutable by asset ID. Bound retained media to 64 MB;
+        // large videos share an in-flight download but are not retained.
+        if (blob.size > 8*1024*1024) this.assetMedia.delete(assetId);
+        else {
+          entry.bytes=blob.size;this.mediaBytes+=blob.size;
+          for (const [id,cached] of this.assetMedia) {
+            if(this.mediaBytes<=64*1024*1024)break;
+            if(!cached.bytes)continue;
+            this.assetMedia.delete(id);this.mediaBytes-=cached.bytes;
+          }
+        }
+        return blob;
+      }).catch(error => {this.assetMedia.delete(assetId);throw error;});
+      this.assetMedia.set(assetId,entry);
+      return entry.promise;
+    }
+
+    async downloadMedia(assetId) {
       for(let attempt=0;attempt<3;attempt++){
+        const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),45000);
         try{
-          const res=await fetch(this.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}/file`));
+          const res=await fetch(this.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(assetId)}/file`),{signal:abort.signal});
           if(!res.ok){const error=new Error(`Cannot load asset media: HTTP ${res.status}`);error.status=res.status;throw error;}
           return await res.blob();
         }catch(error){
           if(attempt===2||(error.status&&![408,429,500,502,503,504].includes(error.status)))throw error;
           await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
-        }
+        }finally{clearTimeout(timeout);}
       }
     }
 
@@ -146,7 +183,11 @@
     }
 
     async listProjects() {
-      return await this.fetchJson('/h3_studio/lab/projects');
+      if(!this.projectListRequest){
+        const request=this.fetchJson('/h3_studio/lab/projects').finally(()=>{if(this.projectListRequest===request)this.projectListRequest=null;});
+        this.projectListRequest=request;
+      }
+      return this.projectListRequest;
     }
 
     async duplicateCurrentProject(newName = null) {

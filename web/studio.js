@@ -566,17 +566,15 @@ function renderRefs() {
     nameLabel.textContent="MENTION NAME";name.value=ref.alias;name.setAttribute("aria-label","Reference name");name.disabled=state.busy;
     name.onchange=()=>{
       const value=name.value.trim();
-      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias===value)){
+      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias.toLocaleLowerCase()===value.toLocaleLowerCase())){
         name.value=ref.alias; info("Use a unique name with letters, numbers, _ or -, and no spaces.",true);return;
       }
       const old=ref.alias;ref.alias=value;
       if(!ref.label||ref.label===old)ref.label=value;
-      $("prompt").value=$("prompt").value.replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","gu"),"@"+value);
-      for(const m of ["text","frames","refs"]){if(state.prompts[m])state.prompts[m]=state.prompts[m].replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","gu"),"@"+value);}
-      renderRefs();saveDraft();
-      if(ref.assetId&&state.currentProject&&typeof workspaceMutation==='function'){
-        workspaceMutation({action:'edit_asset',asset_id:ref.assetId,name:value}).catch(()=>{});
-      }
+      $("prompt").value=$("prompt").value.replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","giu"),"@"+value);
+      for(const m of ["text","frames","refs"]){if(state.prompts[m])state.prompts[m]=state.prompts[m].replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","giu"),"@"+value);}
+      // This identifier belongs to this shot. Catalog names are edited in Elements.
+      renderRefs();updatePreviewLive();saveDraft();
     };
     nameWrap.append(nameLabel,name);
     const roleWrap=document.createElement("div"),roleLabel=document.createElement("label"),role=document.createElement("select");
@@ -2111,7 +2109,9 @@ async function initProjectController() {
     if(controller!==projectCtrl)return;
     if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
     if(!await hydrateWorkspaceDraft(project))return;
-    if(reuseRequested||navigation.searchParams.has('project'))state.tabRestoredView='studio';
+    if(reuseRequested)state.tabRestoredView='studio';
+    else if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);
+    else if(navigation.searchParams.has('project'))state.tabRestoredView='studio';
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
@@ -2148,8 +2148,12 @@ function updateProjectUI(proj) {
     }
   }
   appendProjectResults(proj);renderResults();renderSequenceCard();
-  if(typeof renderProjectCatalog==='function'){renderProjectCatalog();renderProjectHub().catch(()=>{});}
-  refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));
+  if(typeof renderProjectCatalog==='function'){
+    if(typeof workspaceView==='undefined'||workspaceView==='elements')renderProjectCatalog();
+    if(typeof workspaceView==='undefined'||workspaceView==='projects')renderProjectHub().catch(()=>{});
+  }
+  if(typeof workspaceView==='undefined'||workspaceView==='projects'||workspaceView==='elements')
+    refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));
 }
 
 async function applyQwenHandoff(asset, asRole) {

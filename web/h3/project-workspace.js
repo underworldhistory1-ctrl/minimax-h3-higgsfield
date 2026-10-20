@@ -23,7 +23,7 @@ async function workspaceMutation(operation,project=state.currentProject){
     });
     if(controller!==projectCtrl)return;
     if(state.currentProject?.project_id===updated.project_id){controller.currentProject=updated;updateProjectUI(updated);}
-    await renderProjectHub();return updated;
+    if(workspaceView==='projects')await renderProjectHub();return updated;
   }catch(error){
     if(error.status===409&&controller===projectCtrl){
       if(state.currentProject?.project_id===project.project_id)await controller.loadProject(project.project_id);
@@ -34,12 +34,18 @@ async function workspaceMutation(operation,project=state.currentProject){
 }
 async function saveWorkspaceDraft(){
   if(!projectCtrl?.currentProject)return;
-  const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
   if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
   if(typeof H3TabDraftStore!=='undefined')await H3TabDraftStore.save(tabProjectDraftKey(state.activeProjectId),captureProjectDraft(true));
+  const snapshot=captureProjectDraft(),project=projectCtrl.currentProject;
+  const saved=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl.draftScope):project.draft;
+  const signature=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
+  if(allInputItems().every(item=>item.assetId)&&signature(snapshot)===signature(saved))return;
+  const draft=await persistProjectDraft();await projectCtrl.saveCurrentProject({draft,assets:mergeProjectAssetDescriptors(projectCtrl.currentProject.assets||[],allInputItems())});
 }
 async function openProjectWorkspace(id,{view='studio'}={}){
   if(workspaceLocked())throw Error('Wait for the current operation before changing projects.');
+  if(id===state.activeProjectId){setWorkspaceView(view);return;}
+  $('projectHubStatus').textContent='Opening project · restoring saved references…';
   await withProjectLoading(async()=>{
     if(projectCtrl.currentProject)await saveWorkspaceDraft();
     const project=await projectCtrl.loadProject(id);state.currentClipId=null;
@@ -53,9 +59,11 @@ async function showProjectHub(save=true){
   if(save&&projectCtrl?.currentProject)await withProjectLoading(saveWorkspaceDraft);
   document.body.classList.add('project-hub-open');setWorkspaceView('projects');await renderProjectHub();
 }
+let projectHubEpoch=0;
 async function renderProjectHub(){
+  const epoch=++projectHubEpoch;
   const controller=projectCtrl,list=$('projectHubList');if(!controller||!list)return;
-  const response=await controller.listProjects();if(controller!==projectCtrl)return;
+  const response=await controller.listProjects();if(controller!==projectCtrl||epoch!==projectHubEpoch)return;
   if(typeof H3OrganizationUI!=='undefined'){await H3OrganizationUI.renderProjects(response.projects||[],list);return;}
   list.replaceChildren();
   for(const project of response.projects||[]){
@@ -89,8 +97,7 @@ async function activateProjectAsset(item){
   const controller=projectCtrl,pid=state.activeProjectId,initialMode=state.mode,initialPrompt=$('prompt').value;workspaceCatalogBusy=true;
   let url;
   try{
-    const record=await controller.getAsset(item.assetId);
-    const blob=await controller.mediaBlob(item.assetId);
+    const [record,blob]=await Promise.all([controller.getAsset(item.assetId),controller.mediaBlob(item.assetId)]);
     if(controller!==projectCtrl||pid!==state.activeProjectId)throw Error('Project changed while loading the asset.');
     if(state.mode!==initialMode||$('prompt').value!==initialPrompt)throw Error('The prompt changed while loading the element. Select it again to attach it.');
     // Readiness gates apply before committing a reference, including selected checkpoint compatibility.
@@ -273,6 +280,7 @@ function setWorkspaceView(view,{history=true}={}){
   $('workspaceProjectLabel').textContent=state.currentProject?.name||'Choose a project';
   $('workspacePageTitle').textContent=({projects:'Projects',studio:'Production',elements:'Project elements',generations:'Generations',favorites:'Favorites',activity:'Activity'})[view];
   if(history&&location.hash!=='#'+view)window.history.pushState(null,'','#'+view);
+  if((view==='projects'||view==='elements')&&projectCtrl)refreshProjectList().catch(error=>info(error.message,true));
   if(view==='elements')renderProjectCatalog();
   if(view==='generations'||view==='favorites')renderResults();
 }

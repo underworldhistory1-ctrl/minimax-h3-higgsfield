@@ -6,6 +6,8 @@
 
 Reference chips show each attached image's `Picture` number and its related `Subject` number. Pictures follow image card order; Subject numbers can differ and follow explicit `subject_definitions` when supplied. For example, `<Subject 1> is the man from @2` automatically links to the actual image named `@2`; the alias does not imply Picture2. Native tags also work in ordinary guided prose, without repeating aliases. Common explicit forms such as `<subject1>` normalize automatically. A conflicting explicit Picture and alias reports the actual mapping instead of silently changing identity.
 
+The **Mention name** on a reference card belongs to that shot. Rename the shared project element separately in **Elements**. Opening the current project keeps the working setup; project links retain the selected page on refresh. Navigation checkpoints the local setup first and avoids rewriting an unchanged server draft. Restoring references loads independent inputs together and reuses recently downloaded originals within a bounded browser cache; failed downloads remain visible and retryable.
+
 ## Reuse a saved take
 
 Click **Reuse** to reload directly into Production using a link to the selected output. The saved prompt, references, adapter strengths and render settings are copied into an independent project, so an active source render or an unselected destination shot does not block opening the setup. The final URL identifies the restored project and survives refresh. The source take and any backend render remain intact. Missing original files are reported in Production; Reuse does not invent missing inputs or start generation automatically.
