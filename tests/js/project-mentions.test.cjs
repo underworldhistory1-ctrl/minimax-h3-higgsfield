@@ -5,7 +5,7 @@ const compiler=require('../../web/h3/prompt-compiler.js');
 function workspace(assets,prompt='@hero @room'){
  const input={value:prompt,selectionStart:prompt.length,selectionEnd:prompt.length,setRangeText(text,start,end){this.value=this.value.slice(0,start)+text+this.value.slice(end);},focus(){}};
  const state={currentProject:{assets,asset_categories:[]},activeProjectId:'p',refs:[],mode:'refs',prompts:{refs:prompt},busy:false};
- const context={state,H3PromptCompiler:compiler,$:id=>id==='prompt'?input:{classList:{add(){}}},setTimeout,clearTimeout,info(){},renderRefs(){},renderPromptAssets(){},saveDraft(){},maxRefs:{image:9}};
+ const context={state,H3ReuseNavigation:require('../../web/h3/reuse-navigation.js'),location:{href:'https://studio.test/index.html'},history:{replaceState(){}},H3PromptCompiler:compiler,$:id=>id==='prompt'?input:{classList:{add(){}}},setTimeout,clearTimeout,info(){},renderRefs(){},renderPromptAssets(){},saveDraft(){},maxRefs:{image:9}};
  vm.createContext(context);vm.runInContext(fs.readFileSync('web/h3/project-workspace.js','utf8').replace(/initWorkspaceNavigation\(\);\s*initProjectWorkspace\(\);\s*H3OrganizationUI.init\(\);\s*$/,''),context);
  context.projectCtrl={apiUrl:p=>p};context.renderProjectCatalog=()=>{};
  return {context,state,input};

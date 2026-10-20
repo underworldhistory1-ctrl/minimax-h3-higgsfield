@@ -2,7 +2,11 @@
 
 **Current release: 2.5.6 · native INT8 acceleration and render recovery**
 
-### Direct the shot. Keep the whole workflow in view.
+### Reuse a saved take
+
+Click **Reuse** to reload directly into Production using a link to the selected output. The saved prompt, references, adapter strengths and render settings are copied into an independent project, so an active source render or an unselected destination shot does not block opening the setup. The final URL identifies the restored project and survives refresh. The source take and any backend render remain intact. Missing original files are reported in Production; Reuse does not invent missing inputs or start generation automatically.
+
+## Direct the shot. Keep the whole workflow in view.
 
 **MiniMax H3 video with native audio. Qwen image creation and editing. One browser workspace on your own machine or GPU server.**
 

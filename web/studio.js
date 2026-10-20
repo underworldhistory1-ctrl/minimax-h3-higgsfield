@@ -79,6 +79,7 @@ const baseKey = "h3studio.comfyBase";
 if(sessionStorage.getItem(baseKey)===null)sessionStorage.setItem(baseKey,localStorage.getItem(baseKey)||"");
 const draftKey = "h3studio.draft.v3";
 const sessionKey = "h3studio.session.v3";
+const reuseLanding = new URLSearchParams(location.search).has("reuse");
 const sessionIdKey = "h3studio.session.id.v3";
 const sessionId = sessionStorage.getItem(sessionIdKey)||crypto.randomUUID();
 sessionStorage.setItem(sessionIdKey,sessionId);
@@ -944,7 +945,7 @@ function setBusy(value) {
   state.busy=value;
   $("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);
   document.querySelectorAll(".mode").forEach(b=>b.disabled=value);
-  for(const id of ["upscaleTake","upscaleTarget","extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","restoreTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
+  for(const id of ["upscaleTake","upscaleTarget","extendSourceMethod","guideKind","resultRole","mediaFormat","resultFrameIndex","promptMode","frameFit","projectSelect","refreshProjects","importProject","btnNewProject","btnSaveProject","btnExportProject","btnAssembleSequence","extendVideo","clearContinuation","addGuide","purgeContext","acceptTake","useResult","exportMedia","prompt","durationSeconds","steps","enableRefine","seed","refSize","refKind","addRef","refreshLoras","server","saveServer","randomSeed","clearFirst","clearLast","renderMethod","fitImages","fitFrames"])if($(id))$(id).disabled=value;
   document.querySelectorAll("#stepPresets button").forEach(button=>button.disabled=value);
   $("upscaleTake").disabled=!!(value||state.projectLoading||state.mediaExporting);
   refreshVideoActions();
@@ -1094,6 +1095,7 @@ async function restoreSession(){
   if(state.sessionRecoveredFor===key)return;
   let saved;
   try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||"null");}catch{}
+  if(reuseLanding&&saved){saved.active=null;sessionStorage.setItem(sessionKey,JSON.stringify(saved));}
   if(!saved||saved.server!==key){state.sessionRecoveredFor=key;return;}
   try{
     const data=await post("/h3_studio/session_resume",{
@@ -1508,7 +1510,7 @@ function renderResults(){
     const remove=document.createElement("button");remove.className="button alt danger";remove.type="button";remove.textContent="Delete";
     remove.setAttribute("aria-label","Delete video "+(index+1));remove.disabled=videoDeletionPending(entry)||!!state.mediaExporting;
     remove.onclick=()=>deleteVideoEntry(entry,renderOrigin);
-    const reuse=document.createElement('button');reuse.type='button';reuse.className='button alt';reuse.textContent='Reuse';reuse.setAttribute('aria-label','Reuse video '+(index+1));reuse.disabled=state.busy||state.projectLoading;reuse.onclick=()=>{if(api('')===renderOrigin)H3OrganizationUI.openReuse(entry).catch(error=>info(error.message,true));};
+    const reuse=document.createElement('button');reuse.type='button';reuse.className='button alt';reuse.textContent='Reuse';reuse.setAttribute('aria-label','Reuse video '+(index+1));reuse.disabled=false;reuse.onclick=()=>{if(api('')===renderOrigin)H3OrganizationUI.openReuse(entry).catch(error=>info(error.message,true));};
     actions.append(reuse,options,remove);card.append(b,actions);$("results").append(card);
   });
 }
@@ -2091,24 +2093,30 @@ async function initProjectController() {
   let controller;controller=new H3ProjectController.ProjectController({apiBase,serverKey:apiBase||location.origin,onProjectChanged:p=>{if(controller===projectCtrl)updateProjectUI(p);}});
   projectCtrl=controller;
   try{
-    let pid=sessionStorage.getItem(controller._storageKey("active_project_id"));
+    const navigation=new URL(location.href),reuseRequested=navigation.searchParams.has('reuse');
+    let reused=null;
+    if(reuseRequested)reused=await H3ReuseNavigation.restore(controller,{href:location.href,storage:sessionStorage,replace:url=>history.replaceState(null,'',url)});
+    let pid=reused?.project_id||navigation.searchParams.get('project')||sessionStorage.getItem(controller._storageKey("active_project_id"));
     const migrationKey=controller._storageKey('tab_migration_v1');
     if(!pid&&!localStorage.getItem(migrationKey)){pid=localStorage.getItem(controller._storageKey('active_project_id'));localStorage.setItem(migrationKey,'done');}
-    let project;
-    if(pid){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
+    let project=reused;
+    if(pid&&!project){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;
     if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
     if(!await hydrateWorkspaceDraft(project))return;
+    if(reuseRequested||navigation.searchParams.has('project'))state.tabRestoredView='studio';
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(state.tabRestoredView||location.hash.slice(1)||"projects",{history:false});}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"projects",{history:false});}}
 }
 
 function updateProjectUI(proj) {
   if (!proj) return;
   state.currentProject = proj;
   state.activeProjectId = proj.project_id;
+  const projectURL=H3ReuseNavigation.projectLink(location.href,proj.project_id);
+  if(projectURL!==location.href)history.replaceState(null,'',projectURL);
   if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if ($("projectNameDisplay")) $("projectNameDisplay").textContent = `${proj.name || 'Project'} (${proj.project_id.slice(0, 8)})`;
   if ($("projectRevision")) $("projectRevision").textContent = `Rev ${proj.revision || 1}`;

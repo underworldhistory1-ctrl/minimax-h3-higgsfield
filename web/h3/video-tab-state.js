@@ -28,6 +28,6 @@
   setInterval(flush,750);
   setInterval(()=>flush(true),60000);
   addEventListener('pagehide',()=>{void flush();});
-  addEventListener('beforeunload',event=>{void flush();if(running||failed){event.preventDefault();event.returnValue='';}});
+  addEventListener('beforeunload',event=>{if(state.reuseNavigating)return;void flush();if(running||failed){event.preventDefault();event.returnValue='';}});
   window.H3VideoTabState={flush,settle:()=>pending.catch(()=>{})};
 })();

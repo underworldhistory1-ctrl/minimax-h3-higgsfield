@@ -77,33 +77,10 @@ const H3OrganizationUI=(()=>{
   finally{workspaceCatalogBusy=false;button.disabled=false;renderProjectCatalog();}
  }
  async function openReuse(entry){
-  if(workspaceLocked())throw Error('Finish the current operation before reusing a video.');if(!entry)return;
-  const controller=projectCtrl,origin=api(''),output=resultOutputPath(entry),epoch=++reuseEpoch;reuseContext=null;$('videoActionsDialog').close();
-  $('reuseStatus').textContent='Checking saved prompt, settings and references…';$('reuseApply').disabled=true;$('reuseDialog').showModal();
-  try{const prepared=await controller.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:output})});const response=await controller.listProjects();if(epoch!==reuseEpoch||!$('reuseDialog').open||controller!==projectCtrl||origin!==api(''))return;
-   reuseContext={prepared,controller,origin,output};populate($('reuseTarget'),response.projects.map(p=>[p.project_id,p.name]),['new','New project']);$('reuseTarget').value=state.activeProjectId||prepared.source_project_id||'new';$('reuseProjectName').value='Reused shot';$('reuseNewName').hidden=$('reuseTarget').value!=='new';
-   $('reuseStatus').textContent=prepared.available?(prepared.complete?'Full saved setup available. No render starts automatically.':prepared.warnings.join('\n')):prepared.warnings.join('\n');$('reuseApply').disabled=!prepared.available;
-   $('reuseSummary').textContent=prepared.available?`${prepared.draft.mode} · ${prepared.draft.settings?.duration||'?'} frames · seed ${prepared.draft.settings?.seed??'?'} · ${prepared.assets.length} stored inputs`:entry.file.filename;
-   // Restore directly; retain the dialog for actionable recovery errors.
-   if(prepared.available)await applyReuse();
-  }catch(error){$('reuseStatus').textContent=error.message;}
- }
- async function applyReuse(){const ctx=reuseContext;if(!ctx?.prepared.available||ctx.controller!==projectCtrl||ctx.origin!==api('')||workspaceLocked())return;const button=$('reuseApply');button.disabled=true;
-  try{await withProjectLoading(async()=>{await saveWorkspaceDraft();const id=$('reuseTarget').value;let target;
-    if(id==='new'){const name=$('reuseProjectName').value.trim();if(!name)throw Error('Name the destination project.');target=await projectCtrl.createProject(name);}
-    else target=await projectCtrl.fetchJson('/h3_studio/lab/projects/'+encodeURIComponent(id));
-    const destinationScope=id==='new'?{}:target.project_id===state.activeProjectId?(projectCtrl.draftScope||{}):(H3ScenesUI.storedScope?.(target)||{});
-    if(destinationScope.scene_id&&!destinationScope.shot_id)throw Error('Create or select a destination shot before reusing this video.');
-    const result=await projectCtrl.fetchJson('/h3_studio/lab/videos/reuse',{method:'POST',body:JSON.stringify({output_file:ctx.output,target_project_id:target.project_id,...(destinationScope.shot_id?{target_scene_id:destinationScope.scene_id,target_shot_id:destinationScope.shot_id}:{}),expected_revision:target.revision})});
-    await projectCtrl.loadProject(result.project.project_id);state.current=null;H3ScenesUI.restore(result.project);const restoredDraft=H3Scenes.draft(result.project,projectCtrl.draftScope);await hydrateProjectDraft(restoredDraft);
-    if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
-    if(typeof H3TabDraftStore!=='undefined')await H3TabDraftStore.save(tabProjectDraftKey(result.project.project_id),captureProjectDraft(true));
-    const missingAdapters=(restoredDraft.loras||[]).filter(l=>l.enabled&&!state.loras.some(current=>current.name===l.name&&current.enabled)).map(l=>'LoRA '+l.name);
-    const checkpoint=restoredDraft.configuration?.checkpoint,missingCheckpoint=checkpoint&&checkpoint!==selectedCheckpoint()?['Checkpoint '+checkpoint]:[];
-    state.restoreMissing=[...new Set([...(state.restoreMissing||[]),...result.missing,...missingAdapters,...missingCheckpoint])];if(state.restoreMissing.length)info('Reused setup needs inputs: '+state.restoreMissing.join(', '),true);else info('Saved prompt, references and settings restored. Review and Generate when ready.');
-   });$('reuseDialog').close();setWorkspaceView('studio');showStageMessage('Reused shot','Review the restored setup before generating.');saveDraft();}
-  catch(error){$('reuseStatus').textContent=error.message;}
-  finally{button.disabled=!ctx.prepared.available;}
+  if(!entry)return;
+  const url=H3ReuseNavigation.link(location.href,resultOutputPath(entry),crypto.randomUUID());
+  state.reuseNavigating=true;
+  location.assign(url);
  }
  function init(){
   for(const id of ['projectSearch','projectFolderFilter','projectSort'])$(id).addEventListener(id==='projectSearch'?'input':'change',()=>renderProjects(projectCache,$('projectHubList'),false).catch(error=>info(error.message,true)));
@@ -118,7 +95,7 @@ const H3OrganizationUI=(()=>{
   $('assetFolderFilter').onchange=renderProjectCatalog;$('assetSort').onchange=renderProjectCatalog;
   $('clearSelectedAssets').onclick=()=>{selected.clear();renderProjectCatalog();};$('transferAssets').onclick=()=>openTransfer([...selected]).catch(error=>info(error.message,true));
   $('fileSelectedAssets').onclick=()=>{$('fileAssetsStatus').textContent='';$('fileAssetsDialog').showModal();};$('fileAssetsApply').onclick=async()=>{try{await workspaceMutation({action:'file_assets',asset_ids:[...selected],folder_id:$('fileAssetsFolder').value||null});selected.clear();$('fileAssetsDialog').close();renderProjectCatalog();}catch(error){$('fileAssetsStatus').textContent=error.message;}};
-  $('transferApply').onclick=applyTransfer;$('reuseTarget').onchange=()=>{$('reuseNewName').hidden=$('reuseTarget').value!=='new';};$('reuseApply').onclick=applyReuse;
+  $('transferApply').onclick=applyTransfer;$('reuseTarget').onchange=()=>{$('reuseNewName').hidden=$('reuseTarget').value!=='new';};$('reuseApply').onclick=()=>openReuse(videoActionsEntry);
   $('reuseDialog').addEventListener('close',()=>{++reuseEpoch;reuseContext=null;});
   $('videoActionsReuse').onclick=()=>openReuse(videoActionsEntry).catch(error=>info(error.message,true));
   $('videoActionsTransfer').onclick=()=>{const entry=videoActionsEntry;$('videoActionsDialog').close();const take=state.currentProject?.takes?.find(t=>t.take_id===entry?.takeId);if(!take){info('Open the owning project to transfer this take. Older unassigned videos can be reused when saved inputs exist.',true);return;}openTransfer([],[take.take_id]).catch(error=>info(error.message,true));};

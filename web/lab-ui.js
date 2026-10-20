@@ -384,6 +384,6 @@ function appendProjectResults(project){
 
 async function withProjectLoading(action){
   if(state.busy||state.projectLoading)throw Error("Wait for the current operation to finish.");
-  state.projectLoading=true;refreshVideoActions();const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","restoreTake","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
+  state.projectLoading=true;refreshVideoActions();const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
   try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();refreshVideoActions();}
 }
