@@ -109,7 +109,7 @@ class SharedGpuQueue:
 
 
 class PeerReadiness:
-    def __init__(self, url, available_mb, minimum_mb=24000):
+    def __init__(self, url, available_mb, minimum_mb=30000):
         self.url = url.rstrip('/')
         self.available_mb = available_mb
         self.minimum_mb = minimum_mb
