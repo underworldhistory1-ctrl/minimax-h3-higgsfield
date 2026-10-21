@@ -55,6 +55,9 @@
     <h2>Output settings</h2><p data-guidance-key="imageHelp5" lang="en" dir="ltr">Qwen Image 2.1 supports native 2K output. Larger canvases take longer and use more memory.</p>
     <label for="profile">MODEL PRECISION</label><select id="profile"><option value="int8" disabled>Fast / efficient · INT8 ConvRot</option><option value="bf16" disabled>Maximum precision · BF16</option></select>
     <div id="profileNote" class="profile-note"><strong>Checking installed weights</strong><br>The interface enables only complete, verified profiles.</div>
+    <label for="lora">QWEN IMAGE 2.1 LORA</label><select id="lora"><option value="">None</option><option value="qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors" disabled>NSFW LoRA · TheseAlpacas · V2</option></select>
+    <label for="loraStrength">LORA STRENGTH</label><input id="loraStrength" type="number" min="0" max="2" step="0.05" value="0.8">
+    <div id="loraNote" class="tip" role="status">Checking installed LoRA. Selection and strength are saved with each image.</div>
     <div id="canvasOptions" hidden><label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input id="customSize" type="checkbox" style="width:auto"> Use selected output size</label><div class="tip" data-guidance-key="imageHelp6" lang="en" dir="ltr">Change aspect ratio or output size anytime to use your selected canvas. Fitting a different ratio center-crops the first image; uncheck to preserve its proportions and size.</div></div>
     <div class="controls">
      <div><label for="aspect">ASPECT RATIO</label><select id="aspect"><option value="1:1">1:1 Square</option><option value="16:9">16:9 Landscape</option><option value="9:16">9:16 Portrait</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="3:2">3:2</option><option value="2:3">2:3</option></select></div>
@@ -83,7 +86,7 @@
 <script src="./h3/uuid.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/tab-draft-store.js?v=20261015-production-2.5.6"></script>
 <script src="./h3/image-reference-store.js?v=20261015-production-2.5.6"></script>
-<script src="./image-studio.js?v=20261015-production-2.5.6"></script>
+<script src="./image-studio.js?v=20261021-qwen-lora-v2"></script>
 <script src="./h3/updates-ui.js?v=20261015-production-2.5.6"></script>
 <link rel="stylesheet" href="./studio-ux.css?v=20261015-production-2.5.6">
 <script src="./h3/studio-ux.js?v=20261015-production-2.5.6"></script>

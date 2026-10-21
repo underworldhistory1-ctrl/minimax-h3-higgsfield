@@ -1,7 +1,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const state={
-  mode:"create",refs:[],profiles:{},nodes:{},ready:false,busy:false,
+  mode:"create",refs:[],profiles:{},nodes:{},availableLoras:[],ready:false,busy:false,
   clientId:crypto.randomUUID(),socket:null,activePromptId:sessionStorage.getItem("qwen.activePromptId")||null,
   started:0,lastStepAt:0,lastStep:0,stepTotal:0,stepTimes:[],uploaded:[],current:null,results:[],visible:8,timer:null,
   settings:null,abort:null,completing:false,generationEpoch:0,inferenceEnabled:true,standbyReason:null,pendingToken:null,refsSaving:false,refsSaved:false,referencesReady:false
@@ -68,12 +68,12 @@ function persistReferences(){
 }
 function saveDraft(){
   if(!state.referencesReady)return;
-  sessionStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
+  sessionStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,lora:$("lora").value,loraStrength:$("loraStrength").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
   void persistReferences();
 }
 function restoreDraft(){
   let draft={};try{draft=JSON.parse(sessionStorage.getItem("qwen.imageDraft")||"{}");}catch{}
-  for(const id of ["prompt","profile","aspect","resolution","steps","seed","referenceResolution"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}
+  for(const id of ["prompt","profile","aspect","resolution","steps","seed","referenceResolution","lora","loraStrength"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}
   if($("seed").value.trim()&&$("seed").value.trim()!=="-1"){try{$("seed").value=String(H3RenderValues.seed($("seed").value));}catch{$("seed").value="42";showError("The saved seed was invalid. Reset to the default42.");}}
   $("transparent").checked=!!draft.transparent;$("customSize").checked=!!draft.customSize;$("fitReferences").checked=draft.fitReferences!==false;
 }
@@ -129,6 +129,11 @@ $("referenceFiles").onchange=()=>{
 async function checkConnection(){
   try{
     const response=await fetch(api("/h3_studio/image_readiness"),{cache:"no-store"});if(!response.ok)throw Error("Image extension unavailable");
+    let loader={};
+    try{const loaderResponse=await fetch(api("/object_info/LoraLoaderModelOnly"),{cache:"no-store",signal:AbortSignal.timeout(5000)});if(loaderResponse.ok)loader=await loaderResponse.json();}catch{/* Optional LoRA discovery must not disable baseline Qwen generation. */}
+    state.availableLoras=loader.LoraLoaderModelOnly?.input?.required?.lora_name?.[0]||[];
+    for(const option of $("lora").options)option.disabled=!!option.value&&!state.availableLoras.includes(option.value);
+    $("loraNote").textContent=state.availableLoras.includes("qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")?"V2 installed · applies before reference caching. Strength 0 disables its effect.":"V2 installation could not be verified. Your saved selection is kept.";
     const data=await H3RenderValues.readJson(response);state.profiles=data.profiles||{};state.nodes=data.nodes||{};state.inferenceEnabled=data.inference_enabled!==false;state.standbyReason=state.inferenceEnabled?null:(data.reason||"Inference is disabled on this standby server.");state.ready=state.inferenceEnabled&&!!data.ready;
     for(const option of $("profile").options){option.disabled=!state.profiles[option.value]?.ready;}
     let savedProfile;try{savedProfile=JSON.parse(sessionStorage.getItem('qwen.imageDraft')||'{}').profile;}catch{}
@@ -158,7 +163,16 @@ function handleSocket(message){
 function saveActiveJob(){if(!state.activePromptId)return;sessionStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8)}));}
 async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await H3RenderValues.readJson(response);if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
 
+function qwenLora(settings){
+  const lora=settings.lora||"";
+  if(!lora)return {lora:"",loraStrength:0};
+  if(lora!=="qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")throw Error("Unknown Qwen Image 2.1 LoRA.");
+  const loraStrength=Number(settings.loraStrength??0.8);
+  if(!Number.isFinite(loraStrength)||loraStrength<0||loraStrength>2)throw Error("LoRA strength must be between 0 and 2.");
+  return {lora,loraStrength};
+}
 function buildGraph(settings,uploads,token){
+  settings={...settings,...qwenLora(settings)};
   if(settings.mode==="edit"&&uploads.length>1&&settings.referenceResolution>0&&(settings.referenceResolution<103||settings.referenceResolution>4096))throw Error("Additional reference detail must be 0 or 103–4096 px for this runtime.");
   const files=profileFiles[settings.profile];if(!files)throw Error("Selected model profile is invalid.");
   const prompt=settings.transparent&&settings.mode==="create"?`This is an RGBA format image with transparency. ${settings.prompt.replace(/\.+$/,'')}. The image has an alpha channel and a transparent background.`:settings.prompt;
@@ -172,11 +186,12 @@ function buildGraph(settings,uploads,token){
     save:{class_type:"QwenStudioSaveImage",inputs:{images:["decode",0],token,metadata_json:JSON.stringify(metadata)}}
   };
   let model=["unet",0],latent;
+  if(settings.lora){graph.lora={class_type:"LoraLoaderModelOnly",inputs:{model,lora_name:settings.lora,strength_model:settings.loraStrength}};model=["lora",0];}
   if(settings.mode==="create"){
     graph.latent={class_type:"EmptyLatentImage",inputs:{width:settings.width,height:settings.height,batch_size:1}};latent=["latent",0];
   }else{
     graph.enc.inputs.vae=["vae",0];graph.enc.inputs.resolution=0;uploads.forEach((name,index)=>{const n=index+1,id="load"+n;graph[id]={class_type:"LoadImage",inputs:{image:name}};let link=[id,0];if(n===1&&settings.customSize){graph.scale_primary={class_type:"ImageScale",inputs:{image:link,upscale_method:"lanczos",width:settings.width,height:settings.height,crop:"center"}};link=["scale_primary",0];}else if(n>1&&settings.referenceResolution>0){const scale="scale_ref"+n;graph[scale]={class_type:"ImageScaleToTotalPixels",inputs:{image:link,upscale_method:"lanczos",megapixels:settings.referenceResolution**2/1048576,resolution_steps:32}};link=[scale,0];}graph.enc.inputs["images.image_"+n]=link;});
-    graph.cache={class_type:"QwenImage21Cache",inputs:{model:["unet",0],device:"auto",dtype:"default"}};model=["cache",0];latent=["enc",2];
+    graph.cache={class_type:"QwenImage21Cache",inputs:{model,device:"auto",dtype:"default"}};model=["cache",0];latent=["enc",2];
   }
   graph.sampler={class_type:"KSampler",inputs:{model,seed:settings.seed,steps:settings.steps,cfg:1,sampler_name:"euler",scheduler:"simple",positive:["enc",0],negative:["enc",1],latent_image:latent,denoise:1}};
   return graph;
@@ -211,9 +226,11 @@ function captureSettings(){
   const [width,height]=outputDimensions(),sourcePrompt=$("prompt").value.trim(),steps=Number($("steps").value),seed=H3RenderValues.seed($("seed").value,{allowRandom:true}),profile=$("profile").value,mode=state.refs.length?"edit":"create";
   if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
   if(mode==="edit"&&!$("customSize").checked){if(!state.refs[0].width||!state.refs[0].height)throw Error("Still reading the first reference's dimensions. Try again in a moment.");if(width<256||height<256)throw Error("First reference is too small for the output canvas. Select 'Use selected output size'.");if(width>2752||height>2752)throw Error("First reference exceeds the supported output canvas. Select 'Use selected output size'.");}
+  const loraSettings=qwenLora({lora:$("lora").value,loraStrength:$("loraStrength").value});
+  if(loraSettings.lora&&!state.availableLoras.includes(loraSettings.lora))throw Error("The selected LoRA is not installed. Select None or install it before generating.");
   const prompt=resolveMentions(sourcePrompt);
   $("seed").value=String(seed);saveDraft();
-  return {mode,profile,prompt,sourcePrompt,referenceNames:state.refs.map(ref=>ref.name),width,height,steps,seed,transparent:mode==="create"&&$("transparent").checked,referenceResolution:Number($("referenceResolution").value),customSize:mode==="edit"&&$("customSize").checked};
+  return {...loraSettings,mode,profile,prompt,sourcePrompt,referenceNames:state.refs.map(ref=>ref.name),width,height,steps,seed,transparent:mode==="create"&&$("transparent").checked,referenceResolution:Number($("referenceResolution").value),customSize:mode==="edit"&&$("customSize").checked};
 }
 async function recoverPendingImage(){
   if(!state.pendingToken)return state.activePromptId;
@@ -300,7 +317,7 @@ function renderLibrary(){
   $("results").replaceChildren();$("imageCount").textContent=`(${state.results.length} on server)`;$("emptyHistory").classList.toggle("hidden",!!state.results.length);const remaining=Math.max(0,state.results.length-state.visible);$("showMore").classList.toggle("hidden",!remaining);$("showMore").textContent=`Show ${Math.min(8,remaining)} more · ${remaining} remaining`;
   state.results.slice(0,state.visible).forEach((entry,index)=>{const card=document.createElement("div");card.className="result";const open=document.createElement("button");open.className="result-open";open.type="button";const media=document.createElement("div");media.className="result-media";const image=document.createElement("img");image.src=imageUrl(entry);image.loading="lazy";image.alt=`Generated image ${index+1}`;media.append(image);const label=document.createElement("div");label.className="result-label";label.textContent=`${entry.width} × ${entry.height} · ${(entry.settings?.profile||"Qwen").toUpperCase()}`;const small=document.createElement("small");small.textContent=new Date(entry.modified*1000).toLocaleString()+(entry.render_seconds?" · "+fmt(entry.render_seconds):"");label.append(small);open.append(media,label);open.onclick=()=>showImage(entry);const actions=document.createElement("div");actions.className="result-card-actions";const details=document.createElement("button");details.type="button";details.textContent="Details";details.onclick=()=>openDetails(entry,details);const remove=document.createElement("button");remove.type="button";remove.textContent="Delete";remove.setAttribute("aria-label",`Delete generated image ${index+1}`);remove.onclick=()=>deleteEntry(entry);actions.append(details,remove);card.append(open,actions);$("results").append(card);});
 }
-function openDetails(entry,trigger){const data=entry.settings||{};const content=$("detailsContent");content.replaceChildren();const grid=document.createElement("dl");grid.className="settings";const row=(key,value)=>{const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value===undefined||value===null||value===""?"—":String(value);grid.append(dt,dd);};row("Inputs",data.mode==="edit"?"Prompt + references":"Prompt only");row("Precision",data.profile?.toUpperCase());row("Canvas",`${entry.width||data.width} × ${entry.height||data.height}`);row("Steps",data.steps);row("Seed",data.seed);row("Transparent",data.transparent?"Yes":"No");row("References",Array.isArray(data.referenceNames)?data.referenceNames.map((name,index)=>`@${name} → image${index+1}`).join(", "):Array.isArray(data.references)?data.references.length:0);row("Render time",entry.render_seconds?fmt(entry.render_seconds):"—");row("Prompt",data.sourcePrompt||data.prompt);content.append(grid);$("detailsDialog").showModal();$("detailsDialog").dataset.returnId=trigger?.id||"";}
+function openDetails(entry,trigger){const data=entry.settings||{};const content=$("detailsContent");content.replaceChildren();const grid=document.createElement("dl");grid.className="settings";const row=(key,value)=>{const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value===undefined||value===null||value===""?"—":String(value);grid.append(dt,dd);};row("Inputs",data.mode==="edit"?"Prompt + references":"Prompt only");row("Precision",data.profile?.toUpperCase());row("Canvas",`${entry.width||data.width} × ${entry.height||data.height}`);row("LoRA",data.lora||"None");row("LoRA strength",data.lora?data.loraStrength:"—");row("Steps",data.steps);row("Seed",data.seed);row("Transparent",data.transparent?"Yes":"No");row("References",Array.isArray(data.referenceNames)?data.referenceNames.map((name,index)=>`@${name} → image${index+1}`).join(", "):Array.isArray(data.references)?data.references.length:0);row("Render time",entry.render_seconds?fmt(entry.render_seconds):"—");row("Prompt",data.sourcePrompt||data.prompt);content.append(grid);$("detailsDialog").showModal();$("detailsDialog").dataset.returnId=trigger?.id||"";}
 $("closeDetails").onclick=()=>$("detailsDialog").close();$("detailsDialog").onclick=event=>{if(event.target===$("detailsDialog"))$("detailsDialog").close();};
 $("details").onclick=event=>state.current&&openDetails(state.current,event.currentTarget);
 $("download").onclick=()=>{if(!state.current)return;const a=document.createElement("a");a.href=imageUrl(state.current);a.download=state.current.filename;a.click();};
@@ -331,7 +348,7 @@ if($("sendToH3")) $("sendToH3").onclick = async () => {
 };
 $("deleteCurrent").onclick=()=>deleteEntry(state.current);$("refreshLibrary").onclick=()=>loadLibrary(true);$("showMore").onclick=()=>{state.visible+=8;renderLibrary();};
 $("randomSeed").onclick=()=>{$("seed").value=H3RenderValues.randomSeed();saveDraft();};
-for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences"]){$(id).addEventListener("input",()=>{if(id==="aspect"||id==="resolution")$("customSize").checked=true;updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
+for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences","lora","loraStrength"]){$(id).addEventListener("input",()=>{if(id==="aspect"||id==="resolution")$("customSize").checked=true;updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);
 async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(sessionStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}

@@ -10,6 +10,26 @@ class QwenImageContractTests(unittest.TestCase):
 
         return qwen_image
 
+    def test_lora_precedes_reference_cache_and_sampler(self):
+        qwen = self.module()
+        for mode, uploads in [('create', []), ('edit', ['reference.png'])]:
+            graph = qwen.build_qwen_graph({'prompt': 'A clothed adult portrait', 'mode': mode,
+                'lora': 'qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors', 'loraStrength': 0.8}, uploads, 'lora_test')
+            self.assertEqual(graph['lora']['class_type'], 'LoraLoaderModelOnly')
+            self.assertEqual(graph['lora']['inputs']['model'], ['unet', 0])
+            self.assertEqual(graph['lora']['inputs']['strength_model'], 0.8)
+            if mode == 'edit':
+                self.assertEqual(graph['cache']['inputs']['model'], ['lora', 0])
+            else:
+                self.assertEqual(graph['sampler']['inputs']['model'], ['lora', 0])
+
+    def test_lora_rejects_unknown_files_and_invalid_strengths(self):
+        for values in [{'lora': '../other.safetensors'}, *[
+            {'lora': 'qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors', 'loraStrength': x}
+            for x in [float('nan'), float('inf'), -1, 3, 'wrong']]]:
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                self.module().build_qwen_graph({'prompt': 'A portrait', **values}, [], 'test')
+
     def test_model_profiles_have_exact_three_file_sets(self):
         qwen = self.module()
         self.assertEqual(set(qwen.MODEL_PROFILES), {"int8", "bf16"})

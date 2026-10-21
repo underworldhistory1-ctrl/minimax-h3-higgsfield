@@ -141,3 +141,7 @@ Post a shot, a reference experiment or a setup question in [Discussions](https:/
 [Connected Studio guide](docs/CONNECTED_STUDIO.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Graph map](docs/GRAPH_MAP.md)
 
 Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Code: [MIT](LICENSE).
+
+### Optional Qwen Image 2.1 V2 LoRA
+
+Create Image has a separate LoRA selector and strength (0–2, initial 0.8), defaulting to None. The TheseAlpacas V2 option is enabled only when its file is installed. Selection and strength survive refresh and are stored in image settings; the model-only adapter precedes reference caching in edit mode. Install explicitly with `python deploy/download_qwen_loras.py /path/to/ComfyUI`; add `--offline-check` to verify the pinned 79,744,352-byte file and SHA-256 without downloading. The download uses a pinned Hugging Face mirror revision. No LoRA is enabled automatically.

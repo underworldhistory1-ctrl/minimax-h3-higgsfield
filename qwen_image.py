@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import math
 import os
 import re
 import time
@@ -110,7 +111,26 @@ def _transparent_prompt(prompt):
     )
 
 
+QWEN_LORA_FILE = 'qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors'
+
+
+def selected_qwen_lora(request):
+    name = request.get('lora', '')
+    if not name:
+        return '', 0.0
+    if name != QWEN_LORA_FILE:
+        raise ValueError('Unknown Qwen Image 2.1 LoRA')
+    try:
+        strength = float(request.get('loraStrength', 0.8))
+    except (TypeError, ValueError) as exc:
+        raise ValueError('LoRA strength must be between 0 and 2') from exc
+    if not math.isfinite(strength) or not 0 <= strength <= 2:
+        raise ValueError('LoRA strength must be between 0 and 2')
+    return name, strength
+
+
 def build_qwen_graph(request, uploads, token):
+    lora_name, lora_strength = selected_qwen_lora(request)
     mode = str(request.get("mode", "create")).lower()
     if mode not in {"create", "edit"}:
         raise ValueError("Mode must be create or edit")
@@ -145,6 +165,7 @@ def build_qwen_graph(request, uploads, token):
         prompt = _transparent_prompt(prompt)
     profile = MODEL_PROFILES[profile_key]
     metadata = {
+        "lora": lora_name, "loraStrength": lora_strength,
         "kind": "image", "mode": mode, "profile": profile_key, "prompt": prompt,
         "width": width, "height": height, "steps": steps, "seed": seed,
         "transparent": bool(mode == "create" and request.get("transparent")),
@@ -166,9 +187,13 @@ def build_qwen_graph(request, uploads, token):
             "metadata_json": json.dumps(metadata, ensure_ascii=False, separators=(",", ":")),
         }},
     }
+    model_link = ["unet", 0]
+    if lora_name:
+        graph["lora"] = {"class_type": "LoraLoaderModelOnly", "inputs": {
+            "model": model_link, "lora_name": lora_name, "strength_model": lora_strength}}
+        model_link = ["lora", 0]
     if mode == "create":
         graph["latent"] = {"class_type": "EmptyLatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}}
-        model_link = ["unet", 0]
         latent_link = ["latent", 0]
     else:
         graph["enc"]["inputs"]["vae"] = ["vae", 0]
@@ -192,7 +217,7 @@ def build_qwen_graph(request, uploads, token):
                 image_link = [scale_id, 0]
             graph["enc"]["inputs"][f"images.image_{index}"] = image_link
         graph["cache"] = {"class_type": "QwenImage21Cache", "inputs": {
-            "model": ["unet", 0], "device": "auto", "dtype": "default",
+            "model": model_link, "device": "auto", "dtype": "default",
         }}
         model_link = ["cache", 0]
         latent_link = ["enc", 2]

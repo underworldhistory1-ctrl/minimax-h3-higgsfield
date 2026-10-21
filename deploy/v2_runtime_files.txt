@@ -122,3 +122,4 @@ h3_lab/scenes.py
 web/h3/scenes-ui.js
 web/scenes.css
 docs/PROJECT_SCENES_AR.md
+deploy/download_qwen_loras.py
