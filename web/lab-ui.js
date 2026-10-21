@@ -235,7 +235,6 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   $("fitImages").checked=draft.fitImages!==false;$("fitFrames").checked=draft.fitFrames!==false;
   for(const [key,value] of Object.entries(draft.settings||{}))if($(key))$(key).value=value;
   $("seed").value=String(draft.settings?.seed??42);repairSavedSeed();syncDuration();
-  if(draft.settings?.renderMethod==='turbo'){$('renderMethod').value='native';$('steps').value='20';info('Turbo was removed. This project now uses Original quality at 20 steps.');}
   state.desiredLoras=state.lorasLoaded?null:(draft.loras||[]);
   state.aspectFormat=Object.keys(aspectPresets).find(k=>aspectPresets[k].some(([w,h])=>w===state.width&&h===state.height))||"16:9";
   state.mode=draft.mode||"text";$("prompt").value=state.prompts[state.mode]||"";selectMode(state.mode,true);state.loras=state.loras.map(x=>({...x,enabled:!!draft.loras?.some(l=>l.name===x.name),strength:draft.loras?.find(l=>l.name===x.name)?.strength??x.strength}));

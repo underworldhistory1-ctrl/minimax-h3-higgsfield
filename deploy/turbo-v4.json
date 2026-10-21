@@ -1,0 +1,24 @@
+{
+  "weight": {
+    "repo": "larryvrh/MiniMax-H3-Turbo-Lora",
+    "revision": "43a74557ac3f6539db8e0f2a959d03feb7a81480",
+    "filename": "minimax_h3_turbo_v4_step600_ema.safetensors",
+    "size": 779849816,
+    "sha256": "5f3a626cd72c93a8b9318d6760c510bc5092d2ab13aaba1f932c5bab07a416d3"
+  },
+  "nodes": {
+    "repo": "Larryvrh/ComfyUI-MiniMax-H3-Turbo",
+    "revision": "4274783a23afcfdbea3b4876cb79effd6c510785",
+    "files": {
+      "__init__.py": "a22f222f11dfc337552371f7f288bf5928cb1fa80a6afb3f24075a8315d02f06",
+      "h3_silu_temb_grid.safetensors": "30eb3c2cc7fb6b470d9717ff840d359313ac27cd64b705e32da1baa10f72d6a8"
+    }
+  },
+  "reference_weight": {
+    "repo": "lightx2v/Minimax-h3-Turbo",
+    "revision": "30f485ed874aa44c8183348ad361c5eabad318da",
+    "filename": "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+    "size": 1956193000,
+    "sha256": "6a56f41ab4229c9dd845b9501bbd475ee57e112d846cf2e819d534a1ae928c5a"
+  }
+}

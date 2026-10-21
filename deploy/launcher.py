@@ -343,7 +343,7 @@ def runtime_snapshot(root, state_dir):
     extension = runtime_target(root)
     if extension.is_dir():
         backup = state_dir / "backups" / dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-        names = ["__init__.py", "h3_video_save.py", "qwen_image.py", "h3_continuation.py", "h3_queue_bridge.py", "h3_shared_gpu.py", "h3_audio_refine.py", "prompt_formats.py", "promptwriter.py", "web", "h3_lab", "corpus", "tools"]
+        names = ["__init__.py", "h3_video_save.py", "qwen_image.py", "h3_continuation.py", "h3_queue_bridge.py", "h3_shared_gpu.py", "h3_turbo.py", "h3_audio_refine.py", "prompt_formats.py", "promptwriter.py", "web", "h3_lab", "corpus", "tools"]
         for name in names:
             old = extension / name
             target = backup / name

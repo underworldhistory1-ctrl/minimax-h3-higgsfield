@@ -59,6 +59,10 @@ Generate at **Native detail · 1344×768** as the recommended upper baseline. La
 
 Start with **Original quality**. Try the available render methods and LoRAs when you want a different tradeoff; Studio shows what is installed on your server.
 
+## Optional Turbo v4 EMA
+
+Turbo v4 EMA is available for Original Text/Frames at 4–8 steps (6 initial), using the current upstream loader and adaptive audio/video sampler. References has a separate LightX2V Ref2VA 8-step v1.0 option, tested on this server with a complete video/audio output. Install these explicitly; other adapters and extra passes are unsupported. [Installation and scope](docs/TURBO_V4.md).
+
 ## Models and acceleration
 
 | Name | What it selects |

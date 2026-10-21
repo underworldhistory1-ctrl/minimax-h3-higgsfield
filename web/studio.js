@@ -59,13 +59,15 @@ const mediaRules={
 };
 const modelFL = "minimax_h3_fl2va_pruned_int8_convrot.safetensors";
 const modelRef = "minimax_h3_ref2va_pruned_int8_convrot.safetensors";
-const turboName = "experimental/minimax_h3_fl2v_lightx2v_turbo_4to8step_v0.1-v1.0_768p_v4_step600_dareties.safetensors";
+const turboName = H3Configuration.TURBO;
 const methodInfo = {
   native: {title:"Original quality", detail:"Full H3 sampling. No accelerator changes the model trajectory."},
   spectrum: {title:"Spectrum · experimental", detail:"Uses a bounded two-step history without a full-clip replay archive to reduce memory use. Motion and audio need comparison with Original quality."},
   motioncache: {title:"MotionCache · experimental", detail:"Reuses selected denoiser calls. Review faces, movement, lip sync and sound."},
-  turbo: {title:"Turbo LoRA · experimental", detail:"Uses the installed 4–8 step adapter at strength 0.9. The model output changes; compare motion and audio."},
+  turbo: {title:"Turbo v4 EMA", detail:"Original Text / Frames, strength 1.0, native Turbo audio/video sampler. Start with 6–8 steps. Fast motion and audio remain experimental; other adapters and extra passes are unsupported."},
 };
+methodInfo.turbo_ref={title:'References Turbo · LightX2V 8-step v1.0',detail:'Original Ref2VA with native references. 8 Euler/simple steps, strength1.0, shifts12/3. Review identity, motion and audio; no other adapters or extra passes.'};
+const turboMethod=()=>method()==='turbo'||method()==='turbo_ref';
 const method = () => $("renderMethod").value;
 const selectedCheckpoint=()=>state.modelProfile&&state.modelProfile!=="original"?(state.modelProfile==="singularity"?state.checkpoint:modelFL):(state.mode==="refs"?modelRef:modelFL);
 const refinementSettings=()=>({scale:state.refineScale??1.25,steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple',...state.refinement});
@@ -177,6 +179,8 @@ function updateCapabilities(){
 }
 function methodAvailable(value){
   if(value==="native")return true;
+  if(value==="turbo_ref")return state.mode==="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ref_ready===true;
+  if(value==="turbo")return state.mode!=="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ready===true;
   if(!['spectrum','motioncache'].includes(value))return false;
   return state.nodesReady?.[value==="spectrum"?"SpectrumApplyMiniMaxH3":"MiniMaxH3MotionCache"]===true;
 }
@@ -198,10 +202,10 @@ function updateMethodAvailability(){
 function renderMethodInfo(){
   const value=method(),steps=Number($("steps").value),info=methodInfo[value]||{title:'Unavailable method',detail:'Select a supported render method before generating.'};
   $("steps").min=value==="turbo"?"4":"8";
-  $("steps").max=value==="turbo"?"8":"100";
-  $("stepPresets").hidden=value==="turbo";
-  document.querySelector(".steps-hint").innerHTML=value==="turbo"?"<strong>6 recommended</strong> · Enter 4–8 steps for Turbo.":"<strong>20 recommended</strong> · Choose a preset or enter a custom value.";
-  H3Guidance.setText($("stepAdvice"),value==="turbo"?"stepsTurbo":"stepsStandard");
+  $("steps").max=["turbo","turbo_ref"].includes(value)?"8":"100";
+  $("stepPresets").hidden=["turbo","turbo_ref"].includes(value);
+  document.querySelector(".steps-hint").innerHTML=value==="turbo_ref"?"<strong>8 required</strong> · LightX2V References Turbo.":value==="turbo"?"<strong>6 recommended</strong> · Enter 4–8 steps for Turbo.":"<strong>20 recommended</strong> · Choose a preset or enter a custom value.";
+  H3Guidance.setText($("stepAdvice"),value==="turbo_ref"?"stepsTurboRef":value==="turbo"?"stepsTurbo":"stepsStandard");
   document.querySelectorAll("#stepPresets button").forEach(button=>button.classList.toggle("active",Number(button.dataset.steps)===Number($("steps").value)));
   $("profile").replaceChildren();
   const strong=document.createElement("strong");strong.textContent=info.title+(Number.isInteger(steps)&&steps>=Number($("steps").min)&&steps<=Number($("steps").max)?" · "+steps+" steps":" · choose valid steps");
@@ -279,7 +283,6 @@ function restoreDraft(){
     ?String(draft.durationRequested):(Number($("duration").value)/24).toFixed(1);
   repairSavedSeed();syncDuration();
   $("prompt").value=state.prompts[state.mode]||"";
-  if(draft.renderMethod==="turbo"){$("renderMethod").value="native";$("steps").value="20";info("Turbo was removed. This older draft now uses Original quality at 20 steps.");}
   const draftSteps=Number($("steps").value);
   if($("renderMethod").value==="turbo"){
     if(!Number.isInteger(draftSteps)||draftSteps<4||draftSteps>8)$("steps").value="6";
@@ -297,10 +300,10 @@ function timingConfiguration(w=state.width,h=state.height){
   const refine=$("enableRefine").checked;
   const adapters=state.loras.filter(x=>x.enabled).map(x=>({name:x.name,strength:x.strength,
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
-  if(method()==="turbo")adapters.push({name:turboName,strength:.9,refinement_strength:refine?.9:null});
-  return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:state.sampling||{},audio_refinement:state.audioRefinement||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
+  if(turboMethod())adapters.push({name:method()==="turbo_ref"?H3Configuration.TURBO_REF:turboName,strength:1,refinement_strength:null});
+  return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:turboMethod()?{...state.sampling,sampler_name:method()==="turbo_ref"?"euler":"h3_turbo",scheduler:"simple",cfg:1,denoise:1,shift_video:12,shift_audio:3}:state.sampling||{},audio_refinement:state.audioRefinement||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
     width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
-    sampler:"res_multistep",scheduler:"simple",cfg:1,denoise:1,
+    sampler:method()==="turbo_ref"?"euler":method()==="turbo"?"h3_turbo":"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
     reference_detail:state.mode==="refs"?$("refSize").value:null,fit_images:state.mode==="refs"?$("fitImages").checked:null,fit_frames:state.mode==="frames"?$("fitFrames").checked:null,frame_fit:state.mode==="frames"?$("frameFit").value:null,
     guides:state.guides.map(x=>({...timingMedia(x),frame_idx:x.frame_idx,strength:x.strength??null})),
@@ -311,7 +314,7 @@ function timingConfiguration(w=state.width,h=state.height){
 function captureSettings(){
   const refs=state.mode==="refs";
   const adapters=state.loras.filter(item=>item.enabled).map(item=>({name:item.name,strength:item.strength,refinement_strength:$("enableRefine").checked?(item.refinement_strength??(/Motion_Repair_V2/i.test(item.name)?.25:item.strength)):undefined}));
-  if(method()==="turbo")adapters.push({name:"H3 Turbo",strength:0.9});
+  if(turboMethod())adapters.push({name:method()==="turbo_ref"?H3Configuration.TURBO_REF:turboName,strength:1});
   return {
     server_attention:state.labCapabilities?.server_attention||null,timingConfiguration:timingConfiguration(),mode:state.mode,compiled_prompt:state.lastCompiledPrompt||null,model:refs?"MiniMax H3 Ref2VA":"MiniMax H3 FL2VA",
     canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
@@ -407,7 +410,7 @@ function renderLoras() {
     toggle.onchange=()=>{item.enabled=toggle.checked;renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
     const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=anime?"Anime → Realism · LumiReal / Ref2VA":swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
-    if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply this adapter at strength 0.9.";row.append(note);}
+    if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply Turbo v4 at strength 1.0.";row.append(note);}
     if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · References with your selected checkpoint · initial strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
     if(anime){const note=document.createElement('div');note.className='tip';note.textContent='LiseTY · trained on Ref2VA · trigger LumiReal. Style prompt presets can enable this adapter, or select it here directly. Strength 1 is a starting value, not a publisher-certified optimum. Other adapters, acceleration and refinement combinations are not quality-validated.';row.append(note);}
     if(combat||realism){const source=document.createElement("div");source.className="tip";source.textContent=combat?"Creator tested FL2VA only · optional triggers prfight2, prfin1":"All three modes · trigger r34l1sm · 1.0 intended strength";row.append(source);}
@@ -444,7 +447,7 @@ $("refreshLoras").onclick=loadLoras;
 ["steps","refSize"].forEach(id => $(id).addEventListener("change",renderEstimates));
 $("durationSeconds").addEventListener("input",()=>{if(syncDuration())renderEstimates();saveDraft();});
 $("steps").addEventListener("input",()=>{renderMethodInfo();const value=Number($("steps").value);if(Number.isInteger(value)&&value>=Number($("steps").min)&&value<=Number($("steps").max))renderEstimates();else $("estimateNote").textContent="Enter "+$("steps").min+"–"+$("steps").max+" steps to update the estimate.";});
-$("renderMethod").addEventListener("change",()=>{if(method()==="turbo")$("steps").value="6";else if(Number($("steps").value)<8)$("steps").value="20";renderMethodInfo();renderLoras();renderEstimates();saveDraft();});
+$("renderMethod").addEventListener("change",()=>{if(method()==="turbo_ref"){$("steps").value="8";$("refSize").value="match";}else if(method()==="turbo")$("steps").value="6";else if(Number($("steps").value)<8)$("steps").value="20";if(!turboMethod()&&state.sampling?.sampler_name==="h3_turbo")delete state.sampling.sampler_name;renderMethodInfo();renderLoras();renderEstimates();saveDraft();});
 document.querySelectorAll("#stepPresets button").forEach(button=>button.onclick=()=>{$("steps").value=button.dataset.steps;renderMethodInfo();renderEstimates();saveDraft();});
 ["prompt","steps","seed","refSize","renderMethod"].forEach(id => $(id).addEventListener("input",saveDraft));
 $("randomSeed").onclick = () => {$("seed").value = H3RenderValues.randomSeed();saveDraft();};
@@ -799,7 +802,7 @@ $("prompt").addEventListener("blur",()=>{
 function currentRenderSpec() {
   const refs = state.mode === "refs";
   return {
-    model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:state.sampling||{},node_options:state.nodeOptions||{},audio_refinement:state.audioRefinement||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
+    model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:turboMethod()?{...state.sampling,sampler_name:method()==="turbo_ref"?"euler":"h3_turbo",scheduler:"simple",cfg:1,denoise:1,shift_video:12,shift_audio:3}:state.sampling||{},node_options:state.nodeOptions||{},audio_refinement:state.audioRefinement||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
     mode: state.mode,
     prompt_mode: state.promptMode || "guided",
     source_prompt: $("prompt").value.trim(),
@@ -1178,7 +1181,9 @@ async function checkConnection() {
         if(state.refs.some(ref=>ref.kind==="video"&&ref.useAudio))modeNodes.push("TrimAudioDuration");
         if(state.refs.some(ref=>ref.kind==="audio"))modeNodes.push("LoadAudio");
       }
-      if(state.loras.some(item=>item.enabled)||method()==="turbo")modeNodes.push("LoraLoaderModelOnly");
+      if(state.loras.some(item=>item.enabled))modeNodes.push("LoraLoaderModelOnly");
+      if(method()==="turbo")modeNodes.push("MiniMaxH3TurboLoRA","MiniMaxH3TurboSampler");
+      if(method()==="turbo_ref")modeNodes.push("LoraLoaderModelOnly");
       if(method()==="spectrum")modeNodes.push("SpectrumApplyMiniMaxH3");
       if(method()==="motioncache")modeNodes.push("MiniMaxH3MotionCache");
       // Older readiness APIs may omit these native nodes; explicit absence fails closed.
@@ -1259,7 +1264,7 @@ async function generate() {
     const steps=Number($("steps").value);
     if(!Number.isInteger(steps)||steps<Number($("steps").min)||steps>Number($("steps").max))throw Error("Sampling steps must be between "+$("steps").min+" and "+$("steps").max+" for this render method.");
     if(!methodAvailable(method()))throw Error("The selected render method is not installed on this ComfyUI server.");
-    if(method()==="turbo"&&state.loras.some(item=>item.enabled))throw Error("Turn off other LoRAs before Turbo. This combination is not verified yet.");
+    if(turboMethod()&&state.loras.some(item=>item.enabled))throw Error("Turn off other LoRAs before Turbo. This combination is not verified yet.");
     for(const item of state.loras.filter(x=>x.enabled)){
       if(!Number.isFinite(item.strength)||item.strength<0||item.strength>2)throw Error("LoRA strength must be between 0 and 2.");
       if(state.mode==="refs"&&/fl2v|fl2va|t2v/i.test(item.name)&&!/ref2v|r2v/i.test(item.name))
@@ -1546,7 +1551,7 @@ function openDetails(entry,trigger){
       content.append(note);
     }
     const modeNames={text:"Text to video",frames:"Start / end frames",refs:"References"};
-    const methodNames={native:"Original quality",spectrum:"Spectrum",motioncache:"MotionCache",turbo:"Turbo LoRA"};
+    const methodNames={native:"Original quality",spectrum:"Spectrum",motioncache:"MotionCache",turbo:"Turbo v4 EMA",turbo_ref:"References Turbo · LightX2V 8-step v1.0"};
     row("Mode",modeNames[settings.mode]||settings.mode);
     row("Model",settings.configuration?.checkpoint||settings.model);
     if(settings.server_attention)row("Server dense attention",settings.server_attention.label);

@@ -100,7 +100,9 @@
     const steps = Number(renderSpec.steps ?? 20);
     if (!Number.isInteger(steps) || steps < 1 || steps > 100) throw new Error('Steps must be an integer between 1 and 100.');
     const method = renderSpec.render_method || 'native';
-    if (!['native','spectrum','motioncache'].includes(method)) throw new Error('Unknown render method.');
+    if (!['native','spectrum','motioncache','turbo','turbo_ref'].includes(method)) throw new Error('Unknown render method.');
+    if(method==='turbo_ref'&&steps!==8)throw Error('References Turbo requires exactly 8 steps.');
+    if(method==='turbo'&&(steps<4||steps>8))throw Error('Turbo v4 requires 4–8 steps.');
     if (enableRefine && (!Number.isFinite(Number(renderSpec.refine_scale ?? 1.25)) || Number(renderSpec.refine_scale ?? 1.25) < 1 || Number(renderSpec.refine_scale ?? 1.25) > 1.25)) throw new Error('This server supports refinement up to 1.25x.');
     const refinement={steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple',...renderSpec.refinement};
     if(enableRefine){
@@ -164,6 +166,16 @@
       modelLink = [loraId, 0];
     });
 
+    if(method==='turbo'){
+      const id=allocate(50);
+      g[id]={class_type:'MiniMaxH3TurboLoRA',inputs:{model:modelLink,lora_name:Configuration.TURBO,strength:1,low_vram:false}};
+      modelLink=[id,0];
+    }
+    if(method==='turbo_ref'){
+      const id=allocate(50);
+      g[id]={class_type:'LoraLoaderModelOnly',inputs:{model:modelLink,lora_name:Configuration.TURBO_REF,strength_model:1}};
+      modelLink=[id,0];
+    }
     g["2"].inputs.model = modelLink;
     let samplingModelLink = ["2", 0];
     if (control) {

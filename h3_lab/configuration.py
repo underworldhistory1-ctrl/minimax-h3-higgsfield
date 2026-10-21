@@ -143,6 +143,8 @@ def validate_configuration(spec, capabilities):
     graph = spec.get('workflow', {})
     # Legacy clients have no configuration contract; ComfyUI still validates their schemas.
     if 'model_profile' not in spec and 'sampling' not in spec:
+        if spec.get('render_method') in ('turbo', 'turbo_ref') or any(n.get('class_type') == 'MiniMaxH3TurboLoRA' or n.get('inputs', {}).get('sampler_name') == 'h3_turbo' or 'turbo' in n.get('inputs', {}).get('lora_name','').lower() for n in graph.values()):
+            raise ValueError('Turbo v4 requires an explicit configuration contract')
         return
     profile = spec.get('model_profile', 'original')
     refs = spec.get('mode') == 'refs'
@@ -176,8 +178,32 @@ def validate_configuration(spec, capabilities):
         if key not in locations or graph.get(locations[key], {}).get('inputs', {}).get(key) != value:
             raise ValueError('Submitted sampling setting disagrees: ' + key)
     method = spec.get('render_method', 'native')
-    if method not in ('native', 'spectrum', 'motioncache'):
+    if method not in ('native', 'spectrum', 'motioncache', 'turbo', 'turbo_ref'):
         raise ValueError('Unsupported render method')
+    turbo_nodes = [n for n in graph.values() if n.get('class_type') == 'MiniMaxH3TurboLoRA']
+    if method in ('turbo', 'turbo_ref'):
+        reference_turbo = method == 'turbo_ref'
+        if not capabilities.get('turbo_ref_ready' if reference_turbo else 'turbo_ready') or refs != reference_turbo or profile != 'original':
+            raise ValueError('Turbo v4 requires installed nodes and Original Text or Frames')
+        if any(spec.get(k) for k in ('enable_refine', 'refine', 'continuation')) or (spec.get('control') or {}).get('enabled') or (spec.get('audio_refinement') or {}).get('enabled') or any(l.get('enabled') for l in spec.get('loras', [])):
+            raise ValueError('Turbo v4 supports a single pass without other adapters')
+        if reference_turbo:
+            turbo_nodes = [n for n in graph.values() if n.get('class_type') == 'LoraLoaderModelOnly' and n.get('inputs', {}).get('lora_name') == 'minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors']
+        adapter_inputs = {'model':['1',0], 'lora_name':'minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors', 'strength_model':1} if reference_turbo else {'model': ['1', 0], 'lora_name': 'minimax_h3_turbo_v4_step600_ema.safetensors', 'strength': 1, 'low_vram': False}
+        if len(turbo_nodes) != 1 or turbo_nodes[0].get('inputs') != adapter_inputs:
+            raise ValueError('Turbo v4 adapter wiring disagrees')
+        tid = next(k for k,n in graph.items() if n is turbo_nodes[0])
+        if graph.get('2', {}).get('inputs', {}).get('model') != [tid, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
+            raise ValueError('Turbo v4 model path disagrees')
+        required = {'sampler_name': 'euler' if reference_turbo else 'h3_turbo', 'scheduler': 'simple', 'cfg': 1, 'denoise': 1}
+        if any(graph.get('8', {}).get('inputs', {}).get(k) != v for k,v in required.items()) or not 4 <= graph.get('8', {}).get('inputs', {}).get('steps', 0) <= 8:
+            raise ValueError('Turbo v4 sampling disagrees')
+        if reference_turbo and graph['8']['inputs']['steps'] != 8:
+            raise ValueError('References Turbo requires8steps')
+        if any(graph.get('2', {}).get('inputs', {}).get(k) != v for k,v in {'shift_video':12, 'shift_audio':3}.items()):
+            raise ValueError('Turbo v4 sigma shifts disagree')
+    elif turbo_nodes or graph.get('8', {}).get('inputs', {}).get('sampler_name') == 'h3_turbo':
+        raise ValueError('Turbo adapter and sampler require the Turbo v4 render method')
     expected_patch = {'spectrum': 'SpectrumApplyMiniMaxH3', 'motioncache': 'MiniMaxH3MotionCache'}.get(method)
     patches = [n.get('class_type') for n in graph.values() if n.get('class_type') in ('SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache')]
     if expected_patch and expected_patch not in patches or not expected_patch and patches:
@@ -207,7 +233,7 @@ def validate_configuration(spec, capabilities):
         expected_audio = graph.get('6', {}).get('inputs', {}).get(f'ref_video_audios.ref_video_audio_{slot}') if slot is not None else None
         if not expected_audio or graph.get('11', {}).get('inputs', {}).get('audio') != expected_audio:
             raise ValueError('Source soundtrack reuse disagrees with the selected reference')
-    if any(node.get('class_type') == 'LoraLoaderModelOnly' and any(x in node.get('inputs', {}).get('lora_name', '').lower() for x in ('turbo', 'lightx2v')) for node in graph.values()):
+    if method != 'turbo_ref' and any(node.get('class_type') == 'LoraLoaderModelOnly' and any(x in node.get('inputs', {}).get('lora_name', '').lower() for x in ('turbo', 'lightx2v')) for node in graph.values()):
         raise ValueError('Turbo has been retired')
     options = spec.get('node_options') or {}
     if not isinstance(options, dict):

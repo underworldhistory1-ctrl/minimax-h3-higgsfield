@@ -18,7 +18,7 @@ The user-facing app is web/index.html and web/studio.js with the modules in web/
 | 11 | `CreateVideo` | The decoded video frames plus decoded native audio, 24 fps |
 | 12 | `H3SaveVideo` | MP4/H.264 with audio; retries through FFmpeg if PyAV fails, prefix `video/h3_studio_<token>` |
 
-The Original method uses 20 steps by default with `res_multistep`, `simple`, CFG 1, denoise 1. The UI accepts 0.2–15.1 seconds and snaps to 5+17k frames (5–362); below 124 frames is outside the usual trained range and GPU-quality unverified and a practical 20–100 step input. Landscape canvas choices are 1344×768, 1280×704, 1024×576, and 864×480; Portrait transposes each pair (768×1344, 704×1280, 576×1024, 480×864). Node 6 receives the selected width and height directly in all three modes. The ratios are approximate because dimensions use H3-friendly multiples. Turbo is retired. Shared advanced configuration is resolved by web/h3/configuration.js and applied by web/h3/graph-builder.js.
+The Original method uses 20 steps by default with `res_multistep`, `simple`, CFG 1, denoise 1. The UI accepts 0.2–15.1 seconds and snaps to 5+17k frames (5–362); below 124 frames is outside the usual trained range and GPU-quality unverified and a practical 20–100 step input. Landscape canvas choices are 1344×768, 1280×704, 1024×576, and 864×480; Portrait transposes each pair (768×1344, 704×1280, 576×1024, 480×864). Node 6 receives the selected width and height directly in all three modes. The ratios are approximate because dimensions use H3-friendly multiples. Optional Turbo has a separate single-pass contract; see TURBO_V4.md. Shared advanced configuration is resolved by web/h3/configuration.js and applied by web/h3/graph-builder.js.
 
 ## Mode branches
 
@@ -35,7 +35,7 @@ An image selected as **Storyboard · shot guide** remains on the same `ref_image
 ## Optional model path
 
 - User-selected style LoRAs chain through `LoraLoaderModelOnly` starting at ID 50, in displayed order and selected strength, before Sigma Shift.
-- Turbo is retired from selection, graph construction and downloads; historical metadata and existing files remain available.
+- Optional Turbo v4 EMA uses MiniMaxH3TurboLoRA before SigmaShift and h3_turbo in node8, delegating to the upstream adaptive AV sampler. Text/Frames, 4–8 steps, single pass only; see TURBO_V4.md.
 - Spectrum **or** MotionCache occupies ID 61 after Sigma Shift and before KSampler. They are exclusive. Both are experimental approximations; neither is part of Original quality.
 
 The extension’s /h3_studio/readiness route checks model sizes, registered node names, the actual loaded attention implementation, native CUDA readiness and runtime identity. The frontend checks mode-specific nodes and installed LoRA file names before `/prompt`. The readiness result does not prove output quality or audio sync. Keep the `web/` implementation and backend API together when deploying; copying only workflows is insufficient.
@@ -55,7 +55,7 @@ The Image workspace is separate from all H3 video branches. Both Create and Edit
 - **Profiles:** INT8 and BF16 are selectable only when every exact file in that profile has the expected size. Salad defaults to INT8.
 
 
-Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache. Turbo is retired. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
+Portrait Full HD (2026-10-12): 9:16 offers 1080x1920. H3 samples at 1088x1920 and crops four pixels from each horizontal edge. Refinement fits back to that native canvas before crop. The aligned pixel budget equals landscape Full HD; MLP chunking, CPU MotionCache residuals, admission limits and the 3 GB reserve remain active. Text/Frames and References offer native/Spectrum/MotionCache. Optional Turbo has a separate single-pass contract; see TURBO_V4.md. CPU graph tests cover refinement, continuation, control alignment and resource rejection; no portrait GPU render was run.
 
 ## Generation size and same-take enlargement
 

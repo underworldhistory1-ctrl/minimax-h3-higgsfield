@@ -44,8 +44,8 @@ test('source soundtrack reuse is explicit and never falls back to generated audi
  assert.equal(g[g['11'].inputs.audio[0]].class_type,'TrimAudioDuration');assert.equal(g[g['11'].inputs.audio[0]].inputs.duration,124/24);
  for(const bad of [{...ref,use_audio:false},{...ref,frame_count:107}])assert.throws(()=>buildGraph({mode:'refs',references:[bad],preserve_reference_audio:'source'},{source:'s.mp4'},caps));
 });
-test('Turbo cannot be selected, loaded as a LoRA, or downloaded by a graph',()=>{
- assert.throws(()=>buildGraph({render_method:'turbo'}),/removed/);assert.throws(()=>buildGraph({loras:[{enabled:true,name:'x_turbo.safetensors'}]}),/removed/);
+test('Turbo requires current runtime and cannot be loaded as a standalone LoRA',()=>{
+ assert.throws(()=>buildGraph({render_method:'turbo'}),/required/);assert.throws(()=>buildGraph({loras:[{enabled:true,name:'x_turbo.safetensors'}]}),/unsupported/);
 });
 test('advanced accelerator widgets use live schemas and cannot overwrite MODEL links',()=>{
  const schemaCaps={...caps,node_schemas:{MiniMaxH3MotionCache:{input:{required:{reuse_threshold:['FLOAT',{min:0,max:1}],model:['MODEL']}}}}};

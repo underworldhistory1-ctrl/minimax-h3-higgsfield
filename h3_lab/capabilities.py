@@ -107,6 +107,22 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
     if not ffmpeg_ok or not ffprobe_ok:
         control_missing.append('FFmpeg and FFprobe are required for control media validation.')
 
+    turbo_ready = False
+    if folder_paths_module and all(name in registered_nodes for name in ('MiniMaxH3TurboLoRA', 'MiniMaxH3TurboSampler')):
+        try:
+            turbo_path = folder_paths_module.get_full_path('loras', 'minimax_h3_turbo_v4_step600_ema.safetensors')
+            turbo_ready = bool(turbo_path and os.path.getsize(turbo_path) == 779849816)
+        except (OSError, AttributeError, KeyError):
+            pass
+
+    turbo_ref_ready = False
+    if folder_paths_module and 'LoraLoaderModelOnly' in registered_nodes:
+        try:
+            path = folder_paths_module.get_full_path('loras', 'minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors')
+            turbo_ref_ready = bool(path and os.path.getsize(path) == 1956193000)
+        except (OSError, AttributeError, KeyError):
+            pass
+
     # 4. Actionable reasons
     missing_reasons = []
     if not ffmpeg_ok:
@@ -128,7 +144,7 @@ def check_capabilities(folder_paths_module=None, nodes_module=None) -> dict:
     from .control_preprocess import preprocessor_status
     preprocessors = preprocessor_status()
     from .runtime_attention import runtime_attention
-    return {
+    return {"turbo_ready": turbo_ready, "turbo_ref_ready": turbo_ref_ready,
         **discovered,
         'audio_refine_ready': all(name in registered_nodes for name in ('H3StudioAudioRefineMask', 'H3StudioAudioRestoreVideo')),
         "server_attention": runtime_attention(),

@@ -5,6 +5,8 @@
   const defaults=Object.freeze({sampler_name:'res_multistep',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3,weight_dtype:'default'});
   const profiles=Object.freeze({original:{label:'Original H3',accent:'original'},singularity:{label:'H3 Singularity',accent:'singularity'},hybrid_conditioning:{label:'Hybrid · FL2VA reference conditioning',accent:'hybrid'},hybrid_loader:{label:'Hybrid · tensor overlay loader',accent:'hybrid'}});
   function filename(value){if(typeof value!=='string'||!value||value.includes('..')||/[\\\x00-\x1f]/.test(value)||value.startsWith('/')||/^[a-z]+:/i.test(value))throw Error('Invalid model filename.');return value;}
+  const TURBO_REF='minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors';
+  const TURBO='minimax_h3_turbo_v4_step600_ema.safetensors';
   const CHARACTER_SWAP='h3_character_swap_pro4500_1000.safetensors';
   const ANIME_TO_REALISM='Anime2Realsim__H3.safetensors';
   function isAnimeToRealism(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===ANIME_TO_REALISM.toLowerCase();}
@@ -34,8 +36,16 @@
       loader=entry.loader||loader;
       if(profile==='hybrid_loader'&&!caps.hybrid_loader_ready)throw Error('Install the compatible MinimaxH3_HybridLoader node before using tensor overlays.');
     }
-    if(spec.render_method==='turbo'||(spec.loras||[]).some(x=>x.enabled&&/turbo|lightx2v/i.test(x.name)))throw Error('Turbo has been removed. Select Original, Spectrum or MotionCache.');
-    const settings={...defaults,...spec.sampling};
+    const turbo=spec.render_method==='turbo'||spec.render_method==='turbo_ref';
+    const turboRef=spec.render_method==='turbo_ref';
+    if((spec.loras||[]).some(x=>x.enabled&&/turbo|lightx2v/i.test(x.name)))throw Error('Select Turbo v4 from Render method; standalone Turbo adapters are unsupported.');
+    if(turbo){
+      if(!(turboRef?caps.turbo_ref_ready:caps.turbo_ready))throw Error('Turbo weight and required nodes are required.');
+      if(profile!=='original'||(turboRef?spec.mode!=='refs':spec.mode==='refs'))throw Error('Select the Turbo version matching Original Text/Frames or References.');
+      if((spec.loras||[]).some(x=>x.enabled)||spec.enable_refine||spec.refine||spec.control?.enabled||spec.continuation||spec.audio_refinement?.enabled)throw Error('Turbo v4 requires a single generation pass without other adapters, refinement, ControlNet or continuation.');
+    }
+    const settings={...defaults,...spec.sampling,...(turbo?{sampler_name:turboRef?'euler':'h3_turbo',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3}:{})};
+    if(!turbo&&settings.sampler_name==='h3_turbo')throw Error('The H3 Turbo sampler requires the Turbo v4 render method.');
     const ranges={cfg:[0,100],denoise:[0,1],shift_video:[0,100],shift_audio:[0,100]};
     for(const [key,[min,max]] of Object.entries(ranges)){settings[key]=Number(settings[key]);if(!Number.isFinite(settings[key])||settings[key]<min||settings[key]>max)throw Error('Invalid '+key+'.');}
     const lists={sampler_name:caps.sampling_options?.samplers||['res_multistep'],scheduler:caps.sampling_options?.schedulers||['simple'],weight_dtype:caps.sampling_options?.weight_dtypes||['default']};
@@ -63,5 +73,5 @@
     }
     return node;
   }
-  return {defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

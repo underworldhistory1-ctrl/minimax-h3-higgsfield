@@ -38,6 +38,8 @@ from .h3_lab.runtime_fingerprint import runtime_fingerprint
 H3_RUNTIME_FINGERPRINT = runtime_fingerprint(pathlib.Path(__file__).parent)
 from .h3_continuation import NODE_CLASS_MAPPINGS as LAB_NODE_CLASS_MAPPINGS
 from .h3_queue_bridge import ComfyQueueBridge
+from .h3_turbo import register_sampler as _register_turbo_sampler
+_register_turbo_sampler()
 from .h3_shared_gpu import install_from_environment as _install_shared_gpu
 from .qwen_image import (
     NODE_CLASS_MAPPINGS as QWEN_NODE_CLASS_MAPPINGS,
@@ -784,7 +786,7 @@ async def readiness(request):
         "CreateVideo", "H3SaveVideo", "H3ReleaseForDecode", "H3LoadSavedLatent",
         "SaveVideo", "LoadImage", "LoadVideo", "ImageCrop", "ImageScale",
         "GetVideoComponents", "ImageFromBatch", "TrimAudioDuration", "LoadAudio", "LoraLoaderModelOnly",
-        "SpectrumApplyMiniMaxH3", "MiniMaxH3MotionCache",
+        "SpectrumApplyMiniMaxH3", "MiniMaxH3MotionCache", "MiniMaxH3TurboLoRA", "MiniMaxH3TurboSampler",
     )
     available = {name: name in nodes.NODE_CLASS_MAPPINGS for name in node_names}
     vae_source = pathlib.Path(folder_paths.__file__).resolve().parent / "comfy" / "ldm" / "minimax" / "vae.py"

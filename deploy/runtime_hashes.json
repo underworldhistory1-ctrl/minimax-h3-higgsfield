@@ -24,7 +24,8 @@
     "20b2dbfc6247220d46e0dbe3ed2d117d46495477",
     "a83f7b1d78e557bf9b9a6464eceb0c5e271522ef",
     "ce69c73bbd2c4a9e6074e0c888d7424cb53c3c67",
-    "1a5723df2d4391e211a063477d5f7c657e8a9ea1"
+    "1a5723df2d4391e211a063477d5f7c657e8a9ea1",
+    "27f6cf8a9c1c3ac36dd2a3c7b9c023adc59334c1"
   ],
   "CHANGELOG.md": [
     "00af951fb2c730f900730a288f5bb3d3e147d477",
@@ -99,7 +100,8 @@
     "ed110f7357411a2a4ce8b4c07c21fddc948f611c",
     "46a8056c6c7a64c5ff6590f7741b85fa9856f182",
     "a16612433e63d843a16bbbc59a2c26e5ee2966c0",
-    "8414cec16f43164604b084460e4770cd5de527f4"
+    "8414cec16f43164604b084460e4770cd5de527f4",
+    "f34cd6b9622d3f29def767424564beecd2a7d059"
   ],
   "START_HERE_AR.md": [
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -157,7 +159,8 @@
     "f87f3081e1e4bb4e550b8f063b2e47642052a153",
     "adfb553fa46e97992b830d853d93a8705222341f",
     "3c90252c3f5dba08768bc6c7e5b93235ee6f5eec",
-    "2dfd8cbdbde2c22504a3a35563f5399a82261e64"
+    "2dfd8cbdbde2c22504a3a35563f5399a82261e64",
+    "dd2b5927edd8a3222a1459f46948dc0b9003da1c"
   ],
   "corpus/h3_ref_style_rules.md": [
     "ce78f4ecccf0d0cbd0ed93ae019079664885a1a7",
@@ -200,6 +203,9 @@
   "deploy/backup_h3_library.py": [
     "ba132bf302505d3c6333900902ce548ae13b4afb",
     "c2a38d673de293516709b445630bcaf8efa6bcb5"
+  ],
+  "deploy/benchmark_attention.py": [
+    "d666a2d4ad8ef24b285082d65a6741ca1a4e4910"
   ],
   "deploy/bootstrap_h3_server.sh": [
     "1df5450b854a34fb380979b11eaef672c241e05a",
@@ -300,6 +306,9 @@
     "1dcf6c4ab4aa5b5af4ce8965cd31839da21bf166",
     "a71cde15093e4b6c9d52f63ddd5deabda6edd2d9"
   ],
+  "deploy/install_h3_turbo.py": [
+    "7b026a8ad33765bab92f26fa8ba42816de3c0203"
+  ],
   "deploy/install_python_dependencies.py": [
     "e2fa5ee12ca211304d4e05a8bb3d447eaf2fe6a2",
     "ba5096b388ffc72235acf3783a6778063b1c1b5f"
@@ -339,7 +348,8 @@
     "bb0c1865df50f76a3c2fb0c776bd9668522fe3db",
     "115d69fdeea3ca0ae832966bba9a3ee4e5d9c9a2",
     "fb8a3ece893a08c5dcb51ebea694fd30f267d994",
-    "ca303e0fdbf6ad86b34133e2a6344dc3546d8c3e"
+    "ca303e0fdbf6ad86b34133e2a6344dc3546d8c3e",
+    "6160de94268f7dc5da32b0044cbceaf9a5998e18"
   ],
   "deploy/launcher_models.py": [
     "2bf41f0300ee0682fb25a78e502c0e249d39daaa",
@@ -441,6 +451,9 @@
     "d0c1d2a5340bf516f2739495aefb349b6ae415a8",
     "495c8b9e3dd54cbc5635ccf65f3aba66c1e749b0"
   ],
+  "deploy/turbo-v4.json": [
+    "b6f0a938df510f70dcdb34cb7b7a62f311a613da"
+  ],
   "deploy/ui_update.py": [
     "8a83c571f5b687acdebbfd345894fbfcb3b952d2"
   ],
@@ -476,7 +489,8 @@
     "99dc6b7dddf7d9b4028ee1e7b9782c23b0842859",
     "aaee3392b082084e601d4094d6c26a9bf76116f9",
     "f7bce641bb937bdcf58fd2b53f53d35112597682",
-    "386c219011c60a9e5ab469053410e96d10268897"
+    "386c219011c60a9e5ab469053410e96d10268897",
+    "6560e045cb48e97c8aa2789b9f47a49a64f50720"
   ],
   "deploy/v2_standby.py": [
     "d41adecc5f3ff554b96f8452bb8c720ca1079af3",
@@ -496,6 +510,9 @@
     "c7b299ba302a769f657d53033716b9e30c07cc1b",
     "a142a05d1b40273ebf2a5bf965ab04fe4713e076",
     "11a3801a50361577bfc096d347260613081b6f53"
+  ],
+  "docs/ANIME_TO_REALISM_AR.md": [
+    "fb698579d7fe8cd29f2e44ac17da1c8245567cd3"
   ],
   "docs/AUDIO_ENHANCEMENT_AR.md": [
     "80c1a550085be650eea6ba0a7e054d61d063e3d4",
@@ -532,7 +549,8 @@
     "6f4cc27a4554dad4b259e11569ae1117e7231fab",
     "a3a78a653280f1c7871944f255bbe86017054f25",
     "be8fad51fa88fb5afeb1fdf7e453426f4b813e24",
-    "bbcc3db5c2db1d497d5284cdaf5ff81303f52593"
+    "bbcc3db5c2db1d497d5284cdaf5ff81303f52593",
+    "8658aaffa87cf9e84eb0a65aea795a315cd2d71f"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "0df1e8b608d5f40d802c7ce09d8a3dc5c2d737d2",
@@ -543,6 +561,9 @@
     "98a5e044776bf9a1c7efa7e36bdc69e28d01a935",
     "d3deeff227ab2e091da0bea38894e0f4edfd21ae",
     "002c22a98661f86d464e469281b8067e5b7e8439"
+  ],
+  "docs/DECODE_RECOVERY.md": [
+    "e7a05a1746f24d6c19d9502bceda134d0779006d"
   ],
   "docs/FINAL_AUDIT_AR.md": [
     "0259ff0836652fae30c880d98aae6dc5672245c8",
@@ -570,7 +591,8 @@
     "f16f5ffc3be3a236bb5c601a222d0cb375da4125",
     "7d4f292fb6c9a834d327dc1d12b8f55c5b9506b7",
     "2d341594e38375ec6dacb6c5adb3a77063ced0fb",
-    "924849d4b29acdf7ea1e462c54b1b4b7f76acc20"
+    "924849d4b29acdf7ea1e462c54b1b4b7f76acc20",
+    "e81e09b72fae88cdd1f66b339037ab8174698bdb"
   ],
   "docs/HARDENING_REVIEW_AR.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
@@ -619,6 +641,9 @@
     "2e2c3bffc23edba4bcb3c61215d26d6bf9b06953",
     "371847a0fdb5dfe3aa97acca1fd8d637c16651ad"
   ],
+  "docs/PRODUCTION_READINESS_2026_10_15.md": [
+    "14cdaa5497ef176bead78e91c1248ec59031c9f1"
+  ],
   "docs/PROJECT_WORKSPACE_AR.md": [
     "81680e83cfaa7e5934ebc755f69b769c3f461c13",
     "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5",
@@ -653,6 +678,9 @@
     "2d4423f18a69ae017441988ea5db504756150dba",
     "72ce2b1ce6d66c93889022680705aa45ce451b22",
     "1a46dac5df8f891a53af11929d678452440f437c"
+  ],
+  "docs/TURBO_V4.md": [
+    "1b7a836e3a20e58ffc3e4bafb06b43911287d0b1"
   ],
   "docs/UNINSTALL.md": [
     "8182fb26e3f25d7cf880f4269b4a4f727ee8eeba",
@@ -916,7 +944,8 @@
     "efcf0f37ee55612b433de3d700a13b04552e2177",
     "dbc71fac3184c4620999054b976ec646459bdc7c",
     "354f75cee15aaa4a31fa8daa726b935d647ca1fd",
-    "7870ef9ddd1f18098450be179b5bad26f2e8bfe6"
+    "7870ef9ddd1f18098450be179b5bad26f2e8bfe6",
+    "9510f7d37de42135f690cb3a3779e430a3ea3164"
   ],
   "h3_lab/configuration.py": [
     "202a362ebd1571b9283525a309901224fdee9c3f",
@@ -924,7 +953,8 @@
     "21a7351aa0192acdc40a5f3f140b9c75a8add26d",
     "4f97422aa9b4b10d97b7f978eacb77511a3d8549",
     "bdc5617710df91a63b57f60e251e0feddada61f8",
-    "6555364692ce5d60892801313150e6a41dc74300"
+    "6555364692ce5d60892801313150e6a41dc74300",
+    "3b6ee8b05d21177fa684d90639b488aaf09adab5"
   ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
@@ -947,6 +977,9 @@
     "6489a6e2416f6d9a951fd9232fe4917a96a833cf",
     "182ee70fd54ea324db4d3a002382eb2bd151dbdf",
     "cb6fa5e4ef363bb57df869876c92197ebdd6be61"
+  ],
+  "h3_lab/decode_recovery.py": [
+    "c1124ea3576c90e0fc6bb28ce1efcb2201ecccc9"
   ],
   "h3_lab/export_jobs.py": [
     "27e159e75450c22e6857669596fb77aa9b2ccad0",
@@ -980,7 +1013,8 @@
   "h3_lab/organization.py": [
     "6c843788c6c06c4de175ae0ee1951a4238907c8d",
     "72d37a67aa8a7332e0edb6f0160c62cf59bfacfb",
-    "7973b8c8f731a8603129b2273d75959749eabc9c"
+    "7973b8c8f731a8603129b2273d75959749eabc9c",
+    "8a571faefc35110afead6851a4ab889280d19275"
   ],
   "h3_lab/paths.py": [
     "fb9fde3caadbf8848824d8969db9c898b948003e",
@@ -1048,7 +1082,8 @@
   ],
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6",
-    "f6e603f858f873b25284c6cf1722ee712991086b"
+    "f6e603f858f873b25284c6cf1722ee712991086b",
+    "a62b155757174a41f24bfe014ea049bcef789120"
   ],
   "h3_lab/shared_timing.py": [
     "45733c82bd7d8cde590ef8bda0551202fedf3a32",
@@ -1080,6 +1115,9 @@
     "a18f976a5103f5f0709d7795e972ababe6abf4e6",
     "d7ae589ed9e7e85fce11f7a77553c183c073624a",
     "db8da8f8b9cbf03de02b5f10f497a1199aed6c08"
+  ],
+  "h3_turbo.py": [
+    "861cacb786e0ff2f2f83770022585413c767d99b"
   ],
   "h3_video_save.py": [
     "008cdbe6554dca66836052cc70754686d5dcb55d",
@@ -1259,7 +1297,8 @@
     "6e5dcf40788c2c234c61590b224be126d905eed2",
     "44a7e28c08ffb2fe040d17e447e8975e37b8c09a",
     "8a8c49e409efdbde8bade1a952c7f28318437dad",
-    "39f4506f08c7784a59d17410316a1237830bd941"
+    "39f4506f08c7784a59d17410316a1237830bd941",
+    "092e8214ee693e7064a775dc3eb381b384793cf4"
   ],
   "tests/js/connected-graph.test.cjs": [
     "61d007733c406886b7715a6d5d884e3905a20652",
@@ -1340,15 +1379,24 @@
     "6d4cb98d2bcb88424e73024132449f9f99b6f533",
     "5d3074737218dd044e357ffabea88408c1c44658"
   ],
+  "tests/js/turbo-v4.test.cjs": [
+    "5d6a2861256de83af474ae4abd8d2eb7951f9cde"
+  ],
   "tests/js/uuid.test.cjs": [
     "61a6be4bae13e251207949930fb655f8aa1bd353",
     "a8451736d9ca6104cd0f252ab87d8170e0bf3a01"
+  ],
+  "tests/test_acceleration_audit.py": [
+    "09a9a77cef76913bb077e64e81d5cf912dbca3a9"
   ],
   "tests/test_activate_v2.py": [
     "380ce4cd97cb5ddbfe02fe67b0d9ae58e3ebe03d",
     "5035cc534721042544b6d5570732fcfcbb237c1f",
     "fda825bfc967e71efd014a3b03f5b05aed4eda94",
     "6f2e799f13311fc9c445e4fbbdcbe7177ea7cea2"
+  ],
+  "tests/test_benchmark_attention.py": [
+    "8afb6d81e1a8a23803bd22c63d74ab8fea5f7b58"
   ],
   "tests/test_connected_routes.py": [
     "362a1413cca662428960171ae427d9260b0eadaf",
@@ -1390,6 +1438,15 @@
   "tests/test_control_still.py": [
     "738664c063d397ba9abbdc3ce64655a07a69a8c3",
     "3dd904b2558f4ee6aaec4495d7235e5939dbc851"
+  ],
+  "tests/test_cuda_install_preflight.py": [
+    "ac37fe962e14dd924b6465318bef80e554c702a3"
+  ],
+  "tests/test_decode_durability.py": [
+    "7eae2b6fd934418d890052a8d075ecd3fc40970a"
+  ],
+  "tests/test_decode_recovery_jobs.py": [
+    "7e2452193ee1777c76a0ca8d2cf9245f0be6c081"
   ],
   "tests/test_deployment_contract.py": [
     "18fef3ed627e8dcd3d993bb83d9750a3f3679973",
@@ -1464,6 +1521,9 @@
     "f2d9313b043ba22f47c259ebda1064efc05d122a",
     "f9a5ac2c7b9498ce5d0227a26e7e0b4b20be68b4"
   ],
+  "tests/test_installer_compressed_assets.py": [
+    "740261d43ca4ff673989f6cc9423efb04012628a"
+  ],
   "tests/test_installer_python_safety.py": [
     "c759555b55356fcf1bc26b51b1b41d5111c9ceeb",
     "a42b5b4f0518f8c4b9a6478a4d081a00efaa88ac",
@@ -1499,6 +1559,9 @@
   "tests/test_optional_dependencies.py": [
     "fd916b3642c6472e76f6c3931d933c642e008551",
     "bbfde0e5a126b441b1b48df53fac52973bad0bfa"
+  ],
+  "tests/test_organization.py": [
+    "bd67b459f5980e3aec7fbb7e540b0ff375816c58"
   ],
   "tests/test_portrait_resource_contract.py": [
     "ad5011897f1e6f62592418a5ef0128951f054d13",
@@ -1558,9 +1621,15 @@
     "656f8038a3a138cc05c55b5226cb5c9af5f38993",
     "0a816b7d32c55e1cd2567698183090cb229ebf67"
   ],
+  "tests/test_turbo_v4.py": [
+    "e258443916dc3c4f008928fae418c2a198dbf928"
+  ],
   "tests/test_uninstall_h3.py": [
     "6f047b73bb3d127b566bf2a37b92b2631fc121bb",
     "6de2b3cd66549a5a7b0f64eb0dd231153016c286"
+  ],
+  "tests/test_updates.py": [
+    "ffb259b48cb46aa0ec169f8c2921147604fa49e0"
   ],
   "tests/test_v2_promotion_install.py": [
     "5fb9751360a909ae1044b8497a54a1c733a6fe73",
@@ -1612,14 +1681,16 @@
     "3321c8ffb64b559a54421365567ec16addc36707",
     "e9e6e211857fd50a4056a2bdc15f542e14eddf57",
     "d6d579f17bc963422ff017a91b8e9961387704cc",
-    "c482b33f5d57ca9884762b312deaa0ae60451d9c"
+    "c482b33f5d57ca9884762b312deaa0ae60451d9c",
+    "135d3cc790aa57735727364372c793e1ad611629"
   ],
   "web/h3/configuration.js": [
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
     "fbd5908d1852f16daa7328c5bb7c14c25865e36e",
     "baba9c6dd61a002d9b37de7b3d8a9fa7a1f7532f",
     "38420d73c9af4753be5c1092c245319996a4a051",
-    "32722bbedd173319c5d65ab3e8c5e79ea7c936f0"
+    "32722bbedd173319c5d65ab3e8c5e79ea7c936f0",
+    "f2a4333bed26c95dedc4145250fe43af37bf341c"
   ],
   "web/h3/connected-studio.js": [
     "19c62c6ecb84b4011dde3673ff67fc35517df1ea",
@@ -1646,10 +1717,12 @@
     "af81cd2d54805782b35410e4679fa54211030f4b",
     "bfb02d735bcb32c6ac0e2092fab258736599ccbe",
     "f985627acb68c4bcbe56026c3080ed823427fc0d",
-    "0d83af1001b8227dd5cb4a9847216e7c9e947f93"
+    "0d83af1001b8227dd5cb4a9847216e7c9e947f93",
+    "dfa5eabf5d925fd5314f7a0a32e08e2d9ca16f1b"
   ],
   "web/h3/guidance-language.js": [
-    "a25bf5c5d2b394ce1914622df36165835f6d44a0"
+    "a25bf5c5d2b394ce1914622df36165835f6d44a0",
+    "78e26c94d8a1b8b094dc61192a0290aa00e75b5f"
   ],
   "web/h3/image-reference-store.js": [
     "2d72e1ebdcec94f37ddf4f889092cac297e4a680",
@@ -1722,7 +1795,8 @@
   ],
   "web/h3/timing-estimator.js": [
     "adc61f21642bb68cffcd7859b3350d33afecffba",
-    "de37777fb35a25c43c2d2cb928020638bc3ae866"
+    "de37777fb35a25c43c2d2cb928020638bc3ae866",
+    "223ac1060ea423e19ac6d4c3bf1a82ecd7ca86e8"
   ],
   "web/h3/updates-ui.js": [
     "6d70588776e9023da76078bd09f53a83bac4efe0"
@@ -1854,7 +1928,8 @@
     "b32698f584a753a5507b3991b0885af8b5a0a7e3",
     "b521438eb3b250e6a439c1d0b1b8268656d08fa4",
     "8e78da3890dc83549dfb541125664005afa17dc0",
-    "a56902be4809564d13c020c8d597dc351e0aad60"
+    "a56902be4809564d13c020c8d597dc351e0aad60",
+    "99d467a9be1e98070f303bc24235da94e00bd9d6"
   ],
   "web/lab-ui.js": [
     "058c7b6cdb24927e0c4cd00a82f3e65734b20e6b",
@@ -1873,7 +1948,8 @@
     "8594cb7408232a5503687f31ef3ea680bcdeec9c",
     "6cb6dc4dadb4f99de39eb2cc8880ffb733fcf565",
     "f9f89932d464d0fe26c1e9162444cade25d7e719",
-    "88afecbbf324b2d816dbbd50d8c4ed7d422cd913"
+    "88afecbbf324b2d816dbbd50d8c4ed7d422cd913",
+    "fd3ca27558818253e77c1c04237f7b98f937f4e4"
   ],
   "web/organization.css": [
     "8f12219012fda1cde9e51c099ea41b6f4193a449",
@@ -1946,7 +2022,8 @@
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
     "ff233a13bdfeeab696adf484010a326f5048548e",
     "42c36c1a72479405b70c4d2aa59b42adf2cda1c8",
-    "43d78e7dfef39da5b10ec2182ed20e4d4a524aaf"
+    "43d78e7dfef39da5b10ec2182ed20e4d4a524aaf",
+    "967478664565c9338cb322f617120a7976fba589"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",
@@ -1967,41 +2044,5 @@
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945",
     "ca95b72d2bec41c96b5a1c3031ca9a472d83ba1a"
-  ],
-  "h3_lab/decode_recovery.py": [
-    "c1124ea3576c90e0fc6bb28ce1efcb2201ecccc9"
-  ],
-  "deploy/benchmark_attention.py": [
-    "d666a2d4ad8ef24b285082d65a6741ca1a4e4910"
-  ],
-  "docs/DECODE_RECOVERY.md": [
-    "e7a05a1746f24d6c19d9502bceda134d0779006d"
-  ],
-  "tests/test_acceleration_audit.py": [
-    "09a9a77cef76913bb077e64e81d5cf912dbca3a9"
-  ],
-  "tests/test_updates.py": [
-    "ffb259b48cb46aa0ec169f8c2921147604fa49e0"
-  ],
-  "tests/test_benchmark_attention.py": [
-    "8afb6d81e1a8a23803bd22c63d74ab8fea5f7b58"
-  ],
-  "tests/test_cuda_install_preflight.py": [
-    "ac37fe962e14dd924b6465318bef80e554c702a3"
-  ],
-  "tests/test_decode_durability.py": [
-    "7eae2b6fd934418d890052a8d075ecd3fc40970a"
-  ],
-  "tests/test_decode_recovery_jobs.py": [
-    "7e2452193ee1777c76a0ca8d2cf9245f0be6c081"
-  ],
-  "docs/PRODUCTION_READINESS_2026_10_15.md": [
-    "14cdaa5497ef176bead78e91c1248ec59031c9f1"
-  ],
-  "docs/ANIME_TO_REALISM_AR.md": [
-    "fb698579d7fe8cd29f2e44ac17da1c8245567cd3"
-  ],
-  "tests/test_installer_compressed_assets.py": [
-    "740261d43ca4ff673989f6cc9423efb04012628a"
   ]
 }

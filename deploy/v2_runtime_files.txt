@@ -123,3 +123,8 @@ web/h3/scenes-ui.js
 web/scenes.css
 docs/PROJECT_SCENES_AR.md
 deploy/download_qwen_loras.py
+h3_turbo.py
+h3_lab/reuse_groups.py
+deploy/install_h3_turbo.py
+deploy/turbo-v4.json
+docs/TURBO_V4.md

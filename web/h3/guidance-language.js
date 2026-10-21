@@ -80,8 +80,8 @@
     "ar": "اتصل بـComfyUI لتحميل اللورات المثبتة."
   },
   "videoHelp16": {
-    "en": "Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. Character Swap requires Original Ref2VA with a source video and replacement image. Turbo is retired.",
-    "ar": "Realism People يدعم الأنماط الثلاثة؛ ابدأ الوصف بـr34l1sm. يمكن اختيار Combat V2 في References لكن منشئه اختبر FL2VA فقط، لذا نتائج Ref2VA تجريبية. كلاهما اختياري ومتوقف افتراضيًا. Character Swap يحتاج Original Ref2VA وفيديو مصدر وصورة بديلة. Turbo متقاعد."
+    "en": "Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. Character Swap requires Original Ref2VA with a source video and replacement image. Turbo is optional in Render method; choose the version matching Text/Frames or References.",
+    "ar": "Realism People يدعم الأنماط الثلاثة؛ ابدأ الوصف بـr34l1sm. يمكن اختيار Combat V2 في References لكن منشئه اختبر FL2VA فقط، لذا نتائج Ref2VA تجريبية. كلاهما اختياري ومتوقف افتراضيًا. Character Swap يحتاج Original Ref2VA وفيديو مصدر وصورة بديلة. Turbo اختياري في Render method؛ اختر النسخة المطابقة لـText/Frames أو References."
   },
   "videoHelp17": {
     "en": "Choose the canvas used to generate a new shot. Native detail is the recommended upper baseline.",
@@ -191,6 +191,7 @@
     "en": "20 is the standard H3 setting. More steps take longer and may not improve quality. Custom range: 8–100.",
     "ar": "20 هو إعداد H3 القياسي. الخطوات الأكثر تستغرق وقتًا أطول وقد لا تحسن الجودة. النطاق المخصص: 8–100."
   },
+  "stepsTurboRef": {"en":"References Turbo requires exactly 8 Euler/simple steps. Match reference sizing is recommended.","ar":"References Turbo يحتاج 8 خطوات Euler/simple بالضبط. يُنصح باختيار Match لحجم المراجع."},
   "stepsTurbo": {
     "en": "Turbo uses 4–8 steps. More steps do not make it equivalent to Original quality.",
     "ar": "يستخدم Turbo عدد 4–8 خطوات. الخطوات الأكثر لا تجعله مساويًا لجودة Original."

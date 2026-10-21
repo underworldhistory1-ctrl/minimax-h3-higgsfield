@@ -93,8 +93,11 @@
     const attention=caps.server_attention;
     $('serverAttention').textContent=attention?'Server dense attention: '+attention.label+'. Checkpoints may use native per-layer kernels.'+(attention.quantized?' Quantized attention is approximate; this launcher recommends PyTorch for H3 INT8 ConvRot.':''):'Server attention is not reported by this older backend.';
     const fields=$('samplingFields');fields.replaceChildren();
-    const descriptors={sampler_name:[caps.sampling_options?.samplers||['res_multistep']],scheduler:[caps.sampling_options?.schedulers||['simple']],weight_dtype:[caps.sampling_options?.weight_dtypes||['default']],cfg:['FLOAT',{min:0,max:100}],denoise:['FLOAT',{min:0,max:1}],shift_video:['FLOAT',{min:0,max:100}],shift_audio:['FLOAT',{min:0,max:100}]};
-    for(const [key,d] of Object.entries(descriptors))field(fields,key,key.replaceAll('_',' '),state.sampling[key]??H3Configuration.defaults[key],d,value=>state.sampling[key]=value);
+    const descriptors={sampler_name:[(caps.sampling_options?.samplers||['res_multistep']).filter(name=>name!=='h3_turbo'||method()==='turbo')],scheduler:[caps.sampling_options?.schedulers||['simple']],weight_dtype:[caps.sampling_options?.weight_dtypes||['default']],cfg:['FLOAT',{min:0,max:100}],denoise:['FLOAT',{min:0,max:1}],shift_video:['FLOAT',{min:0,max:100}],shift_audio:['FLOAT',{min:0,max:100}]};
+    const turboSampling=method()==='turbo'||method()==='turbo_ref';
+    const effective=turboSampling?{...H3Configuration.defaults,...state.sampling,sampler_name:method()==='turbo_ref'?'euler':'h3_turbo',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3}:{...H3Configuration.defaults,...state.sampling};
+    for(const [key,d] of Object.entries(descriptors))field(fields,key,key.replaceAll('_',' '),effective[key],d,value=>state.sampling[key]=value);
+    if(turboSampling)for(const input of fields.querySelectorAll('input,select'))if(input.dataset.setting!=='weight_dtype')input.disabled=true;
     const refineFields=$('refinementFields');refineFields.replaceChildren();
     const refineDefaults={steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple'};
     const refineDescriptors={steps:['INT',{min:1,max:100}],denoise:['FLOAT',{min:0,max:1}],cfg:['FLOAT',{min:0,max:100}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler};

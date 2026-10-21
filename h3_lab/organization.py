@@ -248,6 +248,8 @@ class OrganizationMixin(ReuseGroupsMixin):
             draft['configuration']['preserveReferenceAudio'] = bool(timing.get('preserve_reference_audio', False))
             if settings.get('refine') or settings.get('control') or settings.get('continuation') or timing.get('guides') or timing.get('continuation'):
                 warnings.append('Control/refinement/continuation source data was not saved completely. Reattach and verify before rendering.')
+        if draft.get('settings', {}).get('renderMethod') in ('turbo', 'turbo_ref'):
+            draft['loras'] = [a for a in draft.get('loras', []) if a.get('name') not in ('minimax_h3_turbo_v4_step600_ema.safetensors','minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors')]
         missing = []
         if any('not saved completely' in w for w in warnings): missing.append('Unrecorded advanced inputs')
         records = []

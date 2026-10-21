@@ -17,7 +17,7 @@
   function normalize(config){
     if(!config||config.version!==VERSION)return null;
     const c=canonical(config);
-    if(typeof c.gpu!=='string'||!c.gpu||c.gpu==='unknown'||typeof c.model!=='string'||!c.model||!['text','frames','refs'].includes(c.mode)||!['native','spectrum','motioncache','turbo'].includes(c.method)||![c.width,c.height,c.frames,c.steps].every(n=>Number.isFinite(n)&&n>0))return null;
+    if(typeof c.gpu!=='string'||!c.gpu||c.gpu==='unknown'||typeof c.model!=='string'||!c.model||!['text','frames','refs'].includes(c.mode)||!['native','spectrum','motioncache','turbo','turbo_ref'].includes(c.method)||![c.width,c.height,c.frames,c.steps].every(n=>Number.isFinite(n)&&n>0))return null;
     if(!Array.isArray(c.adapters)||!Array.isArray(c.references)||!Array.isArray(c.guides)||!Array.isArray(c.passes))return null;
     if(c.adapters.some(a=>!object(a)||typeof a.name!=='string'||!a.name||!finite(a.strength)||(a.refinement_strength!=null&&!finite(a.refinement_strength))))return null;
     if(c.references.some(m=>m===null?c.mode!=='frames':!validMedia(m))||c.guides.some(m=>!validMedia(m)||(m.frame_idx!=null&&(!Number.isInteger(m.frame_idx)||m.frame_idx<0))||(m.strength!=null&&!finite(m.strength))))return null;

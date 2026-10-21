@@ -5,7 +5,7 @@ from pathlib import Path
 
 def runtime_fingerprint(root):
     root = Path(root)
-    files = [root / name for name in ("__init__.py", "h3_video_save.py", "h3_continuation.py", "h3_queue_bridge.py", "h3_shared_gpu.py", "qwen_image.py", "promptwriter.py")]
+    files = [root / name for name in ("__init__.py", "h3_video_save.py", "h3_continuation.py", "h3_queue_bridge.py", "h3_shared_gpu.py", "h3_turbo.py", "qwen_image.py", "promptwriter.py")]
     files += list((root / "h3_lab").glob("*.py"))
     files += [path for path in (root / "web").rglob("*") if path.suffix in (".js", ".html", ".css")]
     digest = hashlib.sha256()

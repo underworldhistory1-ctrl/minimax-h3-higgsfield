@@ -251,6 +251,16 @@ class OrganizationTests(unittest.TestCase):
         prepared=self.service.prepare_reuse(take['output_file'])
         self.assertFalse(prepared['complete']);self.assertIn('Unrecorded advanced inputs',prepared['missing'])
 
+    def test_metadata_only_turbo_reuse_keeps_method_without_manual_managed_adapter(self):
+        take=self.take();self.source['takes']=[]
+        self.source=self.service.save_project(self.source['project_id'],self.source,self.source['revision'])
+        settings={'prompt':'A shot','render_method':'turbo','steps':6,'loras':[{'name':'minimax_h3_turbo_v4_step600_ema.safetensors','strength':1}]}
+        (self.root/'video/.h3-studio-metadata.json').write_text(json.dumps({'h3_studio_123abc456def_00001_.mp4':{'settings':settings}}))
+        prepared=self.service.prepare_reuse(take['output_file'])
+        self.assertEqual(prepared['draft']['settings']['renderMethod'],'turbo')
+        self.assertEqual(prepared['draft']['settings']['steps'],6)
+        self.assertEqual(prepared['draft']['loras'],[])
+
     def test_legacy_audio_enhancement_settings_survive_reuse(self):
         take=self.take();self.source['takes']=[]
         self.source=self.service.save_project(self.source['project_id'],self.source,self.source['revision'])
