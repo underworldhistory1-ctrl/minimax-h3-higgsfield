@@ -67,6 +67,15 @@ class Tests(unittest.TestCase):
         self.assertEqual(q.running, {})
         self.assertIsNone(Lease.owner)
 
+    def test_dynamic_cache_counts_only_own_device_and_shared_vbar_once(self):
+        from types import SimpleNamespace as NS
+        vbar = NS(loaded_size=lambda: 16000 * 1024 ** 2)
+        model = NS(model=NS(dynamic_vbars={'cuda:0': vbar, 'cuda:1': vbar}))
+        loaded = NS(device='cuda:0', model=model)
+        other = NS(device='cuda:1', model=model)
+        dead = NS(device='cuda:0', model=None)
+        self.assertEqual(self.module.reusable_dynamic_bytes([loaded, loaded, other, dead], 'cuda:0'), 16000 * 1024 ** 2)
+
     def test_workers_are_serial_until_task_done(self):
         first, second = Queue(), Queue()
         self.guard(first)

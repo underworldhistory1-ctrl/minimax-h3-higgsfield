@@ -142,6 +142,21 @@ class PeerReadiness:
         return False
 
 
+def reusable_dynamic_bytes(loaded_models, device):
+    """Count resident aimdo weights outside PyTorch's allocator exactly once."""
+    seen = set()
+    total = 0
+    for loaded in loaded_models:
+        if loaded.device != device or loaded.model is None:
+            continue
+        model = loaded.model.model
+        for cache_device, vbar in getattr(model, 'dynamic_vbars', {}).items():
+            if cache_device == device and id(vbar) not in seen:
+                seen.add(id(vbar))
+                total += vbar.loaded_size()
+    return total
+
+
 def install_from_environment(queue):
     peer = os.environ.get('STUDIO_SHARED_GPU_PEER', '')
     path = os.environ.get('STUDIO_SHARED_GPU_LOCK', '')
@@ -153,10 +168,21 @@ def install_from_environment(queue):
     if getattr(queue, '_studio_shared_gpu', None) is not None:
         return queue._studio_shared_gpu
     import torch
+    import comfy.model_management as model_management
+    last_dynamic = None
 
     def available_mb():
+        nonlocal last_dynamic
         free, _total = torch.cuda.mem_get_info()
-        return (free + torch.cuda.memory_reserved()) / 1024 ** 2
+        device = torch.device('cuda', torch.cuda.current_device())
+        dynamic = reusable_dynamic_bytes(model_management.current_loaded_models, device)
+        reserved = torch.cuda.memory_reserved()
+        if dynamic and dynamic != last_dynamic:
+            logger.info('Shared GPU memory MiB: free=%.0f torch=%.0f own_dynamic=%.0f total=%.0f',
+                        free / 1024 ** 2, reserved / 1024 ** 2,
+                        dynamic / 1024 ** 2, _total / 1024 ** 2)
+        last_dynamic = dynamic
+        return (free + reserved + dynamic) / 1024 ** 2
 
     gate = SharedGpuQueue(queue, FileLease(path), PeerReadiness(peer, available_mb))
     gate.install()
