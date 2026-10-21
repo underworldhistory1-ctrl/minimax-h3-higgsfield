@@ -38,6 +38,7 @@ from .h3_lab.runtime_fingerprint import runtime_fingerprint
 H3_RUNTIME_FINGERPRINT = runtime_fingerprint(pathlib.Path(__file__).parent)
 from .h3_continuation import NODE_CLASS_MAPPINGS as LAB_NODE_CLASS_MAPPINGS
 from .h3_queue_bridge import ComfyQueueBridge
+from .h3_shared_gpu import install_from_environment as _install_shared_gpu
 from .qwen_image import (
     NODE_CLASS_MAPPINGS as QWEN_NODE_CLASS_MAPPINGS,
     NODE_DISPLAY_NAME_MAPPINGS as QWEN_NODE_DISPLAY_NAME_MAPPINGS,
@@ -1072,6 +1073,8 @@ def _storage_queue_count():
     running, pending = PromptServer.instance.prompt_queue.get_current_queue()
     return len(running) + len(pending)
 
+
+_shared_gpu_gate = _install_shared_gpu(PromptServer.instance.prompt_queue)
 
 register_storage_guard(PromptServer.instance.app,
                        [folder_paths.get_output_directory(), folder_paths.get_input_directory(),

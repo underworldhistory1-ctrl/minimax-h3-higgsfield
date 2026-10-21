@@ -1,5 +1,6 @@
 h3_continuation.py
 h3_queue_bridge.py
+h3_shared_gpu.py
 web/lab-ui.js
 web/h3/graph-builder.js
 web/h3/project-controller.js

@@ -10,6 +10,10 @@ The **Mention name** on a reference card belongs to that shot. Rename the shared
 
 Projects remain browsable during generation. **Open** uses a separate tab while rendering or loading, keeping the running tab and its inputs intact; when idle, it opens in the current tab. Ctrl/Cmd-click also opens a separate tab.
 
+### H3 and LTX on one Linux GPU
+
+With the matching LTX `studio_shared_gpu` custom node installed, set `STUDIO_SHARED_GPU_LOCK` to the same absolute lease path in both workers. Set `STUDIO_SHARED_GPU_PEER=http://127.0.0.1:8189` for H3 and `http://127.0.0.1:8188` for LTX, then restart each worker only when idle. The guard reserves the GPU before native queue admission, so waiting H3/Qwen and LTX prompts stay pending and cancellable instead of allocating together. It releases the lease after execution or process exit, checks peer readiness and CUDA memory, and can unload an idle peer's GPU model cache while retaining RAM caches. Without these environment variables the guard is inactive. This coordinates native ComfyUI prompt execution, rather than promising one global FIFO across the two Studio interfaces.
+
 ## Reuse a saved take
 
 Click **Reuse** to reload directly into Production using a link to the selected output. The saved prompt, references, adapter strengths and render settings are copied into an independent workspace inside the original project's automatic **Reuse** folder. Reuse of a reused result stays with that same original project, including after renaming it. The library groups these setups under a folder card and an original-project **Reuse (count)** shortcut; searching also finds individual setups. A request retry reopens the same workspace without overwriting subsequent edits. The final URL identifies the restored project and survives refresh. The source take and any backend render remain intact. Missing original files are reported in Production; Reuse does not invent missing inputs or start generation automatically.
