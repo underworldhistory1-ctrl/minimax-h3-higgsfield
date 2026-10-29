@@ -140,7 +140,9 @@ the reference and what it means.
 Target **350–500 words** for `integrated_multimodal_description` on a
 generation task. Dense and explicit beats terse — the documented failure mode is
 under-specification, not over-prompting. Do not reduce the body to a plot
-summary. Hard limit is 7,000 characters.
+summary. There is no fixed character limit. Preserve the user's distinct visual,
+camera, continuity and audio instructions even when a prompt exceeds this word
+guideline; do not shorten a prompt merely to meet a character count.
 
 A single shot does not justify a short description.
 

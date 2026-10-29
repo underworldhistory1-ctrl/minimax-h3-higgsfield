@@ -614,8 +614,6 @@ def validate(prompt, seconds=None):
             problems.append("dialogue text repeated in the audio fields")
             break
 
-    if len(prompt) > 7000:
-        problems.append(f"over the 7000-character limit ({len(prompt)})")
     return problems
 
 
@@ -731,9 +729,6 @@ REMEDIES = [
      "overall_soundscape and non_diegetic_music must never restate spoken "
      "words. Delete the repeated line from the audio field; the dialogue stays "
      "in the description only."),
-    ("character limit",
-     "Tighten the description below 7000 characters by cutting repetition, "
-     "not by deleting distinct visual detail."),
     ("T2VA body field",
      "In reference mode the body section is `detailed_description:`. Rename it; "
      "do not otherwise change its content."),
@@ -798,7 +793,7 @@ def repair_messages(current, problems, task=None, subjects=0):
 def _kind(problem):
     """Collapse a validator message to its class, ignoring specifics.
 
-    Messages carry detail that varies ("over the 7000-character limit (7213)"),
+    Messages can carry varying detail, such as a cut past the requested duration,
     so comparing raw strings would treat a changed number as a different
     problem.
     """
@@ -1006,8 +1001,6 @@ def validate_ref(prompt, seconds=None, n_subjects=1):
         problems.append("shot cut times not strictly increasing")
     if seconds and any(t >= seconds for t in times):
         problems.append(f"cut time past the {seconds}s clip end")
-    if len(prompt) > 7000:
-        problems.append(f"over the 7000-character limit ({len(prompt)})")
     return problems
 
 
