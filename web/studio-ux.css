@@ -116,3 +116,6 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 .compact-ref .refhead{flex-wrap:wrap}.compact-ref .refhead strong{flex:1 1 130px}.compact-ref .ref-replace{border-color:rgba(214,255,32,.3)}
 .catalog-asset{content-visibility:auto;contain-intrinsic-size:auto 100px}.catalog-description{overflow-wrap:anywhere}.catalog-more{grid-column:1/-1;justify-self:center}
 @media(max-width:540px){.compact-ref .refhead{gap:6px}.compact-ref .refhead .button{padding:6px 8px}.compact-ref .refhead strong{flex-basis:calc(100% - 64px)}.catalog-actions{flex-wrap:wrap}}
+
+/* The working scene is available before a project exists. */
+#projectPanel .scene-main-actions{margin-top:10px}#projectPanel .scene-main-actions>.button{flex:1}#projectPanel .project-hub-tools{margin-top:10px}#projectPanel #sceneName,#projectPanel #sceneProject{width:100%;min-width:0}#projectPanel .scene-destination-help{margin:9px 0;color:var(--muted)}.video-result .result-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.result-download{border-color:#6a7841!important}#generationSearch{margin:0 0 18px;width:100%}

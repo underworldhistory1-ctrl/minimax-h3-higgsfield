@@ -27,6 +27,7 @@ let browser;
  await page.goto('http://127.0.0.1:18925/web/index.html');
  await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
  let creates=0;page.on('request',request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/h3_studio/lab/projects')creates++;});
+ await page.locator('[data-workspace-nav=projects]').click();
  await page.locator('#newProjectName').fill('Elements integrity');
  await page.evaluate(()=>{document.getElementById('projectHubCreate').click();document.getElementById('projectHubCreate').click();});
  await page.waitForFunction(()=>state.currentProject?.name==='Elements integrity'&&!state.projectLoading);

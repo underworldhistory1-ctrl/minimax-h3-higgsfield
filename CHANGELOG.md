@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.9 - 2026-10-29
+
+- Wait for workspace scripts before draft restoration and retain explicit page links during refresh.
+- Open Production directly and create independent workspaces on Save/Generate without a mandatory project dialog.
+- Add scene naming and a project destination picker that saves a new scene/shot without overwriting existing project work.
+- Validate and attach scene media, preserve revision guards, and deduplicate assignment retries after lost responses.
+- Save the previous working scene on New scene; settle pending autosaves before resetting unassigned setups.
+- Reset Clear setup through shared defaults, persist the reset across refresh and report storage failures accurately.
+- Expose Download on video/image cards, add scoped all-word generation search and collapse advanced project tools.
+
 ## 2.5.8 - 2026-10-29
 
 - Add image Replace directly on collapsed reference cards and project element replacement with stable names and editable shot bindings.

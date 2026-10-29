@@ -115,3 +115,50 @@ test('unrelated server videos do not expose an empty Assemble sequence action',(
  let hidden=false;const card={classList:{add:value=>hidden=value==='hidden'}};
  const context={state:{currentProject:{},results:[{file:'other-project.mp4'}]},projectCtrl:{},H3Scenes:{sequenceTakes:()=>[]},$:id=>id==='sequenceCard'?card:{}};vm.createContext(context);vm.runInContext(source.slice(start,end)+';renderSequenceCard();',context);assert.equal(hidden,true);
 });
+
+
+test('blank-name scene assignment retains one request after lost acknowledgement and failed read-back',async()=>{
+ const {context:c,state}=workspace();state.activeProjectId=null;state.currentProject=null;state.refs=[];
+ const input={value:''},requests=[];let committed=null,failedReadback=false;
+ c.$=()=>input;c.crypto=require('node:crypto').webcrypto;c.sessionStorage={setItem(){}};
+ c.captureProjectDraft=()=>({scene_name:input.value,refs:[],prompts:{text:'harbor'}});
+ c.withProjectLoading=async fn=>{state.projectLoading=true;try{return await fn();}finally{state.projectLoading=false;}};
+ c.projectCtrl={_storageKey:k=>k,fetchJson:async(_url,options)=>{
+  if(options){const op=JSON.parse(options.body).operation;requests.push(op);if(!committed){committed={project_id:'target',assets:[],scenes:[{scene_id:'s',save_request_id:op.request_id,shots:[{shot_id:'sh'}]}]};failedReadback=true;throw Error('lost acknowledgement');}return committed;}
+  if(failedReadback){failedReadback=false;throw Error('offline read-back');}return committed||{revision:1};
+ }};
+ c.updateProjectUI=p=>{state.currentProject=p;state.activeProjectId=p.project_id;};c.refreshLabControls=c.info=()=>{};
+ await assert.rejects(c.assignWorkingScene('target'),/lost acknowledgement/);
+ await c.assignWorkingScene('target');assert.equal(requests.length,2);assert.equal(requests[0].request_id,requests[1].request_id);
+ assert.equal(requests[0].draft.scene_name,requests[0].name);assert.equal(requests[1].draft.scene_name,requests[0].name);
+});
+
+test('New scene waits for unassigned media autosave before replacing its checkpoint',async()=>{
+ const {context:c,state,calls}=workspace();state.activeProjectId=null;state.currentProject=null;c.projectCtrl.currentProject=null;state.refs=[];
+ let finish;c.H3VideoTabState={settle:()=>new Promise(resolve=>finish=resolve)};
+ c.withProjectLoading=async fn=>{state.projectLoading=true;try{return await fn();}finally{state.projectLoading=false;}};
+ c.detachWorkingProject=()=>calls.push('detach');c.emptyWorkspaceDraft=()=>({});c.hydrateProjectDraft=async()=>calls.push('reset');c.showStageMessage=()=>{};
+ c.$=()=>({value:'',classList:{add(){}},focus(){}});
+ const pending=c.newWorkingScene();await Promise.resolve();assert.deepEqual(calls,[]);finish();await pending;
+ assert.deepEqual(calls,['detach','reset','local-save','studio']);
+});
+
+
+test('New scene preserves a hidden-mode prompt before opening a blank workspace',async()=>{
+ const {context:c,state,calls}=workspace();state.activeProjectId=null;state.currentProject=null;state.refs=[];state.prompts={text:'Do not lose this',frames:''};c.projectCtrl.currentProject=null;
+ c.withProjectLoading=async fn=>fn();c.$=()=>({value:'',classList:{add(){}},focus(){}});
+ c.ensureWorkingProject=async()=>{calls.push('create');c.projectCtrl.currentProject={};};c.saveWorkspaceDraft=async()=>calls.push('save');
+ c.detachWorkingProject=()=>calls.push('detach');c.emptyWorkspaceDraft=()=>({});c.hydrateProjectDraft=async()=>calls.push('reset');c.showStageMessage=()=>{};
+ await c.newWorkingScene();assert.deepEqual(calls,['create','save','detach','reset','local-save','studio']);
+});
+
+
+test('fresh workspace refresh honors explicit page hash over an older local tab view',async()=>{
+ const source=fs.readFileSync('web/studio.js','utf8'),state={},seen=[];
+ const c={state,URL,URLSearchParams,location:new URL('https://studio.test/index.html#projects'),baseKey:'server',projectCtrl:null,
+ sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},localStorage:{getItem:()=>null,setItem(){}},
+ H3ProjectController:{ProjectController:class{_storageKey(key){return key;}}},
+ hydrateWorkspaceDraft:async()=>{state.tabRestoredView='studio';},refreshProjectList:async()=>{},refreshLabControls(){},setWorkspaceView:view=>seen.push(view),info(){}};
+ vm.createContext(c);vm.runInContext(source.slice(source.indexOf('async function initProjectController()'),source.indexOf('function updateProjectUI(proj)')),c);
+ await c.initProjectController();assert.deepEqual(seen,['projects']);
+});

@@ -192,8 +192,9 @@ async function insertProjectMention(item,range=null){
 function refreshProjectHubControls(){
   const locked=workspaceLocked();
   $('projectSelect').disabled=locked;
-  for(const id of ['btnNewProject','projectHubCreate','newProjectFolder','newProjectName'])if($(id))$(id).disabled=locked;
-  for(const id of ['btnSaveProject','btnExportProject'])if($(id))$(id).disabled=locked||!state.currentProject;
+  for(const id of ['btnNewProject','projectHubCreate','newProjectFolder','newProjectName','newScene','sceneProject'])if($(id))$(id).disabled=locked;
+  if($('btnSaveProject'))$('btnSaveProject').disabled=locked||!projectCtrl;
+  if($('btnExportProject'))$('btnExportProject').disabled=locked||!state.currentProject;
   for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=button.dataset.browseFolder?false:locked;
 }
 function renderProjectCatalog(){
@@ -202,8 +203,8 @@ function renderProjectCatalog(){
   const list=$('projectAssetList');if(!list)return;list.replaceChildren();
   const project=state.currentProject;
   if(typeof H3OrganizationUI!=='undefined')H3OrganizationUI.assetTools();
-  $('workspaceName').textContent=project?.name||'Choose a project';
-  if($('workspaceProjectLabel'))$('workspaceProjectLabel').textContent=project?.name||'Choose a project';
+  $('workspaceName').textContent=project?.name||'Automatic scene';
+  if($('workspaceProjectLabel'))$('workspaceProjectLabel').textContent=project?.name||'Automatic scene';
   for(const id of ['assetUpload','addAssetCategory','renameAssetCategory','assetDropzone'])$(id).disabled=!project||workspaceLocked();
   if(!project)return;
   const selected=$('assetCategory').value;
@@ -330,6 +331,60 @@ function rebaseWorkspaceAssets(draft,project){
   result.controlInputs=Object.fromEntries(Object.entries(draft.controlInputs||{}).map(([key,ref])=>[key,rebase(ref)]));
   return result;
 }
+function sceneWorkspaceName(){const input=$('sceneName');if(!input.value.trim())input.value='Scene '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});return input.value.trim();}
+async function ensureWorkingProject(){
+  if(projectCtrl?.currentProject)return projectCtrl.currentProject;
+  if(!projectCtrl)throw Error('Wait for the server connection before saving your scene.');
+  const controller=projectCtrl,project=await controller.createProject(sceneWorkspaceName(),{width:state.width,height:state.height});
+  if(controller!==projectCtrl)throw Error('Server changed while creating the scene workspace.');
+  controller.draftScope={};state.currentClipId=null;updateProjectUI(project);
+  await H3TabDraftStore.save(tabProjectDraftKey(project.project_id),captureProjectDraft(true));
+  return project;
+}
+function detachWorkingProject(){
+  if(projectCtrl){projectCtrl.currentProject=null;projectCtrl.draftScope={};sessionStorage.removeItem(projectCtrl._storageKey('active_project_id'));}
+  state.currentProject=null;state.activeProjectId=null;state.currentClipId=null;state.current=null;
+  const url=new URL(location.href);for(const key of ['project','job','reuse','reuse_request'])url.searchParams.delete(key);history.replaceState(null,'',url.href);
+  $('projectNameDisplay').textContent='Automatic folder · created when you save or generate';$('projectRevision').textContent='';
+  if($('sceneProject'))$('sceneProject').value='';renderProjectCatalog();
+}
+async function newWorkingScene(){
+  if(workspaceLocked())return;
+  await withProjectLoading(async()=>{
+    if(typeof H3VideoTabState!=='undefined')await H3VideoTabState.settle();
+    if(!projectCtrl.currentProject&&(allInputItems().length||$('prompt').value.trim()||Object.values(state.prompts||{}).some(prompt=>typeof prompt==='string'&&prompt.trim())||state.continuation))await ensureWorkingProject();
+    if(projectCtrl.currentProject)await saveWorkspaceDraft();
+    detachWorkingProject();await hydrateProjectDraft(emptyWorkspaceDraft());
+    await H3TabDraftStore.save(tabProjectDraftKey('unassigned'),captureProjectDraft(true));
+  });
+  setWorkspaceView('studio');$('resultCard').classList.add('hidden');showStageMessage('New scene','Write a prompt or attach references. A project is optional.');$('prompt').focus();
+}
+let sceneAssignment=null;
+async function assignWorkingScene(targetId){
+  if(workspaceLocked())throw Error('Finish the current operation first.');
+  if(targetId===state.activeProjectId)return;
+  if(state.continuation)throw Error('Clear the continuation source before assigning this scene to another project. The current setup is retained.');
+  if(!targetId){await withProjectLoading(async()=>{if(projectCtrl.currentProject)await saveWorkspaceDraft();detachWorkingProject();await H3TabDraftStore.save(tabProjectDraftKey('unassigned'),captureProjectDraft(true));});return;}
+  const controller=projectCtrl,source=state.activeProjectId;
+  await withProjectLoading(async()=>{
+    if(source)await saveWorkspaceDraft();
+    for(const item of allInputItems())if(!item.assetId){if(!item.file||item.restoreError)throw Error('Replace or remove unavailable scene media first.');item.assetId=(await controller.uploadAsset(item.file,null)).asset_id;}
+    const name=sceneWorkspaceName(),draft=captureProjectDraft();
+    const assets=allInputItems().filter(item=>item.assetId).map(item=>{const old=state.currentProject?.assets.find(asset=>asset.asset_id===item.assetId);return {asset_id:item.assetId,name:old?.name||item.name||item.label||item.alias||item.file?.name,alias:old?.alias||item.alias};});
+    const key=JSON.stringify([targetId,name,draft,assets]);if(sceneAssignment?.key!==key)sceneAssignment={key,requestId:crypto.randomUUID()};
+    const requestId=sceneAssignment.requestId,operation={action:'save_scene',request_id:requestId,name,draft,assets};
+    const target=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(targetId)}`);
+    let saved;
+    try{saved=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(targetId)}/workspace`,{method:'POST',body:JSON.stringify({operation,expected_revision:target.revision})});}
+    catch(error){const latest=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(targetId)}`).catch(()=>null);if(!latest?.scenes.some(scene=>scene.save_request_id===requestId))throw error;saved=latest;}
+    if(controller!==projectCtrl||source!==state.activeProjectId)throw Error('Workspace changed while saving the scene. Reopen the selected project to see it.');
+    const scene=saved.scenes.find(scene=>scene.save_request_id===requestId),scope={scene_id:scene.scene_id,shot_id:scene.shots[0].shot_id};
+    controller.currentProject=saved;controller.draftScope=scope;sessionStorage.setItem(controller._storageKey('active_project_id'),targetId);sessionStorage.setItem(controller._storageKey('scene_scope.'+targetId),JSON.stringify(scope));
+    state.currentClipId=scope.shot_id;state.current=null;updateProjectUI(saved);
+    await H3TabDraftStore.save(tabProjectDraftKey(targetId),captureProjectDraft(true));sceneAssignment=null;
+  });
+  setWorkspaceView('studio');refreshLabControls();info('Scene saved to the selected project. Existing scenes are unchanged.');
+}
 async function createWorkspaceProject(name){
   if(workspaceLocked()||!projectCtrl)return;
   name=name?.trim();if(!name)return;
@@ -344,9 +399,9 @@ async function createWorkspaceProject(name){
   setWorkspaceView('studio');$('videoActionsDialog').close();showStageMessage('Project workspace',name);$('newProjectName').value='';
 }
 async function saveWorkspaceSetup(){
-  if(workspaceLocked()||!projectCtrl?.currentProject)return;
+  if(workspaceLocked()||!projectCtrl)return;
   requireWorkspaceShot();
-  await withProjectLoading(saveWorkspaceDraft);syncRestoredInputStatus();
+  await withProjectLoading(async()=>{await ensureWorkingProject();await saveWorkspaceDraft();});syncRestoredInputStatus();
   info(state.restoreMissing.length?'Setup saved; some restored inputs still need attention.':'Setup saved.');
 }
 async function exportWorkspaceProject(){
@@ -361,6 +416,9 @@ function requireWorkspaceShot(){if(projectCtrl.draftScope?.scene_id&&!projectCtr
 function initProjectWorkspace(){
   H3ScenesUI.init();
   $('btnNewProject').onclick=async()=>{try{if(workspaceLocked())return;const name=await H3OrganizationUI.askName('New project');if(name)await createWorkspaceProject(name);}catch(error){info(error.message,true);}};
+  $('openSceneBrowser').onclick=async()=>{if(workspaceLocked())return;try{if(!state.currentProject)await withProjectLoading(ensureWorkingProject);state.showSceneBrowser=true;H3ScenesUI.render();}catch(error){info(error.message,true);}};
+  $('newScene').onclick=()=>newWorkingScene().catch(error=>info(error.message,true));
+  $('sceneProject').onchange=()=>assignWorkingScene($('sceneProject').value).catch(error=>{$('sceneProject').value=state.activeProjectId||'';info(error.message,true);});
   $('btnSaveProject').onclick=()=>saveWorkspaceSetup().catch(error=>info(error.message,true));
   $('btnExportProject').onclick=()=>exportWorkspaceProject().catch(error=>info(error.message,true));
   $('projectsHome').onclick=()=>showProjectHub().catch(error=>info(error.message,true));
@@ -409,6 +467,7 @@ function initProjectWorkspace(){
   };
   $('assetEditClose').onclick=()=>$('assetEditDialog').close();
   $('libraryScope').onchange=()=>{state.visibleResults=16;renderResults();};
+  let generationSearchTimer;$('generationSearch').oninput=()=>{clearTimeout(generationSearchTimer);generationSearchTimer=setTimeout(()=>{state.visibleResults=16;renderResults();},120);};
   $('projectSelect').onchange=()=>{if($('projectSelect').value)openProjectWorkspace($('projectSelect').value,{view:workspaceView==='elements'?'elements':'studio'}).catch(error=>{$('projectSelect').value=state.activeProjectId||'';info(error.message,true);});};
   renderProjectCatalog();renderProjectHub().catch(error=>{$('projectHubStatus').textContent=error.message;});
 }
@@ -416,7 +475,7 @@ function initProjectWorkspace(){
 let workspaceView='projects';
 function setWorkspaceView(view,{history=true}={}){
   if(!['projects','studio','elements','generations','favorites','activity'].includes(view))view='projects';
-  if(!state.currentProject&&view==='elements')view='projects';
+  if(!state.currentProject&&view==='elements')view='studio';
   workspaceView=view;document.body.dataset.workspaceView=view;
   const pickerHome=view==='elements'?$('elementsProjectSwitcher'):$('projectPickerHome');
   pickerHome.append($('workspaceProjectPicker'));
@@ -424,7 +483,7 @@ function setWorkspaceView(view,{history=true}={}){
   document.querySelector('.topnav a[href="index.html"]')?.classList.toggle('active',view==='studio');
   document.body.classList.toggle('project-hub-open',view==='projects');
   document.querySelectorAll('[data-workspace-nav]').forEach(button=>{const active=button.dataset.workspaceNav===view;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false');});
-  $('workspaceProjectLabel').textContent=state.currentProject?.name||'Choose a project';
+  $('workspaceProjectLabel').textContent=state.currentProject?.name||'Automatic scene';
   $('workspacePageTitle').textContent=({projects:'Projects',studio:'Production',elements:'Project elements',generations:'Generations',favorites:'Favorites',activity:'Activity'})[view];
   if(history&&location.hash!=='#'+view)window.history.pushState(null,'','#'+view);
   if((view==='projects'||view==='elements')&&projectCtrl)refreshProjectList().catch(error=>info(error.message,true));
@@ -432,6 +491,7 @@ function setWorkspaceView(view,{history=true}={}){
   if(view==='generations'||view==='favorites')renderResults();
 }
 async function navigateWorkspace(view){
+  if(view==='elements'&&!state.currentProject){if(workspaceLocked())return;await withProjectLoading(ensureWorkingProject);}
   if(view==='projects')return showProjectHub();
   setWorkspaceView(view);
 }
@@ -463,13 +523,10 @@ function initWorkspaceNavigation(){
   const activity=workspaceElement('div');activity.id='activityWorkspace';const queue=workspaceElement('section',undefined,'output-card');queue.append(workspaceElement('h2','Render queue'));const queueMirror=workspaceElement('div');queueMirror.id='activityQueue';queue.append(queueMirror);activity.append(queue,$('mediaExportsPanel'));
   const mirrorQueue=()=>{queueMirror.replaceChildren(...[...$('queueInfo').childNodes].map(node=>node.cloneNode(true)));};new MutationObserver(mirrorQueue).observe($('queueInfo'),{childList:true,subtree:true,characterData:true});mirrorQueue();page.append(activity);
   const activityButton=rail.querySelector('[data-workspace-nav=activity]');const activityBadge=workspaceElement('span','','activity-badge');activityButton.append(activityBadge);const syncActivity=()=>{const jobs=state.sharedExportsOrigin===api('')?state.sharedExports||[]:[],operations=state.sharedExportsOrigin===api('')?state.sharedMediaOperations||[]:[];const count=jobs.filter(job=>['queued','preparing','encoding','verifying'].includes(job.status)).length+operations.filter(operation=>operation!=='media_export'||!jobs.some(job=>['queued','preparing','encoding','verifying'].includes(job.status))).length;activityBadge.textContent=count?String(count):'';activityBadge.hidden=!count;};new MutationObserver(syncActivity).observe($('mediaExportsList'),{childList:true});syncActivity();
-  const shortcut=workspaceButton('Open project elements →',()=>navigateWorkspace('elements'));shortcut.id='openProjectElements';shortcut.classList.add('elements-shortcut');$('projectPanel').after(shortcut);
-  const library=workspaceButton('Browse all generations →',()=>navigateWorkspace('generations'));document.querySelector('.right').append(library);
-  const exports=workspaceButton('Exports & preparation activity →',()=>navigateWorkspace('activity'));document.querySelector('.right').append(exports);
   $('assetPreviewClose').onclick=()=>$('assetPreviewDialog').close();
   $('assetPreviewDialog').addEventListener('close',()=>{$('assetPreviewContent').querySelectorAll('video,audio').forEach(media=>media.pause());$('assetPreviewContent').replaceChildren();});
   window.addEventListener('popstate',()=>setWorkspaceView(location.hash.slice(1),{history:false}));
-  setWorkspaceView('projects',{history:false});
+  setWorkspaceView('studio',{history:false});
 }
 
 initWorkspaceNavigation();

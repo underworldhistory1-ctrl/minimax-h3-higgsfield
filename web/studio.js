@@ -1236,7 +1236,7 @@ function usePromptAI() {
 async function generate() {
   if(projectCtrl?.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id){info("Create or select a shot in this scene before generating.",true);return;}
   if(state.busy)return;
-  if(!state.currentProject){info("Open or create a project before generating.",true);return;}
+
   if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"Generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.tabDraftRestoreError){info("Restore this tab’s setup or explicitly clear it before rendering: "+state.tabDraftRestoreError,true);return;}
@@ -1333,6 +1333,7 @@ async function generate() {
   focusWorkspace();
   $("resultCard").classList.add("hidden");
   try{
+    await ensureWorkingProject();
     await persistProjectDraft();
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     const uploads={first:null,last:null,refs:new Map(),guides:new Map()};
@@ -1501,7 +1502,10 @@ function projectVisibleResults(){
   const project=state.currentProject,owned=new Set((project?.takes||[]).map(take=>take.output_file));
   const entries=project&&$("libraryScope")?.value!=="all"?state.results.filter(entry=>owned.has(resultOutputPath(entry))||entry.meta?.project_id===project.project_id):state.results;
   const scoped=project&&$("libraryScope")?.value!=="all"?entries.filter(entry=>H3Scenes.matches((project.takes||[]).find(t=>t.output_file===resultOutputPath(entry))||entry.meta||{},projectCtrl?.draftScope)):entries;
-  return document.body.dataset.workspaceView==="favorites"?scoped.filter(entry=>entry.kept):scoped;
+  const favorites=document.body.dataset.workspaceView==="favorites"?scoped.filter(entry=>entry.kept):scoped;
+  const terms=($("generationSearch")?.value||'').normalize('NFKC').toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+  if(!terms.length)return favorites;
+  return favorites.filter(entry=>{const text=JSON.stringify([entry.file?.filename,entry.meta?.settings||entry.file?.settings,entry.meta?.prompt]).normalize('NFKC').toLocaleLowerCase();return terms.every(term=>text.includes(term));});
 }
 function renderResults(){
   const renderOrigin=api("");
@@ -1510,6 +1514,7 @@ function renderResults(){
   $("videoCount").textContent="("+visible.length+(project&&$("libraryScope")?.value!=="all"?" in project)":" on server)");
   $("wipe").classList.toggle("hidden",!visible.some(e=>!e.kept));
   $("emptyHistory").classList.toggle("hidden",!!visible.length);
+  $("emptyHistory").textContent=$("generationSearch")?.value.trim()?'No matching videos in this library. Try fewer words or choose All server videos.':'Your renders will appear here. Videos remain on this server until you delete them.';
   const remaining=Math.max(0,visible.length-state.visibleResults);
   $("showMoreVideos").classList.toggle("hidden",remaining===0);
   $("showMoreVideos").textContent="Show "+Math.min(8,remaining)+" more · "+remaining+" remaining";
@@ -1535,7 +1540,8 @@ function renderResults(){
     remove.setAttribute("aria-label","Delete video "+(index+1));remove.disabled=videoDeletionPending(entry)||!!state.mediaExporting;
     remove.onclick=()=>deleteVideoEntry(entry,renderOrigin);
     const reuse=document.createElement('button');reuse.type='button';reuse.className='button alt';reuse.textContent='Reuse';reuse.setAttribute('aria-label','Reuse video '+(index+1));reuse.disabled=false;reuse.onclick=()=>{if(api('')===renderOrigin)H3OrganizationUI.openReuse(entry).catch(error=>info(error.message,true));};
-    actions.append(reuse,options,remove);card.append(b,actions);$("results").append(card);
+    const download=document.createElement('button');download.type='button';download.className='button alt result-download';download.textContent='Download';download.setAttribute('aria-label','Download video '+(index+1));download.onclick=()=>{if(api('')===renderOrigin)downloadVideoEntry(entry);};
+    actions.append(download,reuse,options,remove);card.append(b,actions);$("results").append(card);
   });
 }
 $("showMoreVideos").onclick=()=>{state.visibleResults+=8;renderResults();};
@@ -2126,7 +2132,7 @@ async function initProjectController() {
     let project=reused;
     if(pid&&!project){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;
-    if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
+    if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
     if(!await hydrateWorkspaceDraft(project))return;
     if(reuseRequested)state.tabRestoredView='studio';
     else if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);
@@ -2134,7 +2140,7 @@ async function initProjectController() {
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"projects",{history:false});}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"studio",{history:false});}}
 }
 
 function updateProjectUI(proj) {
@@ -2144,7 +2150,7 @@ function updateProjectUI(proj) {
   const projectURL=H3ReuseNavigation.projectLink(location.href,proj.project_id);
   if(projectURL!==location.href)history.replaceState(null,'',projectURL);
   if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
-  if ($("projectNameDisplay")) $("projectNameDisplay").textContent = `${proj.name || 'Project'} (${proj.project_id.slice(0, 8)})`;
+  if ($("projectNameDisplay")) $("projectNameDisplay").textContent = proj.name || 'Project';
   if ($("projectRevision")) $("projectRevision").textContent = `Rev ${proj.revision || 1}`;
   if (Array.isArray(proj.assets) && Array.isArray(state.refs)) {
     let refsChanged = false;
@@ -2171,8 +2177,7 @@ function updateProjectUI(proj) {
     if(typeof workspaceView==='undefined'||workspaceView==='elements')renderProjectCatalog();
     if(typeof workspaceView==='undefined'||workspaceView==='projects')renderProjectHub().catch(()=>{});
   }
-  if(typeof workspaceView==='undefined'||workspaceView==='projects'||workspaceView==='elements')
-    refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));
+  refreshProjectList().catch(e=>info("Project list unavailable: "+e.message,true));
 }
 
 async function applyQwenHandoff(asset, asRole) {
@@ -2260,6 +2265,7 @@ updatePreviewLive();
 if(missingInputs)info("Draft restored. Reattach your frame or reference files before generating.");
 checkConnection();connectSocket();
 pollQueue();
-initProjectController();
+state.projectLoading=true;refreshLabControls();
+addEventListener('DOMContentLoaded',()=>initProjectController(),{once:true});
 
 for(const type of ["change","input"])document.addEventListener(type,event=>{if(!state.busy&&event.target.matches("input,select")&&event.target.id!=="prompt")renderEstimates();});

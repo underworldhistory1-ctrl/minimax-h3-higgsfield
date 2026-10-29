@@ -65,7 +65,7 @@ function refreshLabControls(){
   if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if(typeof refreshProjectHubControls==="function")refreshProjectHubControls();
   const paused=state.labCapabilities?.inference_enabled===false;
-  $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject||(typeof workspaceLocked==='function'&&workspaceLocked());
+  $("generate").disabled=state.busy||state.projectLoading||paused||(typeof workspaceLocked==='function'&&workspaceLocked());
   let banner=$("v2StandbyBanner");
   if(!banner){banner=document.createElement("div");banner.id="v2StandbyBanner";banner.setAttribute("role","status");banner.style.cssText="padding:12px 20px;background:#352d12;color:#ffe69a;border-bottom:1px solid #695922;font-size:13px";document.querySelector(".top").after(banner);}
   banner.hidden=!paused;
@@ -188,7 +188,7 @@ async function persistProjectDraft(){
 function tabProjectDraftKey(projectId){const scope=projectCtrl?.draftScope;return (api("")||location.origin)+"/project/"+projectId+(scope?.scene_id?"/scene/"+scope.scene_id+"/shot/"+(scope.shot_id||"empty"):"");}
 function captureProjectDraft(local=false){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!(local&&!item.assetId?["url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]:["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]).includes(key))):null;
-  return {version:1,...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
+  return {version:1,scene_name:$('sceneName')?.value||'',...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
     configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
@@ -214,6 +214,7 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   if(!draft)return;
   if(!preserveFailedLocal)state.tabDraftRestoreError=null;
   state.tabRestoredView=draft.tab_view||null;
+  if(typeof $==='function'&&$('sceneName'))$('sceneName').value=draft.scene_name||'';
   const epoch=++state.hydrationEpoch;const missing=[];
   const controller=projectCtrl;const item=desc=>restoreInputItem(desc,controller);
   const [first,last,refs,guides,controlEntries]=await Promise.all([
@@ -261,6 +262,7 @@ async function refreshProjectList(){
   const select=$("projectSelect");select.replaceChildren();
   const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="Choose project…";select.append(placeholder);
   for(const project of response.projects||[]){const option=document.createElement("option");option.value=project.project_id;option.textContent=project.name;select.append(option);}select.value=state.activeProjectId||"";
+  const destination=$('sceneProject');if(destination){destination.replaceChildren();const automatic=document.createElement('option');automatic.value='';automatic.textContent='Automatic · its own folder';destination.append(automatic);for(const project of response.projects||[]){const option=document.createElement('option');option.value=project.project_id;option.textContent=project.name;destination.append(option);}destination.value=state.activeProjectId||'';}
 }
 async function restoreProjectTake(take){
   if(!take?.draft)throw Error('Original inputs are not stored for this older result.');

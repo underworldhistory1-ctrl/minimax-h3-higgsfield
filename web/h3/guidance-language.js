@@ -19,6 +19,10 @@
     controlPrepared:{en:'This input is for a prepared control map such as Pose, Depth, Canny or Scribble. Choose the map’s actual type. Do not use an ordinary video or a multi-panel storyboard sheet as a prepared map.',ar:'هذا المدخل لخريطة تحكم جاهزة، مثل Pose أو Depth أو Canny أو Scribble؛ اختر نوع الخريطة الحقيقي. لا تستخدم فيديو عادي أو ورقة ستوري بورد متعددة اللوحات كخريطة جاهزة.'}
   };
   Object.assign(messages,{
+  "sceneDestination": {
+    "en": "Start here. Save or Generate creates a folder automatically. Choosing a project saves this setup there as a new scene.",
+    "ar": "ابدأ مباشرة. Save أو Generate ينشئ مجلدًا تلقائيًا. اختيار مشروع يحفظ الإعدادات فيه كمشهد جديد."
+  },
   "videoHelp1": {
     "en": "Open a project to work with its assets, prompts and takes.",
     "ar": "افتح مشروعًا للعمل على مواده وأوصافه ولقطاته."

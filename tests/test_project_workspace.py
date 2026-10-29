@@ -208,3 +208,36 @@ class ProjectWorkspaceTests(unittest.TestCase):
         with self.assertRaises(ValueError) as error:self.projects.create_project('Different film',request_id=request)
         self.assertEqual(error.exception.status_code,409)
         self.assertEqual(len(self.projects.list_projects()),2)
+
+
+    def test_assign_scene_preserves_existing_work_and_is_retry_safe(self):
+        import uuid
+        image=self.asset(201)
+        project=self.projects.get_project(self.pid)
+        project['draft']={'prompts':{'text':'Existing setup'}}
+        project=self.projects.save_project(self.pid,project,project['revision'])
+        draft={'refs':[{'assetId':image['asset_id'],'alias':'hero','kind':'image'}],'prompts':{'refs':'Film @hero'}}
+        op={'action':'save_scene','request_id':str(uuid.uuid4()),'name':'New scene','draft':draft,'assets':[]}
+        saved=self.projects.update_workspace(self.pid,op,project['revision'])
+        self.assertEqual(saved['draft'],project['draft'])
+        self.assertEqual(saved['scenes'][0]['shots'][0]['draft'],draft)
+        self.assertEqual(saved['assets'][0]['asset_id'],image['asset_id'])
+        retried=self.projects.update_workspace(self.pid,op,project['revision'])
+        self.assertEqual(retried['revision'],saved['revision']);self.assertEqual(len(retried['scenes']),1)
+        with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,{**op,'name':'Changed'},saved['revision'])
+
+    def test_assign_scene_rejects_missing_media_without_partial_scene(self):
+        import uuid
+        op={'action':'save_scene','request_id':str(uuid.uuid4()),'name':'Missing','draft':{'refs':[{'assetId':'missing'}]}}
+        with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,op,self.project['revision'])
+        self.assertEqual(self.projects.get_project(self.pid)['scenes'],[])
+
+    def test_assign_scene_validates_inputs_and_continuation_without_partial_write(self):
+        import uuid
+        invalid = [{'refs':None}, {'guides':{}}, {'controlInputs':[]}, {'refs':[False]},
+                   {'first':{'assetId':42}}, {'continuation':{'source_asset_id':'old-video'}}]
+        for draft in invalid:
+            with self.subTest(draft=draft):
+                op={'action':'save_scene','request_id':str(uuid.uuid4()),'name':'Invalid','draft':draft}
+                with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,op,self.project['revision'])
+                self.assertEqual(self.projects.get_project(self.pid)['scenes'],[])

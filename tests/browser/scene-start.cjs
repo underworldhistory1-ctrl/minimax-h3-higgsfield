@@ -1,0 +1,85 @@
+/* Run against a locally served checkout. Fixtures test UI contracts, never GPU readiness. */
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('node:path');const fs=require('node:fs');
+const root=path.resolve(__dirname,'../..'),out=path.resolve(process.env.H3_TEST_OUTPUT||path.join(root,'../browser-evidence'));
+const C=require('../../web/h3/configuration');
+const schemas={KSampler:{input:{required:{sampler_name:[['res_multistep','euler']],scheduler:[['simple','normal']]}}},UNETLoader:{input:{required:{weight_dtype:[['default','fp8_e4m3fn']]}}},MiniMaxH3SigmaShift:{input:{required:{shift_video:['FLOAT',{default:12,min:0,max:100}],shift_audio:['FLOAT',{default:3,min:0,max:100}]}}},MiniMaxH3MotionCache:{input:{required:{model:['MODEL'],reuse_threshold:['FLOAT',{default:.15,min:0,max:1}],warmup_steps:['INT',{default:4,min:0,max:100}]}}},SpectrumApplyMiniMaxH3:{input:{required:{model:['MODEL'],blend_weight:['FLOAT',{default:.5,min:0,max:1}]}}}};
+const singular='Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors';
+const caps={server_attention:{implementation:"attention_pytorch",label:"PyTorch dense",quantized:false,scope:"server_dense_default",checkpoint_overrides_possible:true},model_catalog:[{name:singular,profiles:['singularity'],loader:'UNETLoader'},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader'],loader:'UNETLoader'}],hybrid_loader_ready:true,controlnet_ready:true,controlnet_references_ready:true,refine_ready:true,continuation_ready:true,add_guide:true,inference_enabled:true,sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple','normal'],weight_dtypes:['default','fp8_e4m3fn']},control_preprocessors:{}};
+let browser;
+(async()=>{
+ fs.mkdirSync(out,{recursive:true});browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1920,height:1080}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',async route=>{
+ const url=new URL(route.request().url());let data;
+ if(url.pathname.startsWith('/h3_studio/lab/projects')||url.pathname.startsWith('/h3_studio/lab/assets')||url.pathname.startsWith('/h3_studio/lab/media/exports'))return route.continue();
+ if(url.pathname.startsWith('/object_info/')){const name=url.pathname.split('/').pop();data={[name]:schemas[name]||{input:{required:{}}}};}
+ else if(url.pathname==='/system_stats')data={devices:[{name:'UI fixture · no inference'}]};
+ else if(url.pathname==='/h3_studio/readiness')data={models:{fl2va:true,ref2va:true,text_encoder:true,video_vae:true,audio_vae:true},nodes:Object.fromEntries(['UNETLoader','MiniMaxH3SigmaShift','CLIPLoader','VAELoader','MiniMaxH3ImageToVideo','MiniMaxH3ReferenceToVideo','ConditioningZeroOut','KSampler','VAEDecode','VAEDecodeAudio','CreateVideo','H3SaveVideo','H3ReleaseForDecode','H3LoadSavedLatent','SaveVideo','LoadImage','LoadVideo','GetVideoComponents','LoadAudio','LoraLoaderModelOnly','SpectrumApplyMiniMaxH3','MiniMaxH3MotionCache','ImageCrop','ImageScale','ImageFromBatch','TrimAudioDuration'].map(x=>[x,true])),quality:{h3_vae_tile_fix:true}};
+ else if(url.pathname==='/h3_studio/lab/capabilities')data=caps;
+ else if(url.pathname==='/h3_studio/lab/prompt/status')data={configured:false,reason:'Browser fixture: prompt AI not connected.'};
+ else if(url.pathname==='/h3_studio/loras')data={items:['h3_character_swap_pro4500_1000.safetensors']};
+ else if(url.pathname==='/queue')data={queue_running:[],queue_pending:[]};
+ else if(url.pathname==='/history')data={};
+ else if(url.pathname.startsWith('/h3_studio/'))data=url.pathname.includes('library')?{videos:[]}:url.pathname.includes('projects')?{projects:[]}:{samples:[],contexts:[]};
+ if(data!==undefined)return route.fulfill({json:data});return route.continue();
+ });
+
+
+ await page.goto('http://127.0.0.1:18925/web/index.html');
+ await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ assert.equal(await page.evaluate(()=>workspaceView),'studio');
+ assert.equal(await page.locator('#sceneProject').inputValue(),'');
+ assert.equal(await page.locator('#generate').isEnabled(),true);
+ assert.equal(await page.locator('#sceneName').isVisible(),true);
+ await page.locator('#sceneName').fill('Independent scene');
+ await page.locator('#prompt').fill('An untouched harbor');
+ await page.locator('#btnSaveProject').click();
+ await page.waitForFunction(()=>state.currentProject?.name==='Independent scene'&&!state.projectLoading);
+ const first=await page.evaluate(()=>state.activeProjectId);
+ assert.equal(await page.evaluate(()=>state.currentProject.draft.prompts.text),'An untouched harbor');
+ await page.locator('#newScene').click();
+ await page.waitForFunction(()=>!state.activeProjectId&&!state.projectLoading);
+ assert.equal(await page.locator('#prompt').inputValue(),'');
+ await page.locator('#sceneName').fill('Second scene');await page.locator('#prompt').fill('A woman watching the harbor');
+ const image=fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'));
+ await page.evaluate(async bytes=>{const file=new File([new Uint8Array(bytes)],'woman.jpg',{type:'image/jpeg'});state.refs.push({file,kind:'image',alias:'woman',url:URL.createObjectURL(file),width:640,height:480});state.refs[0].alias='woman';renderRefs();},Array.from(image));
+ await page.locator('[data-mode=refs]').click();await page.locator('#prompt').fill('A woman watching the harbor');
+ await page.locator('#sceneProject').selectOption(first);
+ await page.waitForFunction(()=>state.activeProjectId&&!state.projectLoading&&projectCtrl.draftScope.shot_id);
+ assert.equal(await page.locator('#prompt').inputValue(),'A woman watching the harbor');
+ const assigned=await page.evaluate(()=>state.currentProject);
+ assert.equal(assigned.scenes.length,1);assert.equal(assigned.assets.length,1);
+ assert.equal(assigned.draft.prompts.text,'An untouched harbor');
+ assert.equal(assigned.scenes[0].shots[0].draft.prompts.refs,'A woman watching the harbor');
+ await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ assert.equal(await page.locator('#prompt').inputValue(),'A woman watching the harbor');
+ assert.equal(await page.evaluate(()=>state.refs.length),1);
+ await page.locator('#projectTools').evaluate(el=>el.open=true);
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#clearTabSetup').click();
+ await page.waitForFunction(()=>!state.projectLoading&&state.refs.length===0&&document.getElementById('prompt').value==='');
+ await page.waitForFunction(()=>document.getElementById('tabDraftStatus').textContent.includes('is saved'));
+ await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ assert.equal(await page.locator('#prompt').inputValue(),'');assert.equal(await page.evaluate(()=>state.refs.length),0);
+ await page.locator('[data-workspace-nav=generations]').click();
+ await page.evaluate(()=>{state.results=[{file:{filename:'h3_studio_abcd12345678_00001_.mp4',subfolder:'video',type:'output'},meta:{settings:{prompt:'A jellyfish harbor',model:'H3'}}},{file:{filename:'h3_studio_12345678abcd_00001_.mp4',subfolder:'video',type:'output'},meta:{settings:{prompt:'A snowy mountain',model:'H3'}}}];document.getElementById('libraryScope').value='all';renderResults();});
+ assert.equal(await page.locator('.result-download').count(),2);
+ await page.locator('#generationSearch').fill('HARBOR jelly');await page.waitForFunction(()=>document.querySelectorAll('.video-result').length===1);
+ assert.equal(await page.locator('.result-download').count(),1);
+ await page.evaluate(()=>{window.downloaded=null;downloadVideoEntry=entry=>window.downloaded=entry.file.filename;});
+ await page.locator('.result-download').click();assert.equal(await page.evaluate(()=>window.downloaded),'h3_studio_abcd12345678_00001_.mp4');
+ assert.equal(await page.evaluate(()=>state.current),null);
+ await page.locator('#generationSearch').fill('');
+ await page.locator('[data-workspace-nav=studio]').click();
+ // Production submission itself creates an independent workspace; no manual project step.
+ await page.locator('#newScene').click();await page.waitForFunction(()=>!state.activeProjectId&&!state.projectLoading);
+ await page.locator('#prompt').fill('A cinematic harbor in daylight');
+ let submitted;await page.route('**/h3_studio/lab/jobs',route=>{if(route.request().method()==='POST'){submitted=route.request().postDataJSON();return route.fulfill({status:400,json:{error:'Acceptance capture: no GPU inference'}});}return route.fulfill({json:{jobs:[]}});});
+ const response=page.waitForResponse(r=>r.url().endsWith('/h3_studio/lab/jobs')&&r.request().method()==='POST');await page.locator('#generate').click();await response;
+ await page.waitForFunction(()=>!state.busy);assert.ok(submitted.project_id);assert.equal(submitted.project_id,await page.evaluate(()=>state.activeProjectId));
+ await page.locator('.sidebar-scroll').evaluate(el=>el.scrollTop=0);
+ await page.screenshot({path:path.join(out,'scene-start-desktop.png')});
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:path.join(out,'scene-start-mobile.png'),fullPage:true});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+ assert.deepEqual(errors,[]);console.log('PASS direct startup, automatic save, new scene, assignment with media, existing draft preservation, reload, clear/reload, search, card download and mobile overflow');
+ await browser.close();
+})().catch(async error=>{console.error(error);await browser?.close();process.exitCode=1;});

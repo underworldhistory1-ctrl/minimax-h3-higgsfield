@@ -185,8 +185,24 @@ class ProjectService(OrganizationMixin):
                 raise ValueError("Workspace operation must be an object")
             action = operation.get("action")
             from .scenes import ACTIONS, operate
+            if action == 'save_scene':
+                request_id = operation.get('request_id')
+                if not isinstance(request_id, str):
+                    raise ValueError('A scene save request ID is required')
+                try:
+                    uuid.UUID(request_id)
+                except ValueError as error:
+                    raise ValueError('Invalid scene save request ID') from error
+                fingerprint = hashlib.sha256(json.dumps(operation, sort_keys=True).encode()).hexdigest()
+                saved = next((scene for scene in project.get('scenes', []) if scene.get('save_request_id') == request_id), None)
+                if saved:
+                    if saved.get('save_fingerprint') != fingerprint:
+                        raise ValueError('Scene save request was used for a different setup')
+                    return project
             self._check_revision(project, expected_revision)
-            if action in ACTIONS:
+            if action == 'save_scene':
+                self._save_scene(project, operation, fingerprint)
+            elif action in ACTIONS:
                 operate(project, operation, jobs)
             elif action == "rename_project":
                 project["name"] = workspace_name(operation.get("name"))
@@ -262,6 +278,45 @@ class ProjectService(OrganizationMixin):
             else:
                 raise ValueError("Unknown workspace operation")
             return self.save_project(project_id, project, expected_revision)
+
+    def _save_scene(self, project, operation, fingerprint):
+        name = workspace_name(operation.get('name'))
+        draft = operation.get('draft')
+        if not isinstance(draft, dict):
+            raise ValueError('Scene setup must be an object')
+        if draft.get('continuation'):
+            raise ValueError('Clear the continuation source before assigning this scene to another project')
+        if (not isinstance(draft.get('refs', []), list)
+                or not isinstance(draft.get('guides', []), list)
+                or not isinstance(draft.get('controlInputs', {}), dict)):
+            raise ValueError('Invalid scene reference groups')
+        slots = [draft.get('first'), draft.get('last'), *draft.get('refs', []),
+                 *draft.get('guides', []), *draft.get('controlInputs', {}).values()]
+        if len(slots) > 1000 or any(ref is not None and (not isinstance(ref, dict)
+                or not isinstance(ref.get('assetId'), str) or not ref['assetId']) for ref in slots):
+            raise ValueError('Save scene media before assigning it to a project')
+        ids = {ref['assetId'] for ref in slots if ref is not None}
+        descriptions = operation.get('assets', [])
+        if not isinstance(descriptions, list) or len(descriptions) > 1000 or any(not isinstance(item, dict)
+                or any(item.get(key) is not None and not isinstance(item[key], str)
+                       for key in ('asset_id', 'name', 'alias')) for item in descriptions):
+            raise ValueError('Invalid scene elements')
+        used = {item['alias'].casefold() for item in project['assets']}
+        for asset_id in sorted(ids):
+            if any(item['asset_id'] == asset_id for item in project['assets']):
+                continue
+            record = self.asset_service.get_asset(asset_id) if self.asset_service else None
+            if not record:
+                raise ValueError('Scene reference media is unavailable')
+            description = next((item for item in descriptions if item.get('asset_id') == asset_id), {})
+            label = workspace_name(description.get('name') or record['original_name'])
+            alias = reference_alias(description.get('alias') or pathlib.Path(label).stem, used)
+            used.add(alias.casefold())
+            project['assets'].append({'asset_id':asset_id,'kind':record['kind'],'server_path':record['server_path'],
+                'name':label,'alias':alias,'category':'custom','role':'custom' if record['kind']=='image' else 'voice' if record['kind']=='audio' else 'motion','notes':''})
+        project.setdefault('scenes', []).append({'scene_id':'scene_'+uuid.uuid4().hex, 'name':name,
+            'save_request_id':operation['request_id'], 'save_fingerprint':fingerprint,
+            'shots':[{'shot_id':'shot_'+uuid.uuid4().hex,'name':name,'draft':copy.deepcopy(draft)}]})
 
     def _replace_workspace_asset(self, project, operation):
         """Swap editable image slots; historical takes and immutable media stay intact."""

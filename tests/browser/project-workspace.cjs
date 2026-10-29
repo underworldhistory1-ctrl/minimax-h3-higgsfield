@@ -25,6 +25,7 @@ let browser;
 
  await page.goto('http://127.0.0.1:18925/web/index.html');
  await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ await page.locator('[data-workspace-nav=projects]').click();
  await page.locator('#newProjectName').fill('Thriller project');await page.locator('#projectHubCreate').click();
  await page.waitForFunction(()=>state.currentProject?.name==='Thriller project'&&!state.projectLoading);
  await page.waitForFunction(()=>!document.body.classList.contains('project-hub-open'));

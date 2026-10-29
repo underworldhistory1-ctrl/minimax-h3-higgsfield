@@ -24,18 +24,18 @@ let browser;const submissions=[];
  });
 
 
- await page.goto('http://127.0.0.1:18925/web/index.html');await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ await page.goto('http://127.0.0.1:18925/web/index.html');await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);await page.locator('[data-workspace-nav=projects]').click();
 
  const stamp=Date.now();
  const ids=[];for(const name of ['Northern Lights','The Last Train','Quiet City']){const project=await (await page.request.post('http://127.0.0.1:18925/h3_studio/lab/projects',{data:{name:name+' '+stamp}})).json();ids.push(project.project_id);}
- await page.reload();await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);
+ await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);
  await page.locator('#projectSearch').fill(String(stamp));await page.waitForFunction(()=>document.querySelectorAll('.project-card').length===3);
  assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'grid');assert.equal(await page.locator('[data-project-view=grid]').getAttribute('aria-pressed'),'true');
  assert.equal(await page.locator('.project-card .project-card-preview').count(),3);assert.equal(await page.locator('.project-card .project-card-actions > *').count(),12);
  const width=await page.locator('.project-card').first().evaluate(e=>e.getBoundingClientRect().width);assert.ok(width<500,'bounded card density');
  await page.screenshot({path:path.join(out,'project-library-grid.png')});
  await page.getByRole('button',{name:'List view',exact:true}).click();assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'list');await page.screenshot({path:path.join(out,'project-library-list.png')});
- await page.reload();await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'list');
+ await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'list');
  await page.locator('#projectSearch').fill('absent-project-'+stamp);await page.waitForFunction(()=>document.querySelectorAll('.project-card').length===0);await page.getByRole('button',{name:'Clear filters',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);
  await page.getByRole('button',{name:'Grid view',exact:true}).click();await page.locator('#projectSearch').fill(String(stamp));
  for(const width of [390,768]){await page.setViewportSize({width,height:900});await page.screenshot({path:path.join(out,'project-library-'+width+'.png')});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'page fits '+width);}
