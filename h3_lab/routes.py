@@ -441,8 +441,8 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                 return web.json_response({'error': str(error)}, status=getattr(error, 'status_code', 400))
 
     async def handle_submit_job(request):
-        if preparation_lock.locked():
-            return web.json_response({"error": "Prompt preparation is using the shared resource. Wait for it to finish.", "code": "PREPARATION_BUSY"}, status=409)
+        # Admissions from separate tabs wait in order. A concurrent submission is
+        # not a second GPU preparation task and must not be rejected as one.
         async with preparation_lock:
             return await submit_job_impl(request)
 

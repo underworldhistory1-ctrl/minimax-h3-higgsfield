@@ -8,6 +8,8 @@ Production opens immediately, with no manual project requirement. **Save scene**
 
 Opening the plain Studio link starts with an empty setup, including when a browser copies another tab's session storage. Each new page gets its own render identity, so separate pages can submit independent jobs to the server queue. Refreshing the same tab keeps its inputs, project and render tracking. Click the H3 logo to refresh that tab. Explicit project, Reuse and job links still open the requested saved work; the last project is never selected implicitly from shared browser storage.
 
+Create Image follows the same new-page/reload rule and keeps its client identity on refresh. Confirmed image failures are recovered through history polling if a WebSocket event is missed. Simultaneous video submissions wait for admission instead of rejecting another tab as prompt preparation.
+
 **Clear setup**, inside More scene tools, resets the working inputs/settings and checkpoints the reset on this device. It preserves saved project setups and output files. Project management and advanced scene/shot tools are collapsed until needed. **Download** is available directly on video and image cards. Generations search matches all entered words across recorded prompts, filenames and settings within the chosen library scope.
 
 [Scene workspace verification](docs/SCENE_WORKSPACE_2026_10_29.md) records tests and limits.

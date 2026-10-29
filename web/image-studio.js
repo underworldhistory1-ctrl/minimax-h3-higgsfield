@@ -2,10 +2,11 @@
 const $=id=>document.getElementById(id);
 const state={
   mode:"create",refs:[],profiles:{},nodes:{},availableLoras:[],ready:false,busy:false,
-  clientId:crypto.randomUUID(),socket:null,activePromptId:sessionStorage.getItem("qwen.activePromptId")||null,
+  clientId:sessionStorage.getItem('qwen.clientId')||crypto.randomUUID(),socket:null,activePromptId:sessionStorage.getItem("qwen.activePromptId")||null,
   started:0,lastStepAt:0,lastStep:0,stepTotal:0,stepTimes:[],uploaded:[],current:null,results:[],visible:8,timer:null,
   settings:null,abort:null,completing:false,generationEpoch:0,inferenceEnabled:true,standbyReason:null,pendingToken:null,refsSaving:false,refsSaved:false,referencesReady:false
 };
+sessionStorage.setItem('qwen.clientId',state.clientId);
 const profileFiles={
   int8:{unet:"qwen_image_2.1_int8_convrot.safetensors",clip:"qwen3vl_8b_int8_convrot.safetensors"},
   bf16:{unet:"qwen_image_2.1_bf16.safetensors",clip:"qwen3vl_8b_bf16.safetensors"}
@@ -305,7 +306,25 @@ async function pollQueue(){
 }
 function findOutput(history){for(const output of Object.values(history?.outputs||{})){for(const image of output.images||[]){if(/^qwen_studio_[A-Za-z0-9_-]+_[0-9]{5}\.png$/.test(image.filename||""))return image;}}return null;}
 async function pollHistory(force=false){
-  if(!state.activePromptId)return;if(state.pendingToken&&!await recoverPendingImage()){setTimeout(()=>pollHistory(false),2000);return;}try{const response=await fetch(api("/history/"+encodeURIComponent(state.activePromptId)),{cache:"no-store"});const all=await H3RenderValues.readJson(response);const history=all[state.activePromptId];if(history){const file=findOutput(history);if(file){await completeGeneration(file);return;}const status=history.status||{};if(status.status_str==="error"||status.completed===false)throw Error("The image graph failed. Check the ComfyUI error details.");}}catch(error){if(force){await finishFailure(error.message,false);return;}}setTimeout(()=>pollHistory(false),2000);
+  if(!state.activePromptId)return;
+  if(state.pendingToken&&!await recoverPendingImage()){setTimeout(()=>pollHistory(false),2000);return;}
+  const id=state.activePromptId;
+  try{
+    const response=await fetch(api('/history/'+encodeURIComponent(id)),{cache:'no-store'});
+    const all=await H3RenderValues.readJson(response);
+    if(state.activePromptId!==id)return;
+    const history=all[id];
+    if(history){
+      const file=findOutput(history);if(file){await completeGeneration(file);return;}
+      const status=history.status||{},messages=status.messages||[];
+      const failure=messages.find(message=>message[0]==='execution_error');
+      const interrupted=messages.some(message=>message[0]==='execution_interrupted');
+      if(status.status_str==='error'||failure||interrupted){
+        await finishFailure(failure?.[1]?.exception_message||'The image graph stopped. Your inputs are retained.',interrupted);return;
+      }
+    }
+  }catch(error){if(state.activePromptId!==id)return;if(force){await finishFailure(error.message,false);return;}}
+  setTimeout(()=>pollHistory(false),2000);
 }
 async function completeGeneration(file){
   if(state.completing)return;state.completing=true;

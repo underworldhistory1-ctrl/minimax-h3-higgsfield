@@ -25,6 +25,22 @@ class QueueClient:
 
 
 class TestH3LabRoutes(AioHTTPTestCase):
+    async def test_concurrent_submissions_wait_for_admission_instead_of_rejecting(self):
+        entered,release=asyncio.Event(),asyncio.Event()
+        async def submit(spec,extra):
+            self.queue.submissions.append((spec,extra))
+            if len(self.queue.submissions)==1:
+                entered.set();await release.wait()
+            return {'prompt_id':'prompt-'+str(len(self.queue.submissions))}
+        self.queue.submit_prompt=submit
+        first=asyncio.create_task(self.client.post('/h3_studio/lab/jobs',json={'request_id':'parallel-first','render_spec':{}}))
+        await asyncio.wait_for(entered.wait(),1)
+        second=asyncio.create_task(self.client.post('/h3_studio/lab/jobs',json={'request_id':'parallel-second','render_spec':{}}))
+        await asyncio.sleep(.05);release.set()
+        responses=await asyncio.gather(first,second)
+        self.assertEqual([r.status for r in responses],[201,201])
+        self.assertEqual(len(self.queue.submissions),2)
+
     async def test_legacy_submission_cannot_bypass_anime_adapter_admission(self):
         from h3_lab.configuration import ANIME_TO_REALISM
         spec = {'mode': 'text', 'workflow': {'adapter': {'class_type': 'LoraLoaderModelOnly',
