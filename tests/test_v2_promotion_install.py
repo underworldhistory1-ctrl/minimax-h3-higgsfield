@@ -1,9 +1,17 @@
-import importlib.util,pathlib,tempfile,unittest,subprocess,shutil
+import importlib.util,pathlib,tempfile,unittest,subprocess,shutil,re
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def load(name,path):
  spec=importlib.util.spec_from_file_location(name,ROOT/path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 class V2PromotionInstallTests(unittest.TestCase):
+ def test_every_video_page_script_is_in_installed_runtime(self):
+  installer=load('video_page_inventory_installer','deploy/install_windows.py')
+  scripts=re.findall(r'<script\b[^>]*\bsrc=["\']([^"\']+)',(ROOT/'web/index.html').read_text(encoding='utf-8'))
+  self.assertTrue(scripts)
+  for script in scripts:
+   if script.startswith('./'):
+    name='web/'+script[2:].split('?',1)[0]
+    self.assertIn(name,installer.RUNTIME_FILES,name)
  def test_runtime_is_copied_and_existing_data_preserved(self):
   installer=load('v2_windows_installer','deploy/install_windows.py')
   with tempfile.TemporaryDirectory() as tmp:
