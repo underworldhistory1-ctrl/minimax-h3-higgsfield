@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.8 - 2026-10-29
+
+- Add image Replace directly on collapsed reference cards and project element replacement with stable names and editable shot bindings.
+- Preserve archived originals for take history, portable bundles, Reuse and cross-project copying; prevent replacement cycles when selecting an earlier image.
+- Reject invalid images, guard stale dialog edits, reconcile lost replacement acknowledgements and deduplicate retried project creation requests.
+- Prevent case-insensitive alias collisions and avoid display names shadowing other elements' canonical mentions.
+- Normalize catalog mentions once per synchronization, paginate element cards, defer expanded image previews and debounce live prompt preview work.
+- Guard asynchronous fit previews against stale files and lock project inputs while loading; avoid redundant asset filesystem lookups on current manifests.
+
 ## 2.5.7 - 2026-10-29
 
 - Add a ComfyUI node-editor shortcut beside Updates in both workspaces, respecting configured servers and provider proxy prefixes.

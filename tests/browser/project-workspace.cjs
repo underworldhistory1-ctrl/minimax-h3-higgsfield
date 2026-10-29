@@ -37,7 +37,7 @@ let browser;
  await page.waitForFunction(()=>state.currentProject?.assets.length===2&&!workspaceCatalogBusy);
  assert.equal(await page.locator('.catalog-asset').count(),2);
  await page.locator('#assetKindFilter').selectOption('audio');assert.equal(await page.locator('.catalog-asset').count(),0);await page.locator('#assetKindFilter').selectOption('all');
- await page.locator('#assetSearch').fill('room');assert.equal(await page.locator('.catalog-asset').count(),1);await page.locator('#assetSearch').fill('');
+ await page.locator('#assetSearch').fill('room');await page.waitForFunction(()=>document.querySelectorAll('.catalog-asset').length===1);assert.equal(await page.locator('.catalog-asset').count(),1);await page.locator('#assetSearch').fill('');await page.waitForFunction(()=>document.querySelectorAll('.catalog-asset').length===2);
  await page.locator('.catalog-asset').filter({hasText:'room.jpg'}).getByRole('button',{name:'Edit',exact:true}).click();
  await page.locator('#assetEditName').fill('Bathroom set');await page.locator('#assetEditCategory').selectOption('locations');await page.locator('#assetEditNotes').fill('Bathroom architecture only');await page.locator('#assetEditSave').click();
  await page.waitForFunction(()=>!document.getElementById('assetEditDialog').open);

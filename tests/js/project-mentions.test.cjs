@@ -85,3 +85,33 @@ test('attached element mention actions use its assigned name with collision-safe
  vm.runInContext(source.slice(source.indexOf('function preferredReferenceMention(alias)'),source.indexOf('function insertReferenceMention(alias,scroll)')),context);
  assert.equal(context.preferredReferenceMention('upload'),'Named_Hero');
 });
+
+
+test('replacement rebasing follows current catalog and preserves explicit reused history',()=>{
+ const {context}=workspace([]);
+ const project={assets:[{asset_id:'c'}],asset_replacements:{a:'c',b:'c'}};
+ const draft={refs:[{assetId:'a',alias:'hero',file:'stale bytes'}],prompts:{refs:'edited @hero'}};
+ const rebased=context.rebaseWorkspaceAssets(draft,project);
+ assert.equal(rebased.refs[0].assetId,'c');assert.equal(rebased.refs[0].file,undefined);
+ assert.equal(rebased.prompts.refs,draft.prompts.refs);assert.equal(draft.refs[0].assetId,'a');
+ assert.equal(context.rebaseWorkspaceAssets({...draft,reuse_source:{take_id:'past'}},project).refs[0].assetId,'a');
+ assert.equal(context.rebaseWorkspaceAssets(draft,{...project,assets:[{asset_id:'a'},{asset_id:'c'}]}).refs[0].assetId,'a');
+});
+
+test('large catalogs normalize pasted mentions once, not once per element',async()=>{
+ const assets=Array.from({length:200},(_,i)=>({asset_id:'asset'+i,alias:'item'+i,kind:'image'}));
+ const {context,state}=workspace(assets,'@item199');let calls=0;
+ context.H3PromptCompiler={...compiler,normalizeReferenceMentions:(...args)=>{calls++;return compiler.normalizeReferenceMentions(...args);}};
+ context.activateProjectAsset=async item=>state.refs.push(item);
+ await context.syncPromptMentionsToReferences();assert.equal(calls,1);assert.equal(state.refs[0].alias,'item199');
+});
+
+
+test('display mention cannot shadow an unattached canonical element alias',()=>{
+ const {context,state}=workspace([{asset_id:'other',alias:'Hero',name:'Other person',kind:'image'},{asset_id:'attached',alias:'hero_2',name:'Hero',kind:'image'}]);
+ state.refs=[{assetId:'attached',alias:'hero_2',name:'Hero'}];
+ context.currentRenderSpec=()=>({references:state.refs.map(ref=>({...ref,asset_id:ref.assetId}))});
+ const source=fs.readFileSync('web/studio.js','utf8');
+ vm.runInContext(source.slice(source.indexOf('function preferredReferenceMention(alias)'),source.indexOf('function insertReferenceMention(alias,scroll)')),context);
+ assert.equal(context.preferredReferenceMention('hero_2'),'hero_2');
+});

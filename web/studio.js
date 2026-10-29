@@ -487,7 +487,7 @@ function aliasName(fileName) {
   let name = fileName.replace(/\.[^.]+$/,"").trim().replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^_+|_+$/g,"").slice(0,32);
   if (!name) name="ref";
   let unique=name,i=2;
-  while(state.refs.some(r=>r.alias===unique)) {const suffix="_"+i++;unique=name.slice(0,32-suffix.length)+suffix;}
+  while(state.refs.some(r=>r.alias.toLocaleLowerCase()===unique.toLocaleLowerCase())||(state.currentProject?.assets||[]).some(a=>a.alias?.toLocaleLowerCase()===unique.toLocaleLowerCase())) {const suffix="_"+i++;unique=name.slice(0,32-suffix.length)+suffix;}
   return unique;
 }
 function setAspectFormat(fmt){
@@ -541,10 +541,11 @@ function updateRefDurationNotice() {
   notice.textContent=[videoText,audioText].filter(Boolean).join(" ");
 }
 function renderRefs() {
+  const locked=state.busy||state.projectLoading||(typeof referenceMutationLocked==='function'&&referenceMutationLocked());
   $("refs").replaceChildren();
   state.refs.forEach((ref,index) => {
     if(ref.restoreError){$("refs").append(missingInputCard(ref,()=>state.refs.splice(index,1)));return;}
-    const card=document.createElement("details");card.className="ref compact-ref";card.open=!!ref.expanded;card.ontoggle=()=>ref.expanded=card.open;
+    const card=document.createElement("details");card.className="ref compact-ref";card.open=!!ref.expanded;card.ontoggle=()=>{ref.expanded=card.open;if(card.open){const large=card.querySelector(".ref-expanded-preview");if(large&&!large.src)large.src=ref.previewUrl;}};
     const head=document.createElement("summary");head.className="refhead";
     const icon=document.createElement("div");icon.className="icon";
     if(ref.previewUrl&&(ref.kind==="image"||ref.kind==="video")){
@@ -553,6 +554,7 @@ function renderRefs() {
       if(ref.kind==="video"){
         preview.muted=true;preview.playsInline=true;preview.preload="metadata";
         preview.onloadedmetadata=()=>{
+          if(!state.refs.includes(ref))return;
           if(Number.isFinite(preview.duration)&&preview.duration>0){ref.localDuration=preview.duration;if(preview.duration>15.1&&!ref.trimEnabled){ref.trimEnabled=true;ref.trimDuration=15;renderRefs();}else if(fitReferenceTrim(ref)){renderRefs();saveDraft();}else updateRefDurationNotice();}
           try{preview.currentTime=Math.min(.1,Math.max(0,(preview.duration||1)-.01));}catch{}
         };
@@ -561,9 +563,10 @@ function renderRefs() {
       icon.append(preview);
     }else icon.textContent=ref.kind==="audio"?"♫":ref.kind==="video"?"▶":"I";
     const title=document.createElement("strong");title.textContent="@"+ref.alias+(ref.label&&ref.label!==ref.alias?" ("+ref.label+")":"")+" · "+ref.role;
-    const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=state.busy;
-    remove.onclick=()=>{state.refs.splice(index,1);if(ref.previewUrl)URL.revokeObjectURL(ref.previewUrl);renderRefs();renderEstimates();saveDraft();};
-    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=state.busy;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,up,down,remove);
+    const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=locked;
+    remove.onclick=()=>{if(locked)return;state.refs.splice(state.refs.indexOf(ref),1);if(ref.previewUrl)URL.revokeObjectURL(ref.previewUrl);renderRefs();renderEstimates();updatePreviewLive();saveDraft();};
+    const replace=document.createElement("button");replace.type="button";replace.className="button alt smallbtn ref-replace";replace.textContent="Replace";replace.disabled=locked;replace.hidden=ref.kind!=="image";replace.title="Replace this shot image and keep its name and position";replace.onclick=event=>{event.preventDefault();event.stopPropagation();requestReferenceReplacement(ref);};
+    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();saveDraft();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,replace,up,down,remove);
     const meta=document.createElement("div");meta.className="refmeta";
     meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+(ref.label||ref.name||ref.file.name)
       +(ref.kind==="video"&&ref.localDuration?" · source "+ref.localDuration.toFixed(2)+"s":ref.kind==="audio"&&ref.localDuration?" · "+ref.localDuration.toFixed(2)+"s":"")
@@ -572,10 +575,11 @@ function renderRefs() {
       +(ref.uploadProgress!==undefined?" · Uploading "+ref.uploadProgress+"%":ref.uploadReady?" · Uploaded and checked":" · Selected locally · uploads when you generate");
     const fields=document.createElement("div");fields.className="ref-fields";
     const nameWrap=document.createElement("div"), nameLabel=document.createElement("label"), name=document.createElement("input");
-    nameLabel.textContent="MENTION NAME";name.value=ref.alias;name.setAttribute("aria-label","Reference name");name.disabled=state.busy;
+    nameLabel.textContent="MENTION NAME";name.value=ref.alias;name.setAttribute("aria-label","Reference name");name.disabled=locked;
     name.onchange=()=>{
+      if(locked)return;
       const value=name.value.trim();
-      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias.toLocaleLowerCase()===value.toLocaleLowerCase())){
+      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias.toLocaleLowerCase()===value.toLocaleLowerCase())||(state.currentProject?.assets||[]).some(a=>a.asset_id!==ref.assetId&&a.alias?.toLocaleLowerCase()===value.toLocaleLowerCase())){
         name.value=ref.alias; info("Use a unique name with letters, numbers, _ or -, and no spaces.",true);return;
       }
       const old=ref.alias;ref.alias=value;
@@ -594,41 +598,41 @@ function renderRefs() {
       [["voice","Voice"],["custom","Custom — describe in prompt"],["music","Music"],["sound effects","Effects"]];
     options.forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;role.append(o);});
     role.value=ref.role||options[0][0];
-    role.disabled=state.busy;
+    role.disabled=locked;
     role.onchange=()=>{ref.role=role.value;saveDraft();renderRefs();updatePreviewLive();};
     roleWrap.append(roleLabel,role);fields.append(nameWrap,roleWrap);
     card.append(head,meta,fields);
     if(ref.kind==="image"){
-      const large=document.createElement("img");large.src=ref.previewUrl;large.alt="Expanded preview of @"+ref.alias;large.className="ref-expanded-preview";card.append(large);
-      const label=document.createElement("label"),fit=document.createElement("select");label.textContent="IMAGE FIT";for(const [value,title] of [["preserve","Preserve original proportions"],["crop","Crop to canvas"],["contain","Contain on canvas"]]){const o=document.createElement("option");o.value=value;o.textContent=title;fit.append(o);}fit.value=ref.imageFit||"preserve";fit.disabled=state.busy;fit.onchange=()=>{ref.imageFit=fit.value;updateRefFitPreview(ref).catch(e=>info(e.message,true));};card.append(label,fit);
+      const large=document.createElement("img");if(card.open)large.src=ref.previewUrl;large.loading="lazy";large.decoding="async";large.alt="Expanded preview of @"+ref.alias;large.className="ref-expanded-preview";card.append(large);
+      const label=document.createElement("label"),fit=document.createElement("select");label.textContent="IMAGE FIT";for(const [value,title] of [["preserve","Preserve original proportions"],["crop","Crop to canvas"],["contain","Contain on canvas"]]){const o=document.createElement("option");o.value=value;o.textContent=title;fit.append(o);}fit.value=ref.imageFit||"preserve";fit.disabled=locked;fit.onchange=()=>{ref.imageFit=fit.value;updateRefFitPreview(ref).catch(e=>info(e.message,true));};card.append(label,fit);
     }
     if(ref.role==="custom"||ref.role==="storyboard"){
       const instWrap=document.createElement("div");instWrap.className="section";instWrap.style.marginTop="6px";instWrap.style.paddingTop="6px";
       const instLabel=document.createElement("label");instLabel.textContent=ref.role==="storyboard"?"PANEL ORDER / SHOT MAP (OPTIONAL)":"CUSTOM INSTRUCTION (OPTIONAL)";instLabel.style.margin="4px 0 3px";
       const instInput=document.createElement("input");instInput.placeholder="e.g. use for lighting direction only; replace subject";
-      instInput.value=ref.role==="storyboard"?ref.panelOrder||"":ref.instruction||"";instInput.disabled=state.busy;
+      instInput.value=ref.role==="storyboard"?ref.panelOrder||"":ref.instruction||"";instInput.disabled=locked;
       instInput.oninput=()=>{if(ref.role==="storyboard")ref.panelOrder=instInput.value.trim();else ref.instruction=instInput.value.trim();saveDraft();updatePreviewLive();};
       instWrap.append(instLabel,instInput);card.append(instWrap);
     }
     if(ref.kind==="audio"){
-      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=state.busy;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;renderRefs();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
-      if(ref.trimEnabled)for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=state.busy;input.onchange=()=>{ref[key]=Number(input.value);updateRefDurationNotice();};card.append(label,input);}
+      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;renderRefs();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
+      if(ref.trimEnabled)for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;input.onchange=()=>{ref[key]=Number(input.value);updateRefDurationNotice();};card.append(label,input);}
     }
-    const insert=document.createElement("button");insert.type="button";insert.className="button alt smallbtn ref-insert";insert.textContent="Insert @"+ref.alias+" into prompt";insert.title=insert.textContent;insert.disabled=state.busy;insert.onclick=()=>insertReferenceMention(ref.alias,true);card.append(insert);
+    const insert=document.createElement("button");insert.type="button";insert.className="button alt smallbtn ref-insert";insert.textContent="Insert @"+ref.alias+" into prompt";insert.title=insert.textContent;insert.disabled=locked;insert.onclick=()=>insertReferenceMention(ref.alias,true);card.append(insert);
     if(ref.kind==="video"){
       const trim=document.createElement("div");trim.className="section";
-      const trimToggle=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=state.busy;
+      const trimToggle=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;
       toggle.onchange=()=>{ref.trimEnabled=toggle.checked;fitReferenceTrim(ref);renderRefs();saveDraft();};
       trimToggle.append(toggle,document.createTextNode(" Trim this video to a selected range"));trim.append(trimToggle);
-      if(ref.trimEnabled){const range=document.createElement("div");range.className="row";let useInput;const hint=document.createElement("div");hint.className="tip";const updateHint=()=>{const source=Number(ref.meta?.source_duration||ref.localDuration||0),available=source-Number(ref.trimStart);hint.textContent=!source?"Checking source video length…":available<2?"Start must leave at least 2 seconds of video.":"Available from start: "+available.toFixed(2)+" s. Use up to "+Math.min(15,available).toFixed(2)+" s.";hint.style.color=source&&available<2?"var(--bad)":"";};for(const [key,label,min,max] of [["trimStart","Start (s)",0,3600],["trimDuration","Use (s)",2,15]]){const wrap=document.createElement("div"),caption=document.createElement("label"),input=document.createElement("input");caption.textContent=label;input.type="number";input.min=min;input.max=max;input.step="0.01";input.setAttribute("aria-label",label+" for @"+ref.alias);input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=state.busy;if(key==="trimDuration")useInput=input;input.oninput=()=>{ref[key]=Number(input.value);if(key==="trimStart"&&Number.isFinite(ref.trimStart)){try{const video=icon.querySelector("video");if(video)video.currentTime=ref.trimStart;}catch{}if(fitReferenceTrim(ref))useInput.value=ref.trimDuration;}updateHint();updateRefDurationNotice();saveDraft();};wrap.append(caption,input);range.append(wrap);}trim.append(range,hint);updateHint();}
-      const fitLabel=document.createElement("label"),fit=document.createElement("input");fit.type="checkbox";fit.checked=ref.fitVideo!==false;fit.disabled=state.busy;fit.onchange=()=>{ref.fitVideo=fit.checked;saveDraft();};fitLabel.append(fit,document.createTextNode(" Auto fit oversized video to 1920×1080"));trim.append(fitLabel);card.append(trim);
+      if(ref.trimEnabled){const range=document.createElement("div");range.className="row";let useInput;const hint=document.createElement("div");hint.className="tip";const updateHint=()=>{const source=Number(ref.meta?.source_duration||ref.localDuration||0),available=source-Number(ref.trimStart);hint.textContent=!source?"Checking source video length…":available<2?"Start must leave at least 2 seconds of video.":"Available from start: "+available.toFixed(2)+" s. Use up to "+Math.min(15,available).toFixed(2)+" s.";hint.style.color=source&&available<2?"var(--bad)":"";};for(const [key,label,min,max] of [["trimStart","Start (s)",0,3600],["trimDuration","Use (s)",2,15]]){const wrap=document.createElement("div"),caption=document.createElement("label"),input=document.createElement("input");caption.textContent=label;input.type="number";input.min=min;input.max=max;input.step="0.01";input.setAttribute("aria-label",label+" for @"+ref.alias);input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;if(key==="trimDuration")useInput=input;input.oninput=()=>{ref[key]=Number(input.value);if(key==="trimStart"&&Number.isFinite(ref.trimStart)){try{const video=icon.querySelector("video");if(video)video.currentTime=ref.trimStart;}catch{}if(fitReferenceTrim(ref))useInput.value=ref.trimDuration;}updateHint();updateRefDurationNotice();saveDraft();};wrap.append(caption,input);range.append(wrap);}trim.append(range,hint);updateHint();}
+      const fitLabel=document.createElement("label"),fit=document.createElement("input");fit.type="checkbox";fit.checked=ref.fitVideo!==false;fit.disabled=locked;fit.onchange=()=>{ref.fitVideo=fit.checked;saveDraft();};fitLabel.append(fit,document.createTextNode(" Auto fit oversized video to 1920×1080"));trim.append(fitLabel);card.append(trim);
       const guidance=document.createElement("div");guidance.className="tip video-guidance";
       guidance.textContent=ref.role==="whole scene"
         ?"Whole scene guides the original subjects and setting too. For a new actor or location, choose Performance + camera. H3 cannot make a frame-locked actor replacement."
         :"Performance + camera guides movement and framing without asking H3 to retain the source actor or location. Reference videos are still generative guides, not frame-locked edits.";
       card.append(guidance);
       const sound=document.createElement("label");sound.style.marginTop="8px";
-      const check=document.createElement("input");check.type="checkbox";check.checked=!!ref.useAudio;check.disabled=state.busy||ref.meta?.has_audio===false;
+      const check=document.createElement("input");check.type="checkbox";check.checked=!!ref.useAudio;check.disabled=locked||ref.meta?.has_audio===false;
       check.onchange=()=>{
         ref.useAudio=check.checked;
         if(state.refs.filter(item=>item.kind==="audio"||item.kind==="video"&&item.useAudio).length>3){
@@ -645,7 +649,7 @@ function renderRefs() {
   renderPromptAssets();
 }
 $("addRef").onclick=()=>{
-  if(state.busy)return;
+  if(state.busy||state.projectLoading||typeof referenceMutationLocked==='function'&&referenceMutationLocked())return;
   const kind=$("refKind").value;
   if(state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]){
     info("This reference type reached the H3 limit.",true);return;
@@ -658,7 +662,7 @@ $("addRef").onclick=()=>{
   try{picker.showPicker();}catch{picker.click();}
 };
 $("refFile").onchange=()=>{
-  const kind=state.pendingRefKind;if(!kind||state.busy)return;
+  const kind=state.pendingRefKind;if(!kind||state.busy||state.projectLoading||typeof referenceMutationLocked==='function'&&referenceMutationLocked()){ $('refFile').value='';return;}
   const errors=[];
   for(const file of $("refFile").files){
     if(state.refs.length>=12||state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]||(kind==="audio"&&state.refs.filter(r=>r.kind==="audio"||r.kind==="video"&&r.useAudio).length>=3)){errors.push("Reference limit reached; remaining files were not added.");break;}
@@ -707,11 +711,11 @@ function mentionPreview(item){
   }else preview.alt=item.label+" preview";
   return preview;
 }
-function renderPromptAssets(){
+function renderPromptAssets(knownItems=null){
   const wrap=$("promptAssets");wrap.replaceChildren();
   let prompt=$("prompt").value;
   if(state.mode==='refs'){try{prompt=H3PromptCompiler.normalizeNativeReferenceTags(H3PromptCompiler.normalizeReferenceMentions(prompt,currentRenderSpec().references));}catch{}}
-  const items=mentionItems().filter(item=>!item.catalog);
+  const items=(knownItems||mentionItems()).filter(item=>!item.catalog);
   for(const item of items){
     const chip=document.createElement("button");chip.type="button";chip.className="prompt-asset";
     if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt)||(item.nativeTags||[]).some(tag=>prompt.includes(tag)))chip.classList.add("used");
@@ -728,7 +732,10 @@ function preferredReferenceMention(alias){
   const refs=currentRenderSpec().references||[],ref=refs.find(item=>item.alias===alias);
   if(!ref)return alias;
   const name=H3PromptCompiler.mentionName(ref);
-  try{if(H3PromptCompiler.normalizeReferenceMentions('@'+name,refs)==='@'+alias)return name;}catch{}
+  const attachedIds=new Set(refs.map(item=>item.asset_id||item.assetId));
+  const attachedAliases=new Set(refs.map(item=>item.alias.toLocaleLowerCase()));
+  const catalog=typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attachedIds.has(item.assetId)&&!attachedAliases.has(item.alias.toLocaleLowerCase())):[];
+  try{if(H3PromptCompiler.normalizeReferenceMentions('@'+name,[...catalog,...refs])==='@'+alias)return name;}catch{}
   return alias;
 }
 function insertReferenceMention(alias,scroll){
@@ -743,7 +750,8 @@ function mentionState() {
   const match=before.match(/@([\p{L}\p{N}_-]*)$/u);
   if(!match){$("mentionMenu").classList.add("hidden");renderPromptAssets();return;}
   const query=match[1].toLocaleLowerCase();
-  const names=mentionItems().filter(item=>[item.alias,item.label||'',item.name||''].some(value=>value.toLocaleLowerCase().includes(query))).slice(0,30);
+  const available=mentionItems();
+  const names=available.filter(item=>[item.alias,item.label||'',item.name||''].some(value=>value.toLocaleLowerCase().includes(query))).slice(0,30);
   const menu=$("mentionMenu");menu.replaceChildren();
   names.forEach((item,idx)=>{
     const b=document.createElement("button");b.type="button";
@@ -763,7 +771,7 @@ function mentionState() {
     menu.append(b);
   });
   menu.classList.toggle("hidden",!names.length);
-  renderPromptAssets();
+  renderPromptAssets(available);
 }
 $("prompt").addEventListener("input",mentionState);
 $("prompt").addEventListener("click",mentionState);
@@ -2242,7 +2250,8 @@ if ($("btnAssembleSequence")) {
   };
 }
 
-$("prompt").addEventListener("input", updatePreviewLive);
+let livePreviewTimer;
+$("prompt").addEventListener("input",()=>{clearTimeout(livePreviewTimer);livePreviewTimer=setTimeout(updatePreviewLive,120);});
 
 initLabUI();
 const missingInputs=restoreDraft();

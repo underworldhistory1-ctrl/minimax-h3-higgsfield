@@ -253,10 +253,10 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         try:
             name = body.get("name", "New Project")
             canvas = body.get("canvas")
-            proj = await asyncio.to_thread(projects.create_project, name=name, canvas=canvas)
+            proj = await asyncio.to_thread(projects.create_project, name=name, canvas=canvas, request_id=body.get("request_id"))
             return web.json_response(proj, status=201)
         except (ValueError, TypeError, AttributeError) as exc:
-            return web.json_response({'error': str(exc)}, status=400)
+            return web.json_response({'error': str(exc)}, status=getattr(exc, 'status_code', 400))
 
     async def handle_get_project(request):
         pid = request.match_info["id"]
@@ -650,6 +650,19 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             if not size:
                 raise ValueError('Asset file is empty.')
             metadata = {}
+            if kinds[suffix] == "image":
+                def inspect_image():
+                    from PIL import Image
+                    try:
+                        with Image.open(temporary) as image:
+                            if image.width * image.height > 40_000_000:
+                                raise ValueError('Image exceeds 40 megapixels')
+                            dimensions = {'width': image.width, 'height': image.height}
+                            image.verify()
+                            return dimensions
+                    except (OSError, SyntaxError, Image.DecompressionBombError) as error:
+                        raise ValueError('The image cannot be decoded') from error
+                metadata = await asyncio.to_thread(inspect_image)
             if kinds[suffix] == "video":
                 def process_video_asset(source_path):
                     import subprocess

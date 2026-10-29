@@ -149,7 +149,7 @@ class OrganizationMixin(ReuseGroupsMixin):
                 if closure.intersection(source.get('accepted_take_ids', [])):
                     raise ValueError('Accepted sequence takes must be copied, or removed from the sequence before moving.')
             required = selected_assets | asset_ids([takes[t] for t in closure])
-            catalog = {a['asset_id']: a for a in source['assets']}
+            catalog = {a['asset_id']: a for a in [*source.get('archived_assets', []), *source['assets']]}
             if not required.issubset(catalog):
                 raise ValueError('A required reference is missing from the source project catalog')
             for aid in required:
@@ -297,7 +297,8 @@ class OrganizationMixin(ReuseGroupsMixin):
                 used = {a['alias'].casefold() for a in target['assets']}
                 original = None
                 if prepared['source_project_id']:
-                    original = next((a for a in self.get_project(prepared['source_project_id'])['assets'] if a['asset_id'] == rec['asset_id']), None)
+                    source = self.get_project(prepared['source_project_id'])
+                    original = next((a for a in [*source.get('archived_assets', []), *source['assets']] if a['asset_id'] == rec['asset_id']), None)
                 item = copy.deepcopy(original) if original else {'asset_id':rec['asset_id'],'kind':rec['kind'],'server_path':rec['server_path'],
                     'name':rec['original_name'],'alias':pathlib.Path(rec['original_name']).stem,'category':'custom','role':'custom','notes':''}
                 if not any(c['id']==item['category'] for c in target['asset_categories']): item['category']='custom'

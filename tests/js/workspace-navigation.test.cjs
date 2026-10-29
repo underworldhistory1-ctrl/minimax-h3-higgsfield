@@ -25,7 +25,7 @@ test('reference rename is shot-local, rewrites case variants and rejects alias c
  const source=fs.readFileSync('web/studio.js','utf8');
  const handler=source.slice(source.indexOf('    name.onchange=()=>{'),source.indexOf('    nameWrap.append(nameLabel,name);'));
  const ref={alias:'Hero',assetId:'a'},name={value:'1'},prompt={value:'@HERO walks past @heroine'};let mutations=0;
- const context={ref,name,state:{refs:[ref,{alias:'2'}],prompts:{refs:'@hero enters'},currentProject:{}},$:()=>prompt,renderRefs(){},saveDraft(){},updatePreviewLive(){},workspaceMutation(){mutations++;},info(){}};
+ const context={locked:false,ref,name,state:{refs:[ref,{alias:'2'}],prompts:{refs:'@hero enters'},currentProject:{}},$:()=>prompt,renderRefs(){},saveDraft(){},updatePreviewLive(){},workspaceMutation(){mutations++;},info(){}};
  vm.createContext(context);vm.runInContext(handler,context);name.onchange();
  assert.equal(ref.alias,'1');assert.equal(prompt.value,'@1 walks past @heroine');assert.equal(context.state.prompts.refs,'@1 enters');assert.equal(mutations,0);
  name.value='TWO';context.state.refs[1].alias='two';name.onchange();assert.equal(ref.alias,'1');assert.equal(name.value,'1');

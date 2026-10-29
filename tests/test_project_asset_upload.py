@@ -56,3 +56,9 @@ class ProjectAssetUploadTests(AioHTTPTestCase):
                                              headers={'Content-Type': 'application/octet-stream'})
             self.assertEqual(response.status, 400, name)
         self.assertEqual(self.services['projects'].get_project(self.project['project_id'])['assets'], [])
+
+
+    async def test_corrupt_image_never_creates_an_element(self):
+        response=await self.client.post('/h3_studio/lab/assets?filename=broken.png&project_id='+self.project['project_id'],data=b'not an image',headers={'Content-Type':'application/octet-stream'})
+        self.assertEqual(response.status,400)
+        self.assertEqual(self.services['projects'].get_project(self.project['project_id'])['assets'],[])

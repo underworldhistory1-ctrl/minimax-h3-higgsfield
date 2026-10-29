@@ -270,3 +270,15 @@ class OrganizationTests(unittest.TestCase):
         prepared=self.service.prepare_reuse(take['output_file'])
         self.assertEqual(prepared['draft']['configuration']['audioRefinement'],audio)
         self.assertTrue(prepared['draft']['configuration']['preserveReferenceAudio'])
+
+
+    def test_replaced_historical_image_remains_reusable_and_transferable(self):
+        take=self.take()
+        path=self.root/'new-hero.png';path.write_bytes(b'new fixture image')
+        image=self.assets.register_asset(str(path),'image','new-hero.png')
+        self.source=self.service.update_workspace(self.source['project_id'],{'action':'replace_asset','asset_id':self.asset['asset_id'],'replacement_id':image['asset_id']},self.source['revision'])
+        reused=self.service.create_reuse_project(take['output_file'],str(uuid.uuid4()))['project']
+        self.assertEqual(reused['draft']['refs'][0]['assetId'],self.asset['asset_id'])
+        self.assertEqual(reused['assets'][0]['name'],'Hero')
+        copied=self.service.transfer(self.source['project_id'],self.body(asset_ids=[],take_ids=[take['take_id']]))
+        self.assertEqual(copied['target']['takes'][0]['draft']['refs'][0]['assetId'],self.asset['asset_id'])

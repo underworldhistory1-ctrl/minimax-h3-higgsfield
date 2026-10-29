@@ -31,7 +31,7 @@ let browser;const submissions=[];
  await page.reload();await page.waitForFunction(()=>document.querySelectorAll('.project-card').length>=3);
  await page.locator('#projectSearch').fill(String(stamp));await page.waitForFunction(()=>document.querySelectorAll('.project-card').length===3);
  assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'grid');assert.equal(await page.locator('[data-project-view=grid]').getAttribute('aria-pressed'),'true');
- assert.equal(await page.locator('.project-card .project-card-preview').count(),3);assert.equal(await page.locator('.project-card .project-card-actions button').count(),12);
+ assert.equal(await page.locator('.project-card .project-card-preview').count(),3);assert.equal(await page.locator('.project-card .project-card-actions > *').count(),12);
  const width=await page.locator('.project-card').first().evaluate(e=>e.getBoundingClientRect().width);assert.ok(width<500,'bounded card density');
  await page.screenshot({path:path.join(out,'project-library-grid.png')});
  await page.getByRole('button',{name:'List view',exact:true}).click();assert.equal(await page.locator('#projectHubList').getAttribute('data-view'),'list');await page.screenshot({path:path.join(out,'project-library-list.png')});

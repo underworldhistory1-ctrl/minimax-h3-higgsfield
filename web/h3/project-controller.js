@@ -37,6 +37,7 @@
       const mutation=options.method&&options.method.toUpperCase()!=='GET';
       if(mutation)this.projectListRequest=null;
       const res = await fetch(this.apiUrl(endpoint), {
+        signal: AbortSignal.timeout(options.body instanceof Blob ? 10 * 60 * 1000 : 60000),
         ...options,
         headers: { ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...(options.headers || {}) },
       });
@@ -127,10 +128,13 @@
     }
 
     async createProject(name = 'New Project', canvas = null) {
+      const key=JSON.stringify([name,canvas]);
+      if(this.pendingCreate?.key!==key)this.pendingCreate={key,requestId:crypto.randomUUID()};
       const data = await this.fetchJson('/h3_studio/lab/projects', {
         method: 'POST',
-        body: JSON.stringify({ name, canvas }),
+        body: JSON.stringify({ name, canvas, request_id: this.pendingCreate.requestId }),
       });
+      this.pendingCreate=null;
       this.currentProject = data;
       this.draftScope = {};
       try {

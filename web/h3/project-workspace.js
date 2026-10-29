@@ -20,6 +20,7 @@ function projectOpenAction(project){
   return link;
 }
 let workspaceCatalogBusy=false;
+let catalogPage={key:'',limit:60},catalogSearchTimer;
 function workspaceLocked(){return state.busy||state.projectLoading||workspaceCatalogBusy;}
 function projectCatalogItems(){
   return (state.currentProject?.assets||[]).filter(asset=>asset.asset_id&&asset.alias).map(asset=>({
@@ -156,18 +157,14 @@ function syncPromptMentionsToReferences(){
   if(!state.currentProject?.assets||workspaceLocked())return Promise.resolve();
   const pid=state.activeProjectId;
   syncMentionsPending=(async()=>{
-    for(const item of projectCatalogItems()){
+    const attachedIds=new Set(state.refs.map(ref=>ref.assetId));
+    const attachedAliases=new Set(state.refs.map(ref=>ref.alias.toLocaleLowerCase()));
+    const catalog=projectCatalogItems().filter(ref=>!attachedIds.has(ref.assetId)&&!attachedAliases.has(ref.alias.toLocaleLowerCase()));
+    const text=H3PromptCompiler.normalizeReferenceMentions($('prompt').value||'',[...catalog,...state.refs]);
+    const mentions=new Set([...text.matchAll(/@([\p{L}\p{N}_-]+)/gu)].map(match=>match[1].toLocaleLowerCase()));
+    for(const item of catalog){
       if(pid!==state.activeProjectId)return;
-      // Shot aliases are authoritative, including numeric aliases restored by Reuse.
-      // Catalog names/history must never reinterpret an attached @1 as another asset.
-      const attachedIds=new Set(state.refs.map(ref=>ref.assetId));
-      const attachedAliases=new Set(state.refs.map(ref=>ref.alias.toLocaleLowerCase()));
-      const catalog=projectCatalogItems().filter(ref=>!attachedIds.has(ref.assetId)&&!attachedAliases.has(ref.alias.toLocaleLowerCase()));
-      if(!catalog.some(ref=>ref.assetId===item.assetId))continue;
-      const text=H3PromptCompiler.normalizeReferenceMentions($('prompt').value||'',[...catalog,...state.refs]);
-      const mentions=new Set([...text.matchAll(/@([\p{L}\p{N}_-]+)/gu)].map(match=>match[1]));
-      if(!mentions.has(item.alias)||state.refs.some(ref=>ref.assetId===item.assetId))continue;
-      await activateProjectAsset(item);
+      if(mentions.has(item.alias.toLocaleLowerCase())&&!state.refs.some(ref=>ref.assetId===item.assetId))await activateProjectAsset(item);
     }
   })().finally(()=>{syncMentionsPending=null;});
   return syncMentionsPending;
@@ -195,7 +192,7 @@ async function insertProjectMention(item,range=null){
 function refreshProjectHubControls(){
   const locked=workspaceLocked();
   $('projectSelect').disabled=locked;
-  for(const id of ['btnNewProject','projectHubCreate','newProjectFolder'])if($(id))$(id).disabled=locked;
+  for(const id of ['btnNewProject','projectHubCreate','newProjectFolder','newProjectName'])if($(id))$(id).disabled=locked;
   for(const id of ['btnSaveProject','btnExportProject'])if($(id))$(id).disabled=locked||!state.currentProject;
   for(const button of $('projectHubList')?.querySelectorAll('button')||[])button.disabled=button.dataset.browseFolder?false:locked;
 }
@@ -219,8 +216,11 @@ function renderProjectCatalog(){
   const folder=$('assetFolderFilter')?.value||'all';
   const items=projectCatalogItems().filter(item=>(filter==='all'||item.category===filter)&&(kind==='all'||item.kind===kind)&&(folder==='all'||(folder==='unfiled'?!item.folder_id:item.folder_id===folder))&&[item.label,item.alias,item.notes||''].some(value=>value.toLocaleLowerCase().includes(search)));
   if($('assetSort')?.value==='name')items.sort((a,b)=>a.label.localeCompare(b.label));
-  $('assetLibraryCount').textContent=items.length+' shown · '+project.assets.length+' in project';
-  for(const item of items){
+  const pageKey=JSON.stringify([project.project_id,search,filter,kind,folder,$('assetSort')?.value]);
+  if(catalogPage.key!==pageKey)catalogPage={key:pageKey,limit:60};
+  const visible=items.slice(0,catalogPage.limit);
+  $('assetLibraryCount').textContent=visible.length+' / '+items.length+' shown · '+project.assets.length+' in project';
+  for(const item of visible){
     const row=workspaceElement('article',undefined,'catalog-asset');
     if(typeof H3OrganizationUI!=='undefined')H3OrganizationUI.assetSelection(item,row);
     if(item.kind==='image'){const image=workspaceElement('img');image.src=item.previewUrl;image.alt=item.label;image.loading='lazy';image.decoding='async';image.onerror=()=>image.replaceWith(workspaceElement('span','Image','asset-kind'));row.append(image);}
@@ -229,23 +229,106 @@ function renderProjectCatalog(){
     const actions=workspaceElement('div',undefined,'catalog-actions');
     const use=workspaceButton('Use',()=>insertProjectMention(item).then(()=>setWorkspaceView('studio')));use.disabled=workspaceLocked();
     const preview=workspaceButton('Preview',()=>previewProjectAsset(item));preview.disabled=workspaceLocked();
-    const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(preview,use,edit);row.append(actions);list.append(row);
+    const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(preview,use,edit);if(item.kind==='image'){const replace=workspaceButton('Replace image',()=>requestElementReplacement(item));replace.disabled=workspaceLocked();replace.title='Replace this element in editable setups; existing takes keep their original image.';actions.append(replace);}row.append(actions);list.append(row);
   }
+  if(items.length>visible.length){const more=workspaceButton('Show next 60 elements',()=>{catalogPage.limit+=60;renderProjectCatalog();});more.classList.add('catalog-more');list.append(more);}
   if(!items.length){const empty=workspaceElement('div','No assets here yet. Choose an upload category and add your files, or change the filters.','asset-library-empty');list.append(empty);}
 
 }
 function editProjectAsset(item){
-  const dialog=$('assetEditDialog');dialog.dataset.assetId=item.assetId;
+  const dialog=$('assetEditDialog');dialog.dataset.assetId=item.assetId;dialog.dataset.projectId=state.activeProjectId;dialog.dataset.revision=state.currentProject.revision;
   $('assetEditStatus').textContent='';$('assetEditName').value=item.label;$('assetEditNotes').value=item.notes||'';
   const updateAliasPreview=()=>{
     const custom=$('assetEditName').value.trim();
     const alias=H3PromptCompiler.mentionName({name:custom,alias:item.alias});
-    $('assetEditAlias').textContent='Mention identifier: @'+alias;
+    $('assetEditAlias').textContent='Suggested name: @'+alias+' · Stable identifier: @'+item.alias;
   };
   $('assetEditName').oninput=updateAliasPreview;
   updateAliasPreview();
   $('assetEditCategory').replaceChildren();for(const category of state.currentProject.asset_categories){const option=workspaceElement('option',category.name);option.value=category.id;$('assetEditCategory').append(option);}
   $('assetEditCategory').value=item.category;dialog.showModal();
+}
+function referenceMutationLocked(){return workspaceLocked();}
+function pickReplacementImage(action){
+  if(workspaceLocked())return;
+  const picker=document.createElement('input');picker.type='file';picker.accept='.png,.jpg,.jpeg,.webp';
+  picker.onchange=()=>{const file=picker.files[0];if(file)Promise.resolve(action(file)).catch(error=>info(error.message,true));};
+  picker.click();
+}
+async function verifyReplacementImage(file){
+  if(!mediaRules.image.ext.test(file.name)||!file.size||file.size>mediaRules.image.max)throw Error('Choose a non-empty PNG, JPEG or WebP image up to 25 MB.');
+  const url=URL.createObjectURL(file);
+  try{
+    await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>image.naturalWidth*image.naturalHeight<=40000000?resolve():reject(Error('Image exceeds 40 megapixels.'));image.onerror=()=>reject(Error('The image cannot be decoded. Your original reference is unchanged.'));image.src=url;});
+  }finally{URL.revokeObjectURL(url);}
+}
+function swapReferenceImage(ref,file,assetId=null){
+  const previous=new Set([ref.url,ref.previewUrl,ref.originalPreviewUrl]);
+  for(const key of ['url','previewUrl','originalPreviewUrl','meta','uploadProgress','uploadReady','restoreError','localDuration'])delete ref[key];
+  ref.file=file;ref.assetId=assetId;ref.url=ref.previewUrl=URL.createObjectURL(file);
+  for(const url of previous)if(url)URL.revokeObjectURL(url);
+}
+function requestReferenceReplacement(ref){pickReplacementImage(file=>replaceShotReference(ref,file));}
+async function replaceShotReference(ref,file){
+  if(workspaceLocked()||!state.refs.includes(ref))throw Error('Finish the current operation before replacing this reference.');
+  const controller=projectCtrl,pid=state.activeProjectId;
+  await withProjectLoading(async()=>{
+    await verifyReplacementImage(file);
+    if(controller!==projectCtrl||pid!==state.activeProjectId||!state.refs.includes(ref))throw Error('The project changed. Select the reference again.');
+    swapReferenceImage(ref,file);
+    try{await updateRefFitPreview(ref);}catch(error){info('Image replaced; fit preview unavailable: '+error.message,true);}
+    syncRestoredInputStatus();saveDraft();
+  });
+  renderRefs();updatePreviewLive();info('Reference replaced in this shot. Its mention name and position are unchanged. Save setup to retain it on the server.');
+}
+function requestElementReplacement(item){pickReplacementImage(file=>replaceProjectElement(item,file));}
+async function replaceProjectElement(item,file){
+  if(workspaceLocked()||!state.currentProject?.assets.some(asset=>asset.asset_id===item.assetId))throw Error('Select an element in the current project first.');
+  const controller=projectCtrl,project=state.currentProject;
+  try{await withProjectLoading(async()=>{
+    await verifyReplacementImage(file);
+    $('assetUploadStatus').textContent='Uploading replacement for '+item.label+'…';
+    const asset=await controller.uploadAsset(file,null);
+    if(controller!==projectCtrl||state.activeProjectId!==project.project_id)throw Error('The project changed. The original element is unchanged.');
+    let updated;
+    try{
+      updated=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}/workspace`,{method:'POST',body:JSON.stringify({operation:{action:'replace_asset',asset_id:item.assetId,replacement_id:asset.asset_id},expected_revision:project.revision})});
+    }catch(error){
+      // The server may have committed before its response was lost. Read back
+      // the exact swap once; never retry a mutation or overwrite a different edit.
+      if(error.status&&error.status<500)throw error;
+      const latest=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}`).catch(()=>null);
+      if(!latest?.assets.some(entry=>entry.asset_id===asset.asset_id&&entry.alias===item.alias)||
+        item.assetId!==asset.asset_id&&latest.asset_replacements?.[item.assetId]!==asset.asset_id)throw error;
+      updated=latest;
+    }
+    if(controller!==projectCtrl||state.activeProjectId!==project.project_id)throw Error('The project changed. Reopen it to see the saved replacement.');
+    for(const ref of allInputItems())if(ref.assetId===item.assetId)swapReferenceImage(ref,file,asset.asset_id);
+    controller.currentProject=updated;updateProjectUI(updated);syncRestoredInputStatus();saveDraft();
+    if(typeof H3TabDraftStore!=='undefined')try{await H3TabDraftStore.save(tabProjectDraftKey(project.project_id),captureProjectDraft(true));}catch(error){info('Image saved on the server; this tab could not save its local setup: '+error.message,true);}
+    $('assetUploadStatus').textContent='Image replaced. Element name and saved shot bindings are retained.';
+  });}catch(error){
+    $('assetUploadStatus').textContent='Replacement did not finish: '+error.message;
+    if(error.status===409&&controller===projectCtrl&&state.activeProjectId===project.project_id)await controller.loadProject(project.project_id);
+    throw error;
+  }
+  await Promise.all([renderFrameItem('first'),renderFrameItem('last'),...state.refs.filter(ref=>ref.kind==='image').map(ref=>updateRefFitPreview(ref).catch(error=>info(error.message,true)))]);renderGuides();if(window.H3ConnectedStudio)H3ConnectedStudio.restoreControl();
+  renderRefs();renderProjectCatalog();updatePreviewLive();
+}
+function rebaseWorkspaceAssets(draft,project){
+  if(!draft||draft.reuse_source||!project?.asset_replacements)return draft;
+  const result={...draft},replacements=project.asset_replacements,currentIds=new Set((project.assets||[]).map(asset=>asset.asset_id));
+  const rebase=ref=>{
+    if(!ref)return ref;
+    let id=ref.assetId;const seen=new Set();
+    while(!currentIds.has(id)&&replacements[id]&&!seen.has(id)){seen.add(id);id=replacements[id];}
+    if(id===ref.assetId)return ref;
+    const next={...ref,assetId:id};for(const key of ['file','url','previewUrl','originalPreviewUrl','meta','restoreError','uploadReady'])delete next[key];return next;
+  };
+  for(const key of ['first','last'])result[key]=rebase(draft[key]);
+  for(const key of ['refs','guides'])result[key]=(draft[key]||[]).map(rebase);
+  result.controlInputs=Object.fromEntries(Object.entries(draft.controlInputs||{}).map(([key,ref])=>[key,rebase(ref)]));
+  return result;
 }
 async function createWorkspaceProject(name){
   if(workspaceLocked()||!projectCtrl)return;
@@ -253,7 +336,8 @@ async function createWorkspaceProject(name){
   await withProjectLoading(async()=>{
     await saveWorkspaceDraft();
     const blank=emptyWorkspaceDraft();
-    const project=await H3OrganizationUI.fileNewProject(await projectCtrl.createProject(name,blank.canvas));
+    let project=await projectCtrl.createProject(name,blank.canvas);
+    try{project=await H3OrganizationUI.fileNewProject(project);}catch(error){info('Project created, but moving it to the selected folder failed: '+error.message,true);}
     H3ScenesUI.restore(project);state.current=null;state.currentClipId=null;
     await hydrateProjectDraft(blank);updateProjectUI(project);
   });
@@ -287,7 +371,8 @@ function initProjectWorkspace(){
     try{await createWorkspaceProject(name);}
     catch(error){$('projectHubStatus').textContent=error.message;}
   };
-  $('assetSearch').oninput=renderProjectCatalog;
+  $('newProjectName').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();$('projectHubCreate').click();}});
+  $('assetSearch').oninput=()=>{clearTimeout(catalogSearchTimer);catalogSearchTimer=setTimeout(renderProjectCatalog,120);};
   $('assetFilter').onchange=renderProjectCatalog;
   $('renameAssetCategory').onclick=()=>{const id=$('assetCategory').value,category=state.currentProject?.asset_categories.find(c=>c.id===id);if(!category)return;const name=prompt('Category name',category.name);if(name?.trim())workspaceMutation({action:'rename_category',category:id,name}).catch(error=>info(error.message,true));};$('assetKindFilter').onchange=renderProjectCatalog;
   $('addAssetCategory').onclick=()=>{const name=prompt('New asset category');if(name?.trim())workspaceMutation({action:'add_category',name}).catch(error=>info(error.message,true));};
@@ -301,13 +386,26 @@ function initProjectWorkspace(){
         $('assetUploadStatus').textContent=`Saved ${++done}/${files.length} assets`;
       }
     }catch(error){$('assetUploadStatus').textContent=error.message;}
-    finally{workspaceCatalogBusy=false;$('projectAssetFiles').value='';if(controller===projectCtrl&&pid===state.activeProjectId)await controller.loadProject(pid);renderProjectCatalog();}
+    finally{
+      $('projectAssetFiles').value='';
+      try{
+        if(controller===projectCtrl&&pid===state.activeProjectId){
+          const updated=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(pid)}`);
+          if(controller===projectCtrl&&pid===state.activeProjectId){controller.currentProject=updated;updateProjectUI(updated);}
+        }
+      }catch(error){$('assetUploadStatus').textContent='Files may be saved; catalog refresh failed: '+error.message;}
+      finally{workspaceCatalogBusy=false;renderProjectCatalog();}
+    }
   };
   $('projectAssetFiles').onchange=()=>uploadCatalogFiles([...$('projectAssetFiles').files]);
   const drop=$('assetDropzone');drop.ondragover=event=>{event.preventDefault();drop.classList.add('dragging');};drop.ondragleave=()=>drop.classList.remove('dragging');drop.ondrop=event=>{event.preventDefault();drop.classList.remove('dragging');uploadCatalogFiles([...event.dataTransfer.files]).catch(error=>info(error.message,true));};drop.onclick=()=>$('assetUpload').click();
   $('assetEditSave').onclick=async()=>{
-    try{await workspaceMutation({action:'edit_asset',asset_id:$('assetEditDialog').dataset.assetId,name:$('assetEditName').value,category:$('assetEditCategory').value,notes:$('assetEditNotes').value});$('assetEditDialog').close();}
-    catch(error){$('assetEditStatus').textContent=error.message;}
+    if($('assetEditSave').disabled)return;
+    const dialog=$('assetEditDialog');if(dialog.dataset.projectId!==state.activeProjectId){$('assetEditStatus').textContent='Project changed. Close this dialog and select the element again.';return;}
+    $('assetEditSave').disabled=true;
+    try{await workspaceMutation({action:'edit_asset',asset_id:$('assetEditDialog').dataset.assetId,name:$('assetEditName').value,category:$('assetEditCategory').value,notes:$('assetEditNotes').value},{project_id:dialog.dataset.projectId,revision:Number(dialog.dataset.revision)});$('assetEditDialog').close();}
+    catch(error){$('assetEditStatus').textContent=error.message;if(state.activeProjectId===dialog.dataset.projectId)dialog.dataset.revision=state.currentProject.revision;}
+    finally{$('assetEditSave').disabled=false;}
   };
   $('assetEditClose').onclick=()=>$('assetEditDialog').close();
   $('libraryScope').onchange=()=>{state.visibleResults=16;renderResults();};

@@ -106,3 +106,105 @@ class ProjectWorkspaceTests(unittest.TestCase):
         self.assertEqual(renamed['assets'][0]['name'],'Named Hero')
         self.assertEqual(renamed['assets'][0]['alias'],original['alias'])
         self.assertEqual(renamed['draft'],project['draft'])
+
+
+    def test_replace_element_rebases_editable_drafts_but_preserves_takes(self):
+        old, new = self.asset(41), self.asset(42)
+        project = self.projects.attach_asset(self.pid,old,'characters','Hero')
+        original = project['assets'][0].copy()
+        draft = {'refs':[{'assetId':old['asset_id'],'alias':'shot_hero','role':'custom','trimStart':2}], 'prompts':{'refs':'@shot_hero'}}
+        project['draft'] = json.loads(json.dumps(draft))
+        project['scenes'] = []
+        project['takes'] = [{'take_id':'past','draft':json.loads(json.dumps(draft))}]
+        project = self.projects.save_project(self.pid,project,project['revision'])
+        changed = self.projects.update_workspace(self.pid,{'action':'replace_asset','asset_id':old['asset_id'],'replacement_id':new['asset_id']},project['revision'])
+        self.assertEqual(len(changed['assets']),1)
+        self.assertEqual(changed['assets'][0]['asset_id'],new['asset_id'])
+        self.assertEqual(changed['assets'][0]['alias'],original['alias'])
+        self.assertEqual(changed['draft']['refs'][0]['assetId'],new['asset_id'])
+        self.assertEqual(changed['draft']['refs'][0]['alias'],'shot_hero')
+        self.assertEqual(changed['draft']['prompts'],draft['prompts'])
+        self.assertEqual(changed['takes'][0]['draft'],draft)
+        self.assertIsNotNone(self.assets.get_asset(old['asset_id']))
+
+    def test_replacement_cannot_merge_two_existing_elements_or_use_stale_revision(self):
+        a,b = self.asset(51), self.asset(52)
+        project = self.projects.attach_asset(self.pid,a,'characters','First')
+        revision = project['revision']
+        project = self.projects.attach_asset(self.pid,b,'characters','Second')
+        op={'action':'replace_asset','asset_id':a['asset_id'],'replacement_id':b['asset_id']}
+        with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,op,project['revision'])
+        with self.assertRaises(ValueError) as error:self.projects.update_workspace(self.pid,op,revision)
+        self.assertEqual(error.exception.status_code,409)
+        self.assertEqual(len(self.projects.get_project(self.pid)['assets']),2)
+
+    def test_modern_catalog_does_not_stat_every_original_for_each_project_read(self):
+        from unittest.mock import patch
+        self.projects.attach_asset(self.pid,self.asset(61),'characters','Hero')
+        with patch.object(self.assets,'get_asset',side_effect=AssertionError('Redundant filesystem lookup')):
+            project=self.projects.get_project(self.pid)
+        self.assertEqual(project['assets'][0]['name'],'Hero')
+
+
+    def test_replacement_archive_survives_portable_export_and_import(self):
+        a,b=self.asset(71),self.asset(72)
+        project=self.projects.attach_asset(self.pid,a,'characters','Original Hero')
+        project['takes']=[{'take_id':'past','draft':{'refs':[{'assetId':a['asset_id'],'alias':'hero'}]}}]
+        project=self.projects.save_project(self.pid,project,project['revision'])
+        project=self.projects.update_workspace(self.pid,{'action':'replace_asset','asset_id':a['asset_id'],'replacement_id':b['asset_id']},project['revision'])
+        bundle=self.projects.export_bundle(self.pid)
+        imported=self.projects.import_bundle(str(bundle))
+        self.assertEqual(len(imported['assets']),1)
+        self.assertEqual(len(imported['archived_assets']),1)
+        self.assertEqual(imported['takes'][0]['draft']['refs'][0]['assetId'],imported['archived_assets'][0]['asset_id'])
+        self.assertEqual(imported['assets'][0]['name'],'Original Hero')
+
+    def test_replacing_with_original_prunes_cycle_and_preserves_one_archive_record(self):
+        a,b=self.asset(81),self.asset(82)
+        project=self.projects.attach_asset(self.pid,a,'characters','Hero')
+        for old,new in [(a,b),(b,a),(a,b)]:
+            project=self.projects.update_workspace(self.pid,{'action':'replace_asset','asset_id':old['asset_id'],'replacement_id':new['asset_id']},project['revision'])
+            self.assertNotIn(new['asset_id'],project['asset_replacements'])
+            self.assertEqual(project['asset_replacements'][old['asset_id']],new['asset_id'])
+            self.assertEqual(len(project['archived_assets']),1)
+
+    def test_legacy_duplicate_aliases_are_disambiguated_without_rewriting_shot(self):
+        a,b=self.asset(91),self.asset(92)
+        project=self.projects.attach_asset(self.pid,a,'characters','Hero')
+        project=self.projects.attach_asset(self.pid,b,'characters','Other')
+        project['assets'][1]['alias']='HERO'
+        project['draft']={'refs':[{'assetId':b['asset_id'],'alias':'HERO'}]}
+        self.projects._write_manifest(self.pid,project)
+        loaded=self.projects.get_project(self.pid)
+        self.assertEqual(len({a['alias'].casefold() for a in loaded['assets']}),2)
+        self.assertEqual(loaded['draft']['refs'][0]['alias'],'HERO')
+
+
+    def test_reupload_original_is_independent_and_bundle_has_unique_payloads(self):
+        a,b=self.asset(101),self.asset(102)
+        project=self.projects.attach_asset(self.pid,a,'characters','Hero')
+        project=self.projects.update_workspace(self.pid,{'action':'replace_asset','asset_id':a['asset_id'],'replacement_id':b['asset_id']},project['revision'])
+        project=self.projects.attach_asset(self.pid,a,'characters','Earlier costume')
+        self.assertEqual(len(project['assets']),2)
+        with zipfile.ZipFile(self.projects.export_bundle(self.pid)) as archive:
+            media=[name for name in archive.namelist() if name.startswith('assets/')]
+            self.assertEqual(len(media),len(set(media)))
+
+    def test_replacement_preserves_another_project_using_the_same_image(self):
+        a,b=self.asset(111),self.asset(112)
+        project=self.projects.attach_asset(self.pid,a,'characters','Hero')
+        other=self.projects.create_project('Other film')
+        self.projects.attach_asset(other['project_id'],a,'characters','Other Hero')
+        self.projects.update_workspace(self.pid,{'action':'replace_asset','asset_id':a['asset_id'],'replacement_id':b['asset_id']},project['revision'])
+        self.assertEqual(self.projects.get_project(other['project_id'])['assets'][0]['asset_id'],a['asset_id'])
+
+
+    def test_creation_request_is_retry_safe_and_rejects_different_payload(self):
+        import uuid
+        request=str(uuid.uuid4())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            created=list(pool.map(lambda _:self.projects.create_project('New film',request_id=request),range(4)))
+        self.assertEqual(len({p['project_id'] for p in created}),1)
+        with self.assertRaises(ValueError) as error:self.projects.create_project('Different film',request_id=request)
+        self.assertEqual(error.exception.status_code,409)
+        self.assertEqual(len(self.projects.list_projects()),2)

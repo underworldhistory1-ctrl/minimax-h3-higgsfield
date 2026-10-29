@@ -1,12 +1,20 @@
 # H3 Higgsfield
 
-**Current release: 2.5.7 · update notifications and workspace navigation**
+**Current release: 2.5.8 · project and element integrity**
 
 ### Updates and ComfyUI
 
 The shared video/image header opens the ComfyUI node editor in a separate tab. Updates shows a numbered badge when a new official revision is available and checks again while Studio is in use. The update sheet preserves generation and recovery guards; installation still requires an idle queue and a manual ComfyUI restart.
 
 [Community request review](docs/COMMUNITY_REVIEW_2026_10_29.md) records existing features, implemented improvements and options that still need validation.
+
+### Project elements and image replacement
+
+A collapsed image Reference card has **Replace** beside Remove. It changes that shot's image while keeping the mention name, role and position. Save setup to retain this shot change on the server. **Replace image** in Elements replaces the reusable element and its editable saved shot bindings, retaining its display name, identifier, category and notes. Historical takes keep their original image; those archived originals remain in project exports and can still be reused or copied.
+
+Corrupt images and failed uploads retain the original. Revision checks reject stale edits; a lost replacement response is reconciled by reading the exact saved operation, without resubmitting it. Project creation requests also retain one identity across retries in the active tab. Catalog names and shot mention names remain separate; case collisions and ambiguous display mentions cannot silently choose another reference. Large element libraries render 60 items at a time while search covers all elements.
+
+[Project and Elements verification](docs/PROJECT_ELEMENTS_PLAN_2026_10_29.md) records the failure cases and test boundaries.
 
 ### Reference names and native tags
 

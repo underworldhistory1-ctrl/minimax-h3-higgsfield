@@ -65,7 +65,7 @@ function refreshLabControls(){
   if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if(typeof refreshProjectHubControls==="function")refreshProjectHubControls();
   const paused=state.labCapabilities?.inference_enabled===false;
-  $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject;
+  $("generate").disabled=state.busy||state.projectLoading||paused||!state.currentProject||(typeof workspaceLocked==='function'&&workspaceLocked());
   let banner=$("v2StandbyBanner");
   if(!banner){banner=document.createElement("div");banner.id="v2StandbyBanner";banner.setAttribute("role","status");banner.style.cssText="padding:12px 20px;background:#352d12;color:#ffe69a;border-bottom:1px solid #695922;font-size:13px";document.querySelector(".top").after(banner);}
   banner.hidden=!paused;
@@ -170,7 +170,8 @@ async function renderFrameItem(which){
   const item=state[which],box=$(which==="first"?"firstBox":"lastBox");box.replaceChildren();
   if(!item){box.textContent=which==="first"?"+ Add start frame":"+ Add end frame";$(which==="first"?"clearFirst":"clearLast").classList.add("hidden");return;}
   if(item.restoreError){box.append(missingInputCard(item,()=>{state[which]=null;void renderFrameItem(which);}));$(which==='first'?'clearFirst':'clearLast').classList.remove('hidden');return;}
-  const fitted=await fitFrameImage(item.file);if(state[which]!==item)return;
+  const file=item.file,width=state.width,height=state.height,fit=$("frameFit").value;
+  const fitted=await fitFrameImage(file);if(state[which]!==item||item.file!==file||state.width!==width||state.height!==height||$("frameFit").value!==fit)return;
   const img=document.createElement("img");img.src=URL.createObjectURL(fitted);img.alt=which+" frame fit preview";img.onload=()=>URL.revokeObjectURL(img.src);box.append(img);$(which==="first"?"clearFirst":"clearLast").classList.remove("hidden");
 }
 async function persistProjectDraft(){
@@ -206,7 +207,7 @@ async function hydrateWorkspaceDraft(project){
   try{local=await H3TabDraftStore.load(scopeKey);}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
   if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
   const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
-  await hydrateProjectDraft(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft(),{preserveFailedLocal:!!state.tabDraftRestoreError});
+  await hydrateProjectDraft(rebaseWorkspaceAssets(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft(),project),{preserveFailedLocal:!!state.tabDraftRestoreError});
   return true;
 }
 async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
@@ -261,6 +262,14 @@ async function refreshProjectList(){
   const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="Choose project…";select.append(placeholder);
   for(const project of response.projects||[]){const option=document.createElement("option");option.value=project.project_id;option.textContent=project.name;select.append(option);}select.value=state.activeProjectId||"";
 }
+async function restoreProjectTake(take){
+  if(!take?.draft)throw Error('Original inputs are not stored for this older result.');
+  await withProjectLoading(async()=>{
+    state.currentClipId=take.clip_id;
+    await hydrateProjectDraft({...take.draft,reuse_source:{project_id:state.activeProjectId,take_id:take.take_id,output_file:take.output_file||null}});
+  });
+  info('Original take settings and inputs restored. Change the seed for a retry.');
+}
 function initLabUI(){
   state.hydrationEpoch=0;
   refreshMediaExports();setInterval(refreshMediaExports,2000);
@@ -290,7 +299,7 @@ function initLabUI(){
     if(api("")!==videoActionsOrigin)return;
     return upscaleVideoEntry(videoActionsEntry,$("videoActionsTarget").value,$("videoActionsStatus"),()=>videoActionsEntry);
   };
-  $("restoreTake").onclick=async()=>{if(state.busy)return;const t=state.currentProject?.takes?.find(t=>t.take_id===state.current?.takeId);if(!t?.draft){info("Original inputs are not stored for this older result.",true);return;}await withProjectLoading(async()=>{state.currentClipId=t.clip_id;await hydrateProjectDraft(t.draft);});info("Original take settings and inputs restored. Change the seed for a retry.");};
+  $("restoreTake").onclick=()=>{if(state.busy)return;const take=state.currentProject?.takes?.find(t=>t.take_id===state.current?.takeId);restoreProjectTake(take).catch(error=>info(error.message,true));};
   refreshLabControls();renderGuides();
 }
 
@@ -378,9 +387,10 @@ async function upscaleVideoEntry(entry,target,status,selectedEntry){
 
 function resultOutputPath(entry){return [entry.file.subfolder||"video",entry.file.filename].join("/");}
 async function updateRefFitPreview(ref){
+  const file=ref.file,fit=ref.imageFit,width=state.width,height=state.height;
   if(!ref.originalPreviewUrl)ref.originalPreviewUrl=ref.previewUrl;
   if((ref.imageFit||"preserve")==="preserve"){if(ref.previewUrl!==ref.originalPreviewUrl)URL.revokeObjectURL(ref.previewUrl);ref.previewUrl=ref.originalPreviewUrl;renderRefs();return;}
-  const fitted=await fitFrameImage(ref.file,ref.imageFit);if(!state.refs.includes(ref))return;
+  const fitted=await fitFrameImage(file,fit);if(!state.refs.includes(ref)||ref.file!==file||ref.imageFit!==fit||state.width!==width||state.height!==height)return;
   if(ref.previewUrl!==ref.originalPreviewUrl)URL.revokeObjectURL(ref.previewUrl);ref.previewUrl=URL.createObjectURL(fitted);renderRefs();
 }
 
@@ -394,6 +404,6 @@ function appendProjectResults(project){
 
 async function withProjectLoading(action){
   if(state.busy||state.projectLoading)throw Error("Wait for the current operation to finish.");
-  state.projectLoading=true;refreshVideoActions();const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
-  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();refreshVideoActions();}
+  state.projectLoading=true;refreshVideoActions();renderRefs();if(typeof renderProjectCatalog==='function')renderProjectCatalog();const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);controls.push(...[...document.querySelectorAll('.left input,.left select,.left textarea,.left button')].filter(node=>!controls.includes(node)));const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
+  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();refreshVideoActions();renderRefs();if(typeof renderProjectCatalog==='function')renderProjectCatalog();}
 }

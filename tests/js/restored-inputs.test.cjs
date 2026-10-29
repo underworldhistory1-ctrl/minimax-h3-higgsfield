@@ -19,3 +19,13 @@ test('all draft input groups start together and a stale hydration revokes every 
  const descriptor=alias=>({alias});const pending=c.hydrateProjectDraft({first:descriptor('first'),last:descriptor('last'),refs:[descriptor('ref')],guides:[descriptor('guide')],controlInputs:{mask:descriptor('mask')}});
  assert.deepEqual(started,['first','last','ref','guide','mask']);c.state.hydrationEpoch++;for(const resolve of release)resolve();await pending;assert.deepEqual(revoked,['first','last','ref','guide','mask']);assert.equal(c.state.first,undefined);
 });
+
+
+test('a stale image fit cannot overwrite replacement bytes or preview',async()=>{
+ const c=setup();let release;const oldFile=new File(['old'],'old.png'),newFile=new File(['new'],'new.png');
+ const ref={file:oldFile,imageFit:'crop',previewUrl:'blob:original'};c.state.refs=[ref];c.renderRefs=()=>{};
+ c.fitFrameImage=()=>new Promise(resolve=>release=resolve);
+ const pending=c.updateRefFitPreview(ref);ref.file=newFile;ref.previewUrl='blob:replacement';ref.originalPreviewUrl='blob:replacement';
+ release(new Blob(['old fitted']));await pending;
+ assert.equal(ref.file,newFile);assert.equal(ref.previewUrl,'blob:replacement');
+});

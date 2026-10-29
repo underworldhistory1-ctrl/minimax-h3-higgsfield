@@ -111,3 +111,8 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 .h3-updates-dialog .button:focus-visible,.h3-header-tools .button:focus-visible{outline:2px solid var(--acid);outline-offset:3px}
 .h3-updates-dialog .button:disabled{opacity:.5;cursor:wait}
 @media(max-width:720px){.top .h3-header-tools{order:3}.h3-header-tools{gap:6px}.h3-header-tools .button{padding:6px 9px}.h3-updates-dialog{padding:18px;border-radius:18px}.h3-updates-heading{gap:9px;margin-bottom:18px}.h3-updates-heading h2{font-size:18px}.h3-update-actions>.button{flex:1}.h3-update-revisions{gap:10px}}
+
+/* Project/reference actions stay visible outside collapsed reference fields. */
+.compact-ref .refhead{flex-wrap:wrap}.compact-ref .refhead strong{flex:1 1 130px}.compact-ref .ref-replace{border-color:rgba(214,255,32,.3)}
+.catalog-asset{content-visibility:auto;contain-intrinsic-size:auto 100px}.catalog-description{overflow-wrap:anywhere}.catalog-more{grid-column:1/-1;justify-self:center}
+@media(max-width:540px){.compact-ref .refhead{gap:6px}.compact-ref .refhead .button{padding:6px 8px}.compact-ref .refhead strong{flex-basis:calc(100% - 64px)}.catalog-actions{flex-wrap:wrap}}

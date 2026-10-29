@@ -71,7 +71,29 @@ class ProjectService(OrganizationMixin):
             raise ValueError(f"Invalid project_id: {project_id}")
         return self.projects_dir / project_id
 
-    def create_project(self, name: str = "Untitled Project", canvas: dict = None) -> dict:
+    def create_project(self, name: str = "Untitled Project", canvas: dict = None, request_id=None) -> dict:
+        name = workspace_name(name)
+        if request_id is not None:
+            if not isinstance(request_id, str):
+                raise ValueError('Invalid project creation request')
+            try:
+                nonce = str(uuid.UUID(request_id))
+            except ValueError as error:
+                raise ValueError('Invalid project creation request') from error
+            project_id = str(uuid.uuid5(uuid.NAMESPACE_URL, 'h3-studio-create/' + nonce))
+            fingerprint = hashlib.sha256(json.dumps([name, canvas], sort_keys=True).encode()).hexdigest()
+            with self._lock:
+                existing = self.get_project(project_id)
+                if existing:
+                    if existing.get('creation_fingerprint') != fingerprint:
+                        error = ValueError('Creation request was already used with different project settings')
+                        error.status_code = 409
+                        raise error
+                    return existing
+                record = self._new_project_record(name, canvas, project_id)
+                record['creation_fingerprint'] = fingerprint
+                self._write_manifest(project_id, record)
+                return record
         record = self._new_project_record(name, canvas)
         self._write_manifest(record['project_id'], record)
         return record
@@ -119,13 +141,15 @@ class ProjectService(OrganizationMixin):
         project.setdefault("folder_id", None)
         project.setdefault("asset_folders", [])
         refs = {item.get("assetId"): item for item in project.get("draft", {}).get("refs", [])}
-        used = {item.get("alias", "").casefold() for item in project.get("assets", []) if item.get("alias")}
+        used = set()
         for item in project.get("assets", []):
             ref = refs.get(item.get("asset_id"), {})
-            asset = self.asset_service.get_asset(item.get("asset_id")) if self.asset_service else None
+            asset = self.asset_service.get_asset(item.get("asset_id")) if self.asset_service and ("kind" not in item or "name" not in item) else None
             item.setdefault("kind", (asset or {}).get("kind", ref.get("kind", "image")))
             item.setdefault("name", ref.get("alias") or (asset or {}).get("original_name") or item.get("alias") or "Reference")
             item.setdefault("alias", ref.get("alias") or reference_alias(item["name"], used))
+            if item["alias"].casefold() in used:
+                item["alias"] = reference_alias(item["alias"], used)
             used.add(item["alias"].casefold())
             item.setdefault("role", ref.get("role", "voice" if item["kind"] == "audio" else "custom"))
             item.setdefault("category", next((c["id"] for c in ASSET_CATEGORIES if c["role"] == item["role"]), "custom"))
@@ -206,6 +230,8 @@ class ProjectService(OrganizationMixin):
                 if any(c['id'] != category['id'] and c['name'].casefold() == name.casefold() for c in project['asset_categories']):
                     raise ValueError('A category with this name already exists')
                 category['name'] = name
+            elif action == "replace_asset":
+                self._replace_workspace_asset(project, operation)
             elif action == "edit_asset":
                 item = next((a for a in project["assets"] if a["asset_id"] == operation.get("asset_id")), None)
                 if not item:
@@ -236,6 +262,49 @@ class ProjectService(OrganizationMixin):
             else:
                 raise ValueError("Unknown workspace operation")
             return self.save_project(project_id, project, expected_revision)
+
+    def _replace_workspace_asset(self, project, operation):
+        """Swap editable image slots; historical takes and immutable media stay intact."""
+        old_id, new_id = operation.get('asset_id'), operation.get('replacement_id')
+        item = next((a for a in project['assets'] if a['asset_id'] == old_id), None)
+        if not item:
+            raise ValueError('Element is not in this project')
+        if not isinstance(new_id, str) or not self.asset_service:
+            raise ValueError('Replacement image is required')
+        replacement = self.asset_service.get_asset(new_id)
+        if not replacement or replacement['kind'] != 'image' or item['kind'] != 'image':
+            raise ValueError('Choose an image to replace an image element')
+        if new_id != old_id and any(a['asset_id'] == new_id for a in project['assets']):
+            raise ValueError('That image is already another element in this project; use its existing element instead')
+        if new_id != old_id:
+            archive = project.setdefault('archived_assets', [])
+            if not any(a['asset_id'] == old_id for a in archive):
+                archive.append(copy.deepcopy(item))
+            project['archived_assets'] = [a for a in archive if a['asset_id'] != new_id]
+            replacements = project.setdefault('asset_replacements', {})
+            # Re-selecting an earlier image must not create A -> B -> A cycles.
+            replacements.pop(new_id, None)
+            for source, target in list(replacements.items()):
+                if target == old_id:
+                    replacements[source] = new_id
+            replacements[old_id] = new_id
+        item.update(asset_id=new_id, server_path=replacement['server_path'])
+
+        def rebase(draft):
+            if not isinstance(draft, dict):
+                return
+            slots = [draft.get('first'), draft.get('last'), *draft.get('refs', []),
+                     *draft.get('guides', []), *draft.get('controlInputs', {}).values()]
+            for ref in slots:
+                if isinstance(ref, dict) and ref.get('assetId') == old_id:
+                    ref['assetId'] = new_id
+                    for key in ('file', 'url', 'previewUrl', 'originalPreviewUrl', 'meta',
+                                'uploadProgress', 'uploadReady', 'restoreError'):
+                        ref.pop(key, None)
+        rebase(project.get('draft'))
+        for scene in project.get('scenes', []):
+            for shot in scene.get('shots', []):
+                rebase(shot.get('draft'))
 
     def list_projects(self) -> list:
         results = []
@@ -322,7 +391,7 @@ class ProjectService(OrganizationMixin):
             updated["revision"] = current_rev + 1
             updated["updated_at"] = time.time()
             if self.asset_service:
-                for asset in updated.get("assets", []):
+                for asset in [*updated.get("assets", []), *updated.get("archived_assets", [])]:
                     if asset.get("asset_id"):
                         self.asset_service.attach_project(asset["asset_id"], project_id)
 
@@ -425,7 +494,7 @@ class ProjectService(OrganizationMixin):
             if key not in ("project_id", "name", "revision", "created_at", "updated_at", "reuse_request"):
                 new_proj[key] = copy.deepcopy(value)
         if self.asset_service:
-            for asset in new_proj.get("assets", []):
+            for asset in [*new_proj.get("assets", []), *new_proj.get("archived_assets", [])]:
                 rec = self.asset_service.get_asset(asset.get("asset_id"))
                 if rec:
                     self.asset_service.register_asset(str(owned_path(self.storage_root, rec["server_path"])),
@@ -458,7 +527,7 @@ class ProjectService(OrganizationMixin):
             collect_references(snapshot.get("takes", []))
             collect_references(snapshot.get("clips", []))
             if referenced_assets:
-                declared = {item.get("asset_id") for item in snapshot.get("assets", [])}
+                declared = {item.get("asset_id") for item in [*snapshot.get("assets", []), *snapshot.get("archived_assets", [])]}
                 if not referenced_assets.issubset(declared):
                     raise ValueError("Project references an asset missing from its manifest")
                 # The project catalog is reusable beyond the current draft: bundle all its assets.
@@ -484,7 +553,7 @@ class ProjectService(OrganizationMixin):
             zf.writestr("project.json", json.dumps(snapshot, ensure_ascii=False))
 
             # Write assets
-            for asset_item in snapshot.get("assets", []):
+            for asset_item in {item.get("asset_id"): item for item in [*snapshot.get("archived_assets", []), *snapshot.get("assets", [])]}.values():
                 aid = asset_item.get("asset_id")
                 rec = self.asset_service.get_asset(aid) if self.asset_service and aid else None
                 if not rec:
@@ -588,7 +657,7 @@ class ProjectService(OrganizationMixin):
                         # Clean temp extracted file
                         out_path.unlink(missing_ok=True)
 
-            for asset in manifest_data.get("assets", []):
+            for asset in [*manifest_data.get("assets", []), *manifest_data.get("archived_assets", [])]:
                 filename = pathlib.PurePosixPath(asset.get("server_path", "")).name
                 if not filename and asset.get("asset_id"):
                     filename = next((name for name in asset_remap if name.startswith(asset["asset_id"] + ".")), "")
@@ -624,6 +693,7 @@ class ProjectService(OrganizationMixin):
                     raise ValueError("Bundle take media is missing") from err
                 take["output_file"] = relative
                 owned_video(target_root, relative)
+            manifest_data['asset_replacements'] = {reference_remap.get(source, source): reference_remap.get(target, target) for source, target in manifest_data.get('asset_replacements', {}).items()}
             def remap(value):
                 if isinstance(value, dict):
                     return {key: remap(item) for key, item in value.items()}
