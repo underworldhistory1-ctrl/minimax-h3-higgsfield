@@ -49,6 +49,7 @@ async function checkWorkspace(browser,prefix){
   page.on('pageerror',error=>errors.push(error.message));
   try{
     await page.goto(`http://127.0.0.1:${server.address().port}${prefix}/extensions/h3_studio/image.html`);
+    assert.equal(await page.locator('#h3ComfyUIButton').getAttribute('href'),`http://127.0.0.1:${server.address().port}${prefix}/?view=nodes`);
     await page.waitForFunction(()=>state.referencesReady&&(state.ready||document.getElementById('connection').classList.contains('down')));
     assert.equal(await page.locator('#generate').isEnabled(),true,await page.locator('#connectionText').innerText());
     const original=fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'));

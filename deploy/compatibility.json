@@ -27,7 +27,7 @@
     "lightx2v"
   ],
   "gpu_evidence": "RTX 5090, PyTorch 2.9.1+cu130: native CUDA INT8 linear passed. Original Ref2VA INT8 + CombatV2 strength1: 362 frames 1024x576, 24fps, stereo audio, full file decode passed (20m01). Singularity INT8 + Anime2Realism strength1 with references/guides: 209 frames 1024x576, 24fps stereo, full file decode passed (22m36). These establish technical execution for those profiles, not perceptual quality or all optional accelerators. A matched fresh-worker Original test with native CK INT8 attention completed all 20 steps and full video/audio decode in 582.94 s versus 1201.28 s for PyTorch Flash at identical 1024x576, 362 frames, 20 steps, seed42 and references. Frame spot checks are not perceptual equivalence; supervised idle-worker restart retained native CUDA and selected attention.",
-  "project_version": "2.5.6",
+  "project_version": "2.5.7",
   "audio_enhancement": {
     "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
     "source_commit": "d78d34f2f1100b0422047e9d784a3bdb4e1061d3",

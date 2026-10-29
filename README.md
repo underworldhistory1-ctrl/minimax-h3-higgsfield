@@ -1,6 +1,12 @@
 # H3 Higgsfield
 
-**Current release: 2.5.6 · native INT8 acceleration and render recovery**
+**Current release: 2.5.7 · update notifications and workspace navigation**
+
+### Updates and ComfyUI
+
+The shared video/image header opens the ComfyUI node editor in a separate tab. Updates shows a numbered badge when a new official revision is available and checks again while Studio is in use. The update sheet preserves generation and recovery guards; installation still requires an idle queue and a manual ComfyUI restart.
+
+[Community request review](docs/COMMUNITY_REVIEW_2026_10_29.md) records existing features, implemented improvements and options that still need validation.
 
 ### Reference names and native tags
 

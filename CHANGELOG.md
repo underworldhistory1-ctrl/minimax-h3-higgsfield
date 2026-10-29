@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.7 - 2026-10-29
+
+- Add a ComfyUI node-editor shortcut beside Updates in both workspaces, respecting configured servers and provider proxy prefixes.
+- Show an accessible numbered update badge, recheck while Studio is visible and preserve discovery when reopening the update sheet.
+- Refresh the update dialog with frosted glass styling, clear revision/status information and guarded installation controls.
+- Remove obsolete V2 standby labels and static release numbers from the shared header; keep historical release and model version names intact.
+- Remove the legacy 7,000-character prompt restriction and package reuse navigation in installed runtimes.
+
 ## 2.5.6 - 2026-10-15
 
 - Require native CUDA 13 acceleration and verify the actual loaded worker, attention backend and runtime identity; preserve virtual-environment interpreter symlinks.

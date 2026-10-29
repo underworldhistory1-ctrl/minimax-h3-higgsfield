@@ -1191,7 +1191,7 @@ async function checkConnection() {
       const missingNodes=[...new Set([...baseNodes,...modeNodes])].filter(name=>!state.nodesReady[name]);
       $("connection").className=missing.length||missingNodes.length?"connection down":"connection ready";
       $("connectionText").textContent=missing.length?"Missing models: "+missing.join(", "):missingNodes.length?"Missing nodes: "+missingNodes.join(", "):"Connected · "+state.gpu.replace(/^.*?:/,"").slice(0,46);
-      if(state.labCapabilities?.inference_enabled===false){$("connectionText").textContent="V2 · Editing standby";$("status").textContent="V2 editing ready · Generation paused";}
+      if(state.labCapabilities?.inference_enabled===false){$("connectionText").textContent="Editing standby";$("status").textContent="Editing ready · Generation paused";}
       if(!missing.length&&!missingNodes.length&&!state.busy&&!state.running&&$("status").textContent==="Connect ComfyUI to begin")$("status").textContent="Ready to generate";
       updateCapabilities();
       renderEstimates();
@@ -1229,7 +1229,7 @@ async function generate() {
   if(projectCtrl?.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id){info("Create or select a shot in this scene before generating.",true);return;}
   if(state.busy)return;
   if(!state.currentProject){info("Open or create a project before generating.",true);return;}
-  if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"V2 generation is paused while production uses the shared GPU.",true);return;}
+  if(state.labCapabilities?.inference_enabled===false){info(state.labCapabilities.reason||"Generation is paused while production uses the shared GPU.",true);return;}
   if(state.projectLoading){info("Wait for project inputs to finish restoring.",true);return;}
   if(state.tabDraftRestoreError){info("Restore this tab’s setup or explicitly clear it before rendering: "+state.tabDraftRestoreError,true);return;}
   if(allInputItems().some(item=>item.restoreError)){
@@ -1306,7 +1306,7 @@ async function generate() {
     if(state.control?.enabled&&(state.continuation||$("enableRefine").checked))throw Error("ControlNet with continuation or Refine has not been validated.");
     if(state.control?.enabled&&state.mode==="refs"&&!state.labCapabilities?.controlnet_references_ready)throw Error("References with ControlNet require verified PR #16020 support.");
     H3Configuration.resolve(currentRenderSpec(),state.labCapabilities||{});
-    if($("enableRefine").checked&&state.continuation)throw Error("Refinement cannot be combined with continuation in this version. Turn one off before uploading.");
+    if($("enableRefine").checked&&state.continuation)throw Error("Refinement cannot be combined with continuation. Turn one off before uploading.");
     if(state.control?.enabled&&window.H3ConnectedStudio){await H3ConnectedStudio.planControl();settings=captureSettings();}
     if(prepareWithAI&&!state.promptProvider?.configured)throw Error(state.promptProvider?.reason||"Connect a prompt model on the server, or explicitly select Use my prompt directly.");
     if(epoch!==state.generationEpoch)return;

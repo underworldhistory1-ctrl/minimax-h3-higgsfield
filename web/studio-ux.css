@@ -79,3 +79,35 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 }
 
 #elementsProjectSwitcher{max-width:850px;margin-bottom:20px}#elementsProjectSwitcher label{display:block;margin:0 0 7px;color:var(--muted)}#elementsProjectSwitcher .row{display:flex;flex-wrap:wrap;gap:8px}#elementsProjectSwitcher select{flex:1 1 220px;min-width:0;margin:0}#elementsProjectSwitcher .button{flex:0 0 auto}
+
+/* Shared video/image header tools and frosted update sheet. */
+.top{background:rgba(20,22,20,.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:inset 0 -1px 0 rgba(255,255,255,.025)}
+.h3-header-tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.h3-header-tools .button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:6px 11px;line-height:1.3;font-size:12px;white-space:nowrap;text-decoration:none;border-radius:9px}
+.h3-header-tools .button.alt{color:var(--text);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
+.h3-header-tools .button:hover{background:rgba(255,255,255,.09);border-color:rgba(214,255,32,.42)}
+.h3-header-tools .h3-updates-trigger[data-state=available]{border-color:rgba(214,255,32,.48);background:rgba(214,255,32,.07)}
+.h3-update-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:6px;background:var(--acid);color:#182000;font-size:11px;font-weight:800;box-shadow:0 0 12px rgba(214,255,32,.13)}
+.h3-update-badge[hidden],.h3-updates-dialog [hidden]{display:none!important}
+.h3-update-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.h3-updates-dialog{box-sizing:border-box;width:min(540px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:24px;color:var(--text);background:linear-gradient(145deg,rgba(47,52,42,.9),rgba(18,21,19,.94));border:1px solid rgba(227,243,215,.2);border-radius:22px;backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%);box-shadow:0 28px 100px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);font:inherit}
+.h3-updates-dialog::backdrop{background:rgba(4,8,6,.66);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.h3-updates-heading{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.h3-updates-heading h2{flex:1;margin:0;font-size:20px;line-height:1.25;letter-spacing:-.02em}
+.h3-updates-mark{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:12px;color:var(--acid);background:rgba(214,255,32,.08);border:1px solid rgba(214,255,32,.17)}
+.h3-updates-heading .button.alt,.h3-update-actions .button.alt{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);color:var(--text)}
+.h3-updates-dialog .button{min-height:38px;border-radius:10px;padding:8px 13px;font-size:13px}
+.h3-update-summary{padding:18px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(5,10,7,.25)}
+.h3-update-state{display:flex;align-items:center;gap:8px;color:var(--text);font-size:14px;font-weight:650}
+.h3-update-state:before{content:'';width:7px;height:7px;border-radius:50%;background:#9ba798;flex:0 0 auto}
+.h3-updates-dialog[data-state=available] .h3-update-state:before,.h3-updates-dialog[data-state=current] .h3-update-state:before,.h3-updates-dialog[data-state=completed] .h3-update-state:before{background:var(--acid);box-shadow:0 0 12px rgba(214,255,32,.25)}
+.h3-updates-dialog[data-state=restart_required] .h3-update-state:before,.h3-updates-dialog[data-state=recovery_required] .h3-update-state:before{background:#ffc577}
+.h3-update-summary p{font-size:13px;line-height:1.65;color:#c5cdc2;margin:10px 0 0}
+.h3-update-revisions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:17px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+.h3-update-revisions dt{font-size:11px;color:#a9b5a4;margin-bottom:4px}.h3-update-revisions dd{margin:0;font-size:12px;color:#e7eddf;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.h3-update-copy{font-size:12px;line-height:1.7;color:#b8c1b3;margin:18px 2px}
+.h3-update-error{font-size:12px;line-height:1.6;overflow-wrap:anywhere;padding:11px;border-radius:10px;border:1px solid rgba(255,129,123,.25);background:rgba(255,129,123,.055);color:#ffb5a9}
+.h3-update-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:20px}
+.h3-updates-dialog .button:focus-visible,.h3-header-tools .button:focus-visible{outline:2px solid var(--acid);outline-offset:3px}
+.h3-updates-dialog .button:disabled{opacity:.5;cursor:wait}
+@media(max-width:720px){.top .h3-header-tools{order:3}.h3-header-tools{gap:6px}.h3-header-tools .button{padding:6px 9px}.h3-updates-dialog{padding:18px;border-radius:18px}.h3-updates-heading{gap:9px;margin-bottom:18px}.h3-updates-heading h2{font-size:18px}.h3-update-actions>.button{flex:1}.h3-update-revisions{gap:10px}}

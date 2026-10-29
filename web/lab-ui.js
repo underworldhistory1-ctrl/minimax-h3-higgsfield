@@ -69,7 +69,7 @@ function refreshLabControls(){
   let banner=$("v2StandbyBanner");
   if(!banner){banner=document.createElement("div");banner.id="v2StandbyBanner";banner.setAttribute("role","status");banner.style.cssText="padding:12px 20px;background:#352d12;color:#ffe69a;border-bottom:1px solid #695922;font-size:13px";document.querySelector(".top").after(banner);}
   banner.hidden=!paused;
-  banner.textContent=paused?"V2 · Editing and project saving are available. Generation is paused to protect your active production render.":"";
+  banner.textContent=paused?"Editing and project saving are available. Generation is paused to protect your active production render.":"";
   if($("addGuide"))$("addGuide").disabled=state.busy||!state.labCapabilities?.add_guide;
   if($("guideKind")){for(const option of $("guideKind").options)if(option.value!=="image")option.disabled=!state.labCapabilities?.["guide_"+option.value];if($("guideKind").selectedOptions[0]?.disabled)$("guideKind").value="image";}
   if($("guideStatus"))$("guideStatus").textContent=state.labCapabilities?.add_guide?"Times use the new content timeline when extending.":"Native AddGuide is not available on this server.";

@@ -24,32 +24,64 @@ let browser;
  });
 
 
- let updateState={state:'idle'},applies=[];const commit='a'.repeat(40);
+ let updateState={state:'idle'},applies=[],checkState='available',checkFails=false;const commit='a'.repeat(40);
  await page.route('**/h3_studio/updates/*',async route=>{
   const action=new URL(route.request().url()).pathname.split('/').pop();
   if(action==='status')return route.fulfill({json:updateState});
-  if(action==='check')return route.fulfill({json:{state:'available',current:'b'.repeat(40),target:commit}});
+  if(action==='check')return route.fulfill(checkFails?{status:503,json:{error:'Offline fixture'}}:{json:{state:checkState,current:'b'.repeat(40),target:checkState==='available'?commit:undefined}});
   if(action==='apply'){applies.push(route.request().postDataJSON());updateState={state:'running',target:commit};return route.fulfill({status:202,json:updateState});}
   return route.fulfill({status:404,json:{error:'Unknown fixture'}});
  });
  await page.goto('http://127.0.0.1:18925/web/index.html');
- await page.waitForFunction(()=>document.getElementById('h3UpdatesButton').textContent.includes('new'));
- await page.locator('#h3UpdatesButton').click();await page.locator('[data-check]').click();
- await page.waitForFunction(()=>document.querySelector('[data-status]').textContent.includes('available'));
- await page.locator('[data-apply]').click();await page.waitForFunction(()=>document.querySelector('[data-status]').textContent.includes('Installing code'));assert.deepEqual(applies,[{commit}]);
- await page.waitForFunction(()=>document.querySelector('[data-status]').textContent.includes('Installing code'));
+ await page.waitForFunction(()=>!document.querySelector('[data-update-badge]').hidden);
+ assert.equal(await page.locator('#h3ComfyUIButton').getAttribute('href'),'http://127.0.0.1:18925/?view=nodes');
+ assert.equal(applies.length,0);
+ await page.evaluate(()=>sessionStorage.setItem('h3studio.comfyBase','https://example.test/proxy/8188/'));
+ await page.locator('#h3ComfyUIButton').focus();
+ assert.equal(await page.locator('#h3ComfyUIButton').getAttribute('href'),'https://example.test/proxy/8188/?view=nodes');
+ await page.evaluate(()=>sessionStorage.removeItem('h3studio.comfyBase'));
+ await page.locator('#h3UpdatesButton').click();
+ await page.waitForFunction(()=>document.querySelector('[data-check]').disabled===false);
+ assert.equal(await page.locator('[data-update-badge]').isVisible(),true);
+ await page.screenshot({path:out+'/updates-dialog-desktop.png'});
+ checkFails=true;
+ await page.locator('[data-check]').click();
+ await page.waitForFunction(()=>!document.querySelector('#h3UpdatesDialog [data-error]').hidden);
+ assert.equal(await page.locator('[data-update-badge]').isVisible(),true,'A network failure preserves a known update');
+ checkFails=false;checkState='current';
+ await page.locator('[data-check]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-update-badge]').hidden);
+ assert.equal(await page.locator('[data-apply]').isVisible(),false);
+ checkState='available';await page.locator('[data-check]').click();
+ await page.waitForFunction(()=>!document.querySelector('[data-update-badge]').hidden);
+ await page.locator('[data-apply]').click();await page.waitForFunction(()=>document.querySelector('#h3UpdatesDialog [data-status]').textContent.includes('Installing code'));assert.deepEqual(applies,[{commit}]);
+ await page.waitForFunction(()=>document.querySelector('#h3UpdatesDialog [data-status]').textContent.includes('Installing code'));
  updateState={state:'restart_required',target:commit};
- await page.waitForFunction(()=>document.querySelector('[data-status]').textContent.includes('Restart ComfyUI manually'));
+ await page.waitForFunction(()=>document.querySelector('#h3UpdatesDialog [data-status]').textContent.includes('Restart ComfyUI manually'));
  assert.equal(await page.locator('[data-check]').isDisabled(),true);assert.equal(await page.locator('[data-apply]').isVisible(),false);
  await page.locator('[data-close]').click();
  for(const width of [1440,768,390]){
   await page.setViewportSize({width,height:900});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Header fits '+width);
-  const visible=await page.locator('#h3UpdatesButton').evaluate(el=>{const b=el.getBoundingClientRect();return document.elementFromPoint(b.x+b.width/2,b.y+b.height/2)===el;});assert.ok(visible,'Update action unobstructed '+width);
+  const visible=await page.locator('#h3UpdatesButton').evaluate(el=>{const b=el.getBoundingClientRect();return el.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2));});assert.ok(visible,'Update action unobstructed '+width);
  }
  await page.screenshot({path:out+'/updates-header-mobile.png'});
+ await page.locator('#h3UpdatesButton').click();
+ await page.screenshot({path:out+'/updates-dialog-mobile.png'});
+ await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#h3UpdatesButton').evaluate(el=>document.activeElement===el),true);
  await page.goto('http://127.0.0.1:18925/web/image.html');await page.locator('#h3UpdatesButton').waitFor();
  assert.equal(await page.locator('#guidanceLanguage').inputValue(),'en');
  await page.locator('#h3UpdatesButton').click();assert.ok((await page.locator('[data-copy]').textContent()).includes('never start a generation'));
+ const proxy='/jobs/demo/proxy/8188';
+ await page.route('**'+proxy+'/extensions/h3_studio/**',route=>{
+  const name=new URL(route.request().url()).pathname.split('/extensions/h3_studio/')[1];
+  const file=path.join(root,'web',name);
+  if(!fs.existsSync(file))return route.fulfill({status:404,json:{error:'Optional fixture not present'}});
+  return route.fulfill({path:file,contentType:name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':'text/html'});
+ });
+ await page.goto('http://127.0.0.1:18925'+proxy+'/extensions/h3_studio/index.html');
+ await page.locator('#h3ComfyUIButton').waitFor();
+ assert.equal(await page.locator('#h3ComfyUIButton').getAttribute('href'),'http://127.0.0.1:18925'+proxy+'/?view=nodes');
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: automatic update discovery, exact commit apply, progress/restart, both workspaces and responsive header. API fixture only; no update or GPU job was actually run.');
 })().catch(async error=>{console.error(error);await browser?.close();process.exitCode=1;});
