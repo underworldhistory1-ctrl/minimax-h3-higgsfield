@@ -428,7 +428,7 @@ function renderLoras() {
 async function loadLoras(){
   try{
     const r=await fetch(api("/h3_studio/loras"));if(!r.ok)throw Error("unavailable");
-    const names=(await H3RenderValues.readJson(r)).items||[];
+    const names=((await H3RenderValues.readJson(r)).items||[]).filter(name=>!/^qwen21[\\/]/i.test(name));
     const existing=new Map(state.loras.map(item=>[item.name,item]));
     state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:/Motion_Repair_V2/i.test(name)?.9:1});
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}

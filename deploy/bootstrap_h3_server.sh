@@ -124,7 +124,6 @@ if [[ -e "$CUSTOM_NODES/h3_studio_v2" ]]; then
     H3_STUDIO="$CUSTOM_NODES/h3_studio_v2"
 fi
 mkdir -p "$CUSTOM_NODES"
-command -v tar >/dev/null || { echo "tar is required to install H3 Studio from this prepared bundle." >&2; exit 1; }
 if [[ "$PROJECT_ROOT" == "$H3_STUDIO" ]]; then
     echo "Run the installer from a separate Git clone, not from the installed custom_nodes/h3_studio directory." >&2
     exit 1
@@ -132,25 +131,15 @@ fi
 for source_file in "${RUNTIME_FILES[@]}"; do
     [[ -f "$PROJECT_ROOT/$source_file" ]] || { echo "Missing installer file: $source_file" >&2; exit 1; }
 done
-if [[ -e "$H3_STUDIO" ]]; then
-    if [[ ! -f "$H3_STUDIO/__init__.py" || ! -f "$H3_STUDIO/web/index.html" ]]; then
-        echo "Refusing to overwrite existing path without a recognizable H3 Studio install: $H3_STUDIO" >&2
-        exit 1
-    fi
-    BACKUP="$H3_STUDIO/.h3-backup/$(date +%Y%m%d-%H%M%S)-$$"
-    for source_file in "${RUNTIME_FILES[@]}"; do
-        if [[ -f "$H3_STUDIO/$source_file" ]]; then
-            mkdir -p "$BACKUP/$(dirname "$source_file")"
-            cp "$H3_STUDIO/$source_file" "$BACKUP/$source_file"
-        fi
-    done
-    tar -cf - -C "$PROJECT_ROOT" "${RUNTIME_FILES[@]}" | tar -xf - -C "$H3_STUDIO"
-    echo "Updated H3 Studio from the prepared bundle; previous UI/backend: $BACKUP"
-else
-    mkdir -p "$H3_STUDIO"
-    tar -cf - -C "$PROJECT_ROOT" "${RUNTIME_FILES[@]}" | tar -xf - -C "$H3_STUDIO"
-    echo "Installed the prepared H3 Studio bundle: $H3_STUDIO"
-fi
+# Share the verified copy/backup path with Windows and code-only updates.
+# It also refreshes gzip and removes obsolete Brotli representations.
+"$H3_PYTHON" - "$PROJECT_ROOT" "$COMFY_ROOT" <<'PY_COPY_RUNTIME'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]) / 'deploy'))
+from install_windows import copy_runtime
+copy_runtime(Path(sys.argv[2]))
+PY_COPY_RUNTIME
 
 "$H3_PYTHON" "$H3_STUDIO/deploy/make_h3_landing.py" --studio-name "$(basename "$H3_STUDIO")"
 

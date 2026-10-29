@@ -72,7 +72,9 @@
     last = data; const ar = arabic();
     const texts = {
       idle: ['Ready to check', 'Check for the latest official update.', 'جاهز للتحقق', 'تحقق من آخر تحديث رسمي.'],
-      current: ['Up to date', 'You are running the latest official revision.', 'أحدث إصدار', 'أنت تستخدم أحدث مراجعة رسمية.'],
+      current: ['Studio code up to date', 'Installed Studio code matches the latest official revision. Model and LoRA installation is checked separately.', 'كود الواجهة محدّث', 'كود الواجهة المثبت يطابق أحدث مراجعة رسمية. تثبيت الموديلات واللورات يُفحص بشكل مستقل.'],
+      checking: ['Checking installation', 'Checking the official revision and installed files…', 'جارٍ فحص التثبيت', 'جارٍ فحص المراجعة الرسمية والملفات المثبتة…'],
+      repair_required: ['Installation needs attention', 'Installed files or the running worker differ from the official source. Preserve local changes, repair with the launcher, then restart when idle.', 'التثبيت يحتاج مراجعة', 'الملفات المثبتة أو العامل الحالي لا تطابق المصدر الرسمي. احتفظ بالتعديلات المحلية وأصلح التثبيت بالمشغّل ثم أعد التشغيل عند خلو الطابور.'],
       available: ['Update available', 'A new Studio update is ready to install.', 'تحديث متاح', 'يوجد تحديث جديد للواجهة جاهز للتثبيت.'],
       running: ['Installing update', 'Installing code. Generation is paused to protect your work.', 'جارٍ التثبيت', 'جارٍ تثبيت الكود. التوليد متوقف مؤقتاً لحماية أعمالك.'],
       restart_required: ['Restart required', 'Code installed. Restart ComfyUI manually, then reload Studio.', 'إعادة التشغيل مطلوبة', 'تم تثبيت الكود. أعد تشغيل ComfyUI يدوياً ثم أعد تحميل الواجهة.'],
@@ -108,13 +110,18 @@
     if (detection || pending) return detection;
     detection = (async () => {
       pending = true; controls(); errorBox.hidden = true;
+      if (!blocked() && last?.state !== 'available') render({state: 'checking', current: last?.current});
       try {
         const data = await request('status');
         // Status does not persist check results. Resolve the fresh check before
         // rendering so opening the dialog cannot erase an available-update badge.
         render(['idle', 'current', 'completed', 'available'].includes(data.state) ? await request('check') : data);
         lastCheck = Date.now();
-      } catch (error) { showError(error); }
+      } catch (error) {
+        if (last?.state === 'available') render({...last, can_install: false});
+        else if (!blocked()) render({state: 'unavailable'});
+        target = null; showError(error);
+      }
       finally { pending = false; detection = null; controls(); }
     })();
     return detection;

@@ -70,3 +70,10 @@ test('Anime plus Combat with image/video references and timed keyframes stays co
  assert.equal(g['1'].class_type,model_profile==='hybrid_loader'?'MinimaxH3_HybridLoader':'UNETLoader');if(model_profile!=='hybrid_loader')assert.equal(g['1'].inputs.unet_name,model_profile==='singularity'?singular:model_profile==='hybrid_conditioning'?C.FL:C.REF);assert.equal(l.length,2);assert.deepEqual(l[1][1].inputs.model,[l[0][0],0]);assert.deepEqual(g['2'].inputs.model,[l[1][0],0]);assert.equal(guides.length,2);assert.deepEqual(guides[0][1].inputs.positive,['6',0]);assert.deepEqual(guides[1][1].inputs.positive,[guides[0][0],0]);assert.deepEqual(g['8'].inputs.positive,[guides[1][0],0]);assert.ok(g['6'].inputs['ref_images.ref_image_0']);assert.ok(g['6'].inputs['ref_videos.ref_video_0']);assert.ok(g['6'].inputs['ref_video_audios.ref_video_audio_0']);
  }
 });
+
+
+test('Qwen image adapters cannot enter the H3 video graph',()=>{
+ for(const name of ['qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors','QWEN21\\adapter.safetensors']){
+  assert.throws(()=>C.resolve({mode:'text',loras:[{name,enabled:true,strength:.8}]},caps),/Create Image/);
+ }
+});

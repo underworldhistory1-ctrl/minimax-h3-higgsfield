@@ -10,6 +10,8 @@ import zipfile
 
 
 SOURCE_FILES = (
+    "CHANGELOG.md", "docs/RELEASE_2_6.md", "docs/SCENE_WORKSPACE_2026_10_29.md",
+    "docs/PROJECT_ELEMENTS_PLAN_2026_10_29.md", "docs/COMMUNITY_REVIEW_2026_10_29.md",
     "docs/VIDEO_REFERENCE_UPLOAD_AR.md",
     "docs/IMAGE_WORKSPACE_FIX_AR.md", "docs/images/canvas-refresh.png",
     "docs/ANIME_TO_REALISM_AR.md", "docs/anime/anime-realism-prepared.png",
@@ -116,9 +118,9 @@ def main():
     files = sorted(p for p in output.rglob("*")
                    if p.is_file() and p.name != "MANIFEST_SHA256.json")
     manifest = {
-        "project": "H3 Studio", "release": "2026-10-12-high-resolution",
+        "project": "H3 Studio", "release": (source / "VERSION").read_text(encoding="utf-8").strip(),
         "gpu_validation_this_release": False,
-        "gpu_validation_note": "GPU fields below describe the earlier V2 baseline; the new presets require target-server render validation.",
+        "gpu_validation_note": "Historical GPU fields below describe earlier validated profiles. Target-server model, adapter and render readiness are separate from the software release version.",
         "tested_gpu": "NVIDIA GeForce RTX 5090, 32 GB",
         "tested_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
         "prepared_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",

@@ -23,6 +23,7 @@
     if(!refs.some(r=>r.kind==='video')||!refs.some(r=>r.kind==='image'))throw Error('Character Swap requires a source video and replacement character image in References.');
   }
   function resolve(spec,caps={}){
+    if((spec.loras||[]).some(x=>x.enabled&&/^qwen21[\\/]/i.test(x.name||'')))throw Error('Qwen Image adapters belong in Create Image, not H3 video.');
     validateCharacterSwap(spec);
     validateAnimeToRealism(spec);
     const profile=spec.model_profile||'original';if(!profiles[profile])throw Error('Unknown model profile.');

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.0 - 2026-10-29
+
+- Verify official source, installed interface/backend files and the running worker before reporting Studio code up to date.
+- Report incomplete installation or pending runtime changes without a false current-version claim; clear stale successful check messages after network failures.
+- Revoke previously checked install targets before each new check and distinguish code updates from model/LoRA readiness.
+- Verify compressed interface representations and use the same backed-up asset copy for Linux/Windows installs.
+- Keep Qwen Image adapters out of H3 video selection and graph validation.
+- Synchronize VERSION, package manifest and current release documentation; retain historical validation boundaries.
+- Includes the direct scene workspace, safe project assignment, reference/Element replacement, direct card downloads, scoped search and update notifications from 2.5.7–2.5.9.
+
 ## 2.5.9 - 2026-10-29
 
 - Wait for workspace scripts before draft restoration and retain explicit page links during refresh.

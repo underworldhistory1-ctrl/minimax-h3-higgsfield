@@ -1,6 +1,6 @@
 # H3 Higgsfield
 
-**Current release: 2.5.9 · direct scene workspace**
+**Current release: 2.6.0 · verified installation and adapter readiness**
 
 ### Start a scene directly
 
@@ -10,9 +10,11 @@ Production opens immediately, with no manual project requirement. **Save scene**
 
 [Scene workspace verification](docs/SCENE_WORKSPACE_2026_10_29.md) records tests and limits.
 
+[2.6 release verification](docs/RELEASE_2_6.md) records code, installation and current-server GPU test boundaries.
+
 ### Updates and ComfyUI
 
-The shared video/image header opens the ComfyUI node editor in a separate tab. Updates shows a numbered badge when a new official revision is available and checks again while Studio is in use. The update sheet preserves generation and recovery guards; installation still requires an idle queue and a manual ComfyUI restart.
+The shared video/image header opens the ComfyUI node editor in a separate tab. Updates shows a numbered badge when a new official revision is available and checks again while Studio is in use. Checks compare official source, installed interface/backend files and the code observed by the running worker. An incomplete copy or missing restart reports installation attention; a failed check cannot keep an older up-to-date claim. This checks Studio code; model/LoRA files are separate prerequisites. The update sheet preserves generation and recovery guards; installation still requires an idle queue and a manual ComfyUI restart.
 
 [Community request review](docs/COMMUNITY_REVIEW_2026_10_29.md) records existing features, implemented improvements and options that still need validation.
 

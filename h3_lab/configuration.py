@@ -9,6 +9,10 @@ ANIME_TO_REALISM = 'Anime2Realsim__H3.safetensors'
 def validate_audio_refinement(spec, capabilities):
     import math
     graph = spec.get('workflow', {})
+    names = [x.get('name', '') for x in spec.get('loras', []) if isinstance(x, dict) and x.get('enabled')]
+    names += [node.get('inputs', {}).get('lora_name', '') for node in graph.values() if isinstance(node, dict)]
+    if any(isinstance(name, str) and name.replace('\\', '/').lower().startswith('qwen21/') for name in names):
+        raise ValueError('Qwen Image adapters belong in Create Image, not H3 video')
     options = spec.get('audio_refinement') or {}
     if not isinstance(options, dict) or set(options) - {'enabled', 'steps', 'denoise', 'sampler_name', 'scheduler'}:
         raise ValueError('Invalid audio enhancement declaration')

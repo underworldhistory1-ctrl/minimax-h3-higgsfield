@@ -9,6 +9,14 @@ from deploy import install_windows as installer
 
 
 class CompressedAssetUpdateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_shared_copy_includes_linux_bootstrap_dependencies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            installer.copy_runtime(root)
+            runtime = root / 'custom_nodes/h3_studio'
+            for name in ('deploy/bootstrap_h3_server.sh', 'deploy/download_h3_models.sh'):
+                self.assertEqual((runtime / name).read_bytes(), (installer.PROJECT / name).read_bytes())
+
     async def test_update_serves_new_assets_and_preserves_old_sidecars(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = pathlib.Path(tmp)

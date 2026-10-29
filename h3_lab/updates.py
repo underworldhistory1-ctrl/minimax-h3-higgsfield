@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from aiohttp import web
+from .runtime_fingerprint import runtime_fingerprint
 
 OFFICIAL = 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield'
 ORIGINS = {OFFICIAL, OFFICIAL + '.git', 'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
@@ -33,6 +34,7 @@ class UpdateService:
         self.blocked = False
         self.task = None
         self.candidate = None
+        self.loaded_fingerprint = runtime_fingerprint(self.runtime)
         self.current = self.load()
         if self.current.get('state') in ('running', 'recovery_required'):
             self.current['state'] = 'recovery_required'
@@ -134,6 +136,7 @@ class UpdateService:
         return source, receipt
 
     def check(self):
+        self.candidate = None
         try:
             source, receipt = self.source()
         except RuntimeError:
@@ -152,8 +155,15 @@ class UpdateService:
         head = self.git(source, 'rev-parse', 'HEAD')
         if head != receipt['installed_commit']:
             raise RuntimeError('Source and installed runtime differ. Rerun the launcher to reconcile them before updating.')
+        disk_fingerprint = runtime_fingerprint(self.runtime)
+        if (disk_fingerprint != self.loaded_fingerprint
+                or disk_fingerprint != runtime_fingerprint(source)):
+            return {'state': 'repair_required', 'current': head, 'target': target,
+                    'can_install': False, 'scope': 'studio_code',
+                    'message': 'The installed files or running worker do not match the official source. Preserve local edits, repair using the launcher, then restart when idle.'}
         self.candidate = target
-        return {'state': 'available' if target != head else 'current', 'current': head, 'target': target}
+        return {'state': 'available' if target != head else 'current', 'current': head, 'target': target,
+                'scope': 'studio_code'}
 
     def reserve(self):
         if self.blocked or self.launcher_restart_pending():
