@@ -112,6 +112,7 @@ h3_lab/updates.py
 web/h3/organization-ui.js
 web/organization.css
 web/h3/tab-draft-store.js
+web/h3/tab-session.js
 web/h3/video-tab-state.js
 web/h3/guidance-language.js
 web/h3/updates-ui.js

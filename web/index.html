@@ -50,6 +50,7 @@
   .actiondock{position:fixed}
   .right{padding-bottom:18px}
 }
+.brand{border:0;padding:0;background:none;color:inherit;font:inherit}.brand:focus-visible{outline:2px solid var(--acid);outline-offset:6px;border-radius:8px}
 </style>
 <link rel="stylesheet" href="./studio-ux.css?v=20261029-studio-2.6.0">
 <link rel="stylesheet" href="./scenes.css?v=20261029-studio-2.6.0">
@@ -57,7 +58,7 @@
 </head>
 <body class="project-hub-open">
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield</div></div>
+ <button class="brand" id="brandRefresh" type="button" title="Refresh this tab" aria-label="Refresh H3 Studio"><span class="mark">H3</span><span class="brand-name">H3 Higgsfield</span></button>
  <nav class="topnav" aria-label="Studio workspace"><button type="button" class="button alt smallbtn" id="projectsHome">Projects</button><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="guidance-language"><label for="guidanceLanguage">Help language</label><select id="guidanceLanguage" aria-label="Help language"><option value="en">English</option><option value="ar">العربية</option></select></div>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
@@ -201,6 +202,7 @@
 <script src="./h3/guidance-language.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/render-values.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/uuid.js?v=20261029-studio-2.6.0"></script>
+<script src="./h3/tab-session.js?v=20261029-tab-session"></script>
 <script src="./h3/vendor/prompt-parsers.js?v=20261029-studio-2.6.0"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">ELEMENT DISPLAY NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
 <script src="./h3/prompt-input.js?v=20261029-studio-2.6.0"></script>
@@ -210,12 +212,12 @@
 <script src="./h3/scenes-ui.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/project-controller.js?v=20261029-studio-2.6.0"></script>
 <script src="./lab-ui.js?v=20261029-studio-2.6.0"></script>
-<script src="./h3/studio-ux.js?v=20261029-studio-2.6.0"></script>
+<script src="./h3/studio-ux.js?v=20261029-tab-session"></script>
 <script src="./h3/queue-ui.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/timing-estimator.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/tab-draft-store.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/reuse-navigation.js?v=20261029-studio-2.6.0"></script>
-<script src="./studio.js?v=20261029-studio-2.6.0"></script>
+<script src="./studio.js?v=20261029-tab-session"></script>
 <script src="./h3/updates-ui.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/connected-studio.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/configuration-ui.js?v=20261029-studio-2.6.0"></script>
@@ -226,6 +228,6 @@
 <script src="./h3/organization-ui.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/project-workspace.js?v=20261029-studio-2.6.0"></script>
 
-<script src="./h3/video-tab-state.js?v=20261029-studio-2.6.0"></script>
+<script src="./h3/video-tab-state.js?v=20261029-tab-session"></script>
 </body>
 </html>

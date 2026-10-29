@@ -14,7 +14,7 @@ class CompressedAssetUpdateTests(unittest.IsolatedAsyncioTestCase):
             root = pathlib.Path(tmp)
             installer.copy_runtime(root)
             runtime = root / 'custom_nodes/h3_studio'
-            for name in ('deploy/bootstrap_h3_server.sh', 'deploy/download_h3_models.sh'):
+            for name in ('deploy/bootstrap_h3_server.sh', 'deploy/download_h3_models.sh', 'web/h3/tab-session.js'):
                 self.assertEqual((runtime / name).read_bytes(), (installer.PROJECT / name).read_bytes())
 
     async def test_update_serves_new_assets_and_preserves_old_sidecars(self):

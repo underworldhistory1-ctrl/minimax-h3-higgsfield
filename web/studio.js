@@ -2127,8 +2127,6 @@ async function initProjectController() {
     let reused=null;
     if(reuseRequested)reused=await H3ReuseNavigation.restore(controller,{href:location.href,storage:sessionStorage,replace:url=>history.replaceState(null,'',url)});
     let pid=reused?.project_id||navigation.searchParams.get('project')||sessionStorage.getItem(controller._storageKey("active_project_id"));
-    const migrationKey=controller._storageKey('tab_migration_v1');
-    if(!pid&&!localStorage.getItem(migrationKey)){pid=localStorage.getItem(controller._storageKey('active_project_id'));localStorage.setItem(migrationKey,'done');}
     let project=reused;
     if(pid&&!project){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;

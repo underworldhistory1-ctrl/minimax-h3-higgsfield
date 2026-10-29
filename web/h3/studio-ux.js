@@ -96,5 +96,14 @@
   root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards, arrangeWorkspace };
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
     attachPrompt(document.getElementById('prompt')); arrangeWorkspace();
+    const refresh=document.getElementById('brandRefresh');
+    if(refresh)refresh.onclick=async()=>{
+      refresh.disabled=true;
+      try{
+        if(root.H3VideoTabState)await root.H3VideoTabState.prepareReload();
+        if(root.QwenTabState)await root.QwenTabState.prepareReload();
+        root.saveDraft?.();root.saveSession?.();root.location.reload();
+      }catch(error){refresh.disabled=false;const message='Could not save this tab before refresh: '+error.message;if(root.info)root.info(message,true);else root.showError?.(message);}
+    };
   });
 })(globalThis);

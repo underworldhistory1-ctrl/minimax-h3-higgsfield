@@ -6,6 +6,8 @@
 
 Production opens immediately, with no manual project requirement. **Save scene** or **Generate** creates its own named workspace when needed. **New scene** saves the previous working setup before opening clean defaults. Use the top **Save scene to** picker to copy the current setup into a new scene/shot in an existing project; existing scenes and takes remain intact. Choosing Automatic detaches the current setup for independent saving. Continuation sources must be cleared before switching ownership between projects.
 
+Opening the plain Studio link starts with an empty setup, including when a browser copies another tab's session storage. Each new page gets its own render identity, so separate pages can submit independent jobs to the server queue. Refreshing the same tab keeps its inputs, project and render tracking. Click the H3 logo to refresh that tab. Explicit project, Reuse and job links still open the requested saved work; the last project is never selected implicitly from shared browser storage.
+
 **Clear setup**, inside More scene tools, resets the working inputs/settings and checkpoints the reset on this device. It preserves saved project setups and output files. Project management and advanced scene/shot tools are collapsed until needed. **Download** is available directly on video and image cards. Generations search matches all entered words across recorded prompts, filenames and settings within the chosen library scope.
 
 [Scene workspace verification](docs/SCENE_WORKSPACE_2026_10_29.md) records tests and limits.

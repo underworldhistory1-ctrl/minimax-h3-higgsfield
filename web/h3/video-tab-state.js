@@ -32,5 +32,11 @@
   setInterval(()=>flush(true),60000);
   addEventListener('pagehide',()=>{void flush();});
   addEventListener('beforeunload',event=>{if(state.reuseNavigating)return;void flush();if(running||failed){event.preventDefault();event.returnValue='';}});
-  window.H3VideoTabState={flush,clear:clearSetup,settle:()=>pending.catch(()=>{})};
+  async function prepareReload(){
+    if(state.projectLoading)throw Error('Wait for the working setup to finish loading.');
+    await pending.catch(()=>{});await flush(true);
+    while(running||again)await pending.catch(()=>{});
+    if(failed||state.tabDraftRestoreError)throw Error('The working setup is not saved. Keep this tab open and retry.');
+  }
+  window.H3VideoTabState={flush,clear:clearSetup,settle:()=>pending.catch(()=>{}),prepareReload};
 })();

@@ -71,6 +71,11 @@ function saveDraft(){
   sessionStorage.setItem("qwen.imageDraft",JSON.stringify({prompt:$("prompt").value,lora:$("lora").value,loraStrength:$("loraStrength").value,profile:$("profile").value,aspect:$("aspect").value,resolution:$("resolution").value,steps:$("steps").value,seed:$("seed").value,transparent:$("transparent").checked,referenceResolution:$("referenceResolution").value,customSize:$("customSize").checked,fitReferences:$("fitReferences").checked}));
   void persistReferences();
 }
+window.QwenTabState={prepareReload:async()=>{
+  if(!state.referencesReady)throw Error('Wait for references to finish loading.');
+  await referenceWrite;saveDraft();await persistReferences();
+  if(state.refsSaving||!state.refsSaved)throw Error('References are not saved. Keep this tab open and retry.');
+}};
 function restoreDraft(){
   let draft={};try{draft=JSON.parse(sessionStorage.getItem("qwen.imageDraft")||"{}");}catch{}
   for(const id of ["prompt","profile","aspect","resolution","steps","seed","referenceResolution","lora","loraStrength"]){if(draft[id]!==undefined&&$(id))$(id).value=String(draft[id]);}

@@ -22,11 +22,12 @@
 .ref{grid-template-columns:52px minmax(0,1fr) auto;align-items:start;overflow:hidden}.ref>div{min-width:0}.ref-alias-row{grid-column:1/-1;width:100%}.ref .ref-name{min-width:0;max-width:100%;margin-top:0}.ref-insert{grid-column:1/-1;width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ref small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mention-list button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ref-order{grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.ref-order span{margin-right:auto;color:var(--muted);font-size:10px}.ref-order button{padding:4px 7px}
 @media(max-width:900px){.shell{grid-template-columns:330px minmax(0,1fr)}.right{padding:18px}.stage{min-height:260px}}@media(max-width:720px){.top{height:58px;padding:0 14px}.topnav{margin-left:10px;gap:12px}.topnav a{height:58px}.connection span{max-width:90px}.shell{height:auto;display:flex;flex-direction:column}.left{border-right:0;overflow:visible}.right{overflow:visible;padding-bottom:110px}.actiondock{position:fixed;left:0;right:0;bottom:0;box-shadow:0 -12px 28px #0009}.stage{min-height:230px}.controls{grid-template-columns:1fr}.brand-name{display:none}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.brand{border:0;padding:0;background:none;color:inherit;font:inherit}.brand:focus-visible{outline:2px solid var(--acid);outline-offset:6px;border-radius:8px}
 </style>
 </head>
 <body>
 <header class="top">
- <div class="brand"><div class="mark">H3</div><div class="brand-name">H3 Higgsfield</div></div>
+ <button class="brand" id="brandRefresh" type="button" title="Refresh this tab" aria-label="Refresh H3 Studio"><span class="mark">H3</span><span class="brand-name">H3 Higgsfield</span></button>
  <nav class="topnav" aria-label="Studio workspace"><a href="index.html">Create Video</a><a class="active" href="image.html">Create Image</a></nav>
  <div class="guidance-language"><label for="guidanceLanguage">Help language</label><select id="guidanceLanguage" aria-label="Help language"><option value="en">English</option><option value="ar">العربية</option></select></div>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt small">Retry</button></div>
@@ -86,9 +87,9 @@
 <script src="./h3/uuid.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/tab-draft-store.js?v=20261029-studio-2.6.0"></script>
 <script src="./h3/image-reference-store.js?v=20261029-studio-2.6.0"></script>
-<script src="./image-studio.js?v=20261029-studio-2.6.0"></script>
+<script src="./image-studio.js?v=20261029-tab-session"></script>
 <script src="./h3/updates-ui.js?v=20261029-studio-2.6.0"></script>
 <link rel="stylesheet" href="./studio-ux.css?v=20261029-studio-2.6.0">
-<script src="./h3/studio-ux.js?v=20261029-studio-2.6.0"></script>
+<script src="./h3/studio-ux.js?v=20261029-tab-session"></script>
 </body>
 </html>
