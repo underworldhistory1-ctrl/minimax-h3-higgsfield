@@ -176,3 +176,24 @@ class LaunchRecoveryTests(unittest.TestCase):
         with patch.object(launcher.subprocess, 'run', return_value=Mock(returncode=1, stdout='')):
             with self.assertRaisesRegex(RuntimeError, 'Cannot verify Windows'):
                 launcher.process_candidates(fail_on_unresolved=True, platform='nt')
+
+    def test_current_release_version_with_crlf_is_not_a_customization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / 'custom_nodes/h3_studio/VERSION'
+            target.parent.mkdir(parents=True)
+            target.write_bytes((launcher.PROJECT / 'VERSION').read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+            launcher.protect_runtime_edits(root)
+
+    def test_previous_official_version_with_crlf_is_recognized(self):
+        import hashlib
+        previous = b'2.6.0\n'
+        digest = hashlib.sha1(b'blob ' + str(len(previous)).encode() + b'\0' + previous).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / 'custom_nodes/h3_studio/VERSION'
+            target.parent.mkdir(parents=True)
+            target.write_bytes(previous.replace(b'\n', b'\r\n'))
+            with patch.object(launcher, 'runtime_files', return_value=['VERSION']), \
+                 patch.object(launcher.json, 'loads', return_value={'VERSION': [digest]}):
+                launcher.protect_runtime_edits(root)

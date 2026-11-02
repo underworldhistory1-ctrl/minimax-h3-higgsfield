@@ -540,11 +540,15 @@ def protect_runtime_edits(root):
         if not installed.is_file():
             continue
         content = installed.read_bytes()
-        if content == (PROJECT / name).read_bytes():
+        expected = (PROJECT / name).read_bytes()
+        if content == expected:
             continue
+        if b'\0' not in content and b'\0' not in expected:
+            if content.replace(b'\r\n', b'\n') == expected.replace(b'\r\n', b'\n'):
+                continue
         digest = hashlib.sha1(b"blob " + str(len(content)).encode() + b"\0" + content).hexdigest()
         digests = {digest}
-        if installed.suffix.lower() in {".py", ".js", ".ps1", ".sh", ".html", ".css", ".json", ".md", ".txt", ".yaml", ".yml"}:
+        if b'\0' not in content:
             normalized = content.replace(b"\r\n", b"\n")
             digests.add(hashlib.sha1(b"blob " + str(len(normalized)).encode() + b"\0" + normalized).hexdigest())
         if not digests.intersection(known.get(name, [])):

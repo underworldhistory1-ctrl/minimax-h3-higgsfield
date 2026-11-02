@@ -56,15 +56,18 @@ def validate_plain_archive(project, target):
     # Compute archive blobs once, then recognize an official ancestor. Comparing
     # only latest HEAD would reject a genuine ZIP as soon as main advances.
     actual = archive_files(Path(project))
-    text = {'.py', '.js', '.cjs', '.sh', '.ps1', '.md', '.json', '.txt', '.html', '.css', '.yaml', '.yml', '.service'}
     blobs = {}
     for name, path in actual.items():
         if path.is_symlink():
             raise RuntimeError('Unproven source archive contains a symlink; use a Git checkout')
         data = path.read_bytes()
-        if path.suffix in text or path.name in ('.gitattributes', '.gitignore', '.dockerignore', 'VERSION', 'LICENSE', 'Dockerfile.salad'):
-            data = data.replace(b'\r\n', b'\n')
-        blobs[name] = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+        variants = [data]
+        # Git for Windows may export CRLF for text with uncommon suffixes,
+        # including nginx.conf.template. Keep raw blobs valid too.
+        if b'\0' not in data:
+            variants.append(data.replace(b'\r\n', b'\n'))
+        blobs[name] = {hashlib.sha1(b'blob ' + str(len(value)).encode() + b'\0' + value).hexdigest()
+                       for value in variants}
     # Bound work for untrusted/custom archives. Published packages use their
     # exact ancestry receipt and do not need this historical-tree search.
     candidates = git(target, 'rev-list', '--max-count=512', 'HEAD').splitlines()
@@ -78,7 +81,7 @@ def validate_plain_archive(project, target):
                 break
             expected[name] = digest
         else:
-            if expected == blobs:
+            if set(expected) == set(blobs) and all(expected[name] in blobs[name] for name in expected):
                 return commit
     raise RuntimeError('Archive does not match a recognized official ancestor. Use a fresh Git checkout or --no-update; the archive was preserved.')
 

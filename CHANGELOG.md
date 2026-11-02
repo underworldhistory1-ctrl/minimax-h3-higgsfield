@@ -2,6 +2,8 @@
 
 ## 2.7.0 - 2026-11-02
 
+- Recognize official runtime snapshots and Windows text exports across upgrades, including extensionless VERSION and proxy templates, while preserving substantive local edits.
+
 - Promote default latest ZIP launches to a persistent official Git source without overwriting the archive; protect unpublished revisions with commit ancestry and payload hashes.
 - Default to native Comfy Kitchen INT8 attention; verify loaded attention and Python identity. Keep explicit PyTorch selection.
 - Pin ComfyUI 0.43.0 centrally; audit exact core dependencies, preserve recognized patches and user edits, and record migration recovery evidence.

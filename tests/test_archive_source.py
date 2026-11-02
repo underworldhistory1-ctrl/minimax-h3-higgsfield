@@ -167,3 +167,13 @@ class ArchiveSourceTests(unittest.TestCase):
                 builder.main()
         self.assertEqual(stale.read_text(), 'preserve stale source')
         self.assertFalse((output / 'h3-cloud-setup.zip').exists())
+
+    def test_windows_text_export_with_template_suffix_matches_official(self):
+        (self.author / 'deploy/nginx.conf.template').write_bytes(b'location / {\n}\n')
+        self.command('-C', self.author, 'add', '.')
+        self.command('-C', self.author, 'commit', '-m', 'proxy template')
+        self.command('-C', self.author, 'push', 'origin', 'main')
+        latest = self.command('-C', self.author, 'rev-parse', 'HEAD')
+        (self.archive / 'deploy/nginx.conf.template').write_bytes(b'location / {\r\n}\r\n')
+        target = archive_source.prepare_checkout(self.root, self.runner)
+        self.assertEqual(archive_source.validate_plain_archive(self.archive, target), latest)
