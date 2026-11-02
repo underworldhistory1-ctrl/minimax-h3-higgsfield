@@ -32,7 +32,7 @@ class QwenImageLibraryTests(unittest.TestCase):
             self.assertIsNone(qwen_image.safe_image_path(root, "foreign.png"))
             self.assertEqual(
                 qwen_image.safe_image_path(root, "qwen_studio_abc_00001.png"),
-                root / "qwen_studio_abc_00001.png",
+                root.resolve() / "qwen_studio_abc_00001.png",
             )
 
     def test_delete_removes_image_and_sidecar_only(self):

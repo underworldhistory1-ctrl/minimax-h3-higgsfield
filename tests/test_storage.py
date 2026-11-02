@@ -30,7 +30,7 @@ class StorageTests(unittest.TestCase):
 
     def test_parent_budget_bounds_global_free(self):
         with tempfile.TemporaryDirectory() as root:
-            path = Path(root)
+            path = Path(root).resolve()
             (path / '.h3-storage-budget.json').write_text(json.dumps({'max_bytes': 45 * GIB}))
             child = path / 'results'
             child.mkdir()

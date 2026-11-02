@@ -35,7 +35,7 @@ class SharedExportRoutes(unittest.IsolatedAsyncioTestCase):
     async def test_background_export_survives_submitter_and_is_visible_to_other_client(self):
         import asyncio
         with tempfile.TemporaryDirectory() as tmp:
-            root=pathlib.Path(tmp);source=root/'video'/'source.mp4';source.parent.mkdir();source.write_bytes(b'owned fixture')
+            root=pathlib.Path(tmp).resolve();source=root/'video'/'source.mp4';source.parent.mkdir();source.write_bytes(b'owned fixture')
             app=web.Application();services=register_lab_routes(app,str(root),output_root=root)
             server=TestServer(app);first=TestClient(server);await first.start_server()
             started=threading.Event();release=threading.Event()
@@ -72,6 +72,7 @@ class ExportCancellationRoutes(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def setup_routes(root):
+        root = root.resolve()
         source = root / 'video' / 'source.mp4'
         source.parent.mkdir()
         source.write_bytes(b'owned fixture')

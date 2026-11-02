@@ -14,7 +14,7 @@ class PreprocessorInstallTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = pathlib.Path(self.directory.name)
+        self.root = pathlib.Path(self.directory.name).resolve()
         self.environment = patch.dict(os.environ, {}, clear=False)
         self.environment.start()
         self.addCleanup(self.environment.stop)

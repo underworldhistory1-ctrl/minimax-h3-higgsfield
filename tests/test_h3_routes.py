@@ -53,7 +53,7 @@ class TestH3LabRoutes(AioHTTPTestCase):
 
     async def get_application(self):
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.storage_root = pathlib.Path(self.temp_dir.name)
+        self.storage_root = pathlib.Path(self.temp_dir.name).resolve()
         app = web.Application()
         self.queue = QueueClient()
         self.services = register_lab_routes(app, str(self.storage_root),

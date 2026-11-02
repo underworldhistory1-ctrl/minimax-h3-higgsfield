@@ -2,6 +2,7 @@
 
 ## 2.7.0 - 2026-11-02
 
+- Activate Windows/Linux CI on Python 3.12/3.13, canonicalize test fixtures for Windows short paths, and reuse verified model hashes through directory aliases.
 - Recognize official runtime snapshots and Windows text exports across upgrades, including extensionless VERSION and proxy templates, while preserving substantive local edits.
 
 - Promote default latest ZIP launches to a persistent official Git source without overwriting the archive; protect unpublished revisions with commit ancestry and payload hashes.

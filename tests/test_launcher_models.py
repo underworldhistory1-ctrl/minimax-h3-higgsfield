@@ -164,6 +164,39 @@ class ModelTests(unittest.TestCase):
             models.prepare_models(self.comfy, [source.parent], [artifact], self.state, emit=lambda _: None)
         self.assertEqual(hasher.call_count, 1)
 
+    def test_prepare_hashes_source_through_directory_alias_once(self):
+        artifact = self.artifact()
+        source = self.root/'attached/test.bin'
+        source.parent.mkdir()
+        source.write_bytes(self.data)
+        alias = self.root/'attached-alias'
+        try:
+            alias.symlink_to(source.parent.resolve(), target_is_directory=True)
+        except OSError:
+            self.skipTest('Directory symlinks unavailable')
+        with patch.object(models.hashlib, 'sha256', wraps=hashlib.sha256) as hasher:
+            models.prepare_models(self.comfy, [alias], [artifact], self.state, emit=lambda _: None)
+        self.assertEqual(hasher.call_count, 1)
+        self.assertEqual((self.comfy/artifact.relative_path).read_bytes(), self.data)
+
+    def test_cached_alias_receipt_populates_canonical_name_without_rehash(self):
+        artifact = self.artifact()
+        source = self.root/'attached/test.bin'
+        source.parent.mkdir()
+        source.write_bytes(self.data)
+        alias = self.root/'attached-alias'
+        try:
+            alias.symlink_to(source.parent.resolve(), target_is_directory=True)
+        except OSError:
+            self.skipTest('Directory symlinks unavailable')
+        receipts = {}
+        self.assertTrue(models._valid(alias/source.name, artifact, receipts))
+        del receipts[str(source.resolve())]  # Receipt produced by an older launcher.
+        with patch.object(models.hashlib, 'sha256', wraps=hashlib.sha256) as hasher:
+            self.assertTrue(models._valid(alias/source.name, artifact, receipts))
+            self.assertTrue(models._valid(source, artifact, receipts))
+        self.assertEqual(hasher.call_count, 0)
+
     def test_prepare_hashes_completed_download_once(self):
         artifact = self.artifact()
         with patch.object(models.hashlib, 'sha256', wraps=hashlib.sha256) as hasher:

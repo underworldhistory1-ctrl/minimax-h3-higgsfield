@@ -108,6 +108,7 @@ def _valid(path, artifact, receipts):
         if artifact.sha256:
             receipt = receipts.get(key, receipts.get(str(path.resolve()), {}))
             if receipt.get('identity') == identity and receipt.get('sha256') == artifact.sha256:
+                receipts[identity[0]] = receipt
                 return True
             digest = hashlib.sha256()
             with path.open('rb') as stream:
@@ -119,6 +120,9 @@ def _valid(path, artifact, receipts):
             if _identity(path) != identity:
                 return False
             receipts[key] = {'identity': identity, 'sha256': artifact.sha256, 'validation': 'sha256'}
+            # A symlink (and Windows short-name aliases) resolves to the source's
+            # canonical name. Reuse that verified identity without hashing again.
+            receipts[identity[0]] = receipts[key]
             return True
         return h3.valid_safetensors(path, artifact.size)
     except (OSError, ValueError):
