@@ -1,8 +1,8 @@
-# Continuous verification template
+# Continuous verification
 
-verify.yml is ready to copy to .github/workflows/verify.yml. It tests Linux and Windows with Python 3.12/3.13, CPU tensor and media paths, JavaScript, shell syntax, and release archive creation. It uses read-only repository permissions and never deploys or renders on a GPU.
+The active workflow is [.github/workflows/verify.yml](../../.github/workflows/verify.yml). It tests Linux and Windows with Python 3.12/3.13, CPU tensor and media paths, JavaScript, shell syntax, and release archive creation. It uses read-only repository permissions and never deploys or renders on a GPU. It runs on pushes and pull requests, and supports manual dispatch. The adjacent verify.yml is a matching reference copy; update both when changing the workflow.
 
-Activation requires a repository credential permitted to create Actions workflows. The current OAuth login rejected the workflow push because it lacks the workflow scope; hosted CI was not enabled or run during the 2.7 release. The template is stored here so the runtime update can be published with the existing authorized credential. An owner can activate it from GitHub or a credential with the required scope.
+The workflow was activated through the repository owner's existing GitHub browser session on 2 November 2026. See [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/actions/workflows/verify.yml) for the result of each exact commit. A configured workflow alone is not proof of a successful run.
 
 Local equivalent (Python 3.12/3.13, Node 22+, FFmpeg on PATH):
 

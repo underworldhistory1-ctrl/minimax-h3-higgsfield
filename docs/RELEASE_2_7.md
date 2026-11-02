@@ -26,4 +26,6 @@ A failed update stays paused until a verified worker loads. Reports distinguish 
 
 Tests cover graph construction across supported generation paths, API/storage behavior, installer decisions, package drift, Git migrations, update locking, saved job recovery and process ownership. The release report records actual test counts.
 
+GitHub Actions now runs the regression suites, shell checks and release packaging on Windows and Linux with Python 3.12 and 3.13. The active workflow and its reference copy are included in release source archives. Consult the Actions result for the exact source commit; CPU CI does not establish CUDA compatibility or render quality.
+
 Actual ComfyUI 0.43 source patches were parsed and checked for idempotence. The Docker base tag was verified in the official registry; a full image build was not run. The remote GPU server disconnected before deployment. No new fresh-machine CUDA install, end-to-end GPU render, performance comparison or perceptual review was completed on this pin. Earlier GPU measurements remain historical evidence for their recorded runtime only.
