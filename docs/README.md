@@ -1,6 +1,6 @@
 # H3 Higgsfield documentation
 
-Current release: **2.5.6**. The main [README](../README.md) introduces the studio;
+Current release: **2.7.0**. [Runtime update and validation boundaries](RELEASE_2_7.md). The main [README](../README.md) introduces the studio;
 [CHANGELOG](../CHANGELOG.md) records release history. “H3 Studio” is the workspace
 name used in controls and historical guides; “V2” describes the earlier migration,
 not a separate current product release.

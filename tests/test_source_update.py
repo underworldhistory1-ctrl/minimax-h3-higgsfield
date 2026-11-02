@@ -14,7 +14,7 @@ class SourceUpdateTests(unittest.TestCase):
             (root/'.git').mkdir()
             (root/'deploy').mkdir()
             (root/'deploy/compatibility.json').write_text(json.dumps({'approved_source_commits':[target]}))
-            values = ['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git', 'main', status, before, target]
+            values = ['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git', 'main', status, before, target, before, '']
             with patch('deploy.update_source.subprocess.check_output', side_effect=values), \
                  patch('deploy.update_source.subprocess.run', side_effect=[Mock(returncode=0), Mock(returncode=ancestor), Mock(returncode=0), Mock(returncode=0)]) as run:
                 if status or ancestor:
@@ -25,7 +25,7 @@ class SourceUpdateTests(unittest.TestCase):
                         run.assert_not_called()
                 else:
                     self.assertTrue(update_source(root, policy='verified'))
-                    self.assertEqual(run.call_args_list[-1].args[0][-3:], ['merge', '--ff-only', 'origin/main'])
+                    self.assertEqual(run.call_args_list[-1].args[0][-3:], ['merge', '--ff-only', target])
 
     def test_fast_forward_only(self):
         self.run_update()
@@ -48,17 +48,17 @@ class SourceUpdateTests(unittest.TestCase):
             def run(command, **kwargs):
                 events.append(command)
                 return Mock(returncode=0)
-            values=['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git','main','','old','new']
+            values=['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git','main','','old','new','old','']
             with patch('deploy.update_source.subprocess.check_output',side_effect=values), patch('deploy.update_source.subprocess.run',side_effect=run):
                 self.assertTrue(update_source(root,before_update=lambda:events.append('idle')))
             idle=events.index('idle')
             self.assertIn('update-ref',events[idle+1]);self.assertEqual(events[idle+1][-2:],['refs/h3-launcher/previous-source','old'])
-            self.assertEqual(events[idle+2][-3:],['merge','--ff-only','origin/main'])
+            self.assertEqual(events[idle+2][-3:],['merge','--ff-only','new'])
 
     def test_latest_wait_failure_never_updates_source(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);(root/'.git').mkdir()
-            values=['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git','main','','old','new']
+            values=['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git','main','','old','new','old','']
             def blocked():raise RuntimeError('Queue is still running')
             with patch('deploy.update_source.subprocess.check_output',side_effect=values), patch('deploy.update_source.subprocess.run',return_value=Mock(returncode=0)) as run:
                 with self.assertRaisesRegex(RuntimeError,'Queue'):update_source(root,before_update=blocked)
@@ -88,3 +88,17 @@ class SourceUpdateTests(unittest.TestCase):
             self.assertEqual(git('-C',client,'rev-parse','HEAD'),target)
             self.assertEqual(git('-C',client,'rev-parse','refs/h3-launcher/previous-source'),before)
             self.assertEqual((client/'VERSION').read_text(),'2.1.0')
+
+
+class SourceRaceTests(unittest.TestCase):
+    def test_local_edit_after_drain_prevents_merge_and_backup_ref(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.git').mkdir()
+            values = ['https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git',
+                      'main', '', 'old', 'new', 'old', ' M README.md']
+            with patch('deploy.update_source.subprocess.check_output', side_effect=values), \
+                 patch('deploy.update_source.subprocess.run', return_value=Mock(returncode=0)) as run:
+                with self.assertRaisesRegex(RuntimeError, 'Source changed'):
+                    update_source(root, before_update=lambda: None)
+            self.assertFalse(any('merge' in call.args[0] or 'update-ref' in call.args[0] for call in run.call_args_list))

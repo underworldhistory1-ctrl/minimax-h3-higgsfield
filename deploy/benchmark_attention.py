@@ -14,7 +14,11 @@ import statistics
 import subprocess
 import sys
 
-PINNED_COMMIT = "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251"
+try:
+    from .runtime_policy import COMFY_REVISION as PINNED_COMMIT
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from runtime_policy import COMFY_REVISION as PINNED_COMMIT
 
 
 def math_reference_safe(length, heads):

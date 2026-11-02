@@ -17,7 +17,11 @@ import webbrowser
 
 
 PROJECT = pathlib.Path(__file__).resolve().parent.parent
-COMFY_REVISION = "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251"
+try:
+    from .runtime_policy import COMFY_REVISION, ensure_core
+except ImportError:
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    from runtime_policy import COMFY_REVISION, ensure_core
 H3_VAE_FIX_MARKER = "strip[..., :, x_idx[j]:x_idx[j] + x_len[j]]"
 QWEN_NODE_MARKERS = ("TextEncodeQwenImage21", "QwenImage21Cache")
 SPEED_NODES = (
@@ -37,7 +41,7 @@ RUNTIME_FILES = (
     "deploy/make_h3_landing.py", "deploy/verify_h3_server.py",
     "docs/COMPATIBILITY_MATRIX_AR.md", "docs/GRAPH_MAP.md", "docs/UX_FLOW.md",
 )
-RUNTIME_FILES += tuple((PROJECT / "deploy" / "v2_runtime_files.txt").read_text(encoding="utf-8").splitlines())
+RUNTIME_FILES += tuple(line.strip() for line in (PROJECT / "deploy/v2_runtime_files.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
 CONTEXT_NODE = ("ComfyUI-H3-Motion-Context-MultiRef", "https://github.com/seitanism/ComfyUI-H3-Motion-Context-MultiRef.git",
                 "361624fb406b63eb6694442eac6c895fc1533a70")
 
@@ -182,6 +186,7 @@ def prepare_comfy(root, git):
 
 
 def ensure_native_nodes(root, git):
+    ensure_core(root)
     node_file = root / "comfy_extras" / "nodes_minimax_h3.py"
     vae_file = root / "comfy" / "ldm" / "minimax" / "vae.py"
     qwen_file = root / "comfy_extras" / "nodes_qwen.py"
@@ -227,8 +232,8 @@ def ensure_python_env(python, root, fresh):
     probe = subprocess.run([str(python), "-c",
                             "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
                             "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split('.')[:2])) >= (13,0), 'CUDA 13.0+ is required for optimized INT8'; "
-                            "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit']()['ready'], 'Optimized CUDA backend or Python dependencies need repair'",
-                            str(PROJECT / 'deploy/environment_audit.py')],
+                            "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit'](sys.argv[2])['ready'], 'Optimized CUDA backend or Python dependencies need repair'",
+                            str(PROJECT / 'deploy/environment_audit.py'), str(root)],
                            capture_output=True, text=True)
     if probe.returncode == 0:
         return
@@ -242,7 +247,7 @@ def ensure_python_env(python, root, fresh):
                           capture_output=True, text=True)
     if cuda.returncode:
         print("Preparing CUDA PyTorch...", flush=True)
-        call(python, "-m", "pip", "install", "torch==2.9.1+cu130", "torchvision==0.24.1+cu130", "torchaudio==2.9.1+cu130",
+        call(python, "-m", "pip", "install", "torch==2.11.0+cu130", "torchvision==0.26.0+cu130", "torchaudio==2.11.0+cu130",
              "--index-url", "https://download.pytorch.org/whl/cu130")
     # Resolve missing packages without allowing pip to replace a working CUDA
     # stack as a transitive dependency of torchvision or another requirement.
@@ -256,8 +261,8 @@ def ensure_python_env(python, root, fresh):
         call(python, "-m", "pip", "install", "-c", constraints, "-r", root / "requirements.txt", "av")
     call(python, "-c", "import torch, av, aiohttp, PIL, comfyui_frontend_package; assert torch.cuda.is_available(); "
          "assert torch.ones(1,device='cuda').sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split('.')[:2])) >= (13,0), 'CUDA 13.0+ is required for optimized INT8'; "
-         "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit']()['ready'], 'Optimized CUDA backend or Python dependencies still need repair'",
-         PROJECT / 'deploy/environment_audit.py')
+         "import runpy,sys; assert runpy.run_path(sys.argv[1])['audit'](sys.argv[2])['ready'], 'Optimized CUDA backend or Python dependencies still need repair'",
+         PROJECT / 'deploy/environment_audit.py', root)
 
 
 def runtime_target(root):
@@ -487,7 +492,7 @@ def main():
     else:
         log_path = root / "h3-higgsfield-server.log"
         log = log_path.open("a", encoding="utf-8")
-        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0", "--use-pytorch-cross-attention"]
+        command = [str(python), "main.py", "--listen", args.bind, "--port", str(args.port), "--reserve-vram", "3.0", "--use-ck-attention"]
         if portable:
             command.append("--windows-standalone-build")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -507,6 +512,8 @@ def main():
 
 
 if __name__ == "__main__":
+    if os.environ.get('H3_LAUNCHER_INTERNAL') != '1':
+        os.execv(sys.executable, [sys.executable, str(PROJECT / 'deploy/launcher.py'), *sys.argv[1:]])
     try:
         raise SystemExit(main())
     except (OSError, RuntimeError, subprocess.SubprocessError) as exc:

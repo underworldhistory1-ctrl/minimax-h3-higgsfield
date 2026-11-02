@@ -77,7 +77,11 @@ def code_only_update(root, target, staged=False):
                 'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
     if git('remote', 'get-url', 'origin') not in accepted or git('branch', '--show-current') != 'main' or git('status', '--porcelain'):
         raise RuntimeError('UI update requires clean official main; customized source was preserved')
-    with launcher.InstallLock(root / '.h3-launcher.lock'):
+    try:
+        from .update_source import SourceLock
+    except ImportError:
+        from update_source import SourceLock
+    with SourceLock(source), launcher.InstallLock(root / '.h3-launcher.lock'):
         before = git('rev-parse', 'HEAD')
         if not staged:
             if before != receipt.get('installed_commit'):

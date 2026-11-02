@@ -10,7 +10,7 @@ import zipfile
 
 
 SOURCE_FILES = (
-    "CHANGELOG.md", "docs/RELEASE_2_6.md", "docs/SCENE_WORKSPACE_2026_10_29.md",
+    "CHANGELOG.md", "docs/README.md", "docs/RELEASE_2_7.md", "tests/requirements.txt", "docs/RELEASE_2_6.md", "docs/SCENE_WORKSPACE_2026_10_29.md",
     "docs/PROJECT_ELEMENTS_PLAN_2026_10_29.md", "docs/COMMUNITY_REVIEW_2026_10_29.md",
     "docs/VIDEO_REFERENCE_UPLOAD_AR.md",
     "docs/IMAGE_WORKSPACE_FIX_AR.md", "docs/images/canvas-refresh.png",
@@ -19,7 +19,8 @@ SOURCE_FILES = (
     "docs/AUDIO_ENHANCEMENT_AR.md", "docs/audio/audio-enhancement.png", "docs/audio/audio-browser-verification.json",
     "uninstall.ps1", "uninstall.sh", "deploy/uninstall_h3.py", "docs/UNINSTALL.md",
     "AGENTS.md", "START_HERE_AR.md", "LICENSE", "VERSION", "README.md", "install.sh", "install.ps1", "__init__.py", "h3_video_save.py", "qwen_image.py",
-    "Dockerfile.salad", ".dockerignore",
+    "Dockerfile.salad", ".dockerignore", ".gitattributes", "deploy/ci/verify.yml", "deploy/ci/README.md",
+    "deploy/openbayes_h3.sh", "deploy/openbayes_fresh_workspace.sh",
     "web/index.html", "web/studio.js", "web/image.html", "web/image-studio.js",
     "deploy/bootstrap_h3_server.sh", "deploy/download_h3_models.sh",
     "deploy/download_h3_models.py", "deploy/download_qwen_image_models.py", "deploy/install_windows.py",
@@ -123,7 +124,7 @@ def main():
         "gpu_validation_note": "Historical GPU fields below describe earlier validated profiles. Target-server model, adapter and render readiness are separate from the software release version.",
         "tested_gpu": "NVIDIA GeForce RTX 5090, 32 GB",
         "tested_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
-        "prepared_comfy_revision": "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251",
+        "prepared_comfy_revision": json.loads((source / "deploy/compatibility.json").read_text(encoding="utf-8"))["comfyui_commit"],
         "h3_vae_tile_fix_pr": 16436,
         "qwen_image_profiles": ["int8", "bf16"],
         "qwen_model_revision": "9a44dbdb47cefd046be9c0a13476192f34c8db8e",

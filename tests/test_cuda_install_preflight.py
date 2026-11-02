@@ -47,7 +47,7 @@ class CUDAInstallPreflightTests(unittest.TestCase):
             install_windows.ensure_python_env(Path('python.exe'), Path('ComfyUI'), False)
         command = run.call_args.args[0]
         self.assertIn('runpy.run_path', command[2])
-        self.assertTrue(str(command[-1]).endswith('environment_audit.py'))
+        self.assertTrue(str(command[-2]).endswith('environment_audit.py'))
 
     def test_missing_native_backend_or_pip_conflict_repairs_requirements_without_replacing_cuda(self):
         torch = types.SimpleNamespace(version=types.SimpleNamespace(cuda='13.0'),
@@ -62,7 +62,7 @@ class CUDAInstallPreflightTests(unittest.TestCase):
                 try:
                     with patch.object(sys, 'argv', ['probe', *command[3:]]), \
                             patch.dict(sys.modules, modules), \
-                            patch('runpy.run_path', return_value={'audit': lambda: report}):
+                            patch('runpy.run_path', return_value={'audit': lambda root: report}):
                         exec(command[2], {})
                     return subprocess.CompletedProcess(command, 0)
                 except AssertionError:

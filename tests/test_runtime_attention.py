@@ -29,24 +29,23 @@ class TestRuntimeAttention(unittest.TestCase):
         self.assertEqual(runtime_attention([], {})["implementation"], "runtime_default")
         self.assertEqual(runtime_attention([], {})['source'], 'unknown')
 
-    def test_supported_launch_paths_use_explicit_pytorch_baseline(self):
+    def test_all_launch_paths_select_ck_by_default(self):
         root = pathlib.Path(__file__).resolve().parents[1]
-        for name in ["deploy/launcher.py", "deploy/activate_v2.py", "deploy/openbayes_h3_supervisor.py",
-                "deploy/openbayes_h3.sh", "deploy/comfyui.service", "deploy/install_windows.py", "install.sh", "deploy/salad/entrypoint.sh"]:
-            text = (root / name).read_text(encoding="utf-8")
-            self.assertIn("--use-pytorch-cross-attention", text)
-            if name not in ('deploy/launcher.py', 'deploy/openbayes_h3_supervisor.py'):
-                self.assertNotIn("--use-ck-attention", text)
-            self.assertNotIn("--use-sage-attention", text)
+        for name in ['deploy/activate_v2.py', 'deploy/comfyui.service', 'deploy/install_windows.py']:
+            self.assertIn('--use-ck-attention', (root / name).read_text(encoding='utf-8'))
+        for name in ['install.sh', 'deploy/openbayes_h3.sh', 'deploy/salad/entrypoint.sh']:
+            source = (root / name).read_text(encoding='utf-8')
+            self.assertIn('H3_ATTENTION_BACKEND:-ck-int8', source)
+            self.assertNotIn('--use-pytorch-cross-attention', source)
 
-    def test_supervisor_attention_is_explicit_opt_in(self):
+    def test_supervisor_defaults_ck_and_keeps_explicit_pytorch(self):
         from deploy.openbayes_h3_supervisor import worker_command
         args = types.SimpleNamespace(bind='127.0.0.1', port=8188, reserve_vram=3.0)
-        self.assertIn('--use-pytorch-cross-attention', worker_command('python', args))
-        args.attention_backend = 'ck-int8'
+        self.assertIn('--use-ck-attention', worker_command('python', args))
+        args.attention_backend = 'pytorch'
         command = worker_command('python', args)
-        self.assertIn('--use-ck-attention', command)
-        self.assertNotIn('--use-pytorch-cross-attention', command)
+        self.assertIn('--use-pytorch-cross-attention', command)
+        self.assertNotIn('--use-ck-attention', command)
 
     def test_supervisor_rechecks_slow_startup_before_recovery(self):
         from deploy import openbayes_h3_supervisor as supervisor

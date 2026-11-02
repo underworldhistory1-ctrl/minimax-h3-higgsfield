@@ -2,6 +2,8 @@
 import importlib.metadata
 import json
 import platform
+from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -53,13 +55,31 @@ def acceleration_audit(torch):
     return result
 
 
-def audit():
+def requirement_issues(root):
+    """Check exact core requirements even when pip check accepts an older stack."""
+    issues = []
+    for line in (Path(root) / 'requirements.txt').read_text(encoding='utf-8').splitlines():
+        match = re.fullmatch(r'([A-Za-z0-9_.-]+)==([^ ;#]+)', line.strip())
+        if match:
+            name, expected = match.groups()
+            try:
+                actual = importlib.metadata.version(name)
+            except importlib.metadata.PackageNotFoundError:
+                actual = 'missing'
+            if actual != expected:
+                issues.append(f'{name}: core requires {expected}, installed {actual}')
+    return issues
+
+
+def audit(root=None):
     result = {'python': sys.version.split()[0], 'platform': platform.platform(), 'packages': {}, 'issues': [], 'gpu_validated': False}
     for name in ('torch', 'torchvision', 'torchaudio', 'comfyui-frontend-package', 'aiohttp', 'av', 'safetensors', 'numpy'):
         try:
             result['packages'][name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
             result['issues'].append('Missing package: ' + name)
+    if root is not None:
+        result['issues'].extend(requirement_issues(root))
     # pip check finds inconsistent version constraints; it never installs anything.
     checked = subprocess.run([sys.executable, '-m', 'pip', 'check'], capture_output=True, text=True, timeout=60)
     result['dependency_consistent'] = checked.returncode == 0
@@ -91,4 +111,5 @@ if __name__ == '__main__':
             print(str(error), file=sys.stderr)
             raise SystemExit(1)
     else:
-        print(json.dumps(audit()))
+        root = sys.argv[sys.argv.index('--comfy-root') + 1] if '--comfy-root' in sys.argv else None
+        print(json.dumps(audit(root)))

@@ -71,6 +71,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
     contexts = services["contexts"]
     source_upload_lock = asyncio.Lock()
     preparation_lock = asyncio.Lock()
+    resource_preparation_lock = asyncio.Lock()
     quality_lock = asyncio.Lock()
     media_export_lock = asyncio.Lock()
     export_admission_lock = asyncio.Lock()
@@ -95,7 +96,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         try:
             body = await request.json()
             if not isinstance(body, dict): raise ValueError("Preparation request must be an object.")
-            async with preparation_lock:
+            async with preparation_lock, resource_preparation_lock:
                 # A local LLM can share the GPU; do not load it while ComfyUI is busy.
                 if comfy_client is not None:
                     queue = await comfy_client.get_queue()
@@ -142,7 +143,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             if record['state'] in ('waiting','processing'):
                 record['cancel_event'].set();record['state']='cancel_requested'
         if completed and names:
-            async with preparation_lock:
+            async with preparation_lock, resource_preparation_lock:
                 if comfy_client is not None:
                     queue = await comfy_client.get_queue()
                     listed = json.dumps(queue.get('queue_running',[])+queue.get('queue_pending',[]))
@@ -441,6 +442,11 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                 return web.json_response({'error': str(error)}, status=getattr(error, 'status_code', 400))
 
     async def handle_submit_job(request):
+        # CPU preparation may share the GPU or delete control inputs. Preserve the
+        # immediate busy response for those operations, while independent render
+        # submissions continue waiting in order on the common admission lock.
+        if resource_preparation_lock.locked():
+            return web.json_response({'error': 'Shared resource is busy', 'code': 'PREPARATION_BUSY'}, status=409)
         # Admissions from separate tabs wait in order. A concurrent submission is
         # not a second GPU preparation task and must not be rejected as one.
         async with preparation_lock:

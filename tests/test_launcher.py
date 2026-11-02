@@ -8,11 +8,12 @@ import unittest
 from unittest.mock import patch, Mock
 
 from deploy import launcher
+from deploy.worker_lifecycle import interpreter_identity
 
 
 class LauncherTests(unittest.TestCase):
     def test_attention_backend_defaults_and_explicit_commands(self):
-        self.assertEqual(launcher.parser().parse_args([]).attention_backend, 'pytorch')
+        self.assertEqual(launcher.parser().parse_args([]).attention_backend, 'ck-int8')
         for backend, flag in [('pytorch', '--use-pytorch-cross-attention'), ('ck-int8', '--use-ck-attention')]:
             args = launcher.parser().parse_args(['--attention-backend', backend])
             linux = launcher.server_command(Path('/comfy'), Path('/selected/python'), args, platform='posix')
@@ -29,25 +30,18 @@ class LauncherTests(unittest.TestCase):
             self.assertTrue(launcher.attention_ready({'attention': {'implementation': implementation, 'source': 'loaded_runtime'}}, args))
             self.assertFalse(launcher.attention_ready({'attention': {'implementation': 'attention_sage'}}, args))
 
-    def test_restart_rejects_correct_source_with_wrong_attention_backend(self):
+    def test_changed_backend_on_unowned_worker_fails_before_reboot(self):
         api = Mock()
         api.queue.return_value = {'queue_running': [], 'queue_pending': []}
         api.wait_idle.return_value = True
-        old = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
-               'models': {'ref2va': True}, 'nodes': {'sampler': True},
-               'acceleration': {'native_cuda_ready': True},
-               'attention': {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
-        wrong = dict(old, runtime_instance='new-wrong')
-        healthy = dict(old, runtime_instance='new-ck',
-                       attention={'implementation': 'attention_comfy_kitchen_int8', 'source': 'loaded_runtime'})
-        api.request.side_effect = [old, {}, wrong, healthy]
+        api.request.return_value = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
+            'attention': {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
         args = launcher.parser().parse_args(['--attention-backend', 'ck-int8'])
-        state = {}
-        with patch.object(launcher.time, 'sleep') as sleep, patch.object(
-                launcher, 'loaded_source_fingerprint', return_value='desired'):
-            launcher.start_server(api, Path('root'), Path('python'), args, Mock(), state, Mock())
-        sleep.assert_called_once()
-        self.assertEqual(state['loaded_runtime_instance'], 'new-ck')
+        with patch.object(launcher, 'loaded_source_fingerprint', return_value='desired'), \
+             patch('deploy.worker_lifecycle.stop_owned_supervisor', return_value=False):
+            with self.assertRaisesRegex(RuntimeError, 'different attention/interpreter'):
+                launcher.start_server(api, Path('root'), Path('python'), args, Mock(), {}, Mock())
+        api.request.assert_called_once_with('/h3_studio/readiness')
 
     def test_source_receipt_requires_clean_official_main_and_separate_source(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -196,9 +190,9 @@ class LauncherTests(unittest.TestCase):
         api = Mock()
         api.queue.return_value = {"queue_running": [], "queue_pending": []}
         api.wait_idle.return_value = True
-        ready = {"runtime_instance": "old", "runtime_fingerprint": "desired", "models": {"fl2va": True}, "nodes": {"sampler": True}, "acceleration": {"native_cuda_ready": True}, "attention": {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
+        ready = {"runtime_instance": "old", "runtime_fingerprint": "desired", "models": {"fl2va": True}, "nodes": {"sampler": True}, "acceleration": {"native_cuda_ready": True, "interpreter_id": interpreter_identity(Path("python"))}, "attention": {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
         api.request.side_effect = [ready, {}, ready, dict(ready, runtime_instance="new")]
-        args = Mock(queue_timeout=1, start_timeout=10)
+        args = Mock(queue_timeout=1, start_timeout=10, attention_backend='pytorch')
         with patch.object(launcher.time, "sleep") as sleep, patch.object(launcher, "loaded_source_fingerprint", return_value="desired"):
             launcher.start_server(api, Path("root"), Path("python"), args, Mock(), {"runtime_changed": True, "restart_pending": True, "pre_update_instance": "old"}, Mock())
         self.assertEqual(api.request.call_count, 4)
@@ -235,6 +229,7 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher.Runner, "run"))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
+            stack.enter_context(patch("deploy.runtime_policy.core_current", return_value=True))
             stack.enter_context(patch.object(launcher, "environment_ready", return_value=True))
             stack.enter_context(patch.object(launcher, "optional_nodes_ready", return_value=True))
             setup = stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
@@ -263,6 +258,7 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher.Runner, "run"))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
+            stack.enter_context(patch("deploy.runtime_policy.core_current", return_value=True))
             stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
             stack.enter_context(patch.object(launcher, "start_server", side_effect=lambda *args: args[5].update(restart_pending=False)))
             self.assertEqual(launcher.main(), 1)
@@ -288,6 +284,7 @@ class LauncherTests(unittest.TestCase):
             stack.enter_context(patch.object(launcher, "close_admission"))
             stack.enter_context(patch.object(launcher, "audit_environment", return_value={"ready":True,"issues":[]}))
             stack.enter_context(patch.object(launcher, "runtime_matches", return_value=True))
+            stack.enter_context(patch("deploy.runtime_policy.core_current", return_value=True))
             stack.enter_context(patch.object(launcher, "setup_runtime", return_value=Path(sys.executable)))
             self.assertEqual(launcher.main(), 0)
             report = json.loads((root / ".h3-launcher/report.json").read_text())
@@ -335,6 +332,9 @@ class LauncherTests(unittest.TestCase):
             api = Mock()
             api.queue.return_value = {'queue_running': [], 'queue_pending': []}
             def status(path):
+                if path.endswith('/readiness'):
+                    from deploy.worker_lifecycle import root_identity
+                    return {'runtime_root_id': root_identity(root)}
                 self.assertEqual(path, '/h3_studio/updates/maintenance')
                 self.assertTrue(json.loads((root / '.h3-launcher/maintenance.json').read_text())['closed'])
                 return {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 0}
@@ -345,7 +345,9 @@ class LauncherTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             api = Mock()
             api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+            from deploy.worker_lifecycle import root_identity
             api.request.side_effect = [
+                {'runtime_root_id': root_identity(Path(folder))},
                 {'admission_closed': True, 'inflight': 1, 'active_operations': 0, 'queue_count': 0},
                 {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 1},
                 {'admission_closed': True, 'inflight': 0, 'active_operations': 0, 'queue_count': 0}]
@@ -358,7 +360,7 @@ class LauncherTests(unittest.TestCase):
             api = Mock()
             api.queue.return_value = {'queue_running': [], 'queue_pending': []}
             api.request.return_value = {'state': 'idle'}
-            with self.assertRaisesRegex(RuntimeError, 'drain'):
+            with self.assertRaisesRegex(RuntimeError, 'ComfyUI root'):
                 launcher.close_admission(api, Path(folder), 1)
 
     def test_custom_report_directory_cannot_hide_maintenance_before_mutation(self):
@@ -391,34 +393,51 @@ class LauncherTests(unittest.TestCase):
         api.wait_idle.return_value = True
         old = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
                'models': {'ref2va': True}, 'nodes': {'sampler': True},
-               'acceleration': {'native_cuda_ready': False}}
+               'acceleration': {'native_cuda_ready': False, 'interpreter_id': interpreter_identity(Path('python'))},
+               'attention': {'implementation': 'attention_pytorch', 'source': 'loaded_runtime'}}
         stale_env = dict(old, runtime_instance='new-old-env')
         healthy = dict(old, runtime_instance='new-cu130',
-                       acceleration={'native_cuda_ready': True},
+                       acceleration={'native_cuda_ready': True, 'interpreter_id': interpreter_identity(Path('python'))},
                        attention={'implementation': 'attention_pytorch', 'source': 'loaded_runtime'})
         api.request.side_effect = [old, {}, stale_env, healthy]
         state = {'restart_pending': True, 'pre_update_instance': 'old'}
         with patch.object(launcher.time, 'sleep') as sleep, patch.object(
                 launcher, 'loaded_source_fingerprint', return_value='desired'):
             launcher.start_server(api, Path('root'), Path('python'),
-                Mock(queue_timeout=1, start_timeout=10), Mock(), state, Mock())
+                Mock(queue_timeout=1, start_timeout=10, attention_backend='pytorch'), Mock(), state, Mock())
         sleep.assert_called_once()
         self.assertFalse(state['restart_pending'])
         self.assertEqual(state['loaded_runtime_instance'], 'new-cu130')
 
 
     def test_linux_supervisor_uses_selected_interpreter_and_bind(self):
-        args = Mock(bind='0.0.0.0', port=8188)
+        args = Mock(bind='0.0.0.0', port=8188, attention_backend='ck-int8')
         command = launcher.server_command(Path('/comfy'), Path('/selected/bin/python'), args, platform='posix')
-        self.assertEqual(command[0], '/selected/bin/python')
+        self.assertEqual(command[0], str(Path('/selected/bin/python')))
         self.assertIn('openbayes_h3_supervisor.py', command[1])
-        self.assertEqual(command[command.index('--comfy-python')+1], '/selected/bin/python')
+        self.assertEqual(command[command.index('--comfy-python')+1], str(Path('/selected/bin/python')))
         self.assertEqual(command[command.index('--bind')+1], '0.0.0.0')
         self.assertEqual(command[command.index('--reserve-vram')+1], '3.0')
         direct = launcher.server_command(Path('/comfy'), Path('/selected/python.exe'), args, platform='nt')
-        self.assertEqual(direct[1], 'main.py')
-        self.assertIn('--use-pytorch-cross-attention', direct)
+        self.assertEqual(direct[1], str(Path('/comfy') / 'main.py'))
+        self.assertIn('--use-ck-attention', direct)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InterpreterReconciliationTests(unittest.TestCase):
+    def test_healthy_worker_from_other_interpreter_is_not_reused(self):
+        api = Mock()
+        api.queue.return_value = {'queue_running': [], 'queue_pending': []}
+        api.wait_idle.return_value = True
+        api.request.return_value = {'runtime_instance': 'old', 'runtime_fingerprint': 'desired',
+            'attention': {'implementation': 'attention_comfy_kitchen_int8', 'source': 'loaded_runtime'},
+            'acceleration': {'native_cuda_ready': True, 'interpreter_id': interpreter_identity('/other/python')}}
+        args = launcher.parser().parse_args([])
+        with patch.object(launcher, 'loaded_source_fingerprint', return_value='desired'), \
+             patch('deploy.worker_lifecycle.stop_owned_supervisor', return_value=False) as stop:
+            with self.assertRaisesRegex(RuntimeError, 'different attention/interpreter'):
+                launcher.start_server(api, Path('root'), Path('/selected/python'), args, Mock(), {}, Mock())
+        stop.assert_called_once()

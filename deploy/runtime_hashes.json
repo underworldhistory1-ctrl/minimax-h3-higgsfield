@@ -142,7 +142,8 @@
     "eca07e4c1a8cbc603e5d5c2885dc0f0f9b1eef8d",
     "ecd7ee50cbecf036045bb1e0f61bb3dd4c063365",
     "f225a78adf0534ad898ee7521a19aa40897f53ba",
-    "fe16b348d97f7a5d8d995ebbd9712fe708f7423e"
+    "fe16b348d97f7a5d8d995ebbd9712fe708f7423e",
+    "e70b4523ae7ffe8aa3cac8ecd1b093fba5a98737"
   ],
   "__init__.py": [
     "0587cbee696bac5f94d39ee664ce3114d76892e0",
@@ -280,7 +281,8 @@
     "d0d8090f31c47fe97df1889a708d334803323c8f",
     "d22e66d3be05f69fb5f90f8597ab67b1ef0c126f",
     "d35dd44051170d0ec7ee34825a4cf640a3e2d9d4",
-    "ef2d0c55149de815f80569cf4c5155132bb0b193"
+    "ef2d0c55149de815f80569cf4c5155132bb0b193",
+    "6dce9c28eed6ff8c98c3f8af62693f14c7851790"
   ],
   "deploy/download_control_models.py": [
     "cabe331272e2ceb18f89d2db90d6e6d698db6bd7",
@@ -453,7 +455,8 @@
     "e60e154229ad11610c8f77c295cc1d59c613aa0c",
     "e684632e8fe767a6bb5a853078f7e9d0488c5e24",
     "ef3fada2187f9e2104e134aec4acb40f92f01946",
-    "ffe9e529db97619b41e8e6102f733b95799ae2e8"
+    "ffe9e529db97619b41e8e6102f733b95799ae2e8",
+    "38123ac49e8ca851f181c6a3b6095d7ebe12a34a"
   ],
   "deploy/runtime_patches.py": [
     "ced01adebd76b19890fb4952738e25196057cecf",
@@ -517,7 +520,8 @@
     "f66324215314e8d41b42a424c0c8b0b44cd34dd3",
     "f6bc3da6261b982d6025d3c981497335660dafd5",
     "f7bce641bb937bdcf58fd2b53f53d35112597682",
-    "ff02fe5fcd4bc33da9c156697f0e1138e29308f9"
+    "ff02fe5fcd4bc33da9c156697f0e1138e29308f9",
+    "efbcc2423b7f8ddb8151b560fcf637b47402f5e2"
   ],
   "deploy/v2_standby.py": [
     "5a698d6808d69236edac8a6ecbbfd58ad358c847",
@@ -710,7 +714,8 @@
   "docs/TAB_PERSISTENCE_AR.md": [
     "1a46dac5df8f891a53af11929d678452440f437c",
     "2d4423f18a69ae017441988ea5db504756150dba",
-    "72ce2b1ce6d66c93889022680705aa45ce451b22"
+    "72ce2b1ce6d66c93889022680705aa45ce451b22",
+    "52dc425d257e9fe63e0a884d705d1e6e744d5d7e"
   ],
   "docs/TURBO_V4.md": [
     "1b7a836e3a20e58ffc3e4bafb06b43911287d0b1",
@@ -988,7 +993,8 @@
     "4f97422aa9b4b10d97b7f978eacb77511a3d8549",
     "6555364692ce5d60892801313150e6a41dc74300",
     "706050ee108f615bab84d40fa6334c868a7200e8",
-    "bdc5617710df91a63b57f60e251e0feddada61f8"
+    "bdc5617710df91a63b57f60e251e0feddada61f8",
+    "1d0bd3f19cf2ed8a11f27310fb264b1a90ff4da0"
   ],
   "h3_lab/contexts.py": [
     "c062ed0ec192e13dae58a3382c0b877a46531b2c",
@@ -1116,7 +1122,8 @@
     "c6c110c554b16d4c839c15d57a60591e78ce5e7a",
     "ef4ad7e98008b89af15a004dad750276264d6339",
     "fa5b4de67aefcb541c1f1766262df072e7512345",
-    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e"
+    "fe36fd1212c4bf01f5dcab25f231b63f7487b19e",
+    "5e3f6e85cd14c3efb761963bf577325639c28de5"
   ],
   "h3_lab/runtime_attention.py": [
     "4aaa6ea6382374f33364daa68d2161ae5a614dfa",
@@ -1126,7 +1133,8 @@
   "h3_lab/runtime_fingerprint.py": [
     "6ca36acd829fa9aed663730f286482d1bb51baa6",
     "a62b155757174a41f24bfe014ea049bcef789120",
-    "f6e603f858f873b25284c6cf1722ee712991086b"
+    "f6e603f858f873b25284c6cf1722ee712991086b",
+    "61b07a65b998fc869acab9a01d121f465ac10fb5"
   ],
   "h3_lab/scenes.py": [
     "979bfd4453d262b3d026d23e3de8391d8af47f18"
@@ -1147,7 +1155,8 @@
   "h3_lab/updates.py": [
     "0bd20e7ed5c7b237c17a9b637cb1b2b04f0ee41b",
     "b9352653863aa8c9b2547bcfd0216856d4f262b4",
-    "c16a75f04ff5502dff79137db19453b87c3902a6"
+    "c16a75f04ff5502dff79137db19453b87c3902a6",
+    "cc90a5d094bc04e1157c40b0f560eb67737ce36a"
   ],
   "h3_lab/video_source.py": [
     "07ca981afb3c108219d9b938a32e9b3e0209a76b",
@@ -1752,7 +1761,8 @@
     "5bb87e7e98ecac61324e5b6108cc9fef53f5b4af",
     "baba9c6dd61a002d9b37de7b3d8a9fa7a1f7532f",
     "f2a4333bed26c95dedc4145250fe43af37bf341c",
-    "fbd5908d1852f16daa7328c5bb7c14c25865e36e"
+    "fbd5908d1852f16daa7328c5bb7c14c25865e36e",
+    "a1e8ad633c31547ab99a8a3b0b6da2ee1eb760d1"
   ],
   "web/h3/connected-studio.js": [
     "05445d1988f82e0755addcae209c73a03773c2d5",
@@ -1867,11 +1877,16 @@
     "0940c6ea6e021035718eb6a9b0d0239eaf633187",
     "6e1a7683a713080c0f9e1d1f24fbb5359d772130",
     "6faa39c53326aee1991a5d08c446a4ae8baa8e7b",
-    "84e06566fb27d6071862f6af360a79741a1e971a"
+    "84e06566fb27d6071862f6af360a79741a1e971a",
+    "61e4e07eb0a2b8992ff2e00cfa14c7618c518ee8"
   ],
   "web/h3/tab-draft-store.js": [
     "68556a3a18fc1fbf2fde94b2016f0db107a8105c",
     "b0fc33d7defe2dbed1358a6fb6ebe8244f4aed8a"
+  ],
+  "web/h3/tab-session.js": [
+    "ee4e8bf05707e5a3814a18d94167ea3d73290e4c",
+    "1c17a585636e77437bf27d35df9750a2d3e4ba01"
   ],
   "web/h3/timing-estimator.js": [
     "223ac1060ea423e19ac6d4c3bf1a82ecd7ca86e8",
@@ -1880,7 +1895,8 @@
   ],
   "web/h3/updates-ui.js": [
     "092362bd7bba92434f4e4a2439b18bc5eb6c8b29",
-    "6d70588776e9023da76078bd09f53a83bac4efe0"
+    "6d70588776e9023da76078bd09f53a83bac4efe0",
+    "41ea776a1d55768fe797503dca096751a2c8adda"
   ],
   "web/h3/uuid.js": [
     "a2770f65270dece193708af915f32c066dd76b20",
@@ -1903,7 +1919,8 @@
     "5fabd90d7bfee323064428a9cabdbca387a27b13",
     "736e3f27f11719fad1b46511a8ae68a217f87a90",
     "7dd9605320a180894b88b55fdfa0630b1eee4db3",
-    "b92e8994f28536030b62cb2b2c608224b0a04bb6"
+    "b92e8994f28536030b62cb2b2c608224b0a04bb6",
+    "61b7482f6bb7277b14c1a15d20dd8513900df19d"
   ],
   "web/image-studio.js": [
     "07fcd19e6d4b7808cc9641611cb5565865b99494",
@@ -2155,8 +2172,5 @@
     "6ee71f87f2598581c8ecc8d698de64436f62768a",
     "9cb19921308b0e8234abf56652540d84b8f97945",
     "ca95b72d2bec41c96b5a1c3031ca9a472d83ba1a"
-  ],
-  "web/h3/tab-session.js": [
-    "ee4e8bf05707e5a3814a18d94167ea3d73290e4c"
   ]
 }

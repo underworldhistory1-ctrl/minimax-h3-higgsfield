@@ -20,11 +20,11 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn(patch_command, entrypoint)
         self.assertLess(entrypoint.index(patch_command), entrypoint.index('python main.py'))
         command = next(line for line in entrypoint.splitlines() if line.startswith('python main.py'))
-        for option in ('--reserve-vram 3.0', '--cache-none', '--fp16-intermediates'):
+        for option in ('--reserve-vram 3.0', '--cache-ram', '--fp16-intermediates'):
             self.assertIn(option, command)
 
     def test_salad_feature_weights_default_skip_and_remote_fail_closed(self):
-        bash = shutil.which("bash")
+        bash = "C:/Program Files/Git/bin/bash.exe" if Path("C:/Program Files/Git/bin/bash.exe").is_file() else shutil.which("bash")
         if not bash and Path("C:/Program Files/Git/bin/bash.exe").is_file():
             bash = "C:/Program Files/Git/bin/bash.exe"
         if not bash:
@@ -60,7 +60,7 @@ python() {
                     environment.pop(key, None)
                     if value is not None:
                         environment[key] = value
-                result = subprocess.run([bash, "-s"], input=harness + defaults + "\n" + functions + "\ndownload_models\n",
+                result = subprocess.run([bash, "-c", harness + defaults + "\n" + functions + "\ndownload_models\n"],
                                         text=True, capture_output=True, env=environment, timeout=10)
                 self.assertEqual(result.returncode, returncode, result.stderr)
                 for feature in ("refine", "control"):
@@ -136,7 +136,7 @@ python() {
 
     def test_salad_image_pins_combined_h3_and_qwen_comfy_revision(self):
         dockerfile = (ROOT / "Dockerfile.salad").read_text(encoding="utf-8")
-        self.assertIn("3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251", dockerfile)
+        self.assertIn("426f5eea52a7ece1dd599fff4cb6cd1f352ddd24", dockerfile)
         self.assertIn("TextEncodeQwenImage21", dockerfile)
         self.assertIn("QwenImage21Cache", dockerfile)
         self.assertIn("strip[..., :, x_idx[j]:x_idx[j] + x_len[j]]", dockerfile)
@@ -149,8 +149,8 @@ python() {
         self.assertIn('output/images', entrypoint)
 
     def test_all_installers_share_verified_comfy_revision(self):
-        expected = "3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251"
-        for filename in ("install.sh", "deploy/install_windows.py", "Dockerfile.salad"):
+        expected = "426f5eea52a7ece1dd599fff4cb6cd1f352ddd24"
+        for filename in ("deploy/compatibility.json", "Dockerfile.salad"):
             self.assertIn(expected, (ROOT / filename).read_text(encoding="utf-8"), filename)
 
 

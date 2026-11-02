@@ -4,7 +4,7 @@
 
 The normal Windows and Linux commands now use the [automatic launcher](LAUNCHER.md).
 It prepares H3, Realism People, Combat V2, Motion Repair V2 and Character Swap LoRAs,
-MotionCache/Spectrum, Qwen INT8, Refine and ControlNet. Turbo is retired. It discovers attached model storage,
+MotionCache/Spectrum, Qwen INT8, Refine and ControlNet. The legacy --turbo installer switch is retired; optional Turbo v4 and LightX2V Ref2VA have separate explicit installation instructions in [their guide](TURBO_V4.md). It discovers attached model storage,
 verifies/reuses files, resumes sequential downloads, saves progress and validates
 a short video with audio before reporting full readiness. Existing data is retained.
 
@@ -62,7 +62,7 @@ cd minimax-h3-higgsfield
 bash install.sh
 ```
 
-The Linux installer finds an existing ComfyUI or installs pinned revision `3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251`. That revision contains the corrected H3 VAE tile decode and native Qwen Image 2.1 nodes. The installer checks those source markers before continuing, reuses or downloads verified model files, prepares the optional nodes and LoRAs, and opens **H3 Higgsfield** as the ComfyUI landing page.
+The Linux installer finds an existing ComfyUI or installs pinned ComfyUI 0.43.0 revision `426f5eea52a7ece1dd599fff4cb6cd1f352ddd24`. That revision contains the corrected H3 VAE tile decode and native Qwen Image 2.1 nodes. The installer checks those source markers before continuing, reuses or downloads verified model files, prepares the optional nodes and LoRAs, and opens **H3 Higgsfield** as the ComfyUI landing page.
 
 For a different Linux ComfyUI location, use `bash install.sh --comfy-root /path/to/ComfyUI`. Both new installs bind to `127.0.0.1:8188` by default. Reach a remote server through an SSH tunnel or an authenticated cloud proxy; only use `--bind 0.0.0.0` (Linux) or `-Bind 0.0.0.0` (Windows) behind access control. Once ready, open `/extensions/h3_studio/index.html` at your server address. The server root also redirects to this page; the Comfy node editor is reserved for maintenance at `/?view=nodes`.
 
@@ -70,5 +70,5 @@ Model downloads can require accepting the [MiniMax H3 license](https://huggingfa
 
 ### SaladCloud
 
-The published Salad image and Dockerfile still use an older CUDA 12.8 environment; they have not been rebuilt or validated for the current native CUDA 13 acceleration contract. See [legacy image status and deployment requirements](../deploy/SALAD_DEPLOYMENT.md) before using it. A main-branch source update is not proof that a published container image changed.
+The published Salad image remains the older CUDA 12.8 snapshot. Dockerfile.salad now prepares PyTorch 2.11/CUDA 13 with the pinned core, but a new image build and GPU validation have not been completed. See [legacy image status and deployment requirements](../deploy/SALAD_DEPLOYMENT.md) before using it. A main-branch source update is not proof that a published container image changed.
 

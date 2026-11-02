@@ -93,6 +93,7 @@ docs/HARDENING_REVIEW_AR.md
 web/h3/image-reference-store.js
 h3_lab/shared_timing.py
 deploy/runtime_patches.py
+deploy/runtime_policy.py
 deploy/update_source.py
 deploy/ui_update.py
 VERSION
@@ -130,3 +131,4 @@ h3_lab/reuse_groups.py
 deploy/install_h3_turbo.py
 deploy/turbo-v4.json
 docs/TURBO_V4.md
+deploy/worker_lifecycle.py

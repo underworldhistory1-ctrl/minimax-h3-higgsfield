@@ -1,5 +1,7 @@
 """Report server-wide attention without exposing process arguments or secrets."""
 import sys
+import hashlib
+import os
 
 
 def runtime_attention(arguments=None, modules=None):
@@ -35,7 +37,8 @@ def runtime_acceleration(modules=None):
     torch = modules.get('torch')
     cuda = getattr(getattr(torch, 'version', None), 'cuda', None)
     result = {'torch': str(getattr(torch, '__version__', 'unavailable')),
-              'cuda_runtime': cuda, 'native_cuda_ready': False}
+              'cuda_runtime': cuda, 'native_cuda_ready': False,
+              'interpreter_id': hashlib.sha256(os.path.normcase(os.path.abspath(sys.executable)).encode('utf-8')).hexdigest()}
     try:
         version = tuple(int(part) for part in str(cuda).split('.')[:2])
         kitchen = modules.get('comfy_kitchen')
@@ -48,3 +51,9 @@ def runtime_acceleration(modules=None):
     except (AttributeError, TypeError, ValueError, RuntimeError, OSError):
         pass
     return result
+
+
+def runtime_root_identity(root):
+    from pathlib import Path
+    value = os.path.normcase(str(Path(root).resolve()))
+    return hashlib.sha256(value.encode('utf-8')).hexdigest()

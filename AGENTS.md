@@ -29,3 +29,8 @@ The 15 October runtime audit records complete Original Ref2VA INT8 + Combat V2 a
 ## Current source audit
 
 Read `docs/PRODUCTION_READINESS_2026_10_15.md` for the current software and connected-server evidence. Do not assume an earlier rental is still connected in a new session. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.
+
+
+## 2.7 runtime policy
+
+ComfyUI 0.43.0 is pinned in deploy/compatibility.json. Native CK INT8 attention is the server default across generation modes that use the shared dense attention implementation; model-specific overrides remain possible. PyTorch requires an explicit launcher option. Verify actual attention, root identity and Python identity, not flags alone. New source/CPU checks do not establish GPU quality or speed on the pinned core. Read docs/RELEASE_2_7.md. Legacy bootstrap entrypoints must keep routing into deploy/launcher.py; never reintroduce broad process-name termination or independent runtime copies.

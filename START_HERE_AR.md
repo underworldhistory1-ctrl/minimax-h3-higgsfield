@@ -1,4 +1,6 @@
-# ابدأ من هنا — H3 Higgsfield 2.6.0
+# ابدأ من هنا — H3 Higgsfield 2.7.0
+
+الإصدار 2.7 يثبت ComfyUI 0.43.0 ويستخدم Comfy Kitchen INT8 attention افتراضيًا، مع التحقق من العامل المحمّل فعليًا. اختبار GPU لهذا الإصدار لم يُنفذ بعد؛ [تفاصيل التحديث وحدود التحقق](docs/RELEASE_2_7.md).
 
 واجهة واحدة لتوليد فيديو MiniMax H3 بصوته الأصلي، وإنشاء الصور وتعديلها عبر Qwen Image2.1. الاسم الحالي للمشروع هو **H3 Higgsfield**؛ H3 Studio اسم مساحة العمل، وV2 اسم ترقية قديمة وليس إصدارًا موازيًا مطلوبًا للتثبيت الجديد.
 
@@ -23,7 +25,7 @@ bash launcher.sh --comfy-root /path/to/ComfyUI --models-root /path/to/models
 | Original quality | أوزان H3 INT8 ConvRot؛ FL2VA لـText/Frames وRef2VA لـReferences |
 | Singularity v1.3 INT8 | checkpoint مستقل اختياري لـReferences؛ اكتمل رندر مع Anime → Realism وفك الفيديو والصوت كاملين |
 | Hybrid conditioning / Hybrid loader | مساران تجريبيان مختلفان؛ لا يوجد دليل جودةGPU شامل لهما |
-| PyTorch / CK INT8 attention | اختيار سيرفر مستقل عن دقة الموديل؛ CK تقريبي واختياري |
+| PyTorch / CK INT8 attention | CK الافتراضي لكل العامل؛ PyTorch اختيار صريح. CK تقريبي ومستقل عن دقة الموديل |
 | Spectrum / MotionCache | طريقتا تسريع تقريبيتان مستقلتان عن Attention، ولا تعملان معًا |
 | Qwen Image2.1 | مساحة الصور؛ INT8 افتراضي في التثبيت وBF16 اختياري |
 

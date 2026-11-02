@@ -26,9 +26,7 @@ Torch 2.8/CUDA 12.8 may expose the GPU while disabling the native INT8 backend.
 Use the selected persistent virtual environment; resolving its Python symlink to
 the system interpreter can silently select the wrong packages.
 
-PyTorch fused SDPA remains the default. To opt into native Kitchen quantized
-attention for a measured workload, add --attention-backend ck-int8 to the Linux
-launcher command. Changing an existing supervisor's choice requires an idle
+Native Kitchen quantized attention is the default. Use --attention-backend pytorch for the explicit fused SDPA baseline. ComfyUI 0.43.0 is pinned; this release has source/CPU verification but no new GPU render on that pin. Changing an existing supervisor's choice requires an idle
 managed relaunch; a Manager reboot retains its supervisor's original arguments.
 Check the actual loaded attention and native_cuda_ready in /h3_studio/readiness.
 

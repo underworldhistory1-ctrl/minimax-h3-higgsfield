@@ -43,7 +43,7 @@ class V2PromotionInstallTests(unittest.TestCase):
   pin='361624fb406b63eb6694442eac6c895fc1533a70'
   for name in ('deploy/bootstrap_h3_server.sh','deploy/install_windows.py','Dockerfile.salad'):self.assertIn(pin,(ROOT/name).read_text())
  def test_linux_inventory_handles_windows_line_endings(self):
-  bash=shutil.which('bash') or ('C:/Program Files/Git/bin/bash.exe' if pathlib.Path('C:/Program Files/Git/bin/bash.exe').is_file() else None)
+  bash=('C:/Program Files/Git/bin/bash.exe' if pathlib.Path('C:/Program Files/Git/bin/bash.exe').is_file() else shutil.which('bash')) or ('C:/Program Files/Git/bin/bash.exe' if pathlib.Path('C:/Program Files/Git/bin/bash.exe').is_file() else None)
   if not bash:self.skipTest('Bash unavailable')
   script=(ROOT/'deploy/bootstrap_h3_server.sh').read_text()
   snippet=script[script.index('mapfile -t V2_RUNTIME_FILES'):script.index('RUNTIME_FILES+=("${V2_RUNTIME_FILES[@]}")')]

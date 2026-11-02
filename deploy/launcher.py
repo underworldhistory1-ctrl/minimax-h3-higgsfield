@@ -126,14 +126,16 @@ class InstallLock:
         self.file.close()
 
 
-def process_candidates():
+def process_candidates(*, fail_on_unresolved=False, platform=None):
     """Only examine Python commands running main.py; never dump full process data."""
     found = []
-    if os.name == "nt":
+    if (os.name if platform is None else platform) == "nt":
         script = r'''Get-CimInstance Win32_Process | Where-Object {
  $_.Name -match '^python.*\.exe$' -and $_.CommandLine -match 'main\.py'
 } | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json -Compress'''
         result = subprocess.run(["powershell", "-NoProfile", "-Command", script], capture_output=True, text=True)
+        if result.returncode and fail_on_unresolved:
+            raise RuntimeError('Cannot verify Windows worker processes; no runtime files were changed')
         if result.returncode == 0 and result.stdout.strip():
             records = json.loads(result.stdout)
             for item in records if isinstance(records, list) else [records]:
@@ -142,6 +144,8 @@ def process_candidates():
                     path = Path(pair[0] or pair[1])
                     if path.is_absolute() and path.is_file():
                         found.append((path.parent.resolve(), Path(item["ExecutablePath"])))
+                    elif fail_on_unresolved:
+                        raise RuntimeError('A Windows Python main.py worker has an unresolved root. Provide its live --url/--port, or stop it when idle before updating; no runtime files were changed.')
     else:
         for proc in Path("/proc").glob("[0-9]*"):
             try:
@@ -363,6 +367,7 @@ def setup_runtime(args, root, python, runner):
                H3_INSTALL_REFINE="0" if args.no_refine else "1",
                H3_INSTALL_CONTROLNET="0" if args.no_controlnet else "1",
                QWEN_IMAGE_PROFILES=args.qwen_image_profiles, PYTHONUNBUFFERED="1")
+    env['H3_ATTENTION_BACKEND'] = selected_attention(args)
     if python:
         env["COMFY_PYTHON"] = str(python)
     if os.name == "nt":
@@ -383,11 +388,11 @@ def setup_runtime(args, root, python, runner):
     return discover_python(root, str(python) if python else None)
 
 
-def environment_ready(python, args):
+def environment_ready(python, args, root=None):
     if python is None:
         return False
     try:
-        if not audit_environment(python).get("ready", False):
+        if not audit_environment(python, root).get("ready", False):
             return False
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
         return False
@@ -402,8 +407,11 @@ def environment_ready(python, args):
     return result.returncode == 0
 
 
-def audit_environment(python):
-    probe = subprocess.run([str(python), str(PROJECT/'deploy/environment_audit.py')], capture_output=True, text=True, timeout=90)
+def audit_environment(python, root=None):
+    command = [str(python), str(PROJECT/'deploy/environment_audit.py')]
+    if root is not None:
+        command += ['--comfy-root', str(root)]
+    probe = subprocess.run(command, capture_output=True, text=True, timeout=90)
     if probe.returncode:
         raise RuntimeError('Environment audit could not complete; services were not started.')
     return json.loads(probe.stdout)
@@ -473,6 +481,13 @@ def wait_for_install_idle(api, timeout):
 
 def close_admission(api, root, timeout):
     """Close admission durably, then drain requests admitted before maintenance."""
+    from importlib import import_module
+    lifecycle = import_module('deploy.worker_lifecycle' if __package__ else 'worker_lifecycle')
+    if api.queue().get('status') != 'offline':
+        lifecycle.require_api_root(root, api)
+    elif (any(Path(found).resolve() == Path(root).resolve() for found, _ in process_candidates(fail_on_unresolved=True))
+          or lifecycle.verified_supervisor(root, PROJECT) is not None):
+        raise RuntimeError('The configured API is offline but this ComfyUI root has a live worker. Correct --url/--port or stop it when idle; no runtime files were changed.')
     atomic_json(Path(root) / '.h3-launcher/maintenance.json', {'closed': True, 'reboot_ready': False})
     deadline = time.monotonic() + timeout
     while True:
@@ -617,8 +632,10 @@ def reopen_after_verification(root, state, save):
 
 
 def selected_attention(args):
-    value = getattr(args, 'attention_backend', 'pytorch')
-    return value if value in ('pytorch', 'ck-int8') else 'pytorch'
+    value = getattr(args, 'attention_backend', 'ck-int8')
+    if value not in ('pytorch', 'ck-int8'):
+        raise ValueError('Unknown attention backend; choose ck-int8 or pytorch explicitly')
+    return value
 
 
 def attention_ready(ready, args):
@@ -636,7 +653,7 @@ def server_command(root, python, args, platform=None):
                 '--comfy-root', str(root), '--comfy-python', str(python),
                 '--bind', args.bind, '--port', str(args.port), '--reserve-vram', '3.0',
                 '--attention-backend', selected_attention(args)]
-    command = [str(python), 'main.py', '--listen', args.bind, '--port', str(args.port),
+    command = [str(python), str(root / 'main.py'), '--listen', args.bind, '--port', str(args.port),
                '--reserve-vram', '3.0',
                '--use-ck-attention' if selected_attention(args) == 'ck-int8' else '--use-pytorch-cross-attention']
     if python.parent.name.lower() == 'python_embeded':
@@ -646,6 +663,32 @@ def server_command(root, python, args, platform=None):
     return command
 
 
+def interpreter_ready(ready, python):
+    from importlib import import_module
+    lifecycle = import_module('deploy.worker_lifecycle' if __package__ else 'worker_lifecycle')
+    actual = ready.get('acceleration', {}).get('interpreter_id')
+    return actual == lifecycle.interpreter_identity(python)
+
+
+def spawn_server(root, python, args, state, save):
+    from importlib import import_module
+    lifecycle = import_module('deploy.worker_lifecycle' if __package__ else 'worker_lifecycle')
+    command = server_command(root, python, args)
+    with (root / 'h3-higgsfield-server.log').open('a', encoding='utf-8') as log:
+        child = subprocess.Popen(command, cwd=root, stdin=subprocess.DEVNULL, stdout=log,
+            stderr=subprocess.STDOUT, env=os.environ.copy(), start_new_session=os.name != 'nt',
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    receipt = {'pid': child.pid, 'python': str(python), 'root': str(root), 'command': command}
+    if os.name != 'nt':
+        try:
+            receipt['process_start'] = lifecycle.process_start(child.pid)
+        except OSError:
+            pass  # Early worker failure is diagnosed by readiness, never by killing a guessed PID.
+    atomic_json(root / '.h3-launcher-process.json', receipt)
+    state['managed_pid'] = child.pid
+    save()
+
+
 def start_server(api, root, python, args, runner, state, save):
     queue = api.queue()
     if queue.get("status") != "offline":
@@ -653,38 +696,42 @@ def start_server(api, root, python, args, runner, state, save):
             raise RuntimeError("Queue is busy; runtime was prepared but no restart was attempted")
         try:
             before = api.request("/h3_studio/readiness")
-            previous_instance = before.get("runtime_instance") if isinstance(before, dict) else None
+            before = before if isinstance(before, dict) else {}
+            previous_instance = before.get("runtime_instance")
         except RuntimeError:
             before = {}
             previous_instance = None
         expected = loaded_source_fingerprint(root)
         already_loaded = (isinstance(before, dict) and before.get("runtime_fingerprint") == expected
                           and before.get("acceleration", {}).get("native_cuda_ready") is True
-                          and attention_ready(before, args))
+                          and attention_ready(before, args) and interpreter_ready(before, python))
         pending = state.get("restart_pending", False)
         if already_loaded and (not pending or previous_instance != state.get("pre_update_instance")):
             state["restart_pending"] = False
             save()
             return
-        try:
-            api.request("/v2/manager/reboot", {})
-        except Exception as error:
-            # Reboot may replace the worker before its HTTP response arrives.
-            if "404" in str(error) or "403" in str(error) or "401" in str(error):
-                raise RuntimeError("The existing server cannot be restarted through Manager. Restart it using your provider, then rerun. No unmanaged process was stopped.") from error
-        state["restart_requested"] = True
-        save()
+        from importlib import import_module
+        lifecycle = import_module('deploy.worker_lifecycle' if __package__ else 'worker_lifecycle')
+        launch_changed = not attention_ready(before, args) or not interpreter_ready(before, python)
+        replaced = False
+        if pending or launch_changed:
+            replaced = lifecycle.stop_owned_supervisor(root, PROJECT, api, args.start_timeout)
+        if replaced:
+            previous_instance = before.get('runtime_instance')
+            spawn_server(root, python, args, state, save)
+        else:
+            if launch_changed:
+                raise RuntimeError('The existing worker has different attention/interpreter arguments and is not a verified launcher-owned supervisor. Stop it when idle, then rerun the same launcher command; no unknown process was stopped.')
+            try:
+                api.request('/v2/manager/reboot', {})
+            except Exception as error:
+                if any(code in str(error) for code in ('404', '403', '401')):
+                    raise RuntimeError('This worker cannot restart through Manager. Stop it when idle and rerun; no unknown process was stopped.') from error
+            state['restart_requested'] = True
+            save()
     else:
         previous_instance = None
-        command = server_command(root, python, args)
-        with (root / "h3-higgsfield-server.log").open("a", encoding="utf-8") as log:
-            child = subprocess.Popen(command, cwd=root, stdin=subprocess.DEVNULL, stdout=log,
-                                     stderr=subprocess.STDOUT, env=os.environ.copy(),
-                                     start_new_session=os.name != "nt",
-                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        atomic_json(root / ".h3-launcher-process.json", {"pid": child.pid, "python": str(python), "root": str(root)})
-        state["managed_pid"] = child.pid
-        save()
+        spawn_server(root, python, args, state, save)
     deadline = time.monotonic() + args.start_timeout
     while time.monotonic() < deadline:
         try:
@@ -693,7 +740,7 @@ def start_server(api, root, python, args, runner, state, save):
                     and ready.get("runtime_instance") and ready["runtime_instance"] != previous_instance
                     and ready.get("runtime_fingerprint") == loaded_source_fingerprint(root)
                     and ready.get("acceleration", {}).get("native_cuda_ready") is True
-                    and attention_ready(ready, args)):
+                    and attention_ready(ready, args) and interpreter_ready(ready, python)):
                 state["restart_pending"] = False
                 state["loaded_runtime_instance"] = ready["runtime_instance"]
                 save()
@@ -710,8 +757,8 @@ def parser():
     result.add_argument('--ui-update-staged', action='store_true', help=argparse.SUPPRESS)
     result.add_argument("--comfy-root")
     result.add_argument("--comfy-python", default=os.environ.get("COMFY_PYTHON"))
-    result.add_argument('--attention-backend', choices=('pytorch', 'ck-int8'), default='pytorch',
-                        help='Server attention backend; ck-int8 explicitly opts into approximate INT8 attention')
+    result.add_argument('--attention-backend', choices=('pytorch', 'ck-int8'), default='ck-int8',
+                        help='Server attention backend: ck-int8 (default, quantized) or explicit pytorch baseline')
     result.add_argument("--models-root", action="append", default=[], help="Attached storage directory; repeat for multiple disks")
     result.add_argument("--state-dir", type=Path)
     result.add_argument("--port", type=int, default=8188)
@@ -738,7 +785,7 @@ def parser():
     return result
 
 
-def main():
+def _main():
     args = parser().parse_args()
     if args.ui_update:
         if not args.comfy_root:
@@ -750,6 +797,37 @@ def main():
         return code_only_update(args.comfy_root, args.ui_update, args.ui_update_staged)
     if args.turbo:
         raise RuntimeError('Turbo has been removed. Existing files are preserved but not loaded or downloaded.')
+    # Resolve the saved job before fetching or changing its source/configuration.
+    # An update must never strand a costly job behind a changed source fingerprint.
+    root = discover_comfy(args.comfy_root)
+    directory = args.state_dir.resolve() if args.state_dir else root / '.h3-launcher'
+    pending_smoke = False
+    saved_path = directory / 'state.json'
+    if saved_path.is_file() and not (args.status or args.plan):
+        saved = json.loads(saved_path.read_text(encoding='utf-8'))
+        pending_smoke = saved.get('smoke', {}).get('status') in (
+            'submitting', 'submission_uncertain', 'running', 'timeout', 'downloaded')
+    if pending_smoke:
+        # Follow the original job before interpreting a new release's defaults.
+        from importlib import import_module
+        smoke_module = import_module('deploy.launcher_smoke' if __package__ else 'launcher_smoke')
+        with InstallLock(root / '.h3-launcher.lock'):
+            saved = json.loads(saved_path.read_text(encoding='utf-8'))
+            old_url = saved.get('config', {}).get('url')
+            if old_url != (args.url or f'http://127.0.0.1:{args.port}'):
+                raise RuntimeError('Resume saved smoke with its original --url/--port before changing servers')
+            def save_pending(_state=None):
+                saved['updated_at'] = dt.datetime.now(dt.timezone.utc).isoformat()
+                atomic_json(saved_path, saved)
+                atomic_json(directory / 'report.json', saved)
+            result = smoke_module.run_smoke(smoke_module.ComfyAPI(old_url), PROJECT,
+                                            directory, saved, save_pending, args.smoke_timeout)
+            if result.get('status') != 'validated':
+                raise RuntimeError('Saved smoke remains ' + result.get('status', 'unknown') +
+                                   '; original prompt preserved, no update applied')
+            save_pending()
+        os.execv(sys.executable, [sys.executable, str(PROJECT / 'deploy/launcher.py'), *sys.argv[1:]])
+        return 0
     if not (args.no_update or args.status or args.plan):
         if __package__:
             from .update_source import update_source
@@ -760,13 +838,14 @@ def main():
                 from .launcher_smoke import ComfyAPI
             else:
                 from launcher_smoke import ComfyAPI
-            wait_for_install_idle(ComfyAPI(args.url or f'http://127.0.0.1:{args.port}'), args.queue_timeout)
+            update_api = ComfyAPI(args.url or f'http://127.0.0.1:{args.port}')
+            with InstallLock(root / '.h3-launcher.lock'):
+                wait_for_install_idle(update_api, args.queue_timeout)
+                close_admission(update_api, root, args.queue_timeout)
         if update_source(PROJECT, args.update_policy, before_update=guard_source_update):
             os.execv(sys.executable, [sys.executable, str(PROJECT / "deploy/launcher.py"), *sys.argv[1:]])
     if not 1 <= args.port <= 65535 or min(args.queue_timeout, args.start_timeout, args.smoke_timeout) <= 0:
         raise RuntimeError("Port and timeouts must be positive and valid")
-    root = discover_comfy(args.comfy_root)
-    directory = args.state_dir.resolve() if args.state_dir else root / ".h3-launcher"
     if args.status:
         report = directory / "report.json"
         print(report.read_text(encoding="utf-8") if report.is_file() else "No saved installation report yet.")
@@ -800,6 +879,7 @@ def main():
               "bind": args.bind, "attention_backend": args.attention_backend, "environment_id": environment_identity(),
               "refine": not args.no_refine, "controlnet": not args.no_controlnet,
               "qwen": args.qwen_image_profiles, "source_version": source_version()}
+    config.update(python=str(python) if python else None, model_roots=list(map(str, roots)), port=args.port)
     # Root-level lock prevents concurrent launchers with different --state-dir values.
     with InstallLock(root / ".h3-launcher.lock"):
         directory.mkdir(parents=True, exist_ok=True)
@@ -844,8 +924,10 @@ def main():
             state["maintenance_closed"] = True
             stage("close_admission", lambda: close_admission(api, root, args.queue_timeout))
             python = stage("source", lambda: prepare_source(root, python, runner))
-            needs_runtime = (not runtime_matches(root) or "runtime" not in state["stages"]
-                             or not environment_ready(python, args) or not optional_nodes_ready(root, args))
+            from importlib import import_module
+            policy = import_module('deploy.runtime_policy' if __package__ else 'runtime_policy')
+            needs_runtime = (not policy.core_current(root) or not runtime_matches(root) or "runtime" not in state["stages"]
+                             or not environment_ready(python, args, root) or not optional_nodes_ready(root, args))
             state["runtime_changed"] = needs_runtime or state.get("restart_pending", False)
             stage("wait_before_runtime", lambda: wait_for_install_idle(api, args.queue_timeout))
             def mark_reload():
@@ -879,7 +961,7 @@ def main():
                             raise RuntimeError('Hybrid checkout differs from the audited pin; preserve local edits and resolve it before launch.')
                 stage('optional_hybrid', prepare_hybrid)
             def runtime_audit():
-                report = audit_environment(python)
+                report = audit_environment(python, root)
                 state['environment'] = report
                 save()
                 if not report['ready']:
@@ -929,6 +1011,18 @@ def main():
             runner.emit("H3 needs action: " + redact(error))
             runner.emit("Report: " + str(directory / "report.json"))
             return 1
+
+
+def main():
+    # All cooperating source updates use source -> Comfy-root lock ordering.
+    if any(flag in sys.argv[1:] for flag in ('--plan', '--preflight', '--status', '--help', '-h')):
+        return _main()
+    if __package__:
+        from .update_source import SourceLock
+    else:
+        from update_source import SourceLock
+    with SourceLock(PROJECT):
+        return _main()
 
 
 def source_version():

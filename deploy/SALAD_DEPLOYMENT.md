@@ -1,7 +1,7 @@
 # SaladCloud deployment — legacy image status
 
-The published image described below predates the current2.5.6 runtime contract.
-Dockerfile.salad still starts from Torch 2.11.0/CUDA 12.8; no new CUDA 13 image build
+The published image described below predates the current 2.7 runtime contract.
+Dockerfile.salad now starts from Torch 2.11.0/CUDA 13.0 and pins ComfyUI 0.43.0; no new image build
 or assigned-node validation was performed in this release. It cannot be presented
 as equivalent to the verified Torch 2.9.1+cu130 native INT8 source deployment.
 For the current runtime, use the [source installer](../docs/INSTALL.md) on a host

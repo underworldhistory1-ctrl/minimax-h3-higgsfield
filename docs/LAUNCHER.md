@@ -30,7 +30,7 @@ Anime → Realism (LiseTY, pinned 310 MB), Realism People, Combat V2, Motion Rep
 preprocessors, and Qwen Image INT8. Original remains the default rendering method.
 The launcher's short validation render also uses Original.
 
-Turbo is retired. Existing files are retained but are not selected or downloaded.
+The legacy --turbo installer switch is retired. Optional Turbo v4 / LightX2V Ref2VA profiles use their separate explicit installation steps in [TURBO_V4.md](TURBO_V4.md); the normal launcher does not select or download them. Existing files are retained.
 Character Swap requires reference conditioning with a source video and replacement image. Installed Singularity and Hybrid profiles are available for experimentation; graph wiring is checked, while visual quality remains unverified.
 Use `--video-only` / `-VideoOnly` to omit Qwen weights, `--no-controlnet` /
 `-SkipControlNet`, or `--no-refine` / `-SkipRefine` to omit optional features.
@@ -85,9 +85,7 @@ check, not an artistic guarantee for every prompt, LoRA or reference combination
 ## Running servers and authentication
 
 The launcher waits for running and pending work before changing runtime files or
-requesting a restart. It uses ComfyUI Manager's restart endpoint for an existing
-worker. It never kills an unknown process. Without that endpoint, restart using
-your provider and rerun; downloaded files and projects remain preserved.
+requesting a restart. It verifies that the endpoint belongs to the selected ComfyUI root before closing admission. A launcher-owned Linux supervisor can be replaced after full drain, with exact arguments, local/remote worker identity and PID-safe handles verified. A Manager restart can reload unchanged launch arguments. Unknown processes and older workers without root identity require an idle provider restart. Downloaded files and projects remain preserved.
 
 Use `--url` / `-Url` for authenticated provider URLs and proxy path prefixes.
 Credentials come from `H3_ACCESS_TOKEN`, `H3_INSTANCE_PASSWORD`, and `HF_TOKEN`
@@ -179,14 +177,11 @@ video and audio are saved and validated. Cancelled jobs must remain cancelled.
 
 ## Attention selection and supervised workers
 
-The default remains the explicit PyTorch fused SDPA baseline. Select native
-Comfy Kitchen quantized attention with `--attention-backend ck-int8`; use
-`--attention-backend pytorch` for the baseline. This is an additional arithmetic
+Native Comfy Kitchen quantized attention is the default (`--attention-backend ck-int8`). Use `--attention-backend pytorch` for the explicit fused SDPA baseline. This is an additional arithmetic
 approximation, separate from INT8 diffusion weights. The choice enters the
 launcher configuration fingerprint, reaches worker restarts, and must match the
 actual loaded implementation in readiness. An argument alone is not verification.
-Changing the choice on an existing supervisor requires an idle relaunch with the
-new arguments; Manager reboot preserves the old supervisor arguments.
+Changing attention or Python triggers an idle relaunch only for a verified launcher-owned Linux supervisor. An unmanaged worker requires a provider restart; Manager reboot preserves its old launch arguments.
 
 On Linux, the launcher starts a detached worker supervisor with the selected
 Python interpreter, port, bind address and VRAM reserve. Interpreter symlinks must
@@ -214,3 +209,14 @@ checks at1/7/13s found coherent frames but arithmetic changes alter the output;
 this is not perceptual equivalence or a guarantee for other workloads. Small
 attention shapes can be slower with quantization. Singularity INT8 + Anime
 Realism also completed and passed full video/audio decode on this runtime.
+
+
+## Pinned upgrades and failure recovery (2.7)
+
+The compatibility manifest pins ComfyUI 0.43.0 by full Git SHA. Existing older Git installations upgrade only from the official origin, with no staged or unknown tracked edits. Recognized H3 model/navigation patches are backed up and reapplied; a previous-core Git ref and upgrade receipt record recovery evidence. A checkout conflict preserves user files and reports needs_action. Older Portable distributions require a matching official Portable upgrade; the launcher does not replace an embedded distribution in place.
+
+Exact core package requirements are audited even when imports and pip check succeed. An old importable frontend or Kitchen package cannot pass readiness. CUDA fallback installation uses the PyTorch 2.11/CUDA 13 wheel family; working compatible CUDA environments are retained.
+
+A shared source lock covers worktrees and installations using the same checkout. Updates merge the exact inspected commit after rechecking HEAD and tracked edits. Installation locks then protect each ComfyUI root. Public Linux, Windows and legacy OpenBayes bootstrap entrypoints enter this coordinator. Internal helpers are implementation details, not alternate deployment paths.
+
+If an earlier smoke job is pending, the launcher follows its saved prompt and original configuration before updating source or applying new defaults. Uncertain/failed jobs stop with diagnostic state and are never silently submitted again.

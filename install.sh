@@ -10,7 +10,8 @@ COMFY_ROOT=""
 PORT=8188
 BIND=127.0.0.1
 AUTO_START=1
-COMFY_REVISION="3b4c0b0e457cf0a51cf3038e0a6750d8f96ce251"
+COMFY_REVISION="$(python3 "$ROOT/deploy/runtime_policy.py" --revision)"
+ATTENTION_FLAG="$(python3 "$ROOT/deploy/runtime_policy.py" --attention-flag "${H3_ATTENTION_BACKEND:-ck-int8}")"
 H3_VAE_FIX_MARKER='strip[..., :, x_idx[j]:x_idx[j] + x_len[j]]'
 QWEN_NODE_FILE_REL='comfy_extras/nodes_qwen.py'
 
@@ -102,6 +103,7 @@ else
 fi
 
 H3_NODE_FILE="$COMFY_ROOT/comfy_extras/nodes_minimax_h3.py"
+python3 "$ROOT/deploy/runtime_policy.py" --comfy-root "$COMFY_ROOT"
 H3_VAE_FILE="$COMFY_ROOT/comfy/ldm/minimax/vae.py"
 QWEN_NODE_FILE="$COMFY_ROOT/$QWEN_NODE_FILE_REL"
 if [[ ! -f "$H3_NODE_FILE" ]] || ! grep -q MiniMaxH3ReferenceToVideo "$H3_NODE_FILE" \
@@ -148,7 +150,7 @@ else
 fi
 export COMFY_PYTHON="$H3_PYTHON"
 
-if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"]()["ready"], "Optimized CUDA backend or Python dependencies need repair"' "$ROOT/deploy/environment_audit.py" 2>/dev/null; then
+if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"](sys.argv[2])["ready"], "Optimized CUDA backend or Python dependencies need repair"' "$ROOT/deploy/environment_audit.py" "$COMFY_ROOT" 2>/dev/null; then
     echo "Installing missing ComfyUI Python dependencies..."
     "$H3_PYTHON" "$ROOT/deploy/environment_audit.py" --check-install
     if ((existing == 0)); then
@@ -156,7 +158,7 @@ if ! "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_avail
     fi
     if ! "$H3_PYTHON" -c 'import torch; assert torch.cuda.is_available(); assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"' 2>/dev/null; then
         echo "Preparing CUDA PyTorch..."
-        "$H3_PYTHON" -m pip install 'torch==2.9.1+cu130' 'torchvision==0.24.1+cu130' 'torchaudio==2.9.1+cu130' --index-url https://download.pytorch.org/whl/cu130
+        "$H3_PYTHON" -m pip install 'torch==2.11.0+cu130' 'torchvision==0.26.0+cu130' 'torchaudio==2.11.0+cu130' --index-url https://download.pytorch.org/whl/cu130
     fi
     (
         task_constraints="$(mktemp)"
@@ -167,7 +169,7 @@ for name in ("torch", "torchvision", "torchaudio"):
     except m.PackageNotFoundError: pass' > "$task_constraints"
         "$H3_PYTHON" -m pip install -c "$task_constraints" -r "$COMFY_ROOT/requirements.txt" av
     )
-    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"; assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"]()["ready"], "Optimized CUDA backend or Python dependencies still need repair"' "$ROOT/deploy/environment_audit.py"
+    "$H3_PYTHON" -c 'import torch, av, aiohttp, PIL; assert torch.cuda.is_available(), "CUDA is unavailable to PyTorch"; assert torch.ones(1,device="cuda").sum().item() == 1; torch.cuda.synchronize(); assert tuple(map(int, str(torch.version.cuda).split(".")[:2])) >= (13,0), "CUDA 13.0+ is required for optimized INT8"; import runpy,sys; assert runpy.run_path(sys.argv[1])["audit"](sys.argv[2])["ready"], "Optimized CUDA backend or Python dependencies still need repair"' "$ROOT/deploy/environment_audit.py" "$COMFY_ROOT"
 fi
 
 free_gib="$(df -Pk "$COMFY_ROOT" | awk 'NR==2 {printf "%.0f", $4/1048576}')"
@@ -199,7 +201,7 @@ fi
 status="$(python3 "$ROOT/deploy/activate_h3.py" check --url "$SERVER_URL")"
 if [[ "$status" == "COMFYUI_OFFLINE" ]]; then
     echo "Starting ComfyUI with H3 Higgsfield as its landing page..."
-    (cd "$COMFY_ROOT" && nohup "$H3_PYTHON" main.py --listen "$BIND" --port "$PORT" --reserve-vram 3.0 --use-pytorch-cross-attention \
+    (cd "$COMFY_ROOT" && nohup "$H3_PYTHON" main.py --listen "$BIND" --port "$PORT" --reserve-vram 3.0 "$ATTENTION_FLAG" \
         "${COMFY_START_ARGS[@]}" \
         > "$COMFY_ROOT/h3-higgsfield-server.log" 2>&1 < /dev/null & echo $! > "$COMFY_ROOT/.h3-higgsfield-server.pid")
     python3 "$ROOT/deploy/activate_h3.py" wait --url "$SERVER_URL" --timeout 240

@@ -39,6 +39,14 @@ if [[ -z "$COMFY_ROOT" ]]; then usage >&2; exit 2; fi
 COMFY_ROOT="$(cd "$COMFY_ROOT" && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ "${H3_LAUNCHER_INTERNAL:-0}" != "1" ]]; then
+    if [[ "$WITH_REF2VA" != 1 || "$WITH_OPTIONAL_LORAS" != 1 || "$WITH_SPEED_OPTIONS" != 1 ]]; then
+        echo "Legacy partial-install flags are unsupported. Use launcher.sh --plan and the documented feature flags; no files were changed." >&2
+        exit 2
+    fi
+    exec "${COMFY_PYTHON:-python3}" "$PROJECT_ROOT/deploy/launcher.py" --comfy-root "$COMFY_ROOT"
+fi
+
 RUNTIME_FILES=(
     __init__.py h3_video_save.py qwen_image.py LICENSE README.md
     web/index.html web/studio.js web/image.html web/image-studio.js

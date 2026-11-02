@@ -4,6 +4,7 @@ set -Eeuo pipefail
 COMFY_ROOT="${COMFY_ROOT:-/opt/ComfyUI}"
 DATA_ROOT="${H3_DATA_ROOT:-/workspace}"
 H3_NODE="$COMFY_ROOT/custom_nodes/h3_studio"
+ATTENTION_FLAG="$(python "$H3_NODE/deploy/runtime_policy.py" --attention-flag "${H3_ATTENTION_BACKEND:-ck-int8}")"
 REMOTE="${H3_STORAGE_REMOTE:-}"
 SYNC_SECONDS="${H3_SYNC_SECONDS:-20}"
 MODEL_SOURCE="${H3_MODEL_SOURCE:-huggingface}"
@@ -157,7 +158,7 @@ PY
 
 log "Starting ComfyUI privately on 127.0.0.1:8188."
 cd "$COMFY_ROOT"
-python main.py --listen 127.0.0.1 --port 8188 --reserve-vram 3.0 --cache-none --fp16-intermediates --use-pytorch-cross-attention &
+python main.py --listen 127.0.0.1 --port 8188 --reserve-vram 3.0 --cache-ram --fp16-intermediates "$ATTENTION_FLAG" &
 COMFY_PID=$!
 
 for _ in $(seq 1 360); do

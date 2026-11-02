@@ -34,15 +34,15 @@ class _ScopedRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class ComfyAPI:
-    def __init__(self, url):
+    def __init__(self, url, *, provider_auth=True):
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
             raise APIError('Use an HTTP(S) server URL without embedded credentials')
         if any(part in ('.', '..') for part in parsed.path.split('/')) or '\\' in parsed.path:
             raise APIError('Invalid proxy path')
         self.url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip('/'), '', ''))
-        self._token = os.environ.get('H3_ACCESS_TOKEN') or urllib.parse.parse_qs(parsed.query).get('arg', [''])[0]
-        self._password = os.environ.get('H3_INSTANCE_PASSWORD', '')
+        self._token = (os.environ.get('H3_ACCESS_TOKEN') or urllib.parse.parse_qs(parsed.query).get('arg', [''])[0]) if provider_auth else ''
+        self._password = os.environ.get('H3_INSTANCE_PASSWORD', '') if provider_auth else ''
         self._authenticated = False
         self.opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()), _ScopedRedirect(self.url))

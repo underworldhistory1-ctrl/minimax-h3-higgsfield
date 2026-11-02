@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7.0 - 2026-11-02
+
+- Default to native Comfy Kitchen INT8 attention; verify loaded attention and Python identity. Keep explicit PyTorch selection.
+- Pin ComfyUI 0.43.0 centrally; audit exact core dependencies, preserve recognized patches and user edits, and record migration recovery evidence.
+- Serialize shared source updates, merge the exact inspected commit, and recheck local changes after drain.
+- Follow pending smoke jobs before updates or changed defaults, without duplicate submissions.
+- Replace only fully drained, verified launcher-owned Linux supervisors, binding the checked endpoint to the local worker before PID-safe termination.
+- Route public installers and legacy OpenBayes setup through the same coordinator; update CUDA fallback wheels and Docker base.
+- New source/CPU regression checks remain separate from historical GPU evidence. No new GPU render completed on the 0.43.0 pin.
+
 ## 2.6.0 - 2026-10-29
 
 - Verify official source, installed interface/backend files and the running worker before reporting Studio code up to date.

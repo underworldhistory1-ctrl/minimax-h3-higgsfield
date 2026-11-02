@@ -61,7 +61,7 @@ class WindowsPythonSafetyTests(unittest.TestCase):
 
 class LinuxPythonSafetyTests(unittest.TestCase):
     def bash(self):
-        bash = shutil.which("bash")
+        bash = "C:/Program Files/Git/bin/bash.exe" if Path("C:/Program Files/Git/bin/bash.exe").is_file() else shutil.which("bash")
         if not bash and Path("C:/Program Files/Git/bin/bash.exe").is_file():
             bash = "C:/Program Files/Git/bin/bash.exe"
         if not bash:
@@ -93,7 +93,7 @@ fake_python() {
     fi
 }
 '''
-        result = subprocess.run([self.bash(), "-s"], input=harness + block,
+        result = subprocess.run([self.bash(), "-c", harness + block],
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
         commands = [line for line in result.stdout.splitlines() if line.startswith("PACKAGE_COMMAND:")]
@@ -112,7 +112,7 @@ fake_python() {
             with self.subTest(override=override):
                 harness = 'set -Eeuo pipefail\nCOMFY_ROOT=/nonexistent/comfy\nexisting=1\n'
                 environment = dict(os.environ, COMFY_PYTHON=override)
-                result = subprocess.run([self.bash(), "-s"], input=harness + block,
+                result = subprocess.run([self.bash(), "-c", harness + block],
                                         capture_output=True, text=True, env=environment, timeout=10)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("COMFY_PYTHON", result.stderr)

@@ -1,6 +1,8 @@
 # H3 Higgsfield
 
-**Current release: 2.6.0 · verified installation and adapter readiness**
+**Current release: 2.7.0 · guarded updates and Comfy Kitchen attention by default**
+
+The launcher prepares pinned ComfyUI 0.43.0 and selects native Comfy Kitchen INT8 attention for the server. It verifies loaded attention, Python environment and runtime source before readiness. Use `--attention-backend pytorch` for the explicit baseline. [2.7 verification and upgrade limits](docs/RELEASE_2_7.md): this release has not completed a new GPU render.
 
 ### Start a scene directly
 

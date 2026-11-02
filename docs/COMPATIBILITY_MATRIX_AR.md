@@ -1,4 +1,6 @@
-# خريطة اختيارات H3 Studio — 2.6.0
+# خريطة اختيارات H3 Studio — 2.7.0
+
+ComfyUI 0.43.0; native CK INT8 attention is the server default. Use explicit PyTorch selection for the baseline. GPU examples below are historical, not new validation on this core. [2.7 scope](RELEASE_2_7.md).
 
 الـSeed الافتراضي42 للتكرار، مش ترتيب جودة. الأرقام الصحيحة حتى الحد الأصلي64-bit محفوظة بدقة؛ العشوائي يتحدد مرة قبل الإرسال. Text/Frames/References بيسمحوا5–362 فريم على شبكة5+17k؛ تحت124 فريم خارج نطاق التدريب المعتاد وجودةGPUغير مختبرة هنا. [التفاصيل والحدود](SEED_AND_DURATION_AR.md).
 
