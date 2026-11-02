@@ -132,3 +132,4 @@ deploy/install_h3_turbo.py
 deploy/turbo-v4.json
 docs/TURBO_V4.md
 deploy/worker_lifecycle.py
+deploy/archive_source.py

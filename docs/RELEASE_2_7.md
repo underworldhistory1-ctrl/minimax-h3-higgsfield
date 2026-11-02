@@ -12,6 +12,10 @@ This release hardens installation and updates, and selects native Comfy Kitchen 
 - Recognized core patches have backups and a previous-core ref. Unknown edits block automatic migration.
 - Older Portable builds require an official matching distribution upgrade.
 
+## Archive updates
+
+Default latest launches from ZIP archives create and reuse an official Git checkout under the selected root, preserving the archive. Packaged commit ancestry and file hashes prevent older main or local archive edits from being silently substituted. --no-update keeps a deliberately frozen archive.
+
 ## Recovery behavior
 
 Pending smoke jobs retain their identity and are followed before source/default changes. Source updates merge the inspected SHA after rechecking local state. Supervisor replacement verifies exact process arguments, endpoint root identity, and local/remote worker identity before signaling a PID-safe handle. Unknown workers are never terminated by process-name search. Older workers without identity/drain support require a provider stop when idle.

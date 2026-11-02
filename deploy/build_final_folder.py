@@ -6,6 +6,8 @@ import hashlib
 import json
 import pathlib
 import shutil
+import subprocess
+import re
 import zipfile
 
 
@@ -53,6 +55,30 @@ def sha256(path):
     return h.hexdigest()
 
 
+def source_revision(source):
+    if (source / '.git').exists():
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(source), *args], text=True).strip()
+        if git('status', '--porcelain', '--untracked-files=no'):
+            raise SystemExit('Commit or preserve source edits before building an immutable release')
+        tracked = set(git('ls-files', '-z').split('\0'))
+        if set(SOURCE_FILES) - tracked:
+            raise SystemExit('Release payload contains untracked source files; commit them first')
+        commit = git('rev-parse', 'HEAD')
+    else:
+        receipt = source / '.h3-archive.json'
+        if not receipt.is_file():
+            raise SystemExit('Building a release requires a Git checkout or packaged source provenance')
+        record = json.loads(receipt.read_text(encoding='utf-8'))
+        commit = record.get('source_commit', '')
+        for name in SOURCE_FILES:
+            if record.get('files', {}).get(name) != sha256(source / name):
+                raise SystemExit('Packaged source was modified; use a committed Git checkout to rebuild')
+    if not isinstance(commit, str) or not re.fullmatch(r'[0-9a-f]{40}', commit):
+        raise SystemExit('Invalid source revision for release provenance')
+    return commit
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=pathlib.Path)
@@ -77,7 +103,15 @@ def main():
     if args.library_backup and not args.library_backup.is_file():
         parser.error(f"Library backup not found: {args.library_backup}")
 
+    source_commit = source_revision(source)
     source_target = output / "source" / "h3-studio-src"
+    if source_target.exists():
+        allowed = set(SOURCE_FILES) | {'.h3-archive.json'}
+        existing_source = {path.relative_to(source_target).as_posix()
+                           for path in source_target.rglob('*') if path.is_file()
+                           and '__pycache__' not in path.parts and path.suffix != '.pyc'}
+        if existing_source - allowed:
+            raise SystemExit('Release output contains obsolete/unknown source files. Choose a fresh output directory; existing files were preserved.')
     source_target.mkdir(parents=True, exist_ok=True)
     for name in SOURCE_FILES:
         target = source_target / name
@@ -94,10 +128,19 @@ def main():
         shutil.copy2(original, target)
     (output / "requirements-installer.txt").write_text("paramiko>=3.4,<5\n", encoding="utf-8")
 
+    # Include the exact source ancestor in archives so promotion cannot silently
+    # replace an unpublished equal-version candidate with an older official main.
+    provenance = source_target / '.h3-archive.json'
+    provenance.write_text(json.dumps({'source_commit': source_commit,
+        'files': {path.relative_to(source_target).as_posix(): sha256(path)
+                  for path in source_target.rglob('*') if path.is_file() and path.name != '.h3-archive.json'
+                  and '__pycache__' not in path.parts and path.suffix != '.pyc'}}), encoding='utf-8')
+
     cloud_zip = output / "h3-cloud-setup.zip"
     with zipfile.ZipFile(cloud_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for name in SOURCE_FILES:
-            archive.write(source_target / name, "h3-studio-src/" + name)
+        for path in sorted(source_target.rglob("*")):
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+                archive.write(path, "h3-studio-src/" + path.relative_to(source_target).as_posix())
     with zipfile.ZipFile(cloud_zip) as archive:
         if archive.testzip() is not None:
             raise SystemExit("Corrupt setup archive")

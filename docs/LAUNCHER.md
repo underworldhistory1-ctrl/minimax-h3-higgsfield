@@ -220,3 +220,12 @@ Exact core package requirements are audited even when imports and pip check succ
 A shared source lock covers worktrees and installations using the same checkout. Updates merge the exact inspected commit after rechecking HEAD and tracked edits. Installation locks then protect each ComfyUI root. Public Linux, Windows and legacy OpenBayes bootstrap entrypoints enter this coordinator. Internal helpers are implementation details, not alternate deployment paths.
 
 If an earlier smoke job is pending, the launcher follows its saved prompt and original configuration before updating source or applying new defaults. Uncertain/failed jobs stop with diagnostic state and are never silently submitted again.
+
+
+## Archive launches and automatic source updates
+
+With the default latest policy, a source ZIP promotes to a separate official Git checkout at ComfyUI/.h3-launcher/source. The original archive is preserved. Preparation uses the root lock and drain checks; subsequent updates use the common source lock before the root lock. The same root is explicitly passed when relaunching, even when it was originally discovered automatically.
+
+A packaged archive includes its source commit and payload hashes. Modified packaged files or a revision not yet contained in official main block promotion instead of silently losing unpublished fixes. An unknown/customized persistent checkout is preserved and rejected. Read-only plan/status never clones source. --no-update explicitly runs the archive as a frozen/custom source; notify/verified policies do not implicitly promote archives to latest.
+
+A plain GitHub ZIP without build provenance is promoted only when its full tree matches an official ancestor among the latest 512 commits. Unknown or older unrecognized archives require a fresh checkout or explicit --no-update.

@@ -20,6 +20,8 @@ Create Image follows the same new-page/reload rule and keeps its client identity
 
 ### Updates and ComfyUI
 
+Source ZIP launches now create a persistent official Git checkout under the selected ComfyUI root for automatic main updates. The archive remains preserved; packaged ancestry and hashes reject older main or modified archive files. `--no-update` explicitly keeps a frozen archive.
+
 The shared video/image header opens the ComfyUI node editor in a separate tab. Updates shows a numbered badge when a new official revision is available and checks again while Studio is in use. Checks compare official source, installed interface/backend files and the code observed by the running worker. An incomplete copy or missing restart reports installation attention; a failed check cannot keep an older up-to-date claim. This checks Studio code; model/LoRA files are separate prerequisites. The update sheet preserves generation and recovery guards; installation still requires an idle queue and a manual ComfyUI restart.
 
 [Community request review](docs/COMMUNITY_REVIEW_2026_10_29.md) records existing features, implemented improvements and options that still need validation.

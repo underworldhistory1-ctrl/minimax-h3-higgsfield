@@ -787,6 +787,10 @@ def parser():
 
 def _main():
     args = parser().parse_args()
+    if not 1 <= args.port <= 65535 or min(args.queue_timeout, args.start_timeout, args.smoke_timeout) <= 0:
+        raise RuntimeError("Port and timeouts must be positive and valid")
+    if args.url and ('?' in args.url or '@' in args.url):
+        raise RuntimeError('Supply a URL without credentials/query tokens; use H3_ACCESS_TOKEN/H3_INSTANCE_PASSWORD')
     if args.ui_update:
         if not args.comfy_root:
             raise RuntimeError('UI update requires the verified ComfyUI root')
@@ -827,6 +831,31 @@ def _main():
                                    '; original prompt preserved, no update applied')
             save_pending()
         os.execv(sys.executable, [sys.executable, str(PROJECT / 'deploy/launcher.py'), *sys.argv[1:]])
+        return 0
+    if (not (args.no_update or args.status or args.plan) and args.update_policy == 'latest'
+            and not (PROJECT / '.git').exists()):
+        from importlib import import_module
+        archives = import_module('deploy.archive_source' if __package__ else 'archive_source')
+        updates = import_module('deploy.update_source' if __package__ else 'update_source')
+        smoke_module = import_module('deploy.launcher_smoke' if __package__ else 'launcher_smoke')
+        archive_api = smoke_module.ComfyAPI(args.url or f'http://127.0.0.1:{args.port}')
+        with InstallLock(root / '.h3-launcher.lock'):
+            wait_for_install_idle(archive_api, args.queue_timeout)
+            close_admission(archive_api, root, args.queue_timeout)
+            directory.mkdir(parents=True, exist_ok=True)
+            archive_runner = Runner(directory)
+            prerequisites(archive_runner)
+            checkout = archives.prepare_checkout(root, archive_runner)
+        def guard_archive_update():
+            with InstallLock(root / '.h3-launcher.lock'):
+                wait_for_install_idle(archive_api, args.queue_timeout)
+                close_admission(archive_api, root, args.queue_timeout)
+        with updates.SourceLock(checkout):
+            updates.update_source(checkout, 'latest', before_update=guard_archive_update)
+            archives.validate_archive_version(PROJECT, checkout)
+            archive_runner.emit('Archive preserved; using persistent official Git source: ' + str(checkout))
+            os.execv(sys.executable, [sys.executable, str(checkout / 'deploy/launcher.py'),
+                                     *sys.argv[1:], '--comfy-root', str(root)])
         return 0
     if not (args.no_update or args.status or args.plan):
         if __package__:
