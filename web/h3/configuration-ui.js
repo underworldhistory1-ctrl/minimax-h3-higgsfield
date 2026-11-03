@@ -22,7 +22,7 @@
     if(state.continuation){info('Clear continuation before preparing a source-video character replacement.',true);return;}
     selectMode('refs');if(state.mode!=='refs')return;
     if(!Number.isFinite(adapter.strength))adapter.strength=1;applyAdapterSelection(adapter,true);
-    videos[0].role='custom';images[0].role='custom';
+    videos[0].role='custom';images[0].role='custom';images[0].subject_group='';
     $('prompt').value='In @'+videos[0].alias+', replace only '+target+' with the character shown in @'+images[0].alias+'. Keep the replacement identity, clothing and visual style. Retain the source camera, environment, lighting, objects and other people. Match the original position, scale, pose and action. Do not display the reference sheet.';
     renderRefs();renderLoras();refresh();changed();info('Character Swap prompt preset applied. Your checkpoint, render method, sampling and other selected adapters are preserved. Review experimental combinations before generating.');
   };

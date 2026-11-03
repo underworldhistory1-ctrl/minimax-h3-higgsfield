@@ -2,7 +2,7 @@
 
 **MiniMax H3 video with native audio. Qwen Image 2.1 creation and editing. One browser workspace on your own NVIDIA machine or GPU server.**
 
-Current software: **2.9.0** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
+Current software: **2.9.1** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
 
 [![Superman above Earth — watch with audio](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
@@ -95,7 +95,7 @@ Generations/Favorites use the selected scope, offer direct downloads and search 
 
 The launcher follows official main by default, verifies provenance/ancestry, preserves local edits and waits for accepted work, preparation and exports before replacing runtime. Supported code-only updates are available through **Updates**; environment changes need the full launcher. Restart when idle after installing code. Never interrupt an active render. [Upgrade/rollback](docs/V2_UPGRADE.md) · [Safe uninstall](docs/UNINSTALL.md).
 
-Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 589 Python tests (one platform skip), 285 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_9.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
+Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 589 Python tests (one platform skip), 286 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_9_1.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
 
 Read-only server validation: `python deploy/verify_h3_server.py --url COMFY_URL`. Readiness is not a visual-quality certificate. Models need substantial disk and host RAM as well as VRAM. Completed sampler latents support tracked decode recovery, not mid-sampling resume. Optional AI prompt preparation requires a configured provider; otherwise Automatic formats locally.
 

@@ -8,3 +8,25 @@ test('explicit native subject definitions take precedence over card groups',()=>
 test('additional instructions propagate for character, storyboard, video and audio',()=>{const refs=[{...ref('hero'),instruction:'Keep the scar.'},{...ref('board',undefined,'storyboard'),panel_order:'Read top to bottom.',instruction:'Avoid borders.'},{kind:'video',alias:'move',role:'motion',instruction:'Slow down.',fps:24,frame_count:72,duration:3},{kind:'audio',alias:'voice',role:'voice',instruction:'Quiet voice.',duration:3}];const r=compile(refs);for(const text of ['Keep the scar.','Read top to bottom.','Avoid borders.','Slow down.','Quiet voice.'])assert.ok(r.compiled_prompt.includes(text));});
 
 test('mentioning one grouped character view also connects its alternate views',()=>{const r=C.compilePrompt({mode:'refs',source_prompt:'@front walks.',references:[ref('front','hero'),ref('back','hero')]});assert.equal(r.bindings.length,2);assert.match(r.compiled_prompt,/<Picture 1> and <Picture 2>/);});
+
+
+test('Character Swap preset releases a former character group while retaining input guidance',()=>{
+  const fs=require('node:fs'),vm=require('node:vm');
+  const source=fs.readFileSync(require('node:path').join(__dirname,'../../web/h3/configuration-ui.js'),'utf8');
+  const start=source.indexOf("  $('prepareSwap').onclick=()=>{");
+  const end=source.indexOf("  for(const [value,p]",start);
+  const image={...ref('hero','character_hero'),instruction:'Keep the scar.',useOriginalResolution:true};
+  const video={kind:'video',alias:'source',role:'motion',fps:24,frame_count:72,duration:3};
+  const adapter={name:'h3_character_swap_pro4500_1000.safetensors',strength:1};
+  const fields={prepareSwap:{},swapTarget:{value:'the person in red'},prompt:{value:''}};
+  const state={refs:[image,video],loras:[adapter],mode:'refs'};
+  const context={state,$:id=>fields[id],H3Configuration:require('../../web/h3/configuration.js'),
+    selectMode:mode=>{state.mode=mode;},applyAdapterSelection:item=>{item.enabled=true;},
+    renderRefs(){},renderLoras(){},refresh(){},changed(){},info(){}};
+  vm.runInNewContext(source.slice(start,end),context);fields.prepareSwap.onclick();
+  const result=C.compilePrompt({mode:state.mode,source_prompt:fields.prompt.value,references:state.refs});
+  assert.deepEqual(result.bindings.map(x=>x.tag),['<Picture 1>','<Video 1>']);
+  assert.equal(image.role,'custom');assert.ok(!image.subject_group);
+  assert.equal(image.instruction,'Keep the scar.');assert.equal(image.useOriginalResolution,true);
+  assert.ok(result.compiled_prompt.includes('Keep the scar.'));assert.equal(adapter.enabled,true);
+});

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.9.1 - 2026-11-03
+
+- Clear a prior Character group when the Character Swap shortcut changes the replacement image to Custom; keep its instruction and original-resolution override. This prevents a valid shortcut selection from failing prompt compilation.
+- Add a regression using the actual shortcut and compiler; verify native graph/LoRA submission and scene reload in a local browser with simulated inference. All 286 JavaScript tests pass. [Release details](docs/RELEASE_2_9_1.md).
+
 ## 2.9.0 - 2026-11-03
 
 - Adopt H3 Interface branding with legacy-origin update compatibility and a public documentation site.
