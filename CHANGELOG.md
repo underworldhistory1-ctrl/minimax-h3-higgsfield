@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.1 - 2026-11-03
+
+- Add pinned Pika Flex Turbo 4-step and 8-step HD adapters for Original FL2VA/Ref2VA, native sampling presets and submission validation. No new GPU validation.
+
 ## 2.7.0 - 2026-11-02
 
 - Activate Windows/Linux CI on Python 3.12/3.13, canonicalize test fixtures for Windows short paths, and reuse verified model hashes through directory aliases.

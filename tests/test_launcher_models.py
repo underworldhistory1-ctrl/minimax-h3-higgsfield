@@ -110,7 +110,10 @@ class ModelTests(unittest.TestCase):
         catalog = models.manifest()
         self.assertTrue(all(a.sha256 and len(a.sha256) == 64 for a in catalog))
         self.assertTrue(any('ckpts/yzd-v/DWPose/yolox_l.onnx' in a.relative_path for a in catalog))
-        self.assertFalse(any('turbo' in a.relative_path for a in catalog))
+        self.assertFalse(any('turbo' in a.relative_path and 'pika_h3_flex_' not in a.relative_path for a in catalog))
+        pika = [a for a in catalog if 'pika_h3_flex_' in a.relative_path]
+        self.assertEqual(len(pika), 4)
+        self.assertTrue(all('/resolve/dcacd93a50f714ba1cd61c7ca2cc5f65e9a1ec60/' in a.url and a.sha256 and a.size == 3912311400 for a in pika))
 
     def test_auth_errors_are_not_retried(self):
         with self.assertRaisesRegex(RuntimeError, 'HTTP 401'):

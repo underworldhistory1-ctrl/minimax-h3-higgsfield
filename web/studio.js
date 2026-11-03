@@ -154,7 +154,14 @@ function uploadMessage(message,pct=null){
   $("uploadProgress").hidden=pct===null;
   if(pct!==null)$("uploadProgressFill").style.width=Math.max(0,Math.min(100,pct))+"%";
 }
+function restorePikaSampling(){
+  const previous=state.pikaBefore;state.sampling=previous?.sampling||{...H3Configuration.defaults};$('steps').value=String(previous?.steps>=8?previous.steps:20);delete state.pikaBefore;
+  if(state.sampling.sampler_name==='h3_turbo')delete state.sampling.sampler_name;
+  if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
+}
+function selectedPika(){return H3Configuration.pikaVariant((state.loras||[]).find(x=>x.enabled&&H3Configuration.pikaVariant(x.name))?.name);}
 function loraModeCompatible(name,mode){
+  const pika=H3Configuration.pikaVariant(name);if(pika)return pika.family===(mode==='refs'?'ref2va':'fl2va');
   if(H3Configuration.isCharacterSwap(name)||H3Configuration.isAnimeToRealism(name))return mode==='refs';
   if(/turbo|lightx2v/i.test(name))return false;
   return true;
@@ -201,11 +208,12 @@ function updateMethodAvailability(){
 }
 function renderMethodInfo(){
   const value=method(),steps=Number($("steps").value),info=methodInfo[value]||{title:'Unavailable method',detail:'Select a supported render method before generating.'};
-  $("steps").min=value==="turbo"?"4":"8";
-  $("steps").max=["turbo","turbo_ref"].includes(value)?"8":"100";
-  $("stepPresets").hidden=["turbo","turbo_ref"].includes(value);
-  document.querySelector(".steps-hint").innerHTML=value==="turbo_ref"?"<strong>8 required</strong> · LightX2V References Turbo.":value==="turbo"?"<strong>6 recommended</strong> · Enter 4–8 steps for Turbo.":"<strong>20 recommended</strong> · Choose a preset or enter a custom value.";
+  $("steps").min=selectedPika()?String(selectedPika().steps):value==="turbo"?"4":"8";
+  $("steps").max=selectedPika()?String(selectedPika().steps):["turbo","turbo_ref"].includes(value)?"8":"100";
+  $("stepPresets").hidden=!!selectedPika()||["turbo","turbo_ref"].includes(value);
+  document.querySelector(".steps-hint").innerHTML=selectedPika()?"<strong>"+selectedPika().steps+" required</strong> - Pika Flex Turbo.":value==="turbo_ref"?"<strong>8 required</strong> · LightX2V References Turbo.":value==="turbo"?"<strong>6 recommended</strong> · Enter 4–8 steps for Turbo.":"<strong>20 recommended</strong> · Choose a preset or enter a custom value.";
   H3Guidance.setText($("stepAdvice"),value==="turbo_ref"?"stepsTurboRef":value==="turbo"?"stepsTurbo":"stepsStandard");
+  if(selectedPika())$("stepAdvice").textContent="Pika Flex uses its exact step count. Review motion and audio; 8-step HD is the quality option.";
   document.querySelectorAll("#stepPresets button").forEach(button=>button.classList.toggle("active",Number(button.dataset.steps)===Number($("steps").value)));
   $("profile").replaceChildren();
   const strong=document.createElement("strong");strong.textContent=info.title+(Number.isInteger(steps)&&steps>=Number($("steps").min)&&steps<=Number($("steps").max)?" · "+steps+" steps":" · choose valid steps");
@@ -230,6 +238,7 @@ function selectMode(mode, internal=false) {
   state.mode = mode;
   const disabledLoras=state.loras.filter(item=>item.enabled&&!loraModeCompatible(item.name,mode));
   disabledLoras.forEach(item=>item.enabled=false);
+  if(disabledLoras.some(item=>H3Configuration.pikaVariant(item.name)))restorePikaSampling();
   $("prompt").value=state.prompts[mode]||"";
   document.querySelectorAll(".mode").forEach(b => {
     const active = b.dataset.mode === mode;
@@ -284,7 +293,8 @@ function restoreDraft(){
   repairSavedSeed();syncDuration();
   $("prompt").value=state.prompts[state.mode]||"";
   const draftSteps=Number($("steps").value);
-  if($("renderMethod").value==="turbo"){
+  if(selectedPika()){$("steps").value=String(selectedPika().steps);
+  }else if($("renderMethod").value==="turbo"){
     if(!Number.isInteger(draftSteps)||draftSteps<4||draftSteps>8)$("steps").value="6";
   }else if(!Number.isInteger(draftSteps)||draftSteps<8||draftSteps>100)$("steps").value="20";
   return state.mode!=="text";
@@ -303,7 +313,7 @@ function timingConfiguration(w=state.width,h=state.height){
   if(turboMethod())adapters.push({name:method()==="turbo_ref"?H3Configuration.TURBO_REF:turboName,strength:1,refinement_strength:null});
   return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:turboMethod()?{...state.sampling,sampler_name:method()==="turbo_ref"?"euler":"h3_turbo",scheduler:"simple",cfg:1,denoise:1,shift_video:12,shift_audio:3}:state.sampling||{},audio_refinement:state.audioRefinement||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
     width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
-    sampler:method()==="turbo_ref"?"euler":method()==="turbo"?"h3_turbo":"res_multistep",scheduler:"simple",cfg:1,denoise:1,
+    sampler:selectedPika()?"euler":method()==="turbo_ref"?"euler":method()==="turbo"?"h3_turbo":"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
     reference_detail:state.mode==="refs"?$("refSize").value:null,fit_images:state.mode==="refs"?$("fitImages").checked:null,fit_frames:state.mode==="frames"?$("fitFrames").checked:null,frame_fit:state.mode==="frames"?$("frameFit").value:null,
     guides:state.guides.map(x=>({...timingMedia(x),frame_idx:x.frame_idx,strength:x.strength??null})),
@@ -391,7 +401,7 @@ function renderEstimates() {
 }
 function renderLoras() {
   const list=$("loraList");list.replaceChildren();
-  state.loras=state.loras.filter(item=>!/turbo|lightx2v/i.test(item.name));
+  state.loras=state.loras.filter(item=>!/turbo|lightx2v/i.test(item.name)||H3Configuration.pikaVariant(item.name));
   const count=state.loras.length;
   $("loraCount").textContent=count?"("+count+" installed)":"";
   $("loraRecommendation").hidden=!(state.loras.some(item=>item.enabled)||method()==="turbo");
@@ -407,10 +417,11 @@ function renderLoras() {
     const row=document.createElement("div");row.className="ref";
     const main=document.createElement("label");main.style.cssText="display:flex;align-items:center;gap:8px;margin:0;color:var(--text)";
     const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=managed?method()==="turbo":item.enabled;toggle.disabled=managed||state.busy||incompatible||state.nodesReady?.LoraLoaderModelOnly===false;
-    toggle.onchange=()=>{item.enabled=toggle.checked;renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
+    toggle.onchange=()=>{item.enabled=toggle.checked;const pika=H3Configuration.pikaVariant(item.name);if(item.enabled&&pika){if(!state.pikaBefore)state.pikaBefore={sampling:{...state.sampling},steps:Number($('steps').value)};for(const other of state.loras)if(other!==item)other.enabled=false;item.strength=1;$('renderMethod').value='native';$('steps').value=String(pika.steps);state.sampling={...state.sampling,sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:pika.family==='ref2va'?12:6,shift_audio:3};}else if(pika)restorePikaSampling();if(pika&&window.H3ConfigurationUI)H3ConfigurationUI.refresh();renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
     const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=anime?"Anime → Realism · LumiReal / Ref2VA":swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
     if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply Turbo v4 at strength 1.0.";row.append(note);}
+    if(H3Configuration.pikaVariant(item.name)){const note=document.createElement('div');note.className='tip';note.textContent='Pika Flex + Turbo � selecting applies 4/8 steps and native sampling. Use alone at strength 1 with Original quality. Disable refinement, audio enhancement, ControlNet and continuation. GPU quality/performance needs validation.';row.append(note);}
     if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · References with your selected checkpoint · initial strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
     if(anime){const note=document.createElement('div');note.className='tip';note.textContent='LiseTY · trained on Ref2VA · trigger LumiReal. Style prompt presets can enable this adapter, or select it here directly. Strength 1 is a starting value, not a publisher-certified optimum. Other adapters, acceleration and refinement combinations are not quality-validated.';row.append(note);}
     if(combat||realism){const source=document.createElement("div");source.className="tip";source.textContent=combat?"Creator tested FL2VA only · optional triggers prfight2, prfin1":"All three modes · trigger r34l1sm · 1.0 intended strength";row.append(source);}
@@ -433,6 +444,7 @@ async function loadLoras(){
     state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:/Motion_Repair_V2/i.test(name)?.9:1});
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}
     const managed=state.loras.find(item=>item.name===turboName);if(managed)managed.enabled=false;
+    if(selectedPika())$("steps").value=String(selectedPika().steps);
     state.lorasLoaded=true;
     if(typeof syncRestoredAdapterStatus==='function')syncRestoredAdapterStatus();
     updateMethodAvailability();

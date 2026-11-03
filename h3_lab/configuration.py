@@ -140,7 +140,44 @@ def validate_character_swap(spec):
 def validate_anime_to_realism(spec):
     _validate_ref2va_adapter(spec, ANIME_TO_REALISM, 'Anime → Realism', False)
 
+PIKA = {f"pika_h3_flex_turbo_{steps}step{'_hd' if steps == 8 else ''}_{family}.safetensors": (steps, family)
+        for steps in (4, 8) for family in ('fl2va', 'ref2va')}
+
+
+def validate_pika(spec):
+    graph = spec.get('workflow', {})
+    nodes = [(key, n) for key, n in graph.items() if n.get('inputs', {}).get('lora_name') in PIKA]
+    active = [l for l in spec.get('loras', []) if l.get('enabled')]
+    selected = [l for l in active if l.get('name') in PIKA]
+    if not nodes and not selected:
+        return False
+    if len(nodes) != 1 or len(selected) != 1 or len(active) != 1 or 'model_profile' not in spec:
+        raise ValueError('Pika Flex requires one explicit adapter and configuration contract')
+    key, node = nodes[0]; lora = selected[0]; name = lora['name']; steps, family = PIKA[name]
+    if spec['model_profile'] != 'original' or spec.get('render_method', 'native') != 'native' or family != ('ref2va' if spec.get('mode') == 'refs' else 'fl2va'):
+        raise ValueError('Pika Flex requires Original quality and its matching transformer')
+    if lora.get('strength', 1) != 1 or node.get('class_type') != 'LoraLoaderModelOnly' or node.get('inputs') != {'model': ['1', 0], 'lora_name': name, 'strength_model': 1}:
+        raise ValueError('Pika Flex adapter wiring or strength disagrees')
+    if any(spec.get(k) for k in ('enable_refine', 'refine', 'continuation')) or (spec.get('control') or {}).get('enabled') or (spec.get('audio_refinement') or {}).get('enabled'):
+        raise ValueError('Pika Flex requires a single pass without additional processing')
+    if sum(n.get('class_type') == 'LoraLoaderModelOnly' for n in graph.values()) != 1 or sum('sampler' in n.get('class_type', '').lower() for n in graph.values()) != 1:
+        raise ValueError('Pika Flex requires one adapter and one sampler')
+    if graph.get('2', {}).get('inputs', {}).get('model') != [key, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
+        raise ValueError('Pika Flex model path disagrees')
+    if graph.get('13', {}).get('inputs', {}).get('samples') != ['8', 0] or any(graph.get(key, {}).get('inputs', {}).get('samples') != ['13', 0] for key in ('9', '10')):
+        raise ValueError('Pika Flex decode must follow the approved single sampler')
+    required = {'sampler_name': 'euler', 'scheduler': 'simple', 'cfg': 1, 'denoise': 1, 'shift_video': 12 if family == 'ref2va' else 6, 'shift_audio': 3}
+    if spec.get('steps') != steps or graph.get('8', {}).get('inputs', {}).get('steps') != steps:
+        raise ValueError('Pika Flex requires the matching 4 or 8 step count')
+    for field, value in required.items():
+        target = '2' if field.startswith('shift_') else '8'
+        if (spec.get('sampling') or {}).get(field) != value or graph.get(target, {}).get('inputs', {}).get(field) != value:
+            raise ValueError('Pika Flex sampling disagrees: ' + field)
+    return True
+
+
 def validate_configuration(spec, capabilities):
+    pika = validate_pika(spec)
     audio_sampler = validate_audio_refinement(spec, capabilities)
     validate_character_swap(spec)
     validate_anime_to_realism(spec)
@@ -237,7 +274,7 @@ def validate_configuration(spec, capabilities):
         expected_audio = graph.get('6', {}).get('inputs', {}).get(f'ref_video_audios.ref_video_audio_{slot}') if slot is not None else None
         if not expected_audio or graph.get('11', {}).get('inputs', {}).get('audio') != expected_audio:
             raise ValueError('Source soundtrack reuse disagrees with the selected reference')
-    if method != 'turbo_ref' and any(node.get('class_type') == 'LoraLoaderModelOnly' and any(x in node.get('inputs', {}).get('lora_name', '').lower() for x in ('turbo', 'lightx2v')) for node in graph.values()):
+    if not pika and method != 'turbo_ref' and any(node.get('class_type') == 'LoraLoaderModelOnly' and any(x in node.get('inputs', {}).get('lora_name', '').lower() for x in ('turbo', 'lightx2v')) for node in graph.values()):
         raise ValueError('Turbo has been retired')
     options = spec.get('node_options') or {}
     if not isinstance(options, dict):

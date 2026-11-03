@@ -11,6 +11,18 @@ import urllib.request
 
 
 LORAS = (
+    ('pika_h3_flex_turbo_4step_fl2va.safetensors',
+     "https://huggingface.co/akhaliq/Pika-H3-Flex-Turbo-LoRA/resolve/dcacd93a50f714ba1cd61c7ca2cc5f65e9a1ec60/pika_h3_flex_turbo_4step_fl2va.safetensors",
+     '8b0b5d2c53e435e637ed80afeff540135b90603ae53906f6aa8e66066776179d', 3912311400),
+    ('pika_h3_flex_turbo_4step_ref2va.safetensors',
+     "https://huggingface.co/akhaliq/Pika-H3-Flex-Turbo-LoRA/resolve/dcacd93a50f714ba1cd61c7ca2cc5f65e9a1ec60/pika_h3_flex_turbo_4step_ref2va.safetensors",
+     '7f4ddf47ab9966059d9d3f886603f00ee44c0e309e71edf585ac7cbc33af2ee5', 3912311400),
+    ('pika_h3_flex_turbo_8step_hd_fl2va.safetensors',
+     "https://huggingface.co/akhaliq/Pika-H3-Flex-Turbo-LoRA/resolve/dcacd93a50f714ba1cd61c7ca2cc5f65e9a1ec60/pika_h3_flex_turbo_8step_hd_fl2va.safetensors",
+     '32b768283ff3e0e1a195dca6537774e71f7cc376ef7116962f40b7a7af2d2ce2', 3912311400),
+    ('pika_h3_flex_turbo_8step_hd_ref2va.safetensors',
+     "https://huggingface.co/akhaliq/Pika-H3-Flex-Turbo-LoRA/resolve/dcacd93a50f714ba1cd61c7ca2cc5f65e9a1ec60/pika_h3_flex_turbo_8step_hd_ref2va.safetensors",
+     'dfe46d972408d1094053ff1f30c720bf16176ec334962009767ab0fff29e6de2', 3912311400),
     (
         "Anime2Realsim__H3.safetensors",
         "https://huggingface.co/LiseTY/Minimax-H3-ref2v_Anime_2_Realism/resolve/33ee6502c125eea847aac14c49fecca43737ee40/Anime2Realsim__H3.safetensors",

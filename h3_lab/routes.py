@@ -466,9 +466,10 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                 raise ValueError("Workflow must be an object containing node objects.")
             from .jobs import validate_resource_contract
             validate_resource_contract(spec)
-            from .configuration import validate_character_swap, validate_anime_to_realism
+            from .configuration import validate_character_swap, validate_anime_to_realism, validate_pika
             validate_character_swap(spec)
             validate_anime_to_realism(spec)
+            validate_pika(spec)
             if 'model_profile' in spec or 'sampling' in spec:
                 from .configuration import validate_configuration
                 configured_caps = await asyncio.to_thread(check_capabilities, folder_paths_mod, nodes_mod)

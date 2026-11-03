@@ -133,3 +133,4 @@ deploy/turbo-v4.json
 docs/TURBO_V4.md
 deploy/worker_lifecycle.py
 deploy/archive_source.py
+docs/PIKA_FLEX.md

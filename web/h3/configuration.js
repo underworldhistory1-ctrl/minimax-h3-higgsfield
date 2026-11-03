@@ -22,8 +22,23 @@
     const refs=spec.references||[];
     if(!refs.some(r=>r.kind==='video')||!refs.some(r=>r.kind==='image'))throw Error('Character Swap requires a source video and replacement character image in References.');
   }
+  const PIKA=Object.freeze(Object.fromEntries([4,8].flatMap(steps=>['fl2va','ref2va'].map(family=>[`pika_h3_flex_turbo_${steps}step${steps===8?'_hd':''}_${family}.safetensors`,{steps,family}]))));
+  function pikaVariant(name){return PIKA[name]||null;}
+  function validatePika(spec){
+    const active=(spec.loras||[]).filter(x=>x.enabled), selected=active.filter(x=>pikaVariant(x.name));
+    if(!selected.length)return null;
+    const lora=selected[0], variant=pikaVariant(lora.name);
+    if(active.length!==1||Number(lora.strength??1)!==1)throw Error('Pika Flex requires one adapter at strength 1.');
+    if((spec.model_profile||'original')!=='original'||(spec.render_method||'native')!=='native'||variant.family!==(spec.mode==='refs'?'ref2va':'fl2va'))throw Error('Pika Flex requires Original quality and the matching FL2VA or Ref2VA adapter.');
+    if(Number(spec.steps)!==variant.steps)throw Error('Pika Flex requires '+variant.steps+' steps.');
+    if(spec.enable_refine||spec.refine||spec.control?.enabled||spec.continuation||spec.audio_refinement?.enabled)throw Error('Pika Flex requires a single pass without refinement, ControlNet or continuation.');
+    const required={sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};
+    for(const [key,value] of Object.entries(required))if(spec.sampling?.[key]!==value)throw Error('Pika Flex sampling disagrees: '+key);
+    return variant;
+  }
   function resolve(spec,caps={}){
     if((spec.loras||[]).some(x=>x.enabled&&/^qwen21[\\/]/i.test(x.name||'')))throw Error('Qwen Image adapters belong in Create Image, not H3 video.');
+    validatePika(spec);
     validateCharacterSwap(spec);
     validateAnimeToRealism(spec);
     const profile=spec.model_profile||'original';if(!profiles[profile])throw Error('Unknown model profile.');
@@ -39,7 +54,7 @@
     }
     const turbo=spec.render_method==='turbo'||spec.render_method==='turbo_ref';
     const turboRef=spec.render_method==='turbo_ref';
-    if((spec.loras||[]).some(x=>x.enabled&&/turbo|lightx2v/i.test(x.name)))throw Error('Select Turbo v4 from Render method; standalone Turbo adapters are unsupported.');
+    if((spec.loras||[]).some(x=>x.enabled&&/turbo|lightx2v/i.test(x.name)&&!pikaVariant(x.name)))throw Error('Select Turbo v4 from Render method; standalone Turbo adapters are unsupported.');
     if(turbo){
       if(!(turboRef?caps.turbo_ref_ready:caps.turbo_ready))throw Error('Turbo weight and required nodes are required.');
       if(profile!=='original'||(turboRef?spec.mode!=='refs':spec.mode==='refs'))throw Error('Select the Turbo version matching Original Text/Frames or References.');
@@ -74,5 +89,5 @@
     }
     return node;
   }
-  return {TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {PIKA,pikaVariant,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

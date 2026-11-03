@@ -64,6 +64,13 @@ class TestH3LabRoutes(AioHTTPTestCase):
         super().tearDown()
         self.temp_dir.cleanup()
 
+    async def test_pika_without_configuration_contract_is_rejected(self):
+        from h3_lab.configuration import PIKA
+        response=await self.client.post('/h3_studio/lab/jobs',json={'request_id':'pika-missing-contract','render_spec':{'workflow':{'50':{'class_type':'LoraLoaderModelOnly','inputs':{'lora_name':next(iter(PIKA))}}}}})
+        self.assertEqual(response.status,400)
+        self.assertIn('Pika Flex',(await response.json())['error'])
+        self.assertEqual(self.queue.submissions,[])
+
     @unittest_run_loop
     async def test_capabilities_endpoint(self):
         resp = await self.client.request("GET", "/h3_studio/lab/capabilities")
