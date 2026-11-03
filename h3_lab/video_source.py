@@ -67,11 +67,16 @@ def prepare_video_source(source, destination, width, height, keep_seconds=5, fit
         "-protocol_whitelist", "file,pipe", "-ss", str(start), "-i", str(source)]
     if not has_audio:
         command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
-    command += ["-map", "0:v:0", "-map", "0:a:0" if has_audio else "1:a:0",
-        "-vf", f"fps=24,{sizing},setsar=1,tpad=stop_mode=clone:stop_duration=0.1",
-        "-af", f"aresample=48000:async=1:first_pts=0,apad=whole_dur={use_duration},atrim=duration={use_duration}",
+    # One bounded graph avoids FFmpeg 8.0 stalling between independent video
+    # and audio filters when the source audio starts after the first picture.
+    video_filter = f"fps=24,{sizing},setsar=1,tpad=stop_mode=clone:stop_duration=0.1"
+    audio_filter = f"aresample=48000:async=1:first_pts=0,apad=whole_dur={use_duration},atrim=duration={use_duration}"
+    audio_input = "0:a:0" if has_audio else "1:a:0"
+    command += ["-filter_complex_threads", "1", "-filter_complex",
+        f"[0:v:0]{video_filter}[h3v];[{audio_input}]{audio_filter}[h3a]",
+        "-map", "[h3v]", "-map", "[h3a]",
         "-frames:v", str(frames), "-t", str(use_duration), "-c:v", "libx264", "-threads", "1",
-        "-filter_threads", "1", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-map_metadata", "-1", "-movflags", "+faststart", str(target)]
     try:
         subprocess.run(command, capture_output=True, check=True, timeout=180)

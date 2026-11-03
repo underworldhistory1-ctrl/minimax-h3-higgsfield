@@ -3,6 +3,7 @@
 ## 2.9.1 - 2026-11-03
 
 - Clear a prior Character group when the Character Swap shortcut changes the replacement image to Custom; keep its instruction and original-resolution override. This prevents a valid shortcut selection from failing prompt compilation.
+- Avoid a reproducible FFmpeg 8.0.1 delayed-audio preparation stall by using a single bounded video/audio filter graph; preserve frame count and audio timing.
 - Add a regression using the actual shortcut and compiler; verify native graph/LoRA submission and scene reload in a local browser with simulated inference. All 286 JavaScript tests pass. [Release details](docs/RELEASE_2_9_1.md).
 
 ## 2.9.0 - 2026-11-03

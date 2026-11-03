@@ -19,7 +19,7 @@ class SourcePaddingTests(unittest.TestCase):
              patch('h3_lab.video_source.subprocess.run', side_effect=[Mock(stdout=json.dumps(probe)), Mock()]) as run:
             result = prepare_video_source('fixture.mp4', Path(directory)/'prepared.mp4',256,256,2)
             command = run.call_args.args[0]
-            audio = command[command.index('-af')+1]
+            audio = command[command.index('-filter_complex')+1]
             self.assertIn('apad=whole_dur=2.0,atrim=duration=2.0', audio)
             self.assertNotIn(',apad,', audio)
             self.assertEqual(result['frame_count'],48)
@@ -28,4 +28,4 @@ class SourcePaddingTests(unittest.TestCase):
                 result=prepare_video_source('fixture.mp4',Path(directory)/'prepared.mp4',width,height,2)
                 self.assertEqual((result['width'],result['height']),(width,height))
                 command=run.call_args.args[0]
-                self.assertIn(f'scale={width}:{height}',command[command.index('-vf')+1])
+                self.assertIn(f'scale={width}:{height}',command[command.index('-filter_complex')+1])
