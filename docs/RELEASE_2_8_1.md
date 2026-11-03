@@ -12,7 +12,7 @@ Date: 2026-11-03. This is a source/CPU/local-browser release; no current rental 
 
 ## Verification boundaries
 
-Regression tests include the existing 528 builder-to-server matrix and new mutations for selected timing, detail and output transforms, saved-image fitting and color modes. JavaScript tests execute saved-asset Generate and preparation branches with auto-fit both enabled and disabled. An independent review also checked 48 imported/generated continuation combinations with four canvases, image/audio/video guides and audio enhancement.
+Local verification passed 585 Python tests (584 passed and one platform skip) and 277 JavaScript tests. Regression tests include the 528 builder-to-server matrix and new mutations for selected timing, detail and output transforms, saved-image fitting and color modes. JavaScript tests execute saved-asset Generate and preparation branches with auto-fit both enabled and disabled. An independent review also checked 48 imported/generated continuation combinations with four canvases, image/audio/video guides and audio enhancement.
 
 Local browser checks cover selection policy/Dials persistence, audio Save/reload/Reuse/Generate capture, image upload/canvas/refresh, update guards, English help and six responsive widths. These use real local project APIs where applicable and fixtures for inference; no GPU prompt was submitted. See the [exact-commit GitHub Actions results](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/actions/workflows/verify.yml) for final Windows/Linux regression and packaging status.
 
