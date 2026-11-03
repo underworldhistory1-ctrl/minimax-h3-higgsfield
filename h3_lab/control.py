@@ -219,7 +219,7 @@ def validate_control_graph(spec, input_root, caps):
             raise ValueError('Sampler model path does not contain the declared control patch')
         sampler_visited.add(str(sampler_link[0]))
         node = graph.get(str(sampler_link[0]), {})
-        if node.get('class_type') not in ('MiniMaxH3SigmaShift', 'LoraLoaderModelOnly', 'SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache'):
+        if node.get('class_type') not in ('MiniMaxH3SigmaShift', 'LoraLoaderModelOnly', 'SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache', 'DialsApplyDial'):
             raise ValueError('Sampler model path does not contain the declared control patch')
         sampler_link = node.get('inputs', {}).get('model')
     visited = set()
@@ -247,7 +247,7 @@ def validate_control_graph(spec, input_root, caps):
             if node.get('inputs', {}) != {'base_model': 'minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'overlay_model': '' if preset == 'none' else 'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'overlay_preset': preset}:
                 raise ValueError('Hybrid loader disagrees with selected configuration')
             break
-        if node.get('class_type') not in ('MiniMaxH3SigmaShift', 'LoraLoaderModelOnly', 'SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache'):
+        if node.get('class_type') not in ('MiniMaxH3SigmaShift', 'LoraLoaderModelOnly', 'SpectrumApplyMiniMaxH3', 'MiniMaxH3MotionCache', 'DialsApplyDial'):
             raise ValueError('Unsupported control model path')
         model_link = node.get('inputs', {}).get('model')
     else:

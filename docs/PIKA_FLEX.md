@@ -12,3 +12,5 @@ In Studio, select Original H3 and Original quality, then enable one Pika adapter
 RTX5090 compatibility is expected with a working H3 INT8 ComfyUI setup, subject to resolution, duration, offloading and remaining VRAM. The publisher benchmarked H200/A100 at848x480 and121frames; those timings are not a5090 or1080p/15s guarantee. This release has source/CPU tests only, no new5090 render or perceptual validation. The previous rental is stopped; these weights have not been deployed to it.
 
 The model derivative uses the MiniMax H3 Community License Agreement, separately from this project's source license. Credits: MiniMax, Pika/Mellis, LightX2V and the adapter publisher.
+
+Studio2.8 applies required Pika settings automatically and preserves supported Dial steering separately. Reference video soundtracks and standalone audio use independent budgets; see [selection policy](MATLOW_AND_SELECTIONS_AR.md).

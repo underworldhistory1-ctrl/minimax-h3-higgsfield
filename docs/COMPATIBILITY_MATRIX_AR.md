@@ -1,4 +1,4 @@
-# خريطة اختيارات H3 Studio — 2.7.0
+# خريطة اختيارات H3 Studio — 2.8.0
 
 ComfyUI 0.43.0; native CK INT8 attention is the server default. Use explicit PyTorch selection for the baseline. GPU examples below are historical, not new validation on this core. [2.7 scope](RELEASE_2_7.md).
 

@@ -770,6 +770,7 @@ def parser():
     result.add_argument("--url", help="Current ComfyUI URL; credentials come from environment variables")
     result.add_argument("--turbo", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--checkpoint", choices=('singularity-int8',), help="Explicit opt-in to an optional 20.97 GB community checkpoint")
+    result.add_argument("--matlow", action="store_true", help="Prepare pinned MAINodes and Dials, including the small publisher dial library")
     result.add_argument("--hybrid", action="store_true", help="Prepare the pinned community hybrid loader (no new model downloads)")
     result.add_argument("--update-policy", choices=('latest','notify','verified'), default='latest', help="Automatically update official main (default), notify only, or apply manifest-approved commits")
     result.add_argument("--video-only", action="store_true", help="Omit Qwen Image weights")
@@ -978,6 +979,13 @@ def _main():
                 python = stage("runtime", lambda: setup_runtime(args, root, python, runner))
             else:
                 runner.emit("Runtime source and Python imports unchanged; reusing installation.")
+            from importlib import import_module
+            matlow_module=import_module('deploy.matlow') if __package__ else import_module('matlow')
+            if matlow_module.requested(root,args,state):
+                def prepare_matlow():
+                    matlow_module.prepare(root,runner,mark_reload)
+                    state['matlow_enabled']=True
+                stage('optional_matlow',prepare_matlow)
             if args.hybrid:
                 def prepare_hybrid():
                     item = json.loads((PROJECT/'deploy/compatibility.json').read_text(encoding='utf-8'))['optional_nodes']['hybrid']

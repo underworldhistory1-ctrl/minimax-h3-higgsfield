@@ -106,7 +106,7 @@ async function activateProjectAsset(item){
     return existing;
   }
   if(state.refs.length>=12||state.refs.filter(ref=>ref.kind===item.kind).length>=maxRefs[item.kind]||
-    item.kind==='audio'&&state.refs.filter(ref=>ref.kind==='audio'||ref.kind==='video'&&ref.useAudio).length>=3)
+    item.kind==='audio'&&state.refs.filter(ref=>ref.kind==='audio').length>=3)
     throw Error('This shot has reached the H3 reference limit. Remove a shot reference first; the project asset will stay saved.');
   if(state.refs.some(ref=>ref.alias.toLocaleLowerCase()===item.alias.toLocaleLowerCase()))
     throw Error('This alias is already used by another shot reference. Rename that reference before adding the project asset.');

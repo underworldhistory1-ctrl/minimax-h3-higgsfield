@@ -174,12 +174,12 @@ describe('H3 Prompt Compiler', () => {
       });
     }, /at most 9 reference images/);
 
-    // 4 audio references (2 standalone + 2 video with soundtrack) -> rejected
+    // Four standalone audio files exceed their own slots. Video soundtracks are separate.
     const excessAudio = [
       { asset_id: 'a1', alias: 'a1', kind: 'audio', role: 'music' },
       { asset_id: 'a2', alias: 'a2', kind: 'audio', role: 'sound effects' },
-      { asset_id: 'v1', alias: 'v1', kind: 'video', role: 'motion', use_audio: true },
-      { asset_id: 'v2', alias: 'v2', kind: 'video', role: 'motion', use_audio: true },
+      { asset_id: 'a3', alias: 'a3', kind: 'audio', role: 'music' },
+      { asset_id: 'a4', alias: 'a4', kind: 'audio', role: 'music' },
     ];
 
     assert.throws(() => {

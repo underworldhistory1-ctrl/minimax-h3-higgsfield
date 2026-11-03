@@ -55,12 +55,11 @@ class PromptContextService:
         if any(not isinstance(r,dict) or r.get('kind') not in ('image','video','audio') for r in refs): raise ValueError('Invalid reference type.')
         if any(sum(r['kind']==kind for r in refs)>limit for kind,limit in (('image',9),('video',3),('audio',3))):
             raise ValueError('Reference count exceeds H3 limits.')
-        if sum(r['kind']=='audio' or r['kind']=='video' and bool(r.get('use_audio')) for r in refs)>3:
-            raise ValueError('Too many audio references including soundtracks.')
         length=spec.get('target_frames',362)
         if type(length) is not int or length<5 or length>362 or (length-5)%17:
             raise ValueError('Select a supported H3 duration before preparation.')
         parts=[];bindings=[];hashes=[];aliases=set();pic=sub=vid=aud=0
+        video_seconds=audio_seconds=0
         for ref in sorted(refs,key=lambda r:('image','video','audio').index(r['kind'])):
             alias=ref.get('alias','')
             if not isinstance(alias,str) or not re.fullmatch(r'[\w-]{1,32}',alias) or alias in aliases:
@@ -95,6 +94,8 @@ class PromptContextService:
                 if abs(fps-24)>.02: raise ValueError('Prepare uploaded video normalized to 24 fps first.')
                 duration=float(video.get('duration') or metadata.get('format',{}).get('duration') or 0)
                 if not 1.9<=duration<=15.1: raise ValueError('Reference video must be 2–15 seconds.')
+                video_seconds+=duration
+                if video_seconds>15.1: raise ValueError('Reference videos exceed 15 seconds combined.')
                 source_frames=int(video.get('nb_frames') or round(duration*24))
                 used=5+17*((min(length,source_frames)-5)//17)
                 if used<5: raise ValueError('Reference is too short.')
@@ -112,7 +113,12 @@ class PromptContextService:
             else:
                 metadata=probe(path)
                 if not any(s.get('codec_type')=='audio' for s in metadata.get('streams',[])): raise ValueError('Reference lacks audio.')
-                aud+=1;binding.update(tag=f'<Audio {aud}>',audio_idx=aud)
+                stream=next(s for s in metadata['streams'] if s.get('codec_type')=='audio')
+                duration=float(stream.get('duration') or metadata.get('format',{}).get('duration') or 0)
+                if not 1.9<=duration<=15.1: raise ValueError('Reference audio must be 2–15 seconds.')
+                audio_seconds+=duration
+                if audio_seconds>15.1: raise ValueError('Standalone audio references exceed 15 seconds combined.')
+                aud+=1;binding.update(tag=f'<Audio {aud}>',audio_idx=aud,effective_seconds=duration)
                 parts.append({'type':'text','text':f'<Audio {aud}> (@{alias}): audio attached to H3, not listened to by this preparation provider. User transcript: '+str(ref.get('audio_transcript','Not supplied.'))})
             bindings.append(binding)
         context_name=spec.get('control_context_filename')

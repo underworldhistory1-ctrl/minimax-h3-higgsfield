@@ -65,7 +65,7 @@ function refreshLabControls(){
   if(typeof H3ScenesUI!=='undefined')H3ScenesUI.render();
   if(typeof refreshProjectHubControls==="function")refreshProjectHubControls();
   const paused=state.labCapabilities?.inference_enabled===false;
-  $("generate").disabled=state.busy||state.projectLoading||paused||(typeof workspaceLocked==='function'&&workspaceLocked());
+  if(typeof refreshSelectionAvailability==='function')refreshSelectionAvailability();else $("generate").disabled=state.busy||state.projectLoading||paused||(typeof workspaceLocked==='function'&&workspaceLocked());
   let banner=$("v2StandbyBanner");
   if(!banner){banner=document.createElement("div");banner.id="v2StandbyBanner";banner.setAttribute("role","status");banner.style.cssText="padding:12px 20px;background:#352d12;color:#ffe69a;border-bottom:1px solid #695922;font-size:13px";document.querySelector(".top").after(banner);}
   banner.hidden=!paused;
@@ -95,6 +95,8 @@ function renderContinuation(){
 
 function setContinuationMode(mode){
   selectMode(mode,true);
+  applySelection('continuation');
+  if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
 }
 
 async function startUploadedContinuation(file){
@@ -190,7 +192,7 @@ function captureProjectDraft(local=false){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!(local&&!item.assetId?["url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]:["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]).includes(key))):null;
   return {version:1,scene_name:$('sceneName')?.value||'',...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
-    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
+    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
     preparationMode:$("preparationMode")?.value||"auto",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
@@ -226,7 +228,9 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   if(epoch!==state.hydrationEpoch||controller!==projectCtrl){for(const input of [first,last,...refs,...guides,...Object.values(controlInputs)].filter(Boolean))for(const url of new Set([input.url,input.previewUrl]))if(url)URL.revokeObjectURL(url);return;}
   for(const old of allInputItems())for(const url of new Set([old.url,old.previewUrl,old.originalPreviewUrl]))if(url)URL.revokeObjectURL(url);
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
-  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
+  delete state.pikaBefore;
+  state.loras=state.loras.map(x=>({...x,enabled:!!draft.loras?.some(l=>l.name===x.name&&l.enabled!==false),strength:draft.loras?.find(l=>l.name===x.name)?.strength??x.strength}));
+  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},dials:[],refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
   if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
   if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;

@@ -49,10 +49,12 @@
     if (videos.length > 3) {
       throw new Error('H3 accepts at most 3 reference videos.');
     }
-    const audios = references.filter(r => r.kind === 'audio' || (r.kind === 'video' && r.use_audio));
+    const audios = references.filter(r => r.kind === 'audio');
     if (audios.length > 3) {
-      throw new Error('H3 accepts at most three audio references, including video soundtracks.');
+      throw new Error('H3 accepts at most three audio references; paired video soundtracks have separate slots.');
     }
+    const totalAudioSecs=audios.reduce((sum,r)=>sum+(Number(r.duration||r.local_duration)||0),0);
+    if(totalAudioSecs>15.1)throw Error('Standalone audio references exceed 15 seconds combined.');
     const totalVideoSecs = videos.reduce((acc, v) => acc + (Number(v.duration || v.local_duration) || 0), 0);
     if (totalVideoSecs > 15.1) {
       throw new Error(`Video references total ${totalVideoSecs.toFixed(2)} seconds. H3 allows 15 seconds combined; trim and retry.`);

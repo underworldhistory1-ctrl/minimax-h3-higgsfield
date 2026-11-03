@@ -118,7 +118,7 @@ def selected_qwen_lora(request):
     name = request.get('lora', '')
     if not name:
         return '', 0.0
-    if name != QWEN_LORA_FILE:
+    if not isinstance(name,str) or name.replace('\\','/') != QWEN_LORA_FILE:
         raise ValueError('Unknown Qwen Image 2.1 LoRA')
     try:
         strength = float(request.get('loraStrength', 0.8))
@@ -265,6 +265,7 @@ class QwenStudioSaveImage:
             path = output_dir / name
             Image.fromarray(array, "RGBA" if array.shape[-1] == 4 else "RGB").save(path, format="PNG", compress_level=4)
             sidecar = dict(metadata)
+            sidecar.update(width=int(array.shape[1]), height=int(array.shape[0]))
             sidecar["filename"] = name
             sidecar["completed_at"] = time.time()
             sidecar_path = path.with_suffix(".json")
@@ -345,7 +346,7 @@ def update_image_details(image_dir, filename, details):
         metadata["render_seconds"] = round(float(render_seconds), 2)
     settings = details.get("settings")
     if isinstance(settings, dict):
-        allowed = {"mode", "profile", "prompt", "width", "height", "steps", "seed",
+        allowed = {"mode", "profile", "prompt", "steps", "seed",
                    "transparent", "references", "reference_resolution"}
         for key in allowed:
             if key in settings:

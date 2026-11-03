@@ -24,6 +24,45 @@
   }
   const PIKA=Object.freeze(Object.fromEntries([4,8].flatMap(steps=>['fl2va','ref2va'].map(family=>[`pika_h3_flex_turbo_${steps}step${steps===8?'_hd':''}_${family}.safetensors`,{steps,family}]))));
   function pikaVariant(name){return PIKA[name]||null;}
+  function pikaSampling(variant){return {sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};}
+  // Interactive transitions apply prerequisites. Restoring saved work never rewrites intent.
+  function normalizeSelection(spec,action,caps={}){
+    if(action==='restore')return {...spec};
+    const s={...spec,sampling:{...spec.sampling},loras:(spec.loras||[]).map(x=>({...x}))};
+    let pika=s.loras.find(x=>x.enabled&&pikaVariant(x.name));
+    if(action==='continuation'&&s.continuation){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;if(['turbo','turbo_ref'].includes(s.render_method)){s.render_method='native';s.steps=20;}s.enable_refine=false;s.refine=false;s.control={...s.control,enabled:false};}
+    if(action==='mode'&&pika){
+      const variant=pikaVariant(pika.name),family=s.mode==='refs'?'ref2va':'fl2va';
+      if(variant.family!==family){const name=Object.keys(PIKA).find(n=>PIKA[n].steps===variant.steps&&PIKA[n].family===family),other=s.loras.find(x=>x.name===name);pika.enabled=false;if(other){other.enabled=true;pika=other;}else pika=null;}
+    }
+    if(action==='profile'&&s.model_profile!=='original'){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;}
+    if(action==='method'&&s.render_method!=='native'){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;}
+    if(['mode','profile'].includes(action)&&['turbo','turbo_ref'].includes(s.render_method)){
+      const matching=s.mode==='refs'?'turbo_ref':'turbo';
+      s.render_method=(s.model_profile||'original')==='original'&&caps[matching==='turbo'?'turbo_ready':'turbo_ref_ready']?matching:'native';
+      s.steps=s.render_method==='turbo_ref'?8:s.render_method==='turbo'?6:20;
+    }
+    if(pika){
+      const variant=pikaVariant(pika.name);s.model_profile='original';s.render_method='native';s.steps=variant.steps;
+      s.sampling={...s.sampling,...pikaSampling(variant)};pika.strength=1;
+      for(const l of s.loras)if(l!==pika)l.enabled=false;
+    }
+    if(pika||['turbo','turbo_ref'].includes(s.render_method)){
+      s.enable_refine=false;s.refine=false;s.control={...s.control,enabled:false};s.audio_refinement={...s.audio_refinement,enabled:false};
+      if(!pika){for(const l of s.loras)l.enabled=false;s.steps=s.render_method==='turbo_ref'?8:s.steps>=4&&s.steps<=8?s.steps:6;}
+    }else if(s.sampling.sampler_name==='h3_turbo')delete s.sampling.sampler_name;
+    if(s.model_profile==='hybrid_loader')s.sampling.weight_dtype='default';
+    return s;
+  }
+  function selectionRestrictions(spec){
+    const pika=(spec.loras||[]).some(x=>x.enabled&&pikaVariant(x.name));
+    const managed=pika||['turbo','turbo_ref'].includes(spec.render_method);
+    const single=managed?'This selected adapter/method requires a single generation pass.':'';
+    return {managed,sampling:managed,refine:single||(spec.control?.enabled?'Disable ControlNet before refinement.':spec.continuation?'Clear continuation before refinement.':''),
+      control:single||(spec.enable_refine||spec.refine?'Disable refinement before ControlNet.':spec.continuation?'Clear continuation before ControlNet.':spec.audio_refinement?.enabled?'Disable audio enhancement before ControlNet.':''),
+      audio:single||(spec.control?.enabled?'Disable ControlNet before audio enhancement.':spec.preserve_reference_audio?'Original reference soundtrack is preserved; generated-audio enhancement is bypassed.':''),
+      pika:spec.continuation?'Clear continuation before selecting Pika.':'',turbo:spec.continuation?'Clear continuation before selecting Turbo.':''};
+  }
   function validatePika(spec){
     const active=(spec.loras||[]).filter(x=>x.enabled), selected=active.filter(x=>pikaVariant(x.name));
     if(!selected.length)return null;
@@ -37,6 +76,16 @@
     return variant;
   }
   function resolve(spec,caps={}){
+    const dials=spec.dials||[];
+    if(!Array.isArray(dials))throw Error('Dials must be a list.');
+    if(dials.filter(x=>x.enabled).length>12)throw Error('At most 12 Dials can be applied.');
+    if(spec.steps!=null&&(!Number.isInteger(Number(spec.steps))||Number(spec.steps)<1||Number(spec.steps)>100))throw Error('Steps must be an integer between 1 and 100.');
+    for(const dial of dials.filter(x=>x.enabled)){
+      if(!caps.dials_ready||!(caps.dial_files||[]).includes(dial.name))throw Error('Dial runtime or selected file is unavailable. Run the launcher with --matlow.');
+      if(!Number.isFinite(dial.strength)||dial.strength < -20||dial.strength>20)throw Error('Dial strength must be between -20 and 20.');
+    }
+    if((spec.loras||[]).some(x=>x.enabled&&/^dials[\\/]/i.test(x.name||'')))throw Error('Use the Dials panel for steering files; they are not ordinary LoRAs.');
+    if(spec.control?.enabled&&(spec.enable_refine||spec.refine||spec.continuation||spec.audio_refinement?.enabled))throw Error('ControlNet cannot be combined with refinement, continuation or audio enhancement.');
     if((spec.loras||[]).some(x=>x.enabled&&/^qwen21[\\/]/i.test(x.name||'')))throw Error('Qwen Image adapters belong in Create Image, not H3 video.');
     validatePika(spec);
     validateCharacterSwap(spec);
@@ -69,7 +118,7 @@
     if(profile==='hybrid_loader'&&settings.weight_dtype!=='default')throw Error('The hybrid loader preserves the checkpoint precision and does not expose weight_dtype. Select default precision.');
     const preset=spec.hybrid_preset||'none';if(!['none','block_range_adaln','all_adaln'].includes(preset))throw Error('Unknown hybrid overlay preset.');
     if(profile!=='original'&&spec.continuation?.type==='generated'&&spec.continuation.source_model!==name)throw Error('Re-encode the continuation video before changing checkpoints.');
-    return {profile,family,checkpoint:name,loader,settings,hybrid_preset:preset,experimental:profile!=='original'};
+    return {profile,family,checkpoint:name,loader,settings,hybrid_preset:preset,experimental:profile!=='original',dials:dials.filter(x=>x.enabled)};
   }
   // Only scalar widgets declared by the live node schema can override a patch.
   // MODEL/conditioning/media links and unknown inputs cannot be replaced.
@@ -89,5 +138,5 @@
     }
     return node;
   }
-  return {PIKA,pikaVariant,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {PIKA,pikaVariant,pikaSampling,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

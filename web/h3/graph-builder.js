@@ -152,6 +152,15 @@
     if(config.profile==='hybrid_loader')g['1']={class_type:'MinimaxH3_HybridLoader',inputs:{base_model:MODEL_FL,overlay_model:config.hybrid_preset==='none'?'':MODEL_REF,overlay_preset:config.hybrid_preset}};
 
     const allocate = (start) => { let id = start; while (g[String(id)]) id++; return String(id); };
+    function applyDials(model){
+      for(const dial of config.dials){
+        const loadId=allocate(200),applyId=allocate(Number(loadId)+1);
+        g[loadId]={class_type:'DialsLoadDial',inputs:{dial_name:dial.name}};
+        g[applyId]={class_type:'DialsApplyDial',inputs:{model,dial:[loadId,0],strength:dial.strength}};
+        model=[applyId,0];
+      }
+      return model;
+    }
 
     // LoRA chain
     let modelLink = ["1", 0];
@@ -176,7 +185,7 @@
       g[id]={class_type:'LoraLoaderModelOnly',inputs:{model:modelLink,lora_name:Configuration.TURBO_REF,strength_model:1}};
       modelLink=[id,0];
     }
-    g["2"].inputs.model = modelLink;
+    g["2"].inputs.model = applyDials(modelLink);
     let samplingModelLink = ["2", 0];
     if (control) {
       const controlFile = (key) => canonicalFile(resolvedFile(resolvedAssets, key) ?? control[key + '_file'], 'control');
@@ -379,8 +388,14 @@
           g[id] = {class_type:'LoraLoaderModelOnly',inputs:{model:stageLink,lora_name:lora.name,strength_model:Number(lora.refinement_strength ?? (/Motion[_ -]Repair[_ -]V2/i.test(lora.name) ? .25 : lora.strength ?? 1))}};
           stageLink = [id,0];
         }
+        stageLink=applyDials(stageLink);
         const shiftId = allocate(150);g[shiftId]={class_type:'MiniMaxH3SigmaShift',inputs:{model:stageLink,shift_video:config.settings.shift_video,shift_audio:config.settings.shift_audio}};
         refinementModel = [shiftId,0];
+        if(method==='spectrum'||method==='motioncache'){
+          const source=g[g['8'].inputs.model[0]],patchId=allocate(150);
+          g[patchId]={class_type:source.class_type,inputs:{...source.inputs,model:refinementModel}};
+          refinementModel=[patchId,0];
+        }
       }
       const separateId = allocate(100);
       const upscaleId = allocate(Number(separateId) + 1);

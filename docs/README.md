@@ -1,12 +1,13 @@
 # H3 Higgsfield documentation
 
-Current release: **2.7.0**. [Runtime update and validation boundaries](RELEASE_2_7.md). The main [README](../README.md) introduces the studio;
+Current release: **2.8.0**. [Runtime update and validation boundaries](RELEASE_2_7.md). The main [README](../README.md) introduces the studio;
 [CHANGELOG](../CHANGELOG.md) records release history. “H3 Studio” is the workspace
 name used in controls and historical guides; “V2” describes the earlier migration,
 not a separate current product release.
 
 | Task | Guide |
 | --- | --- |
+| Automatic selection rules and Matlow Dials | [2.8 behavior and setup](MATLOW_AND_SELECTIONS_AR.md) |
 | Install on Windows or NVIDIA Linux | [Installation](INSTALL.md) |
 | Update, reuse weights or inspect readiness | [Automatic launcher](LAUNCHER.md) |
 | Understand model and method names | [Compatibility matrix](COMPATIBILITY_MATRIX_AR.md) |

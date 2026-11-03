@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0 - 2026-11-03
+
+- Reconcile managed LoRA/mode/profile/continuation selections automatically; preserve saved intent and expose incompatible choices before submission.
+- Validate connected sampling/refinement/acceleration/Dial paths, core settings and decode output; close legacy admission bypasses.
+- Add pinned Matlow MAINodes/Dials installation and Studio Dial controls with project persistence and per-pass model wiring. Motion Lab remains a separate experimental workflow, not an automatic render pass.
+- Separate video soundtracks from standalone reference-audio limits; correct Windows Qwen LoRA paths, setup clearing and actual output dimensions.
+- Source, CPU, local installer and browser verification only; no new GPU inference or quality claim. [Details](docs/MATLOW_AND_SELECTIONS_AR.md).
+
 ## 2.7.1 - 2026-11-03
 
 - Add pinned Pika Flex Turbo 4-step and 8-step HD adapters for Original FL2VA/Ref2VA, native sampling presets and submission validation. No new GPU validation.

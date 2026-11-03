@@ -10,6 +10,32 @@ TEXT = 'integrated_multimodal_description: [Shot 1] A person walks.\noverall_sou
 
 
 class PromptContextTests(unittest.TestCase):
+    def test_video_soundtracks_and_standalone_audio_have_separate_verified_limits(self):
+        from unittest.mock import patch, Mock
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            refs=[]
+            for kind in ('video','audio'):
+                for i in range(3):
+                    name=f'h3_studio_kf_{kind}_{i}.bin';(root/name).write_bytes(b'fixture')
+                    refs.append({'kind':kind,'alias':f'{kind}{i}','filename':name,'use_audio':kind=='video'})
+            durations={'video':5,'audio':5}
+            def metadata(path):
+                kind='video' if 'video' in path.name else 'audio'
+                streams=[{'codec_type':'audio','duration':str(durations[kind])}]
+                if kind=='video':streams.insert(0,{'codec_type':'video','duration':str(durations[kind]),'avg_frame_rate':'24/1','nb_frames':'120'})
+                return {'streams':streams}
+            service=PromptContextService(root,writer=lambda spec,parts:{'bindings':spec['bindings']})
+            with patch('h3_lab.prompt_context.probe',side_effect=metadata),patch('h3_lab.prompt_context.subprocess.run',return_value=Mock(returncode=0,stdout=b'jpeg')),patch('h3_lab.prompt_context.picture_part',return_value={'type':'image_url'}):
+                spec={'mode':'refs','references':refs,'target_frames':124}
+                result=service.prepare(spec)
+                self.assertEqual([b.get('paired_audio_tag') or b['tag'] for b in result['bindings']],[f'<Audio {i}>' for i in range(1,7)])
+                for kind in ('video','audio'):
+                    durations[kind]=6
+                    with self.subTest(kind=kind),self.assertRaisesRegex(ValueError,'15 seconds combined'):service.prepare(spec)
+                    durations[kind]=5
+
     def test_storyboard_card_directives_reach_provider_payload_and_cache_identity(self):
         from h3_lab.prompt_context import PromptContextService
         with tempfile.TemporaryDirectory() as directory:

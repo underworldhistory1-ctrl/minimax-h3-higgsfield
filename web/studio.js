@@ -183,11 +183,35 @@ function updateCapabilities(){
   [...$("refKind").options].forEach(option=>{option.disabled=option.value==="image"?!state.nodesReady.LoadImage:option.value==="video"?!state.nodesReady.LoadVideo||!state.nodesReady.GetVideoComponents:!state.nodesReady.LoadAudio;});
   if($("refKind").selectedOptions[0]?.disabled){const first=[...$("refKind").options].find(option=>!option.disabled);if(first)$("refKind").value=first.value;}
   updateMethodAvailability();
+  refreshSelectionAvailability();
+}
+function selectionSpec(){return {mode:state.mode,model_profile:state.modelProfile||'original',render_method:method(),steps:Number($('steps').value),sampling:state.sampling,loras:state.loras,enable_refine:!!$('enableRefine')?.checked,control:state.control,continuation:state.continuation,audio_refinement:state.audioRefinement,preserve_reference_audio:state.preserveReferenceAudio};}
+function applySelection(action){
+  const previous=selectionSpec();let next=H3Configuration.normalizeSelection(previous,action,state.labCapabilities||{});
+  if(previous.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))&&!next.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))){next.sampling={...(state.pikaBefore?.sampling||H3Configuration.defaults)};if(!['turbo','turbo_ref'].includes(next.render_method))next.steps=state.pikaBefore?.steps>=8?state.pikaBefore.steps:20;delete state.pikaBefore;next=H3Configuration.normalizeSelection(next,action,state.labCapabilities||{});}
+  state.modelProfile=next.model_profile;state.sampling=next.sampling;state.loras=next.loras.map(l=>Object.assign(state.loras.find(old=>old.name===l.name)||{},l));state.control=next.control||{enabled:false};state.audioRefinement=next.audio_refinement||{};
+  if(previous.model_profile!==next.model_profile)state.checkpoint=null;
+  $('renderMethod').value=next.render_method;$('steps').value=String(next.steps);$('enableRefine').checked=!!next.enable_refine;
+  if($('enableControl'))$('enableControl').checked=!!state.control.enabled;
+  if(!selectedPika()&&Number($('steps').value)<8&&!turboMethod())restorePikaSampling();
+  if(action!=='reset'&&(previous.model_profile!==next.model_profile||previous.render_method!==next.render_method||previous.enable_refine!==next.enable_refine||previous.control?.enabled!==next.control?.enabled||previous.audio_refinement?.enabled!==next.audio_refinement?.enabled))info('Workflow updated automatically for this selection. Review the displayed model, steps and passes.');
+  refreshSelectionAvailability();
+}
+function refreshSelectionAvailability(){
+  const spec=selectionSpec(),rules=H3Configuration.selectionRestrictions(spec),caps=state.labCapabilities||{};
+  for(const [id,reason,ready] of [['enableRefine',rules.refine,caps.refine_ready],['enableControl',rules.control,caps.controlnet_ready],['enhanceAudio',rules.audio,caps.audio_refine_ready]]){
+    const field=$(id);if(field){field.disabled=!!state.busy||!!state.projectLoading||(id==='enhanceAudio'&&!!state.preserveReferenceAudio)||(!ready||!!reason)&&!field.checked;field.title=reason||(!ready?'Required runtime or model is unavailable.':'');}
+  }
+  $('steps').disabled=!!state.busy||!!state.projectLoading||!!selectedPika()||method()==='turbo_ref';
+  let issue='';try{if(!methodAvailable(method()))throw Error('The selected render method is unavailable for this model/input.');H3Configuration.resolve({...currentRenderSpec(),...spec},caps);}catch(error){issue=error.message;}
+  let notice=$('configurationIssue');if(!notice&&$('modelConfiguration')){notice=document.createElement('div');notice.id='configurationIssue';notice.className='tip error';notice.setAttribute('role','status');$('modelConfiguration').append(notice);}
+  if(notice){notice.textContent=issue;notice.hidden=!issue;}
+  $('generate').disabled=!!state.busy||!!state.projectLoading||caps.inference_enabled===false||!!issue||(typeof workspaceLocked==='function'&&workspaceLocked());
 }
 function methodAvailable(value){
   if(value==="native")return true;
-  if(value==="turbo_ref")return state.mode==="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ref_ready===true;
-  if(value==="turbo")return state.mode!=="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ready===true;
+  if(value==="turbo_ref")return !state.continuation&&state.mode==="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ref_ready===true;
+  if(value==="turbo")return !state.continuation&&state.mode!=="refs"&&(state.modelProfile||"original")==="original"&&state.labCapabilities?.turbo_ready===true;
   if(!['spectrum','motioncache'].includes(value))return false;
   return state.nodesReady?.[value==="spectrum"?"SpectrumApplyMiniMaxH3":"MiniMaxH3MotionCache"]===true;
 }
@@ -236,7 +260,8 @@ function selectMode(mode, internal=false) {
   if(!internal&&document.querySelector('.mode[data-mode="'+mode+'"]')?.disabled)return;
   state.prompts[state.mode]=$("prompt").value;
   state.mode = mode;
-  const disabledLoras=state.loras.filter(item=>item.enabled&&!loraModeCompatible(item.name,mode));
+  if(!internal)applySelection('mode');
+  const disabledLoras=internal?[]:state.loras.filter(item=>item.enabled&&!loraModeCompatible(item.name,mode));
   disabledLoras.forEach(item=>item.enabled=false);
   if(disabledLoras.some(item=>H3Configuration.pikaVariant(item.name)))restorePikaSampling();
   $("prompt").value=state.prompts[mode]||"";
@@ -262,14 +287,14 @@ document.querySelectorAll(".mode").forEach(b => b.onclick = () => selectMode(b.d
 
 function saveDraft(){
   try{sessionStorage.setItem(draftKey,JSON.stringify({
-    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
+    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
     duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method(),enableRefine:$("enableRefine")?$("enableRefine").checked:false
   }));}catch{}
 }
 function restoreDraft(){
   let draft;try{draft=JSON.parse(sessionStorage.getItem(draftKey)||"null");}catch{}
   if(!draft)return false;
-  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.audioRefinement=draft.audioRefinement||{};state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
+  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.audioRefinement=draft.audioRefinement||{};state.dials=draft.dials||[];state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
   state.promptMode=["guided","structured"].includes(draft.promptMode)?draft.promptMode:"guided";
   $("promptMode").value=state.promptMode;
   if(["text","frames","refs"].includes(draft.mode))state.mode=draft.mode;
@@ -312,7 +337,7 @@ function timingConfiguration(w=state.width,h=state.height){
     refinement_strength:refine?(x.refinement_strength??(/Motion_Repair_V2/i.test(x.name)?.25:x.strength)):null}));
   if(turboMethod())adapters.push({name:method()==="turbo_ref"?H3Configuration.TURBO_REF:turboName,strength:1,refinement_strength:null});
   return {version:2,gpu:state.gpu,attention_backend:state.labCapabilities?.server_attention?.implementation||"unrecorded",model:selectedCheckpoint(),sampling:turboMethod()?{...state.sampling,sampler_name:method()==="turbo_ref"?"euler":"h3_turbo",scheduler:"simple",cfg:1,denoise:1,shift_video:12,shift_audio:3}:state.sampling||{},audio_refinement:state.audioRefinement||{},model_profile:state.modelProfile||"original",hybrid_preset:state.hybridPreset||"none",node_options:state.nodeOptions||{},mode:state.mode,method:method(),
-    width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,
+    width:canvas.width,height:canvas.height,...(newPreset?{output_canvas:{width:w,height:h},sampling_canvas:{width:canvas.width,height:canvas.height}}:{}),frames:Number($("duration").value),steps:Number($("steps").value),fps:24,adapters,...((state.dials||[]).some(d=>d.enabled)?{dials:state.dials.filter(d=>d.enabled)}:{}),
     sampler:selectedPika()?"euler":method()==="turbo_ref"?"euler":method()==="turbo"?"h3_turbo":"res_multistep",scheduler:"simple",cfg:1,denoise:1,
     references:state.mode==="refs"?orderedRefs().map(timingMedia):state.mode==="frames"?[state.first,state.last].map(x=>x?timingMedia(x):null):[],
     reference_detail:state.mode==="refs"?$("refSize").value:null,fit_images:state.mode==="refs"?$("fitImages").checked:null,fit_frames:state.mode==="frames"?$("fitFrames").checked:null,frame_fit:state.mode==="frames"?$("frameFit").value:null,
@@ -330,7 +355,7 @@ function captureSettings(){
     canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
     steps:Number($("steps").value),seed:$("seed").value,render_method:method(),
-    loras:adapters,reference_detail:refs?$("refSize").value:null,
+    dials:(state.dials||[]).filter(d=>d.enabled),loras:adapters,reference_detail:refs?$("refSize").value:null,
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
       file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
       trim:ref.kind==="video"&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
@@ -399,6 +424,7 @@ function renderEstimates() {
   $("memoryNotice").classList.toggle("hidden",!risk);
   $("memoryNotice").textContent=risk?`This server has ${state.ramLimit} GB system RAM. Long Ref2VA renders at this canvas may run out of system RAM during video decoding. You can still render; a shorter duration, smaller canvas, or 64 GB RAM server lowers that risk.`:"";
 }
+function applyAdapterSelection(item,enabled){item.enabled=enabled;const pika=H3Configuration.pikaVariant(item.name);if(item.enabled&&pika){if(!state.pikaBefore)state.pikaBefore={sampling:{...state.sampling},steps:Number($('steps').value)};for(const other of state.loras)if(other!==item)other.enabled=false;applySelection('pika');}else if(pika)restorePikaSampling();else if(item.enabled){const hadPika=!!selectedPika();for(const other of state.loras)if(H3Configuration.pikaVariant(other.name))other.enabled=false;if(hadPika)restorePikaSampling();if(turboMethod())$('renderMethod').value='native';applySelection('lora');}}
 function renderLoras() {
   const list=$("loraList");list.replaceChildren();
   state.loras=state.loras.filter(item=>!/turbo|lightx2v/i.test(item.name)||H3Configuration.pikaVariant(item.name));
@@ -413,15 +439,15 @@ function renderLoras() {
     const combat=/^H3_Combat_V2\.safetensors$/i.test(item.name);
     const realism=/^h3-realism-people-t2v-i2v-r2v\.safetensors$/i.test(item.name);
     const managed=item.name===turboName;
-    const incompatible=!loraModeCompatible(item.name,state.mode);
+    const incompatible=!loraModeCompatible(item.name,state.mode)||!!(H3Configuration.pikaVariant(item.name)&&state.continuation);
     const row=document.createElement("div");row.className="ref";
     const main=document.createElement("label");main.style.cssText="display:flex;align-items:center;gap:8px;margin:0;color:var(--text)";
-    const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=managed?method()==="turbo":item.enabled;toggle.disabled=managed||state.busy||incompatible||state.nodesReady?.LoraLoaderModelOnly===false;
-    toggle.onchange=()=>{item.enabled=toggle.checked;const pika=H3Configuration.pikaVariant(item.name);if(item.enabled&&pika){if(!state.pikaBefore)state.pikaBefore={sampling:{...state.sampling},steps:Number($('steps').value)};for(const other of state.loras)if(other!==item)other.enabled=false;item.strength=1;$('renderMethod').value='native';$('steps').value=String(pika.steps);state.sampling={...state.sampling,sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:pika.family==='ref2va'?12:6,shift_audio:3};}else if(pika)restorePikaSampling();if(pika&&window.H3ConfigurationUI)H3ConfigurationUI.refresh();renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
+    const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=managed?method()==="turbo":item.enabled;toggle.disabled=managed||state.busy||state.projectLoading||(incompatible||state.nodesReady?.LoraLoaderModelOnly===false)&&!item.enabled;
+    toggle.onchange=()=>{applyAdapterSelection(item,toggle.checked);if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();renderLoras();renderEstimates();updatePreviewLive();saveDraft();};
     const name=document.createElement("span");name.style.cssText="overflow-wrap:anywhere;font-size:11px";name.textContent=anime?"Anime → Realism · LumiReal / Ref2VA":swap?"Character Swap · video + replacement image":managed?"H3 Turbo · controlled by Render method":combat?"Combat V2 · action / impact":realism?"Realism People · faces / movement":item.name;
     main.append(toggle,name);row.append(main);
     if(managed){const note=document.createElement("div");note.className="tip";note.textContent=state.mode==="refs"?"This Turbo adapter targets FL2VA; use Text or Frames.":"Select Turbo LoRA above to apply Turbo v4 at strength 1.0.";row.append(note);}
-    if(H3Configuration.pikaVariant(item.name)){const note=document.createElement('div');note.className='tip';note.textContent='Pika Flex + Turbo � selecting applies 4/8 steps and native sampling. Use alone at strength 1 with Original quality. Disable refinement, audio enhancement, ControlNet and continuation. GPU quality/performance needs validation.';row.append(note);}
+    if(H3Configuration.pikaVariant(item.name)){const note=document.createElement('div');note.className='tip';note.textContent='Pika Flex + Turbo · selecting applies 4/8 steps and native sampling. Use alone at strength 1 with Original quality. Required single-pass settings are applied automatically; clear continuation first. GPU quality/performance needs validation.';row.append(note);}
     if(swap){const note=document.createElement('div');note.className='tip';note.textContent='Experimental · References with your selected checkpoint · initial strength 1.0 · no trigger word. Start with one person in a short continuous shot. Source audio reuse is separate; timing and lip sync are not guaranteed. Other LoRA / control / acceleration combinations have no local GPU validation.';row.append(note);}
     if(anime){const note=document.createElement('div');note.className='tip';note.textContent='LiseTY · trained on Ref2VA · trigger LumiReal. Style prompt presets can enable this adapter, or select it here directly. Strength 1 is a starting value, not a publisher-certified optimum. Other adapters, acceleration and refinement combinations are not quality-validated.';row.append(note);}
     if(combat||realism){const source=document.createElement("div");source.className="tip";source.textContent=combat?"Creator tested FL2VA only · optional triggers prfight2, prfin1":"All three modes · trigger r34l1sm · 1.0 intended strength";row.append(source);}
@@ -429,17 +455,18 @@ function renderLoras() {
     if(incompatible&&!managed){const warning=document.createElement("div");warning.className="tip error";warning.textContent="This adapter appears to target a different H3 checkpoint.";row.append(warning);}
     if(item.enabled&&!managed){
       const strengthLabel=document.createElement("label");strengthLabel.textContent="MODEL STRENGTH";row.append(strengthLabel);
-      const strength=document.createElement("input");strength.type="number";strength.min="0";strength.max="2";strength.step=".05";strength.value=String(item.strength);strength.disabled=state.busy;
-      strength.onchange=()=>{item.strength=Number(strength.value);renderEstimates();};row.append(strength);
+      const strength=document.createElement("input");strength.type="number";strength.min="0";strength.max="2";strength.step=".05";strength.value=String(item.strength);strength.disabled=state.busy||!!H3Configuration.pikaVariant(item.name);
+      strength.onchange=()=>{if(!strength.checkValidity()){strength.reportValidity();strength.value=String(item.strength);return;}item.strength=Number(strength.value);renderEstimates();updatePreviewLive();saveDraft();};row.append(strength);
       const note=document.createElement("div");note.className="tip";note.textContent="Applied to the H3 model. Compatibility and quality depend on this adapter.";row.append(note);
     }
     list.append(row);
   });
+  refreshSelectionAvailability();
 }
 async function loadLoras(){
   try{
     const r=await fetch(api("/h3_studio/loras"));if(!r.ok)throw Error("unavailable");
-    const names=((await H3RenderValues.readJson(r)).items||[]).filter(name=>!/^qwen21[\\/]/i.test(name));
+    const names=((await H3RenderValues.readJson(r)).items||[]).filter(name=>!(/^(qwen21|dials)[\\/]/i.test(name)));
     const existing=new Map(state.loras.map(item=>[item.name,item]));
     state.loras=names.map(name=>existing.get(name)||{name,enabled:false,strength:/Motion_Repair_V2/i.test(name)?.9:1});
     if(state.desiredLoras){state.loras=state.loras.map(x=>({...x,enabled:!!state.desiredLoras.find(l=>l.name===x.name),strength:state.desiredLoras.find(l=>l.name===x.name)?.strength??x.strength}));state.desiredLoras=null;}
@@ -459,7 +486,7 @@ $("refreshLoras").onclick=loadLoras;
 ["steps","refSize"].forEach(id => $(id).addEventListener("change",renderEstimates));
 $("durationSeconds").addEventListener("input",()=>{if(syncDuration())renderEstimates();saveDraft();});
 $("steps").addEventListener("input",()=>{renderMethodInfo();const value=Number($("steps").value);if(Number.isInteger(value)&&value>=Number($("steps").min)&&value<=Number($("steps").max))renderEstimates();else $("estimateNote").textContent="Enter "+$("steps").min+"–"+$("steps").max+" steps to update the estimate.";});
-$("renderMethod").addEventListener("change",()=>{if(method()==="turbo_ref"){$("steps").value="8";$("refSize").value="match";}else if(method()==="turbo")$("steps").value="6";else if(Number($("steps").value)<8)$("steps").value="20";if(!turboMethod()&&state.sampling?.sampler_name==="h3_turbo")delete state.sampling.sampler_name;renderMethodInfo();renderLoras();renderEstimates();saveDraft();});
+$("renderMethod").addEventListener("change",()=>{if(method()==="turbo_ref"){$("steps").value="8";$("refSize").value="match";}else if(method()==="turbo")$("steps").value="6";else if(Number($("steps").value)<8)$("steps").value="20";applySelection('method');renderMethodInfo();renderLoras();renderEstimates();saveDraft();});
 document.querySelectorAll("#stepPresets button").forEach(button=>button.onclick=()=>{$("steps").value=button.dataset.steps;renderMethodInfo();renderEstimates();saveDraft();});
 ["prompt","steps","seed","refSize","renderMethod"].forEach(id => $(id).addEventListener("input",saveDraft));
 $("randomSeed").onclick = () => {$("seed").value = H3RenderValues.randomSeed();saveDraft();};
@@ -468,6 +495,7 @@ if (refineEl) {
   refineEl.addEventListener("change", () => {
     const info = $("refinePresetInfo");
     if (info) info.style.display = refineEl.checked ? "block" : "none";
+    refreshSelectionAvailability();
     saveDraft();
   });
 }
@@ -539,8 +567,8 @@ function updateRefDurationNotice() {
   const notice=$("refDurationNotice");
   const total=videoReferenceDuration();
   const count=state.refs.filter(ref=>ref.kind==="video").length;
-  const audio=state.refs.filter(ref=>ref.kind==="audio"||ref.kind==="video"&&ref.useAudio);
-  const audioKnown=audio.map(ref=>Number(ref.kind==="video"&&ref.trimEnabled?ref.trimDuration:ref.meta?.duration||ref.localDuration));
+  const audio=state.refs.filter(ref=>ref.kind==="audio");
+  const audioKnown=audio.map(ref=>Number(ref.trimEnabled?ref.trimDuration:ref.meta?.duration||ref.localDuration));
   const audioTotal=audio.length&&audioKnown.every(value=>Number.isFinite(value)&&value>0)?audioKnown.reduce((sum,value)=>sum+value,0):null;
   if(!count&&!audio.length){notice.textContent="";return;}
   notice.style.color=total!==null&&total>15.1||audioTotal!==null&&audioTotal>15.1?"var(--bad)":"var(--muted)";
@@ -549,7 +577,7 @@ function updateRefDurationNotice() {
     :total>15.1
       ?"Video references total "+total.toFixed(2)+" s; H3 allows 15 s combined. Shorten the selected clips by "+(total-15).toFixed(2)+" s."
       :"Video references: "+total.toFixed(2)+" / 15 s combined.";
-  const audioText=!audio.length?"":audioTotal===null?"Checking selected audio lengths.":"Selected audio, including video soundtracks: "+audioTotal.toFixed(2)+" / 15 s combined.";
+  const audioText=!audio.length?"":audioTotal===null?"Checking selected audio lengths.":"Standalone audio references: "+audioTotal.toFixed(2)+" / 15 s combined.";
   notice.textContent=[videoText,audioText].filter(Boolean).join(" ");
 }
 function renderRefs() {
@@ -647,9 +675,6 @@ function renderRefs() {
       const check=document.createElement("input");check.type="checkbox";check.checked=!!ref.useAudio;check.disabled=locked||ref.meta?.has_audio===false;
       check.onchange=()=>{
         ref.useAudio=check.checked;
-        if(state.refs.filter(item=>item.kind==="audio"||item.kind==="video"&&item.useAudio).length>3){
-          ref.useAudio=false;check.checked=false;info("H3 accepts at most three audio references, including video soundtracks.",true);
-        }
         updateRefDurationNotice();renderEstimates();
       };
       sound.append(check,document.createTextNode(" Also use this video's soundtrack as an audio reference"));card.append(sound);
@@ -667,7 +692,7 @@ $("addRef").onclick=()=>{
     info("This reference type reached the H3 limit.",true);return;
   }
   if(state.refs.length>=12){info("H3 accepts at most 12 reference files in total.",true);return;}
-  if(kind==="audio"&&state.refs.filter(r=>r.kind==="audio"||r.kind==="video"&&r.useAudio).length>=3){info("H3 accepts at most three audio references, including video soundtracks.",true);return;}
+  if(kind==="audio"&&state.refs.filter(r=>r.kind==="audio").length>=3){info("H3 accepts at most three standalone audio references.",true);return;}
   state.pendingRefKind=kind;
   $("refFile").accept={image:".png,.jpg,.jpeg,.webp",video:".mp4,.mov,.webm",audio:".wav,.mp3,.flac,.m4a"}[kind];
   const picker=$("refFile");
@@ -677,7 +702,7 @@ $("refFile").onchange=()=>{
   const kind=state.pendingRefKind;if(!kind||state.busy||state.projectLoading||typeof referenceMutationLocked==='function'&&referenceMutationLocked()){ $('refFile').value='';return;}
   const errors=[];
   for(const file of $("refFile").files){
-    if(state.refs.length>=12||state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]||(kind==="audio"&&state.refs.filter(r=>r.kind==="audio"||r.kind==="video"&&r.useAudio).length>=3)){errors.push("Reference limit reached; remaining files were not added.");break;}
+    if(state.refs.length>=12||state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]||(kind==="audio"&&state.refs.filter(r=>r.kind==="audio").length>=3)){errors.push("Reference limit reached; remaining files were not added.");break;}
     if(!mediaRules[kind].ext.test(file.name)||!file.size||file.size>mediaRules[kind].max){errors.push(file.name+": unsupported, empty or too large.");continue;}
     const ref={assetId:null,kind,file,alias:aliasName(file.name),role:{image:"character identity",video:"motion",audio:"voice"}[kind],useAudio:false,meta:null,trimEnabled:false,trimStart:0,trimDuration:15,fitVideo:true,previewUrl:kind==="audio"?null:URL.createObjectURL(file)};
     state.refs.push(ref);
@@ -822,6 +847,7 @@ $("prompt").addEventListener("blur",()=>{
 function currentRenderSpec() {
   const refs = state.mode === "refs";
   return {
+    dials:state.dials||[],
     model_profile: state.modelProfile||"original", checkpoint:state.checkpoint,hybrid_preset:state.hybridPreset||"none",sampling:turboMethod()?{...state.sampling,sampler_name:method()==="turbo_ref"?"euler":"h3_turbo",scheduler:"simple",cfg:1,denoise:1,shift_video:12,shift_audio:3}:state.sampling||{},node_options:state.nodeOptions||{},audio_refinement:state.audioRefinement||{},refinement:state.refinement||{},refine_scale:state.refineScale??1.25,
     mode: state.mode,
     prompt_mode: state.promptMode || "guided",
@@ -837,7 +863,7 @@ function currentRenderSpec() {
       use_audio: !!r.useAudio,
       fps: r.meta?.fps ?? (r.kind === "video" ? 24 : undefined),
       frame_count: r.meta?.frame_count ?? (r.kind === "video" ? (r.localDuration ? Math.round(r.localDuration * 24) : 120) : undefined),
-      duration: r.meta?.duration ?? (r.kind === "video" ? (r.localDuration || 5) : undefined),
+      duration: r.trimEnabled ? Number(r.trimDuration) : r.meta?.duration ?? (r.kind !== "image" ? r.localDuration : undefined),
       file: r.file?.name
     })) : [],
     guides: state.guides.map(g=>({...g,file:undefined,filename:g.file?.name,relative_to_new_content:!!state.continuation})),
@@ -870,6 +896,7 @@ function currentRenderSpec() {
 }
 
 function updatePreviewLive() {
+  refreshSelectionAvailability();
   const display = $("compiledPromptDisplay");
   const tagsWrap = $("tagBindingsDisplay");
   if (!display) return;
@@ -917,8 +944,8 @@ function resolvedPrompt() {
     const videoDuration = videoReferenceDuration();
     if (videoDuration !== null && videoDuration > 15.1)
       throw Error("Video references total " + videoDuration.toFixed(2) + " seconds. H3 allows 15 seconds combined; trim at least " + (videoDuration - 15).toFixed(2) + " seconds and retry.");
-    if (state.refs.filter(ref => ref.kind === "audio" || ref.kind === "video" && ref.useAudio).length > 3)
-      throw Error("H3 accepts at most three audio references, including video soundtracks.");
+    if (state.refs.filter(ref => ref.kind === "audio").length > 3)
+      throw Error("H3 accepts at most three standalone audio references.");
   } else if (state.mode === "frames") {
     if (!state.first && !state.last) throw Error("Add a start frame, an end frame, or both.");
   }
@@ -1298,13 +1325,13 @@ async function generate() {
       bitmap.close();
       if(Math.abs(ratio/target-1)>.035)throw Error("The start frame aspect ratio differs from the canvas. H3 stretches the first frame; use a matching image to avoid distortion.");
     }
-    if(state.mode==="refs"&&state.refs.filter(ref=>ref.kind==="audio"||ref.kind==="video"&&ref.useAudio).length>3)
-      throw Error("H3 accepts at most three audio references, including video soundtracks.");
+    if(state.mode==="refs"&&state.refs.filter(ref=>ref.kind==="audio").length>3)
+      throw Error("H3 accepts at most three standalone audio references.");
     if(state.mode==="refs"){
-      const selected=state.refs.filter(ref=>ref.kind==="audio"||ref.kind==="video"&&ref.useAudio);
-      const lengths=selected.map(ref=>Number(ref.kind==="video"&&ref.trimEnabled?ref.trimDuration:ref.meta?.duration||ref.localDuration));
+      const selected=state.refs.filter(ref=>ref.kind==="audio");
+      const lengths=selected.map(ref=>Number(ref.trimEnabled?ref.trimDuration:ref.meta?.duration||ref.localDuration));
       if(lengths.length&&lengths.every(value=>Number.isFinite(value)&&value>0)&&lengths.reduce((sum,value)=>sum+value,0)>15.1)
-        throw Error("Selected audio references and video soundtracks exceed 15 seconds combined. Shorten or deselect one before generating.");
+        throw Error("Standalone audio references exceed 15 seconds combined. Shorten or deselect one before generating.");
     }
     for(const ref of state.refs.filter(item=>item.kind==="video"||item.kind==="audio")){
       const source=Number(ref.meta?.source_duration||ref.localDuration||0);
@@ -1393,9 +1420,9 @@ async function generate() {
         uploads.refs.set(ref,result.name);
       }
       const videoDuration=state.refs.filter(ref=>ref.kind==="video").reduce((sum,ref)=>sum+(ref.meta?.duration||0),0);
-      const audioDuration=state.refs.filter(ref=>ref.kind==="audio"||ref.kind==="video"&&ref.useAudio).reduce((sum,ref)=>sum+(ref.meta?.duration||0),0);
+      const audioDuration=state.refs.filter(ref=>ref.kind==="audio").reduce((sum,ref)=>sum+(ref.meta?.duration||0),0);
       if(videoDuration>15.1)throw Error("Combined video references exceed 15 seconds.");
-      if(audioDuration>15.1)throw Error("Combined audio references, including selected video soundtracks, exceed 15 seconds.");
+      if(audioDuration>15.1)throw Error("Standalone audio references exceed 15 seconds combined.");
       renderRefs();
     }
     for(const guide of state.guides){
@@ -1774,7 +1801,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
       if(imported.metadata.width!==state.width||imported.metadata.height!==state.height)throw Error("Use the source video's canvas before extending it.");
       state.currentClipId="clip_"+crypto.randomUUID();
     state.continuation={type:"imported",source_take_id:entry.takeId,source_asset_id:imported.asset.asset_id,source_canvas:{width:imported.metadata.width,height:imported.metadata.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,source_duration_seconds:imported.metadata.frame_count/24,context_length:39,audio_feather_ticks:8};
-      if(state.mode==="frames")setContinuationMode("text");
+      setContinuationMode(state.mode==="frames"?"text":state.mode);
       $("durationSeconds").value="7.3";syncDuration();renderContinuation();$("prompt").focus();updatePreviewLive();return;
     }
     if(!token)throw Error("This older clip has no saved sampler context. Choose Video context · re-encode.");
@@ -1783,7 +1810,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
     if(context.model_id!==expected||context.width!==samplingCanvas().width||context.height!==samplingCanvas().height)throw Error("Use the source checkpoint and canvas before extending this clip. Switching checkpoints has not been validated.");
     state.currentClipId="clip_"+crypto.randomUUID();
     state.continuation={type:"generated",source_take_id:entry.takeId,source_token:token,source_model:context.model_id,source_canvas:{width:context.width,height:context.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,context_length:39,audio_feather_ticks:8};
-    if(state.mode==="frames")setContinuationMode("text");
+    setContinuationMode(state.mode==="frames"?"text":state.mode);
     $("durationSeconds").value="7.3";syncDuration();renderContinuation();
     $("prompt").placeholder="Describe continuation motion and sound…";$("prompt").focus();
     updatePreviewLive();

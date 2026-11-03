@@ -144,6 +144,14 @@ PIKA = {f"pika_h3_flex_turbo_{steps}step{'_hd' if steps == 8 else ''}_{family}.s
         for steps in (4, 8) for family in ('fl2va', 'ref2va')}
 
 
+def _before_dials(graph, link):
+    seen=set()
+    while isinstance(link,list) and len(link)==2 and isinstance(link[0],str) and graph.get(link[0],{}).get('class_type')=='DialsApplyDial':
+        if link[0] in seen or link[1]!=0: raise ValueError('Invalid Dial model chain')
+        seen.add(link[0]);link=graph[link[0]].get('inputs',{}).get('model')
+    return link
+
+
 def validate_pika(spec):
     graph = spec.get('workflow', {})
     nodes = [(key, n) for key, n in graph.items() if n.get('inputs', {}).get('lora_name') in PIKA]
@@ -162,7 +170,7 @@ def validate_pika(spec):
         raise ValueError('Pika Flex requires a single pass without additional processing')
     if sum(n.get('class_type') == 'LoraLoaderModelOnly' for n in graph.values()) != 1 or sum('sampler' in n.get('class_type', '').lower() for n in graph.values()) != 1:
         raise ValueError('Pika Flex requires one adapter and one sampler')
-    if graph.get('2', {}).get('inputs', {}).get('model') != [key, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
+    if _before_dials(graph,graph.get('2', {}).get('inputs', {}).get('model')) != [key, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
         raise ValueError('Pika Flex model path disagrees')
     if graph.get('13', {}).get('inputs', {}).get('samples') != ['8', 0] or any(graph.get(key, {}).get('inputs', {}).get('samples') != ['13', 0] for key in ('9', '10')):
         raise ValueError('Pika Flex decode must follow the approved single sampler')
@@ -176,7 +184,123 @@ def validate_pika(spec):
     return True
 
 
+def _validate_execution_path(spec, graph, audio_sampler):
+    """Validate connected execution, rather than merely the presence of optional nodes."""
+    from .render_values import seed_value
+    def node(key, klass=None):
+        value=graph.get(key, {})
+        if not isinstance(value.get('inputs'), dict) or klass and value.get('class_type') != klass:
+            raise ValueError('Incomplete configuration graph: ' + key)
+        return value['inputs']
+    def chain(link, field):
+        result=[];seen=set()
+        while isinstance(link,list) and len(link)==2 and isinstance(link[0],str) and link[0] in graph:
+            key=link[0]
+            expected_slot=1 if field=='audio' and graph[key].get('class_type')=='H3LabTrimAV' else 0
+            if type(link[1]) is not int or link[1]!=expected_slot: raise ValueError('Invalid configuration output slot')
+            if key in seen: raise ValueError('Configuration graph contains a cycle')
+            seen.add(key);result.append(key);link=node(key).get(field)
+        return result
+    def linked(value, slot=0):
+        if not isinstance(value,list) or len(value)!=2 or not isinstance(value[0],str) or value[0] not in graph or type(value[1]) is not int or value[1]!=slot:
+            raise ValueError('Invalid configuration graph link')
+        return value[0]
+    # Modern graphs have one well-defined release/decode/assembly output path.
+    if node('12','H3SaveVideo').get('video') != ['11',0]: raise ValueError('Saved output disagrees with video assembly')
+    node('11','CreateVideo');node('13','H3ReleaseForDecode')
+    for key,klass in [('9','VAEDecode'),('10','VAEDecodeAudio')]:
+        if node(key,klass).get('samples') != ['13',0]: raise ValueError('Decoders must consume the final selected pass')
+    image_path=chain(node('11').get('images'),'image')
+    # Continuation trim has an images input rather than image.
+    if '9' not in image_path:
+        trim=next((key for key in image_path if graph[key].get('class_type')=='H3LabTrimAV'),None)
+        if not trim or node(trim).get('images') != ['9',0]: raise ValueError('Video assembly bypasses the selected decoder')
+    if not spec.get('preserve_reference_audio'):
+        audio_path=chain(node('11').get('audio'),'audio')
+        if '10' not in audio_path: raise ValueError('Video assembly bypasses generated audio')
+    base=node('8','KSampler');conditioning=node('6')
+    declarations=spec.get('loras') or []
+    if not isinstance(declarations,list) or any(not isinstance(l,dict) or not isinstance(l.get('name'),str) or not l['name'] for l in declarations):
+        raise ValueError('LoRA declarations require a name')
+    import math
+    for lora in declarations:
+        for field in ('strength','refinement_strength'):
+            if field in lora and (type(lora[field]) not in (int,float) or not math.isfinite(lora[field]) or not 0<=lora[field]<=2): raise ValueError('Invalid LoRA strength')
+    positive=chain(base.get('positive'),'positive')
+    guides=spec.get('guides') or []
+    if len(positive)!=len(guides)+1 or not positive or positive[-1]!='6' or any(graph[key].get('class_type')!='MiniMaxH3AddGuide' for key in positive[:-1]): raise ValueError('Selected temporal guides/conditioning disagree')
+    if base.get('negative')!=['7',0] or node('7','ConditioningZeroOut').get('conditioning')!=['6',0]: raise ValueError('Negative conditioning disagrees')
+    if spec.get('continuation'):
+        kind='MiniMaxH3GeneratedAVMaskedContext' if spec['continuation'].get('type')=='generated' else 'MiniMaxH3ExistingVideoMaskedContext'
+        if node(linked(base.get('latent_image')),kind).get('latent')!=['6',1]: raise ValueError('Continuation latent path disagrees')
+    elif base.get('latent_image')!=['6',1]: raise ValueError('Base latent conditioning disagrees')
+    for field in ('width','height'):
+        if field in spec:
+            selected=spec[field]
+            if (spec.get('width'),spec.get('height')) in ((1920,1080),(1080,1920)): selected=(selected+31)//32*32
+            if conditioning.get(field)!=selected: raise ValueError('Submitted canvas disagrees: '+field)
+    if 'target_frames' in spec and conditioning.get('length')!=spec['target_frames']: raise ValueError('Submitted duration disagrees')
+    if 'compiled_prompt' in spec and conditioning.get('prompt')!=spec['compiled_prompt']: raise ValueError('Submitted prompt disagrees')
+    if 'seed' in spec and seed_value(base.get('seed'))!=seed_value(spec['seed']): raise ValueError('Submitted seed disagrees')
+    models=chain(base.get('model'),'model')
+    if not models or models[-1]!='1' or '2' not in models: raise ValueError('Sampling bypasses the selected checkpoint/sigma path')
+    method=spec.get('render_method','native')
+    expected_patch={'spectrum':'SpectrumApplyMiniMaxH3','motioncache':'MiniMaxH3MotionCache'}.get(method)
+    if expected_patch and not any(graph[key].get('class_type')==expected_patch for key in models): raise ValueError('Sampling bypasses the selected acceleration')
+    declared=[l for l in declarations if l.get('enabled')]
+    consumed_dials=set()
+    def check_dials(path):
+        actual=[]
+        for key in reversed(path):
+            if graph[key].get('class_type')!='DialsApplyDial': continue
+            values=node(key);load_id=linked(values.get('dial'));load=node(load_id,'DialsLoadDial')
+            if set(values)!={'model','dial','strength'} or set(load)!={'dial_name'}: raise ValueError('Invalid Dial graph inputs')
+            consumed_dials.update((key,load_id));actual.append((load['dial_name'],values['strength']))
+        expected=[(d['name'],d['strength']) for d in spec.get('dials',[]) if d.get('enabled')]
+        if actual!=expected: raise ValueError('Connected Dials disagree with the selected pass')
+    check_dials(models)
+    def check_loras(path, refinement=False):
+        actual=[node(key) for key in reversed(path) if graph[key].get('class_type')=='LoraLoaderModelOnly']
+        if method=='turbo_ref': return  # Managed adapter is validated separately below.
+        expected=[(l['name'],l.get('refinement_strength',.25 if 'motion_repair_v2' in l['name'].lower() else l.get('strength',1)) if refinement else l.get('strength',1)) for l in declared]
+        if [(l.get('lora_name'),l.get('strength_model')) for l in actual]!=expected: raise ValueError('Connected LoRA chain disagrees with the selected pass')
+    check_loras(models)
+    refine=bool(spec.get('enable_refine') or spec.get('refine'))
+    refiners=[key for key,n in graph.items() if n.get('class_type')=='KSampler' and key not in ('8',audio_sampler)]
+    if len(refiners)!=(1 if refine else 0): raise ValueError('Selected refinement pass disagrees with graph')
+    final=['8',0]
+    if refine:
+        key=refiners[0];values=node(key);final=[key,0]
+        path=chain(values.get('model'),'model');check_loras(path,True)
+        check_dials(path)
+        if not path or path[-1]!='1' or not any(graph[k].get('class_type')=='MiniMaxH3SigmaShift' for k in path): raise ValueError('Refinement bypasses the selected checkpoint/sigma path')
+        if expected_patch and not any(graph[k].get('class_type')==expected_patch for k in path): raise ValueError('Refinement bypasses the selected acceleration')
+        for shift in (node(k) for k in path if graph[k].get('class_type')=='MiniMaxH3SigmaShift'):
+            if any(shift.get(field)!=node('2').get(field) for field in ('shift_video','shift_audio')): raise ValueError('Refinement sigma shifts disagree')
+        concat=node(linked(values.get('latent_image')),'LTXVConcatAVLatent')
+        upscale=node(linked(concat.get('video_latent')),'MinimaxH3LatentUpscaler3D')
+        separate_id=linked(upscale.get('latent'))
+        if node(separate_id,'LTXVSeparateAVLatent').get('av_latent')!=['8',0] or concat.get('audio_latent')!=[separate_id,1]: raise ValueError('Refinement does not consume the base AV pass')
+    if not audio_sampler and node('13').get('samples')!=final: raise ValueError('Selected final pass is bypassed before decode')
+    if {key for key,n in graph.items() if n.get('class_type') in ('DialsApplyDial','DialsLoadDial')}!=consumed_dials: raise ValueError('Unconnected Dial nodes are not allowed')
+
+
 def validate_configuration(spec, capabilities):
+    for value in spec.get('workflow',{}).values():
+        if 'lora_name' in value.get('inputs',{}) and not isinstance(value['inputs']['lora_name'],str): raise ValueError('Graph adapter filenames must be strings')
+    for field in ('sampling','control','audio_refinement','refinement','continuation','node_options'):
+        if spec.get(field) is not None and not isinstance(spec[field],dict): raise ValueError(field+' must be an object')
+    for field in ('loras','references','guides','dials'):
+        values=spec.get(field,[])
+        if not isinstance(values,list) or any(not isinstance(value,dict) for value in values): raise ValueError(field+' must be a list of objects')
+    if any(not isinstance(l.get('name'),str) or not l['name'] for l in spec.get('loras',[])): raise ValueError('LoRA declarations require a name')
+    import math
+    dials=[d for d in spec.get('dials',[]) if d.get('enabled')]
+    if len(dials)>12: raise ValueError('At most 12 Dials can be applied')
+    for dial in dials:
+        if not capabilities.get('dials_ready') or dial.get('name') not in capabilities.get('dial_files',[]): raise ValueError('Selected Dial runtime or file is unavailable')
+        strength=dial.get('strength')
+        if type(strength) not in (int,float) or not math.isfinite(strength) or not -20<=strength<=20: raise ValueError('Invalid Dial strength')
     pika = validate_pika(spec)
     audio_sampler = validate_audio_refinement(spec, capabilities)
     validate_character_swap(spec)
@@ -184,9 +308,12 @@ def validate_configuration(spec, capabilities):
     graph = spec.get('workflow', {})
     # Legacy clients have no configuration contract; ComfyUI still validates their schemas.
     if 'model_profile' not in spec and 'sampling' not in spec:
+        if dials or any(n.get('class_type','').startswith('Dials') for n in graph.values()): raise ValueError('Dials require an explicit configuration contract')
         if spec.get('render_method') in ('turbo', 'turbo_ref') or any(n.get('class_type') == 'MiniMaxH3TurboLoRA' or n.get('inputs', {}).get('sampler_name') == 'h3_turbo' or 'turbo' in n.get('inputs', {}).get('lora_name','').lower() for n in graph.values()):
             raise ValueError('Turbo v4 requires an explicit configuration contract')
         return
+    if (spec.get('control') or {}).get('enabled') and (spec.get('continuation') or spec.get('enable_refine') or spec.get('refine') or (spec.get('audio_refinement') or {}).get('enabled')):
+        raise ValueError('ControlNet cannot be combined with refinement, continuation or audio enhancement')
     profile = spec.get('model_profile', 'original')
     refs = spec.get('mode') == 'refs'
     loader = graph.get('1', {})
@@ -213,7 +340,10 @@ def validate_configuration(spec, capabilities):
     if not isinstance(sampling, dict):
         raise ValueError('Sampling settings must be an object')
     locations = {'sampler_name': '8', 'scheduler': '8', 'cfg': '8', 'denoise': '8', 'shift_video': '2', 'shift_audio': '2', 'weight_dtype': '1'}
-    for key, value in sampling.items():
+    effective={'sampler_name':'res_multistep','scheduler':'simple','cfg':1,'denoise':1,'shift_video':12,'shift_audio':3,'weight_dtype':'default',**sampling}
+    if spec.get('render_method') in ('turbo','turbo_ref'):
+        effective.update(sampler_name='euler' if spec['render_method']=='turbo_ref' else 'h3_turbo',scheduler='simple',cfg=1,denoise=1,shift_video=12,shift_audio=3)
+    for key, value in effective.items():
         if key == 'weight_dtype' and profile == 'hybrid_loader' and value == 'default':
             continue
         if key not in locations or graph.get(locations[key], {}).get('inputs', {}).get(key) != value:
@@ -234,7 +364,7 @@ def validate_configuration(spec, capabilities):
         if len(turbo_nodes) != 1 or turbo_nodes[0].get('inputs') != adapter_inputs:
             raise ValueError('Turbo v4 adapter wiring disagrees')
         tid = next(k for k,n in graph.items() if n is turbo_nodes[0])
-        if graph.get('2', {}).get('inputs', {}).get('model') != [tid, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
+        if _before_dials(graph,graph.get('2', {}).get('inputs', {}).get('model')) != [tid, 0] or graph.get('8', {}).get('inputs', {}).get('model') != ['2', 0]:
             raise ValueError('Turbo v4 model path disagrees')
         required = {'sampler_name': 'euler' if reference_turbo else 'h3_turbo', 'scheduler': 'simple', 'cfg': 1, 'denoise': 1}
         if any(graph.get('8', {}).get('inputs', {}).get(k) != v for k,v in required.items()) or not 4 <= graph.get('8', {}).get('inputs', {}).get('steps', 0) <= 8:
@@ -258,6 +388,7 @@ def validate_configuration(spec, capabilities):
         refinement = spec.get('refinement') or {}
         if not isinstance(refinement, dict):
             raise ValueError('Refinement settings must be an object')
+        refinement={'steps':10,'cfg':1,'denoise':.4,'sampler_name':'res_multistep','scheduler':'simple',**refinement}
         for key, value in refinement.items():
             if key not in ('steps', 'cfg', 'denoise', 'sampler_name', 'scheduler') or refiners[0].get('inputs', {}).get(key) != value:
                 raise ValueError('Submitted refinement settings disagree: ' + key)
@@ -286,3 +417,4 @@ def validate_configuration(spec, capabilities):
         # Saved inactive-method overrides remain in projects, but do not change this graph.
         if selected and any(any(n.get('inputs', {}).get(k) != v for k, v in values.items()) for n in selected):
             raise ValueError('Submitted accelerator settings disagree with the configuration')
+    _validate_execution_path(spec, graph, audio_sampler)

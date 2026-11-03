@@ -134,3 +134,6 @@ docs/TURBO_V4.md
 deploy/worker_lifecycle.py
 deploy/archive_source.py
 docs/PIKA_FLEX.md
+deploy/matlow.py
+web/h3/dials-ui.js
+docs/MATLOW_AND_SELECTIONS_AR.md

@@ -6,13 +6,10 @@ class PikaTests(unittest.TestCase):
     def spec(self,name,steps,family):
         shifts={'shift_video':12 if family=='ref2va' else 6,'shift_audio':3}
         sampling={'sampler_name':'euler','scheduler':'simple','cfg':1,'denoise':1,**shifts}
-        return {'model_profile':'original','mode':'refs' if family=='ref2va' else 'text','render_method':'native','steps':steps,'sampling':sampling,'loras':[{'name':name,'enabled':True,'strength':1}], 'workflow':{
-            '1':{'class_type':'UNETLoader','inputs':{'unet_name':REF if family=='ref2va' else FL}},
-            '2':{'class_type':'MiniMaxH3SigmaShift','inputs':{'model':['50',0],**shifts}},
-            '6':{'class_type':'MiniMaxH3ReferenceToVideo' if family=='ref2va' else 'MiniMaxH3ImageToVideo','inputs':{}},
-            '8':{'class_type':'KSampler','inputs':{'model':['2',0],'steps':steps,**{k:v for k,v in sampling.items() if not k.startswith('shift_')}}},
-            '13':{'inputs':{'samples':['8',0]}},'9':{'inputs':{'samples':['13',0]}},'10':{'inputs':{'samples':['13',0]}},
-            '50':{'class_type':'LoraLoaderModelOnly','inputs':{'model':['1',0],'lora_name':name,'strength_model':1}}}}
+        import json,subprocess
+        spec={'model_profile':'original','mode':'refs' if family=='ref2va' else 'text','render_method':'native','steps':steps,'sampling':sampling,'loras':[{'name':name,'enabled':True,'strength':1}], 'references':[{'kind':'image','alias':'hero'}]}
+        script="const s=JSON.parse(process.argv[1]);s.workflow=require('./web/h3/graph-builder').buildGraph(s,{hero:'hero.png'},{sampling_options:{samplers:['euler'],schedulers:['simple'],weight_dtypes:['default']}});console.log(JSON.stringify(s));"
+        return json.loads(subprocess.check_output(['node','-e',script,json.dumps(spec)],text=True))
     def test_all_four_native_adapters(self):
         for name,(steps,family) in PIKA.items():
             with self.subTest(name=name):validate_configuration(self.spec(name,steps,family),{})

@@ -1,6 +1,6 @@
 # H3 Higgsfield
 
-**Current release: 2.7.0 · guarded updates and Comfy Kitchen attention by default**
+**Current release: 2.8.0 · automatic selection rules, connected graph validation and optional Matlow Dials**
 
 The launcher prepares pinned ComfyUI 0.43.0 and selects native Comfy Kitchen INT8 attention for the server. It verifies loaded attention, Python environment and runtime source before readiness. Use `--attention-backend pytorch` for the explicit baseline. [2.7 verification and upgrade limits](docs/RELEASE_2_7.md): this release has not completed a new GPU render.
 
@@ -181,3 +181,5 @@ Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI]
 ### Optional Qwen Image 2.1 V2 LoRA
 
 Create Image has a separate LoRA selector and strength (0–2, initial 0.8), defaulting to None. The TheseAlpacas V2 option is enabled only when its file is installed. Selection and strength survive refresh and are stored in image settings; the model-only adapter precedes reference caching in edit mode. Install explicitly with `python deploy/download_qwen_loras.py /path/to/ComfyUI`; add `--offline-check` to verify the pinned 79,744,352-byte file and SHA-256 without downloading. The download uses a pinned Hugging Face mirror revision. No LoRA is enabled automatically.
+
+Matlow Dials and automatic workflow selection: [setup, behavior and validation limits](docs/MATLOW_AND_SELECTIONS_AR.md). Use the launcher with `--matlow` once to prepare the pinned independent packs; subsequent launches maintain recognized installs.

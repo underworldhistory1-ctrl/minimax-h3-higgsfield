@@ -25,6 +25,12 @@ class QueueClient:
 
 
 class TestH3LabRoutes(AioHTTPTestCase):
+    async def test_legacy_requests_cannot_bypass_configuration_checks(self):
+        cases=[{'render_method':'turbo'}, {'workflow':{'adapter':{'class_type':'LoraLoaderModelOnly','inputs':{'lora_name':'qwen21/style.safetensors'}}}}, {'audio_refinement':{'enabled':True}}, {'loras':[{'enabled':True}]}, {'workflow':{'adapter':{'class_type':'LoraLoaderModelOnly','inputs':{'lora_name':123}}}}]
+        for index,spec in enumerate(cases):
+            response=await self.client.post('/h3_studio/lab/jobs',json={'request_id':'legacy-config-'+str(index),'render_spec':spec})
+            self.assertEqual(response.status,400,await response.text())
+        self.assertEqual(self.queue.submissions,[])
     async def test_concurrent_submissions_wait_for_admission_instead_of_rejecting(self):
         entered,release=asyncio.Event(),asyncio.Event()
         async def submit(spec,extra):

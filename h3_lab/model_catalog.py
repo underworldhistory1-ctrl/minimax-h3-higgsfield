@@ -55,4 +55,10 @@ def discover(folder_paths, registered):
         hybrid_ready = all(key in fields for key in ('base_model', 'overlay_model', 'overlay_preset')) and set(fields['overlay_preset'][0]) == {'none', 'block_range_adaln', 'all_adaln'}
     except (KeyError, AttributeError, TypeError):
         pass
-    return {'model_catalog': catalog, 'sampling_options': choices, 'hybrid_loader_ready': hybrid_ready}
+    dials_ready=all(name in registered for name in ('DialsLoadDial','DialsApplyDial'))
+    dial_files=[]
+    if dials_ready and folder_paths:
+        try: dial_files=[name for name in folder_paths.get_filename_list('loras') if name.replace('\\','/').startswith('dials/')]
+        except (KeyError,AttributeError,OSError): pass
+    return {'model_catalog': catalog, 'sampling_options': choices, 'hybrid_loader_ready': hybrid_ready,
+            'dials_ready':dials_ready,'dial_files':dial_files,'mainodes_ready':all(name in registered for name in ('H3TimeSmear','H3ExactRecover'))}

@@ -21,21 +21,21 @@
     if(videos.length!==1||images.length!==1||state.refs.length!==2||!target){info('Use exactly one source video and one replacement image for this preset, and identify the person to replace. Extra references remain attached; remove them or configure the prompt manually.',true);return;}
     if(state.continuation){info('Clear continuation before preparing a source-video character replacement.',true);return;}
     selectMode('refs');if(state.mode!=='refs')return;
-    adapter.enabled=true;if(!Number.isFinite(adapter.strength))adapter.strength=1;
+    if(!Number.isFinite(adapter.strength))adapter.strength=1;applyAdapterSelection(adapter,true);
     videos[0].role='custom';images[0].role='custom';
     $('prompt').value='In @'+videos[0].alias+', replace only '+target+' with the character shown in @'+images[0].alias+'. Keep the replacement identity, clothing and visual style. Retain the source camera, environment, lighting, objects and other people. Match the original position, scale, pose and action. Do not display the reference sheet.';
     renderRefs();renderLoras();refresh();changed();info('Character Swap prompt preset applied. Your checkpoint, render method, sampling and other selected adapters are preserved. Review experimental combinations before generating.');
   };
   for(const [value,p] of Object.entries(H3Configuration.profiles)){const o=document.createElement('option');o.value=value;o.textContent=p.label;$('modelProfile').append(o);}
-  function changed(){saveDraft();updatePreviewLive();renderEstimates();}
+  function changed(){refreshSelectionAvailability();saveDraft();updatePreviewLive();renderEstimates();}
   $('modelProfile').onchange=()=>{
     if(state.busy)return;
     if(state.continuation?.type==='generated'){info('Re-encode the source video before changing checkpoint families.',true);$('modelProfile').value=state.modelProfile||'original';return;}
-    state.modelProfile=$('modelProfile').value;state.checkpoint=null;refresh().then(()=>{changed();updateCapabilities();});
+    state.modelProfile=$('modelProfile').value;state.checkpoint=null;applySelection('profile');refresh().then(()=>{changed();updateCapabilities();});
   };
   $('checkpoint').onchange=()=>{if(state.busy)return;state.checkpoint=$('checkpoint').value;changed();updateCapabilities();};
   $('hybridPreset').onchange=()=>{state.hybridPreset=$('hybridPreset').value;changed();};
-  $('resetSampling').onclick=()=>{state.sampling={};state.nodeOptions={};state.refinement={};state.refineScale=1.25;refresh();changed();};
+  $('resetSampling').onclick=()=>{state.sampling={};state.nodeOptions={};state.refinement={};state.refineScale=1.25;applySelection('reset');refresh();changed();};
   $('styleDirection').onchange=()=>{state.styleDirection=$('styleDirection').value;refresh();changed();};
   $('preserveAudio').onchange=()=>{state.preserveReferenceAudio=$('preserveAudio').checked;refresh();changed();};
   $('applyStyle').onclick=()=>{
@@ -49,8 +49,8 @@
     const ref=refs[0];ref.role='whole scene';
     state.styleDirection=direction;
     if(direction==='anime_to_realism'){
-      adapter.enabled=true;
       if(!Number.isFinite(adapter.strength))adapter.strength=1;
+      applyAdapterSelection(adapter,true);
     }else if(adapter)adapter.enabled=false;
     const look=direction==='anime_to_realism'?'LumiReal, natural photorealistic live-action style':'anime with clean linework and cel shading';
     $('prompt').value='Transform @'+ref.alias+' into '+look+'. Retain recognizable character features, clothing, props and the environment. Follow the source framing, camera movement, poses, actions and their timing. Use one coherent visual style throughout. '+($('preserveAudio').checked?'Keep the source soundtrack.':'Generate synchronized native audio matching the scene.');
@@ -62,7 +62,7 @@
     let input;
     if(Array.isArray(type)){input=document.createElement('select');for(const item of type){const o=document.createElement('option');o.value=item;o.textContent=item;input.append(o);}input.value=value;}
     else {input=document.createElement('input');input.type=type==='BOOLEAN'?'checkbox':'number';if(type==='BOOLEAN')input.checked=!!value;else{input.value=value;input.step=limits.step??(type==='INT'?1:0.01);if(limits.min!=null)input.min=limits.min;if(limits.max!=null)input.max=limits.max;}}
-    input.dataset.setting=key;input.disabled=state.busy;input.onchange=()=>{if(input.type==='number'&&!input.checkValidity()){input.reportValidity();return;}onchange(type==='BOOLEAN'?input.checked:Array.isArray(type)?input.value:Number(input.value));changed();};wrap.append(input);parent.append(wrap);
+    input.dataset.setting=key;input.disabled=state.busy;input.onchange=()=>{if(input.type==='number'&&!input.checkValidity()){input.reportValidity();input.value=String(value);return;}value=type==='BOOLEAN'?input.checked:Array.isArray(type)?input.value:Number(input.value);onchange(value);changed();};wrap.append(input);parent.append(wrap);
   }
   let schemaServer=null,liveSchemas={};
   async function schemas(){
@@ -91,24 +91,25 @@
     $('hybridPreset').hidden=profile!=='hybrid_loader';document.querySelector('label[for="hybridPreset"]').hidden=profile!=='hybrid_loader';$('hybridPreset').value=state.hybridPreset||'none';
     $('checkpointNotice').textContent=profile==='original'?'Native audio · mode selects the original FL2VA or Ref2VA checkpoint.':profile==='hybrid_conditioning'?'Community experiment: FL2VA weights with native reference conditioning. This does not merge models. No GPU validation on this installation.':profile==='hybrid_loader'?'Community tensor overlays, separate from reference conditioning. Format compatibility is checked by the loader. No GPU validation on this installation.':'Independent community checkpoint. File availability does not certify quality or acceleration compatibility.';
     const attention=caps.server_attention;
-    $('serverAttention').textContent=attention?'Server dense attention: '+attention.label+'. Checkpoints may use native per-layer kernels.'+(attention.quantized?' Quantized attention is approximate; this launcher recommends PyTorch for H3 INT8 ConvRot.':''):'Server attention is not reported by this older backend.';
+    $('serverAttention').textContent=attention?'Server dense attention: '+attention.label+'. Checkpoints may use native per-layer kernels.'+(attention.quantized?' Quantized attention is approximate. The launcher selects the installed compatible backend; per-layer kernels can differ.':''):'Server attention is not reported by this older backend.';
     const fields=$('samplingFields');fields.replaceChildren();
-    const descriptors={sampler_name:[(caps.sampling_options?.samplers||['res_multistep']).filter(name=>name!=='h3_turbo'||method()==='turbo')],scheduler:[caps.sampling_options?.schedulers||['simple']],weight_dtype:[caps.sampling_options?.weight_dtypes||['default']],cfg:['FLOAT',{min:0,max:100}],denoise:['FLOAT',{min:0,max:1}],shift_video:['FLOAT',{min:0,max:100}],shift_audio:['FLOAT',{min:0,max:100}]};
+    const descriptors={sampler_name:[(caps.sampling_options?.samplers||['res_multistep']).filter(name=>name!=='h3_turbo'||method()==='turbo')],scheduler:[caps.sampling_options?.schedulers||['simple']],weight_dtype:[profile==='hybrid_loader'?['default']:caps.sampling_options?.weight_dtypes||['default']],cfg:['FLOAT',{min:0,max:100}],denoise:['FLOAT',{min:0,max:1}],shift_video:['FLOAT',{min:0,max:100}],shift_audio:['FLOAT',{min:0,max:100}]};
     const turboSampling=method()==='turbo'||method()==='turbo_ref';
     const effective=turboSampling?{...H3Configuration.defaults,...state.sampling,sampler_name:method()==='turbo_ref'?'euler':'h3_turbo',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3}:{...H3Configuration.defaults,...state.sampling};
     for(const [key,d] of Object.entries(descriptors))field(fields,key,key.replaceAll('_',' '),effective[key],d,value=>state.sampling[key]=value);
-    if(turboSampling)for(const input of fields.querySelectorAll('input,select'))if(input.dataset.setting!=='weight_dtype')input.disabled=true;
+    if(turboSampling||selectedPika())for(const input of fields.querySelectorAll('input,select'))if(input.dataset.setting!=='weight_dtype')input.disabled=true;
     const refineFields=$('refinementFields');refineFields.replaceChildren();
     const refineDefaults={steps:10,denoise:.4,cfg:1,sampler_name:'res_multistep',scheduler:'simple'};
     const refineDescriptors={steps:['INT',{min:1,max:100}],denoise:['FLOAT',{min:0,max:1}],cfg:['FLOAT',{min:0,max:100}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler};
     for(const [key,d] of Object.entries(refineDescriptors))field(refineFields,'refine_'+key,key.replaceAll('_',' '),state.refinement?.[key]??refineDefaults[key],d,value=>{state.refinement=state.refinement||{};state.refinement[key]=value;});
     field(refineFields,'refine_scale','Latent upscale',state.refineScale??1.25,['FLOAT',{min:1,max:1.25,step:.05}],value=>state.refineScale=value);
+    const restrictions=H3Configuration.selectionRestrictions(selectionSpec());
     const audioOptions={steps:6,denoise:.5,sampler_name:'euler',scheduler:'simple',...state.audioRefinement};
-    $('enhanceAudio').checked=!!audioOptions.enabled;$('enhanceAudio').disabled=state.busy||!caps.audio_refine_ready||!!state.preserveReferenceAudio;
-    $('audioEnhancementNotice').textContent=state.preserveReferenceAudio?'Original reference soundtrack is preserved; generated-audio enhancement is bypassed.':!caps.audio_refine_ready?'Update the Studio runtime to enable this audio pass.':'An extra native pass refines audio only. Exact video latents are restored. Adds render time; no disk cache. Published evidence uses Original H3; other checkpoints/adapters can change audio quality.';
+    $('enhanceAudio').checked=!!audioOptions.enabled;$('enhanceAudio').disabled=state.busy||!caps.audio_refine_ready||!!restrictions.audio&&!$('enhanceAudio').checked;
+    $('audioEnhancementNotice').textContent=restrictions.audio?restrictions.audio:state.preserveReferenceAudio?'Original reference soundtrack is preserved; generated-audio enhancement is bypassed.':!caps.audio_refine_ready?'Update the Studio runtime to enable this audio pass.':'An extra native pass refines audio only. Exact video latents are restored. Adds render time; no disk cache. Published evidence uses Original H3; other checkpoints/adapters can change audio quality.';
     const audioFields=$('audioEnhancementFields');audioFields.replaceChildren();
     for(const [key,d] of Object.entries({steps:['INT',{min:1,max:20}],denoise:['FLOAT',{min:.01,max:1,step:.01}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler}))field(audioFields,'audio_'+key,key.replaceAll('_',' '),audioOptions[key],d,value=>{state.audioRefinement={...state.audioRefinement,[key]:value};});
-    for(const input of audioFields.querySelectorAll('input,select'))input.disabled=state.busy||!audioOptions.enabled||!caps.audio_refine_ready||!!state.preserveReferenceAudio;
+    for(const input of audioFields.querySelectorAll('input,select'))input.disabled=state.busy||!audioOptions.enabled||!caps.audio_refine_ready||!!restrictions.audio;
     const patches=$('patchFields');patches.replaceChildren();
     const klass=method()==='spectrum'?'SpectrumApplyMiniMaxH3':method()==='motioncache'?'MiniMaxH3MotionCache':null;
     if(klass&&caps.node_schemas?.[klass]){
@@ -118,6 +119,8 @@
       const node=Object.values(graph||{}).find(x=>x.class_type===klass);
       for(const [key,d] of Object.entries({...schema.required,...schema.optional}))if(node&&key in node.inputs&&!Array.isArray(node.inputs[key])&&(Array.isArray(d[0])||['INT','FLOAT','BOOLEAN'].includes(d[0])))field(patches,key,key.replaceAll('_',' '),state.nodeOptions[klass]?.[key]??node.inputs[key],d,value=>{state.nodeOptions[klass]=state.nodeOptions[klass]||{};state.nodeOptions[klass][key]=value;});
     }
+    if(window.H3DialsUI)H3DialsUI.refresh();
+    refreshSelectionAvailability();
     $('styleAdapterNotice').textContent=state.styleDirection==='realism_to_anime'?'Prompt-guided workflow; no verified dedicated reverse adapter is installed.':state.loras.some(x=>H3Configuration.isAnimeToRealism(x.name))?'Anime → Realism · LumiReal adapter installed (LiseTY). Uses your selected checkpoint and render method; community combinations are experimental.':'Anime → Realism adapter missing. Update the launcher to install the pinned 310 MB file.';
     $('preserveAudio').checked=!!state.preserveReferenceAudio;$('styleDirection').value=state.styleDirection||'anime_to_realism';
     for(const id of ['prepareSwap','swapTarget','applyStyle','preserveAudio','styleDirection','hybridPreset','resetSampling'])$(id).disabled=state.busy;

@@ -3,20 +3,14 @@ import pathlib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-module_spec = importlib.util.spec_from_file_location('turbo_configuration', ROOT / 'h3_lab/configuration.py')
-config = importlib.util.module_from_spec(module_spec)
-module_spec.loader.exec_module(config)
+from h3_lab import configuration as config
 
 
 def valid_spec():
-    return {'model_profile':'original', 'mode':'text', 'render_method':'turbo', 'steps':6,
-        'sampling':{'sampler_name':'h3_turbo','scheduler':'simple','cfg':1,'denoise':1,'shift_video':12,'shift_audio':3},
-        'workflow':{
-            '1':{'class_type':'UNETLoader','inputs':{'unet_name':config.FL}},
-            '2':{'class_type':'MiniMaxH3SigmaShift','inputs':{'model':['50',0],'shift_video':12,'shift_audio':3}},
-            '6':{'class_type':'MiniMaxH3ImageToVideo','inputs':{}},
-            '8':{'class_type':'KSampler','inputs':{'model':['2',0],'sampler_name':'h3_turbo','scheduler':'simple','cfg':1,'denoise':1,'steps':6}},
-            '50':{'class_type':'MiniMaxH3TurboLoRA','inputs':{'model':['1',0],'lora_name':'minimax_h3_turbo_v4_step600_ema.safetensors','strength':1,'low_vram':False}}}}
+    import json, subprocess
+    script="const s={model_profile:'original',mode:'text',render_method:'turbo',steps:6,sampling:{sampler_name:'h3_turbo',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3}};s.workflow=require('./web/h3/graph-builder').buildGraph(s,{}, {turbo_ready:true,sampling_options:{samplers:['h3_turbo'],schedulers:['simple'],weight_dtypes:['default']}});console.log(JSON.stringify(s));"
+    return json.loads(subprocess.check_output(['node','-e',script],cwd=ROOT,text=True))
+
 
 class TurboAdmissionTests(unittest.TestCase):
     def test_reference_turbo_exact_adapter_and_8step_contract(self):

@@ -29,3 +29,19 @@ test('submission receipt is not coupled to optional adapter discovery',()=>{
  const submission=source.slice(source.indexOf('async function generate('),source.indexOf('async function finishFailure('));
  assert.ok(!submission.includes('/object_info/LoraLoaderModelOnly'));
 });
+test('native Windows adapter enum remains usable',()=>{
+ const windows=adapter.lora.replaceAll('/','\\');
+ assert.doesNotThrow(()=>context.qwenLora({lora:windows}));
+ assert.equal(context.buildGraph({...base,lora:windows,loraStrength:.8},[],'test').lora.inputs.lora_name,windows);
+});
+test('source canvas rounds ties like the native Python encoder',()=>{
+ const ctx={state:{refs:[{width:1040,height:1040}]},$:id=>({checked:false}),dimensions:()=>[512,512]};vm.createContext(ctx);
+ vm.runInContext(source.slice(source.indexOf('function outputDimensions('),source.indexOf('function estimateSeconds(')),ctx);
+ assert.deepEqual(Array.from(ctx.outputDimensions()),[1024,1024]);
+});
+
+test('fitted canvas includes integer thumbnail rounding before encoder rounding',()=>{
+ const ctx={state:{refs:[{width:2049,height:432}]},$:id=>({checked:id==='fitReferences'}),dimensions:()=>[512,512]};vm.createContext(ctx);
+ vm.runInContext(source.slice(source.indexOf('function outputDimensions('),source.indexOf('function estimateSeconds(')),ctx);
+ assert.deepEqual(Array.from(ctx.outputDimensions()),[2048,448]);
+});

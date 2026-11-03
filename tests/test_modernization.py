@@ -93,7 +93,8 @@ spec.workflow=B.buildGraph(spec,{hero:'hero.png',shot:'shot.mp4'},caps);specs.pu
 
     def test_backend_rejects_ui_graph_configuration_drift(self):
         from h3_lab.configuration import validate_configuration, FL
-        spec={'model_profile':'original','mode':'text','sampling':{'cfg':2},'workflow':{'1':{'class_type':'UNETLoader','inputs':{'unet_name':FL}},'6':{'class_type':'MiniMaxH3ImageToVideo','inputs':{}},'8':{'inputs':{'cfg':2}}}}
+        script="const s={model_profile:'original',mode:'text',sampling:{cfg:2}};s.workflow=require('./web/h3/graph-builder').buildGraph(s);console.log(JSON.stringify(s));"
+        spec=json.loads(subprocess.check_output(['node','-e',script],cwd=Path(__file__).resolve().parents[1],text=True))
         validate_configuration(spec,{})
         spec['workflow']['8']['inputs']['cfg']=1
         with self.assertRaisesRegex(ValueError,'cfg'):

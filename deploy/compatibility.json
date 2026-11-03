@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "audit_date": "2026-11-02",
+  "audit_date": "2026-11-03",
   "source_update_policy": "latest",
   "approved_source_commits": [],
   "comfyui_commit": "426f5eea52a7ece1dd599fff4cb6cd1f352ddd24",
@@ -11,6 +11,18 @@
       "directory": "ComfyUI-MiniMax-H3-Hybrid",
       "repository": "https://github.com/ANe5s/ComfyUI-MiniMax-H3-Hybrid.git",
       "commit": "9aeef8e1bd899f1e5b48f04b1fbd8316bbe197d8",
+      "status": "source_audited_gpu_untested"
+    },
+    "mainodes": {
+      "directory": "ComfyUI-MAINodes",
+      "repository": "https://github.com/matlowai/ComfyUI-MAINodes.git",
+      "commit": "069d7d6ca7a006dac3f9e264bca8ea9fa41aa08b",
+      "status": "source_audited_gpu_untested"
+    },
+    "dials": {
+      "directory": "ComfyUI-Dials",
+      "repository": "https://github.com/matlowai/ComfyUI-Dials.git",
+      "commit": "3fe5159cad2dbcf62a61dce21696855c9f2795d7",
       "status": "source_audited_gpu_untested"
     }
   },
@@ -29,7 +41,7 @@
     "lightx2v"
   ],
   "gpu_evidence": "RTX 5090, PyTorch 2.9.1+cu130: native CUDA INT8 linear passed. Original Ref2VA INT8 + CombatV2 strength1: 362 frames 1024x576, 24fps, stereo audio, full file decode passed (20m01). Singularity INT8 + Anime2Realism strength1 with references/guides: 209 frames 1024x576, 24fps stereo, full file decode passed (22m36). These establish technical execution for those profiles, not perceptual quality or all optional accelerators. A matched fresh-worker Original test with native CK INT8 attention completed all 20 steps and full video/audio decode in 582.94 s versus 1201.28 s for PyTorch Flash at identical 1024x576, 362 frames, 20 steps, seed42 and references. Frame spot checks are not perceptual equivalence; supervised idle-worker restart retained native CUDA and selected attention.",
-  "project_version": "2.7.0",
+  "project_version": "2.8.0",
   "audio_enhancement": {
     "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
     "source_commit": "d78d34f2f1100b0422047e9d784a3bdb4e1061d3",

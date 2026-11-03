@@ -11,7 +11,7 @@
   state.control=state.control||{enabled:false,input_type:'video'};state.controlInputs=state.controlInputs||{};
   const saved=localStorage.getItem(draftKey+'.preparation');$('preparationMode').value=['native','ai','auto'].includes(saved)?saved:'auto';
   $('preparationMode').onchange=()=>{localStorage.setItem(draftKey+'.preparation',$('preparationMode').value);state.preparedContext=null;refreshAvailability();saveDraft();};
-  $('enableControl').onchange=()=>{state.control.enabled=$('enableControl').checked;state.preparedContext=null;saveDraft();};
+  $('enableControl').onchange=()=>{state.control.enabled=$('enableControl').checked;state.preparedContext=null;refreshSelectionAvailability();saveDraft();};
   $('controlKind').onchange=()=>{state.control.kind=$('controlKind').value;state.preparedContext=null;refreshControlInputs();saveDraft();};
   $('controlInputType').onchange=()=>{state.control.input_type=$('controlInputType').value;$('controlVideo').value='';if(['image','prepared_image'].includes(state.control.input_type)&&$('controlKind').value==='inpaint'){$('controlKind').value='canny';state.control.kind='canny';}state.preparedContext=null;refreshControlInputs();saveDraft();};
   $('controlStartSeconds').onchange=()=>{state.control.start_seconds=Number($('controlStartSeconds').value);state.preparedContext=null;refreshControlInputs();saveDraft();};
@@ -21,9 +21,9 @@
   function currentControl(){return state.control.enabled?{enabled:true,kind:$('controlKind').value,input_type:$('controlInputType').value,start_seconds:['image','prepared_image'].includes($('controlInputType').value)?0:Number($('controlStartSeconds').value),source_span:state.control.source_span||null,mask_alignment:state.control.mask_alignment||null,plan_note:state.control.plan_note||'',strength:Number($('controlStrength').value),start_percent:Number($('controlStartPercent').value),end_percent:Number($('controlEndPercent').value),model_name:'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors'}:null;}
   function refreshAvailability(){
     const caps=state.labCapabilities||{};
-    $('enableRefine').disabled=state.busy||!caps.refine_ready;
+    $('enableRefine').disabled=state.busy||!caps.refine_ready||!!H3Configuration.selectionRestrictions(selectionSpec()).refine&&!$('enableRefine').checked;
     H3Guidance.setText($('refineAvailability'),caps.refine_ready?'refineReady':'refineUnavailable',{reasons:(caps.refine_missing_reasons||['Refine is not installed.']).join(' ')});
-    $('enableControl').disabled=state.busy||!caps.controlnet_ready;
+    $('enableControl').disabled=state.busy||!caps.controlnet_ready||!!H3Configuration.selectionRestrictions(selectionSpec()).control&&!$('enableControl').checked;
     $('controlAvailability').textContent=caps.controlnet_ready?(caps.controlnet_references_ready?'ControlNet 2.0 ready · Text, Frames and References supported.':'ControlNet 2.0 ready · References support is unavailable on this server.'):(caps.controlnet_missing_reasons||['ControlNet 2.0 is not installed.']).join(' ');
     refreshControlInputs();
     $('writerGuide').classList.toggle('workflow-help-warning',state.promptProvider?.configured===false);H3Guidance.setText($('writerGuide'),state.promptProvider?.configured===false?'writerUnavailable':'writer');

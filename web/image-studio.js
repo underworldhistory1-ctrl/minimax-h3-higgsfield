@@ -35,7 +35,18 @@ function setProgress(label,pct,remaining=null,indeterminate=false){
 }
 function setBusy(value){state.busy=value;$("generate").disabled=value||!state.ready||!state.referencesReady;$("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);document.querySelectorAll(".left input,.left select,.left textarea,#addReferences").forEach(el=>{if(el.id!=="aspect"&&el.id!=="resolution")el.disabled=value;});updateSettings();}
 function dimensions(){return sizeMap[$("resolution").value][$("aspect").value];}
-function outputDimensions(){const first=state.refs[0];if(!first||$("customSize").checked||!first.width||!first.height)return dimensions();const scale=$("fitReferences").checked?Math.min(1,2048/Math.max(first.width,first.height)):1;return [Math.max(32,Math.round(first.width*scale/32)*32),Math.max(32,Math.round(first.height*scale/32)*32)];}
+function outputDimensions(){
+  const first=state.refs[0];if(!first||$("customSize").checked||!first.width||!first.height)return dimensions();
+  let w=first.width,h=first.height;
+  // Mirror Pillow.thumbnail integer aspect selection before the native encoder's ties-to-even grid.
+  if($("fitReferences").checked&&Math.max(w,h)>2048){
+    const aspect=w/h,pick=(value,error)=>{const lo=Math.floor(value),hi=Math.ceil(value);return Math.max(1,error(lo)<=error(hi)?lo:hi);};
+    if(aspect<=1){h=2048;w=pick(h*aspect,n=>Math.abs(aspect-n/h));}
+    else {w=2048;h=pick(w/aspect,n=>n===0?0:Math.abs(aspect-w/n));}
+  }
+  const round=value=>{const n=Math.floor(value);return value-n===.5?n+n%2:Math.round(value);};
+  return [Math.max(32,round(w/32)*32),Math.max(32,round(h/32)*32)];
+}
 function estimateSeconds(){
   const [w,h]=outputDimensions(),steps=Math.max(1,Number($("steps").value)||40),profile=$("profile").value||"int8";
   const mode=state.refs.length?"edit":"create",key=`qwen.eta.${mode}.${profile}.${w}x${h}.${steps}`;let stored=[];try{stored=JSON.parse(localStorage.getItem(key)||"[]");}catch{}
@@ -138,8 +149,8 @@ async function checkConnection(){
     let loader={};
     try{const loaderResponse=await fetch(api("/object_info/LoraLoaderModelOnly"),{cache:"no-store",signal:AbortSignal.timeout(5000)});if(loaderResponse.ok)loader=await loaderResponse.json();}catch{/* Optional LoRA discovery must not disable baseline Qwen generation. */}
     state.availableLoras=loader.LoraLoaderModelOnly?.input?.required?.lora_name?.[0]||[];
-    for(const option of $("lora").options)option.disabled=!!option.value&&!state.availableLoras.includes(option.value);
-    $("loraNote").textContent=state.availableLoras.includes("qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")?"V2 installed · applies before reference caching. Strength 0 disables its effect.":"V2 installation could not be verified. Your saved selection is kept.";
+    for(const option of $("lora").options)option.disabled=!!option.value&&!state.availableLoras.some(name=>name.replaceAll('\\','/')===option.value);
+    $("loraNote").textContent=state.availableLoras.some(name=>name.replaceAll('\\','/')==="qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")?"V2 installed · applies before reference caching. Strength 0 disables its effect.":"V2 installation could not be verified. Your saved selection is kept.";
     const data=await H3RenderValues.readJson(response);state.profiles=data.profiles||{};state.nodes=data.nodes||{};state.inferenceEnabled=data.inference_enabled!==false;state.standbyReason=state.inferenceEnabled?null:(data.reason||"Inference is disabled on this standby server.");state.ready=state.inferenceEnabled&&!!data.ready;
     for(const option of $("profile").options){option.disabled=!state.profiles[option.value]?.ready;}
     let savedProfile;try{savedProfile=JSON.parse(sessionStorage.getItem('qwen.imageDraft')||'{}').profile;}catch{}
@@ -172,7 +183,7 @@ async function pollImageProgress(){const id=state.activePromptId;if(!id)return;t
 function qwenLora(settings){
   const lora=settings.lora||"";
   if(!lora)return {lora:"",loraStrength:0};
-  if(lora!=="qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")throw Error("Unknown Qwen Image 2.1 LoRA.");
+  if(lora.replaceAll('\\','/')!=="qwen21/NSFW-Qwen-by-TheseAlpacas-V2.safetensors")throw Error("Unknown Qwen Image 2.1 LoRA.");
   const loraStrength=Number(settings.loraStrength??0.8);
   if(!Number.isFinite(loraStrength)||loraStrength<0||loraStrength>2)throw Error("LoRA strength must be between 0 and 2.");
   return {lora,loraStrength};
@@ -233,7 +244,9 @@ function captureSettings(){
   if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
   if(mode==="edit"&&!$("customSize").checked){if(!state.refs[0].width||!state.refs[0].height)throw Error("Still reading the first reference's dimensions. Try again in a moment.");if(width<256||height<256)throw Error("First reference is too small for the output canvas. Select 'Use selected output size'.");if(width>2752||height>2752)throw Error("First reference exceeds the supported output canvas. Select 'Use selected output size'.");}
   const loraSettings=qwenLora({lora:$("lora").value,loraStrength:$("loraStrength").value});
-  if(loraSettings.lora&&!state.availableLoras.includes(loraSettings.lora))throw Error("The selected LoRA is not installed. Select None or install it before generating.");
+  const actualLora=state.availableLoras.find(name=>name.replaceAll('\\','/')===loraSettings.lora.replaceAll('\\','/'));
+  if(loraSettings.lora&&!actualLora)throw Error("The selected LoRA is not installed. Select None or install it before generating.");
+  if(actualLora)loraSettings.lora=actualLora;
   const prompt=resolveMentions(sourcePrompt);
   $("seed").value=String(seed);saveDraft();
   return {...loraSettings,mode,profile,prompt,sourcePrompt,referenceNames:state.refs.map(ref=>ref.name),width,height,steps,seed,transparent:mode==="create"&&$("transparent").checked,referenceResolution:Number($("referenceResolution").value),customSize:mode==="edit"&&$("customSize").checked};
@@ -408,8 +421,8 @@ clearImageSetup.onclick=async()=>{
  if(state.busy||state.refsSaving||!state.referencesReady)return;
  if(!confirm('Clear this tab’s image inputs and settings? Generated images remain.'))return;
  for(const ref of state.refs)URL.revokeObjectURL(ref.url);state.refs=[];
- for(const id of ['prompt','steps','seed'])$(id).value=$(id).defaultValue;
- for(const id of ['profile','aspect','resolution','referenceResolution']){const el=$(id);el.value=[...el.options].find(o=>o.defaultSelected)?.value||el.options[0]?.value;}
+ for(const id of ['prompt','steps','seed','loraStrength'])$(id).value=$(id).defaultValue;
+ for(const id of ['profile','aspect','resolution','referenceResolution','lora']){const el=$(id);el.value=[...el.options].find(o=>o.defaultSelected)?.value||el.options[0]?.value;}
  $('transparent').checked=false;$('customSize').checked=false;$('fitReferences').checked=true;
  renderRefs();saveDraft();await referenceWrite;updateSettings();
 };
