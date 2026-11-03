@@ -15,6 +15,7 @@ param(
     [ValidateSet("", "int8", "bf16", "int8,bf16")][string]$QwenImageProfiles = "int8",
     [string[]]$ModelsRoot = @(),
     [switch]$Turbo,
+    [switch]$Matlow,
     [switch]$SkipControlNet,
     [switch]$VideoOnly,
     [switch]$SkipSmoke,
@@ -92,6 +93,7 @@ if ($SkipRefine) { $arguments += "--no-refine" }
 if ($QwenImageProfiles) { $arguments += @("--qwen-image-profiles", $QwenImageProfiles) }
 foreach ($storagePath in $ModelsRoot) { $arguments += @("--models-root", $storagePath) }
 if ($Turbo) { $arguments += "--turbo" }
+if ($Matlow) { $arguments += "--matlow" }
 if ($SkipControlNet) { $arguments += "--no-controlnet" }
 if ($VideoOnly) { $arguments += "--video-only" }
 if ($SkipSmoke) { $arguments += "--skip-smoke" }
