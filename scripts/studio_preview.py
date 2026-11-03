@@ -38,7 +38,7 @@ CAPS = {'simulation': True, 'ready': True, 'add_guide': True, 'guides_ready': Tr
         'missing_reasons': ['Local simulation: model availability is mocked.']}
 
 
-def mock_chat(messages):
+def mock_chat(messages, fields=None):
     """Deterministic schema formatter, not a model or an image understanding claim."""
     payload = json.loads(messages[-1]['content'][0]['text'])
     refs = payload['references']
@@ -136,9 +136,14 @@ def create_app(storage):
         if path == '/h3_studio/thumbnail': return web.FileResponse(owned_path(fixtures, request.query['filename'] + '.jpg'))
         if path == '/view': return web.FileResponse(owned_path(storage / 'output', request.query.get('subfolder', 'video') + '/' + request.query['filename']))
         if path == '/h3_studio/upload_ref':
-            reader = await request.multipart(); field = await reader.next()
-            data = await field.read(); kind = request.query.get('kind', 'image')
-            name = 'h3_studio_kf_' + uuid.uuid4().hex + pathlib.Path(field.filename).suffix
+            from h3_lab.reference_upload import reference_upload
+            kind = request.query.get('kind', 'image')
+            filename, read_chunk = await reference_upload(request, kind, 500 * 1024 * 1024)
+            chunks = []
+            while chunk := await read_chunk(1024 * 1024):
+                chunks.append(chunk)
+            data = b''.join(chunks)
+            name = 'h3_studio_kf_' + uuid.uuid4().hex + pathlib.Path(filename).suffix
             destination = inputs / name; destination.write_bytes(data)
             if kind == 'video' and request.query.get('trim_duration'):
                 trimmed = inputs / ('h3_studio_kf_trim_' + uuid.uuid4().hex + '.mp4')

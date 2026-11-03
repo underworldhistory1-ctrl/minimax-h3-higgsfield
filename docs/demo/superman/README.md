@@ -1,6 +1,6 @@
 # Superman above Earth
 
-A storyboard sets the camera journey. A separate character image sets the hero’s appearance. This creator-supplied example shows how to give each reference a clear job in H3 Higgsfield.
+A storyboard sets the camera journey. A separate character image sets the hero’s appearance. This creator-supplied example shows how to give each reference a clear job in H3 Interface.
 
 [![Watch the supplied Superman excerpt](video-poster.jpg)](superman-excerpt.mp4)
 

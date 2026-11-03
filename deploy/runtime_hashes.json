@@ -316,7 +316,9 @@
     "da3a9310a35a577501bdc7907568a9f64e10adc2"
   ],
   "deploy/ci/README.md": [
-    "c4ab78bc65e51e7f6b7bbc2c16fdc3cc316fd1e4"
+    "5ee4951f0ac894cb943f2f3686cfd33fb7bcfd68",
+    "c4ab78bc65e51e7f6b7bbc2c16fdc3cc316fd1e4",
+    "c7289b32c1d245f3ebca0dadd1bd9f61e72a51f5"
   ],
   "deploy/ci/verify.yml": [
     "f4ec889698bdf6820f14e5a796f6e215df8facc2"
@@ -867,12 +869,14 @@
     "2e2c3bffc23edba4bcb3c61215d26d6bf9b06953",
     "371847a0fdb5dfe3aa97acca1fd8d637c16651ad",
     "51570c32a503e207dac851e1daede0a04489052a",
+    "608b5fabce0c63381f4db31d9f0ffa740995b963",
     "6dd1ad7b78b49ab0ced2f9fa1d87535e1fe03371",
     "73bc5c0f188496b7fe649d754e7641c0dd1bcf5c",
     "918df1a9a55632c792f5840b7088ffda489246c4",
     "9946b264a2521ee31bfeae5144ba380b89580634",
     "9f1b8440111ce59326c1e145d6cc1701088f7e76",
-    "b3349c16dcd3ca752cf9cf84b051013087d904b7"
+    "b3349c16dcd3ca752cf9cf84b051013087d904b7",
+    "cbf1685550d0a8c7ddb750819511a7f5587a95db"
   ],
   "docs/OPERATIONS.md": [
     "3e1280d895b8a71e1c11cc18fb5e9ee6d1081141",
@@ -1127,7 +1131,9 @@
   ],
   "docs/demo/superman/README.md": [
     "6c2b998c03866cee11a30a78fc21b9db606e5bce",
-    "e77c3ebe38908403bc7b1090d71be13f6b7f4a47"
+    "86040215eaf7355e8ac112ccc08a33eaa5e6fa05",
+    "e77c3ebe38908403bc7b1090d71be13f6b7f4a47",
+    "f92d14eb530f7afcf8305666593ee8d281dabc1f"
   ],
   "docs/demo/superman/character-reference-preview.jpg": [
     "c6c240da4b9200f3005ee60498fccf97daffb0c3"
@@ -1295,6 +1301,7 @@
     "7a4b58aa668f13b2f7f9d618ac91ebb52a6ff6df"
   ],
   "docs/social-preview.png": [
+    "2f1befa6eb6b6fb9068fb1ecf48a531c0404ac26",
     "39af23a8de4715a07ac17b6f7c61afdd3c243c77",
     "85c5c03508d64e3d90791dbd8b76303ebc22a545",
     "eef79c6457d4fb5121172742367327e3678813b7"
@@ -1685,11 +1692,13 @@
   ],
   "scripts/studio_preview.py": [
     "0c3e85ede25b1ade6f2997b188696bfa1cedfbb0",
+    "243be6ce368308510ae7a68a3658d2a3fbe9cc9f",
     "3a5cf044c9ee88d981948c1071c3389560b27850",
     "4a7b111410d46fc78ba9970611b16c05e1c8514f",
     "8285c6aa72a928f64c8f5d26766c40916f5716f3",
     "c2e7d07aea3ce8b45f22f3d4ac1f794d2ba95ab7",
-    "c71aff3e44324fc4dd8a0723419407734486d4b3"
+    "c71aff3e44324fc4dd8a0723419407734486d4b3",
+    "d1ab9f22df82bf257742649b90342d50bdb415a6"
   ],
   "scripts/verify_h3_video.py": [
     "4ea4c71fd7adf65958e8ddb3f01ee7a0e93335e4",
@@ -1818,9 +1827,13 @@
   ],
   "tests/e2e/connected-browser-acceptance.cjs": [
     "066b552d0f8806265797bc72090770a32b87c79f",
+    "18ae5c1fb7cf805c4aed280044457658f9af934a",
+    "1bf6beebfb1d1a09a07572618c55434444706afd",
     "1c743ec1077d4a8ae9554a4a597cb425d5eb2384",
     "543463d2e1359533d93bd01abdf5a624cb705c89",
+    "6b8bed290a9f914c54496441b264523a9e425672",
     "897ee6bfeeae5d15980240f10fffd3426c27ff82",
+    "be34f328facf3eb34832986fd832b14796efb077",
     "bf9aa0a1b20def887d8334856ba9e7e087b58a3e",
     "ca7cbc14d4e7eccf16d8093233fb8dfdb09b8787",
     "e0ad6156e9897b4e52baeb3b7c45d3f2347a689c",

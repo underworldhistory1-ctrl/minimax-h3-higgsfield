@@ -6,8 +6,8 @@ verified model storage separately. Provider mount paths vary; the examples below
 use /output for the workspace and /input0/h3-models for weights.
 
 ~~~bash
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
+git clone https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git
+cd minimax-h3-interface
 bash launcher.sh --comfy-root /output/ComfyUI --models-root /input0/h3-models
 ~~~
 
