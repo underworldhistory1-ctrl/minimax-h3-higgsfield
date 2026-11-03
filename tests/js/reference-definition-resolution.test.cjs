@@ -13,7 +13,7 @@ test('Guided prose accepts native references without demanding duplicate aliases
  const r=compilePrompt({mode:'refs',source_prompt:'<Subject 1> walks inside <Subject 2>.',references:refs});assert.match(r.compiled_prompt,/<Subject 1> is .*<Picture 1>/);assert.match(r.compiled_prompt,/<Subject 2> is .*<Picture 2>/);
 });
 test('Common explicit tag spelling spacing and Arabic digit variants are canonicalized',()=>{
- for(const token of ['<subject1>','< Subject_1 >','<subject ١>'])assert.match(compilePrompt({mode:'refs',source_prompt:token+' follows <pictre2>.',references:refs}).compiled_prompt,/<Subject 1> follows <Picture 2>/);
+ for(const token of ['<subject1>','< Subject_1 >','<subject \u0661>'])assert.match(compilePrompt({mode:'refs',source_prompt:token+' follows <pictre2>.',references:refs}).compiled_prompt,/<Subject 1> follows <Picture 2>/);
 });
 test('Consistent explicit Picture plus alias is preserved, contradictory mapping reports the actual image',()=>{
  assert.doesNotThrow(()=>compilePrompt({mode:'refs',source_prompt:source.replace('from @2.','in <Picture 1>, referenced as @2.'),references:refs}));assert.throws(()=>compilePrompt({mode:'refs',source_prompt:source.replace('from @2.','in <Picture 2>, referenced as @2.'),references:refs}),/Subject 1 links @2 to <Picture 1>.*conflicting/);

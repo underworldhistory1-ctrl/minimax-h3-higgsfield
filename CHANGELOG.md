@@ -1,12 +1,19 @@
 # Changelog
 
+## 2.8.1 - 2026-11-03
+
+- Consolidate the README around current behavior; translate and rename guides in English and remove product translation controls. Unicode prompts remain supported.
+- Honor automatic image fitting for saved project assets in generation and prompt preview, preserving original files.
+- Validate connected guide timing/type, reference detail, output cropping and refinement resize against selected settings.
+- Add regression coverage for these contract gaps. No new GPU inference or visual-quality measurement.
+
 ## 2.8.0 - 2026-11-03
 
 - Reconcile managed LoRA/mode/profile/continuation selections automatically; preserve saved intent and expose incompatible choices before submission.
 - Validate connected sampling/refinement/acceleration/Dial paths, core settings and decode output; close legacy admission bypasses.
 - Add pinned Matlow MAINodes/Dials installation and Studio Dial controls with project persistence and per-pass model wiring. Motion Lab remains a separate experimental workflow, not an automatic render pass.
 - Separate video soundtracks from standalone reference-audio limits; correct Windows Qwen LoRA paths, setup clearing and actual output dimensions.
-- Source, CPU, local installer and browser verification only; no new GPU inference or quality claim. [Details](docs/MATLOW_AND_SELECTIONS_AR.md).
+- Source, CPU, local installer and browser verification only; no new GPU inference or quality claim. [Details](docs/MATLOW_AND_SELECTIONS.md).
 
 ## 2.7.1 - 2026-11-03
 

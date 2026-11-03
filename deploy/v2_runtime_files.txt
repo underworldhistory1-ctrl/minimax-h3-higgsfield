@@ -35,7 +35,7 @@ web/h3/studio-ux.js
 web/studio-ux.css
 deploy/download_control_models.py
 deploy/download_refine_models.py
-docs/V2_UPGRADE_AR.md
+docs/V2_UPGRADE.md
 docs/lab/ARCHITECTURE.md
 docs/lab/BASELINE.md
 docs/lab/ENGINE_DECISION.md
@@ -89,7 +89,7 @@ h3_lab/timing.py
 deploy/runtime_hashes.json
 h3_lab/runtime_fingerprint.py
 deploy/install_python_dependencies.py
-docs/HARDENING_REVIEW_AR.md
+docs/HARDENING_REVIEW.md
 web/h3/image-reference-store.js
 h3_lab/shared_timing.py
 deploy/runtime_patches.py
@@ -119,12 +119,12 @@ web/h3/guidance-language.js
 web/h3/updates-ui.js
 h3_audio_refine.py
 docs/licenses/H3-AudioRefine-MIT.txt
-docs/AUDIO_ENHANCEMENT_AR.md
-docs/TAB_PERSISTENCE_AR.md
+docs/AUDIO_ENHANCEMENT.md
+docs/TAB_PERSISTENCE.md
 h3_lab/scenes.py
 web/h3/scenes-ui.js
 web/scenes.css
-docs/PROJECT_SCENES_AR.md
+docs/PROJECT_SCENES.md
 deploy/download_qwen_loras.py
 h3_turbo.py
 h3_lab/reuse_groups.py
@@ -136,4 +136,6 @@ deploy/archive_source.py
 docs/PIKA_FLEX.md
 deploy/matlow.py
 web/h3/dials-ui.js
-docs/MATLOW_AND_SELECTIONS_AR.md
+docs/MATLOW_AND_SELECTIONS.md
+docs/RELEASE_2_8_1.md
+docs/OPERATIONS.md

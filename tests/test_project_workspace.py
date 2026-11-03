@@ -19,7 +19,7 @@ class ProjectWorkspaceTests(unittest.TestCase):
     def test_simultaneous_uploads_preserve_all_assets_and_unique_aliases(self):
         assets=[self.asset(n) for n in range(8)]
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-            list(pool.map(lambda asset:self.projects.attach_asset(self.pid,asset,'characters','البطل'),assets))
+            list(pool.map(lambda asset:self.projects.attach_asset(self.pid,asset,'characters','\u0627\u0644\u0628\u0637\u0644'),assets))
         project=self.projects.get_project(self.pid)
         self.assertEqual(len(project['assets']),8);self.assertEqual(len({a['alias'] for a in project['assets']}),8)
         self.assertTrue(all(a['role']=='character identity' for a in project['assets']))
@@ -29,7 +29,7 @@ class ProjectWorkspaceTests(unittest.TestCase):
         project['draft']={'refs':[{'assetId':item['asset_id'],'alias':item['alias']}],'prompts':{'refs':'@'+item['alias']}}
         project=self.projects.save_project(self.pid,project,project['revision'])
         history=json.dumps(project['takes'])
-        renamed=self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':item['asset_id'],'name':'لوحة البداية','category':'props'},project['revision'])
+        renamed=self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':item['asset_id'],'name':'\u0644\u0648\u062d\u0629 \u0627\u0644\u0628\u062f\u0627\u064a\u0629','category':'props'},project['revision'])
         self.assertEqual(renamed['assets'][0]['alias'],item['alias'])
         self.assertEqual(renamed['draft']['refs'][0]['alias'],item['alias'])
         self.assertEqual(renamed['draft']['prompts']['refs'],'@'+item['alias'])

@@ -9,6 +9,9 @@ def resolve_image(source, input_root, asset_id, options):
     from pathlib import Path
     Path(input_root).resolve().mkdir(parents=True, exist_ok=True)
     fit = options.get("fit", "preserve")
+    resize = options.get("resize", False)
+    if not isinstance(resize, bool):
+        raise ValueError("resize must be a boolean")
     if fit not in ("preserve", "crop", "contain"):
         raise ValueError("fit must be preserve, crop or contain")
     width, height = options.get("width"), options.get("height")
@@ -26,7 +29,21 @@ def resolve_image(source, input_root, asset_id, options):
             raise ValueError("Image exceeds 50 million pixels")
         original.load()
         image = ImageOps.exif_transpose(original)
-        if fit == "preserve":
+        resized = fit == "preserve" and resize and max(image.size) > 2048
+        if resized:
+            image.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+            if image.mode not in ('RGB', 'RGBA', 'L', 'LA', 'P', '1', 'I'):
+                image = image.convert('RGB')
+            width, height = image.size
+            filename = f"h3_studio_kf_lab_{asset_id}_auto2048.png"
+            target = owned_path(input_root, filename, require_file=False)
+            part = target.with_name(target.name + "." + uuid.uuid4().hex + ".part")
+            try:
+                image.save(part, format="PNG")
+                part.replace(target)
+            finally:
+                part.unlink(missing_ok=True)
+        elif fit == "preserve":
             filename = f"h3_studio_kf_lab_{asset_id}{source.suffix}"
             target = owned_path(input_root, filename, require_file=False)
             part = target.with_name(target.name + "." + uuid.uuid4().hex + ".part")
@@ -52,4 +69,4 @@ def resolve_image(source, input_root, asset_id, options):
                 part.replace(target)
             finally:
                 part.unlink(missing_ok=True)
-    return {"filename": filename, "width": width, "height": height, "fit": fit}
+    return {"filename": filename, "width": width, "height": height, "fit": fit, "resized": resized}

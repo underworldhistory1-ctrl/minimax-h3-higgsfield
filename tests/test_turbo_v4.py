@@ -14,11 +14,10 @@ def valid_spec():
 
 class TurboAdmissionTests(unittest.TestCase):
     def test_reference_turbo_exact_adapter_and_8step_contract(self):
-        spec=valid_spec();spec['mode']='refs';spec['render_method']='turbo_ref';spec['steps']=8
-        spec['sampling']['sampler_name']='euler'
-        graph=spec['workflow'];graph['1']['inputs']['unet_name']=config.REF;graph['6']['class_type']='MiniMaxH3ReferenceToVideo'
-        graph['8']['inputs'].update(sampler_name='euler',steps=8)
-        graph['50']={'class_type':'LoraLoaderModelOnly','inputs':{'model':['1',0],'lora_name':'minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors','strength_model':1}}
+        import json, subprocess
+        script="const s={model_profile:'original',mode:'refs',references:[{kind:'image',alias:'hero'}],render_method:'turbo_ref',steps:8,sampling:{sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3}};s.workflow=require('./web/h3/graph-builder').buildGraph(s,{hero:'hero.png'}, {turbo_ref_ready:true,sampling_options:{samplers:['euler'],schedulers:['simple'],weight_dtypes:['default']}});console.log(JSON.stringify(s));"
+        spec=json.loads(subprocess.check_output(['node','-e',script],cwd=ROOT,text=True))
+        graph=spec['workflow']
         config.validate_configuration(spec, {'turbo_ref_ready':True})
         spec['steps']=6;graph['8']['inputs']['steps']=6
         with self.assertRaises(ValueError):config.validate_configuration(spec, {'turbo_ref_ready':True})

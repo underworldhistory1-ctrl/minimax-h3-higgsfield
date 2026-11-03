@@ -27,7 +27,6 @@
   notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite'); tools.append(notice);
   let target = null, pending = false, last = null, timer = null, detection = null, lastCheck = 0;
   const blocked = () => ['running', 'restart_required', 'recovery_required'].includes(last?.state);
-  const arabic = () => window.H3Guidance?.getLanguage() === 'ar';
   function serverPath(path) {
     const prefix = location.pathname.includes('/extensions/') ? location.pathname.split('/extensions/')[0] : '';
     const resolved = typeof api === 'function' ? api(path) : path;
@@ -60,38 +59,37 @@
     } finally { clearTimeout(timeout); }
   }
   function translate() {
-    const ar = arabic();
-    find('[data-copy]').textContent = ar ? 'التحديث يحافظ على مشاريعك وملفاتك ولا يبدأ أي توليد. أنهِ المهام أولاً، ثم ثبّت التحديث وأعد تشغيل ComfyUI يدوياً وأعد تحميل الصفحة.' : 'Updates preserve projects and media and never start a generation. Finish your tasks, install the update, then restart ComfyUI manually and reload Studio.';
-    find('[data-copy]').dir = ar ? 'rtl' : 'ltr';
-    find('[data-current-label]').textContent = ar ? 'المراجعة المثبتة' : 'Installed revision';
-    find('[data-target-label]').textContent = ar ? 'المراجعة المتاحة' : 'Available revision';
+    find('[data-copy]').textContent = 'Updates preserve projects and media and never start a generation. Finish your tasks, install the update, then restart ComfyUI manually and reload Studio.';
+    find('[data-copy]').dir = 'ltr';
+    find('[data-current-label]').textContent = 'Installed revision';
+    find('[data-target-label]').textContent = 'Available revision';
     if (last) render(last);
   }
   function render(data) {
     const previousTarget = last?.state === 'available' ? last.target : null;
-    last = data; const ar = arabic();
+    last = data;
     const texts = {
-      idle: ['Ready to check', 'Check for the latest official update.', 'جاهز للتحقق', 'تحقق من آخر تحديث رسمي.'],
-      current: ['Studio code up to date', 'Installed Studio code matches the latest official revision. Model and LoRA installation is checked separately.', 'كود الواجهة محدّث', 'كود الواجهة المثبت يطابق أحدث مراجعة رسمية. تثبيت الموديلات واللورات يُفحص بشكل مستقل.'],
-      checking: ['Checking installation', 'Checking the official revision and installed files…', 'جارٍ فحص التثبيت', 'جارٍ فحص المراجعة الرسمية والملفات المثبتة…'],
-      repair_required: ['Installation needs attention', 'Installed files or the running worker differ from the official source. Preserve local changes, repair with the launcher, then restart when idle.', 'التثبيت يحتاج مراجعة', 'الملفات المثبتة أو العامل الحالي لا تطابق المصدر الرسمي. احتفظ بالتعديلات المحلية وأصلح التثبيت بالمشغّل ثم أعد التشغيل عند خلو الطابور.'],
-      available: ['Update available', 'A new Studio update is ready to install.', 'تحديث متاح', 'يوجد تحديث جديد للواجهة جاهز للتثبيت.'],
-      running: ['Installing update', 'Installing code. Generation is paused to protect your work.', 'جارٍ التثبيت', 'جارٍ تثبيت الكود. التوليد متوقف مؤقتاً لحماية أعمالك.'],
-      restart_required: ['Restart required', 'Code installed. Restart ComfyUI manually, then reload Studio.', 'إعادة التشغيل مطلوبة', 'تم تثبيت الكود. أعد تشغيل ComfyUI يدوياً ثم أعد تحميل الواجهة.'],
-      completed: ['Update completed', 'Update and restart completed.', 'اكتمل التحديث', 'اكتمل التحديث وإعادة التشغيل.'],
-      recovery_required: ['Recovery required', 'Ask the administrator to recover the update using the official launcher. Generation remains paused.', 'الاسترداد مطلوب', 'اطلب من المسؤول استرداد التحديث بالمشغّل الرسمي. التوليد متوقف مؤقتاً.'],
-      unavailable: ['Update check unavailable', 'Automatic updates are unavailable for this installation. Use the official launcher to update.', 'التحقق غير متاح', 'التحديث التلقائي غير متاح لهذا التثبيت. استخدم المشغّل الرسمي للتحديث.']
+      idle: ['Ready to check', 'Check for the latest official update.'],
+      current: ['Studio code up to date', 'Installed Studio code matches the latest official revision. Model and LoRA installation is checked separately.'],
+      checking: ['Checking installation', 'Checking the official revision and installed files…'],
+      repair_required: ['Installation needs attention', 'Installed files or the running worker differ from the official source. Preserve local changes, repair with the launcher, then restart when idle.'],
+      available: ['Update available', 'A new Studio update is ready to install.'],
+      running: ['Installing update', 'Installing code. Generation is paused to protect your work.'],
+      restart_required: ['Restart required', 'Code installed. Restart ComfyUI manually, then reload Studio.'],
+      completed: ['Update completed', 'Update and restart completed.'],
+      recovery_required: ['Recovery required', 'Ask the administrator to recover the update using the official launcher. Generation remains paused.'],
+      unavailable: ['Update check unavailable', 'Automatic updates are unavailable for this installation. Use the official launcher to update.']
     };
     const text = texts[data.state] || texts.unavailable;
-    find('[data-state-label]').textContent = text[ar ? 2 : 0];
-    status.textContent = texts[data.state] ? text[ar ? 3 : 1] : data.message || text[ar ? 3 : 1];
-    status.dir = ar ? 'rtl' : 'ltr'; dialog.dataset.state = data.state || 'unavailable';
+    find('[data-state-label]').textContent = text[0];
+    status.textContent = texts[data.state] ? text[1] : data.message || text[1];
+    status.dir = 'ltr'; dialog.dataset.state = data.state || 'unavailable';
     target = data.state === 'available' && data.can_install !== false ? data.target : null;
     const available = data.state === 'available' && Boolean(data.target);
     badge.hidden = !available; button.dataset.state = data.state || 'unavailable';
     button.setAttribute('aria-label', available ? 'Updates: 1 update available' : data.state === 'restart_required' ? 'Updates: restart required' : 'Updates');
     button.title = available ? 'A Studio update is available' : 'Check Studio updates';
-    if (available && previousTarget !== data.target) notice.textContent = ar ? 'يوجد تحديث جديد للواجهة.' : 'A new Studio update is available.';
+    if (available && previousTarget !== data.target) notice.textContent = 'A new Studio update is available.';
     if (!available) notice.textContent = '';
     const revisions = find('.h3-update-revisions');
     revisions.hidden = !data.current;

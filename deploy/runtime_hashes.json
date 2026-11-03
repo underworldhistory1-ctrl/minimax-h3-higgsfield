@@ -5,7 +5,11 @@
   ],
   ".gitattributes": [
     "bd1a9c372ebcec0c07e005cd279ee2cd3c1cda6a",
-    "f16ec5f4539b97543f92f3e019a5f1a99512385b"
+    "f16ec5f4539b97543f92f3e019a5f1a99512385b",
+    "e8c38f41bb34385eafc3969ca6236f6c3516fd86"
+  ],
+  ".github/workflows/verify.yml": [
+    "f4ec889698bdf6820f14e5a796f6e215df8facc2"
   ],
   ".gitignore": [
     "7bb57c8935685da50e584f3e9b8eaa149ecac6b3",
@@ -25,7 +29,8 @@
     "9bf99edf0b98ab6748c88094a09c8b73f558c808",
     "a4459f64908dcf9e6424f96a3e15d72658d1c877",
     "a83f7b1d78e557bf9b9a6464eceb0c5e271522ef",
-    "ce69c73bbd2c4a9e6074e0c888d7424cb53c3c67"
+    "ce69c73bbd2c4a9e6074e0c888d7424cb53c3c67",
+    "482253f7024de9139f02305f1049dcf415ce724a"
   ],
   "CHANGELOG.md": [
     "00af951fb2c730f900730a288f5bb3d3e147d477",
@@ -44,7 +49,8 @@
     "e7da4c2105ddd4e877c1184f1751897db10b15ce",
     "ed1c86fb88f1b7c8db8953f1984781b47ce64f2a",
     "f3533b1dad68888e721f951c101b552c2fd49d93",
-    "f95e1966ec89c8f7d14b3f8dcc5013f0efc4f245"
+    "f95e1966ec89c8f7d14b3f8dcc5013f0efc4f245",
+    "57b3cc614eab943fa2f79368d35cb4169b90dc5b"
   ],
   "Dockerfile.salad": [
     "42ad74c4def0a02e6df824cd8486f1b901111014",
@@ -54,7 +60,8 @@
     "a727378ee12711ab82e4d9b93e7614298c71fe39",
     "d0c3274f3126015f387b70412ffed0fbe8734325",
     "d9a082fc240e063c57f740c24cfe4fcdc5e8fc3b",
-    "ff8382b9de986462485ac728c3380a3cc283f1c5"
+    "ff8382b9de986462485ac728c3380a3cc283f1c5",
+    "8181069ad168bb2d094d38c5584bfb39c90ddc75"
   ],
   "LICENSE": [
     "0355995f4ab24773a7c7cd6b633c47c2acf0ec96",
@@ -112,9 +119,10 @@
     "f980c9d0581c8cc1fc30b9c77b086e994bb3cc2e",
     "d29090dd32bd2e3c046764dcb99353f77b223d82",
     "ada855ee427a583e0938dba5944561703b010e3a",
-    "df854d6652d7a38dcbd651fda123a905c2a5c4e3"
+    "df854d6652d7a38dcbd651fda123a905c2a5c4e3",
+    "37f20c1c8d220da51b8a38c8155eb249ce7e9474"
   ],
-  "START_HERE_AR.md": [
+  "START_HERE.md": [
     "152fdaf93210f381b743107faa2a40a20fcdf5c0",
     "1c6b3b40bac5d5b152515dd34af802203be2f25f",
     "564afcb744e00901bc8657856f7e027ae91102f7",
@@ -128,7 +136,11 @@
     "ab7c83b9ccc8f7b2a222723b83de3583566de43a",
     "bb51374dc1fc6ad03f0cb5d03873b640374edaa7",
     "d43773323645b0ca3e2e2bc9572bb178e680e9b4",
-    "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d"
+    "f87f7a7e222008dfeb4147ab41aa0f147ddfe85d",
+    "449cdf19b015f70c73c9d6a93f68d1fb42357e1c"
+  ],
+  "START_HERE_AR.md": [
+    "449cdf19b015f70c73c9d6a93f68d1fb42357e1c"
   ],
   "VERSION": [
     "0cadbc1e33b27c15475868596b6f73d866de5182",
@@ -192,10 +204,13 @@
     "92820f787605bb132eafcf0145ff24b3dfb85b4b",
     "f9d6b9c19714529c6e7595c4dc46b982721252bb"
   ],
-  "deploy/CLOUD_BOOTSTRAP_AR.md": [
+  "deploy/CLOUD_BOOTSTRAP.md": [
     "0d9f2f3f4673377869ffc3437ed9917f7d2c4a01",
     "37bb1bd7456daf962a748f9be7968e86c1fcf675",
     "b2b5403e4c62d3b14b991293d70a974f7f952dad"
+  ],
+  "deploy/CLOUD_BOOTSTRAP_AR.md": [
+    "0d9f2f3f4673377869ffc3437ed9917f7d2c4a01"
   ],
   "deploy/SALAD_DEPLOYMENT.md": [
     "4a02e9079fb2812a6bff41e5d9b449ddddf1114b",
@@ -204,7 +219,8 @@
     "a379d53513e5be4b4b59e8f380aefb9dd5c79b9e",
     "cfe1b5fb26a7abc8fdb71fa55e5ba04b4fbe2f0b",
     "d3d21e48ddaff79eb08596ca486ca5b47a1a3ac4",
-    "d87a73d59ed6dd40ee920a8fd4d12b5c85232a68"
+    "d87a73d59ed6dd40ee920a8fd4d12b5c85232a68",
+    "7c8908611e3faf46d8fff8031a83234a18e3a858"
   ],
   "deploy/activate_h3.py": [
     "1dc5f60c0698a4234ca873c6bdf46ae33d12e46c",
@@ -220,7 +236,8 @@
     "6a7cc7a45074f7b90918b1ee6c9831227e3ebff4",
     "7de48cf0394aaaec4db876651f5b53952345acc0",
     "861a5ff862c0e36713a6a75a3f779548db63191f",
-    "cfc6f3733a740fa72a8bd052818a37c54c284f50"
+    "cfc6f3733a740fa72a8bd052818a37c54c284f50",
+    "d30328975e83edd50ce0350dc671ea098403c9cd"
   ],
   "deploy/archive_source.py": [
     "8cc287d29091dcdcdccc6ecf310f18ad76c62cfe",
@@ -267,7 +284,14 @@
     "c1c7ac950bfea35493f6eca5702531eb41a0db3d",
     "c1f051c78fd4bfb4634fc18838ba0564a39e0c18",
     "c8cd681a2cc0c4aa93d952b4f32585bf6012edb7",
-    "c9a908381b6b9ae2e8c23a230f34e377cc4471d5"
+    "c9a908381b6b9ae2e8c23a230f34e377cc4471d5",
+    "da3a9310a35a577501bdc7907568a9f64e10adc2"
+  ],
+  "deploy/ci/README.md": [
+    "c4ab78bc65e51e7f6b7bbc2c16fdc3cc316fd1e4"
+  ],
+  "deploy/ci/verify.yml": [
+    "f4ec889698bdf6820f14e5a796f6e215df8facc2"
   ],
   "deploy/comfyui-vram.service": [
     "498fc21e35a0f59e91fddd6c64f7dee55c567fa0",
@@ -277,7 +301,8 @@
     "4a8a9dc4024484f87c767b3b77dcdb88a69b50b3",
     "6909d7d3e0798f019de20699a29ead1b223b0e3a",
     "9fb56f3f0202144a3dac85035d40fb49e4fb9ac6",
-    "ddadd735eff2bc5293067788f63abe4090f91d1a"
+    "ddadd735eff2bc5293067788f63abe4090f91d1a",
+    "243aa21cd448c78bb49aba6ff34e3194f63597e5"
   ],
   "deploy/compatibility.json": [
     "166da551b0a3448add8584c7b1ef4ad9cd524ef4",
@@ -326,7 +351,8 @@
     "7bccfabc44bebdf171bf3afaea3395dd23336176",
     "ab5eff8beb07c2d0bf30aa1349d6849a9978d572",
     "d59729513918ba8f5a6307937ed9287c24b88d0c",
-    "f859e9bc2b41fc6fa69ea9ed6fe9024b2c1aac8c"
+    "f859e9bc2b41fc6fa69ea9ed6fe9024b2c1aac8c",
+    "b89e550975ae9b25c46286dffd082e91fd02cc80"
   ],
   "deploy/download_qwen_image_models.py": [
     "b89a65c73297b700f047317ecb6cdb44304c217c",
@@ -373,7 +399,8 @@
     "d08a7f48c0af88eaa215573cdd6448cf04b6877f",
     "f050e7feb9eef962479bd889a97c9f25a4c86db0",
     "f06b2bd057c1bae1435fc632f55507a8ba505e0e",
-    "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0"
+    "f7defe111f9ec6c089b0e1051f8900e4afb6d1f0",
+    "b2ed579a6daaaa9c1cf0963df54e9f49d47ddc74"
   ],
   "deploy/launcher.py": [
     "115d69fdeea3ca0ae832966bba9a3ee4e5d9c9a2",
@@ -421,7 +448,8 @@
   ],
   "deploy/openbayes_fresh_workspace.sh": [
     "2f9e706774557d596f45ee8d19203cda6ad261d6",
-    "7a9ba1a7e5397543386a81c6dcdc179cf6893512"
+    "7a9ba1a7e5397543386a81c6dcdc179cf6893512",
+    "63074769df306654df6c9fa9235a69d96d95d282"
   ],
   "deploy/openbayes_h3.sh": [
     "1e49b9188fe9a83cde8c34214786e72911dda038",
@@ -429,7 +457,8 @@
     "5e9318c7bcf52fad9c7c8313f555e108d43d8c60",
     "6780850593c4ff428e257e57a24d8ba237a252ef",
     "db5b1ca80348232d2b20278c987d80e720b41061",
-    "fcb48b693e3e8ba4845868240e87ae23ecd7a3a1"
+    "fcb48b693e3e8ba4845868240e87ae23ecd7a3a1",
+    "b0bbcd090b0eb2bae5484467422c95a611f55277"
   ],
   "deploy/openbayes_h3_supervisor.py": [
     "190a4986fb9f8e6777413819d383d8b36f2c8529",
@@ -506,7 +535,8 @@
     "73994609feee4f8b126c1ac14af257594a6ac805",
     "a114dd447d565a891e103098c3133eef7193ce42",
     "a156560095da44077b4244c12b170bbd05867783",
-    "e810487734ba200fc769439304ee2df9075242d9"
+    "e810487734ba200fc769439304ee2df9075242d9",
+    "cf882e604f613c0dbdcb92071b1844d9007b0066"
   ],
   "deploy/salad/nginx.conf.template": [
     "495c8b9e3dd54cbc5635ccf65f3aba66c1e749b0",
@@ -584,23 +614,35 @@
   "deploy/worker_lifecycle.py": [
     "179dc4fa08436e82dc7b1dcbd34019b95d6cf489"
   ],
+  "docs/ANIME_TO_REALISM.md": [
+    "fb698579d7fe8cd29f2e44ac17da1c8245567cd3"
+  ],
   "docs/ANIME_TO_REALISM_AR.md": [
     "fb698579d7fe8cd29f2e44ac17da1c8245567cd3"
   ],
-  "docs/AUDIO_ENHANCEMENT_AR.md": [
+  "docs/AUDIO_ENHANCEMENT.md": [
     "80c1a550085be650eea6ba0a7e054d61d063e3d4",
     "ca485dcebc8e7b681f6a646ba06706b2dbbb8d5c"
   ],
-  "docs/CHARACTER_SWAP_AR.md": [
+  "docs/AUDIO_ENHANCEMENT_AR.md": [
+    "80c1a550085be650eea6ba0a7e054d61d063e3d4"
+  ],
+  "docs/CHARACTER_SWAP.md": [
     "3272007c4ae92f812e8f3959ccd867cca7e8b6eb",
     "e10b907e53857dcd0acbe2a8f80b8cb16120ca94",
+    "f4585dec21143999b24da5ff17f982a67dceb1e1"
+  ],
+  "docs/CHARACTER_SWAP_AR.md": [
     "f4585dec21143999b24da5ff17f982a67dceb1e1"
   ],
   "docs/CHARACTER_SWAP_TEST_RESULTS.json": [
     "90a8195c83edcb11b070411f5afd3069b2a535cd",
     "da619f049743e87a6cc157865be510d9d773b5c1"
   ],
-  "docs/COMPATIBILITY_MATRIX_AR.md": [
+  "docs/COMMUNITY_REVIEW_2026_10_29.md": [
+    "814ec156fcb627c4aca0d380b91684865076450b"
+  ],
+  "docs/COMPATIBILITY_MATRIX.md": [
     "022efd9d67aa3ed3f7d48417742d49e4a962ccfe",
     "0fd662eb042557dd112c1f6fb5e6ce978dab9ff2",
     "1e9237ccf7dcdb8e60130db596c459811e8cb193",
@@ -628,7 +670,11 @@
     "ec5ba33c421faa8f1737fae0cf6080c7f4d5f1a2",
     "f0956ae04e07ed60d2307652ccbb2a9a16e1cfa7",
     "90e29748df15cd8f4e3f59da4815adfe1a39a758",
-    "ead3494f3b8e25bb9576fae77866768a16d98ab9"
+    "ead3494f3b8e25bb9576fae77866768a16d98ab9",
+    "e81c889c655acdc38de6f1e4a3948fbfa72ecba5"
+  ],
+  "docs/COMPATIBILITY_MATRIX_AR.md": [
+    "e81c889c655acdc38de6f1e4a3948fbfa72ecba5"
   ],
   "docs/CONNECTED_STUDIO.md": [
     "002c22a98661f86d464e469281b8067e5b7e8439",
@@ -643,12 +689,15 @@
   "docs/DECODE_RECOVERY.md": [
     "e7a05a1746f24d6c19d9502bceda134d0779006d"
   ],
-  "docs/FINAL_AUDIT_AR.md": [
+  "docs/FINAL_AUDIT.md": [
     "0259ff0836652fae30c880d98aae6dc5672245c8",
     "51f7c1ac7f7ba5ea505f3f18c8a6ffabc5fdd2ab",
     "645c5e942301f42f5b3966180783299f8344b799",
     "8e589b144e9b1a4b4e96bbaf9e6011a6c1bc605f",
     "a00b84542ce5e9ea61abeb34521972d9193431c2"
+  ],
+  "docs/FINAL_AUDIT_AR.md": [
+    "645c5e942301f42f5b3966180783299f8344b799"
   ],
   "docs/GRAPH_MAP.md": [
     "00f26d6fa0cb1a1d91bd43514ef04d6c9b18a7c8",
@@ -670,12 +719,22 @@
     "e81e09b72fae88cdd1f66b339037ab8174698bdb",
     "eb1597e49c6b0d862979bf40c438da645249e27a",
     "f16f5ffc3be3a236bb5c601a222d0cb375da4125",
-    "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3"
+    "f212d1e0685a3da58e28ba4b1c3b6063be46bcb3",
+    "606673fe146e8ba6fd1ca7eecdd02072109357d2"
   ],
-  "docs/HARDENING_REVIEW_AR.md": [
+  "docs/HARDENING_REVIEW.md": [
     "00debd2b49d217e4ea939e028096022ba99ee465",
     "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e",
     "b167381ea257ce1f2b689612bdca4e726926d79f"
+  ],
+  "docs/HARDENING_REVIEW_AR.md": [
+    "00e4cdf14daa7b70346aa8f4b8ea73319f9acc2e"
+  ],
+  "docs/IMAGE_WORKSPACE_FIX.md": [
+    "5f9c78a688fbef49586ddff3ebc97b51ee3cb861"
+  ],
+  "docs/IMAGE_WORKSPACE_FIX_AR.md": [
+    "5f9c78a688fbef49586ddff3ebc97b51ee3cb861"
   ],
   "docs/INSTALL.md": [
     "064d02cc5a93fc5bdbf52400f5161571a1d711de",
@@ -701,12 +760,19 @@
     "dfcf270726520d23979f4356705bc6a40c6e7568",
     "eac6912462c3c0c8b64a3fd6e663faa026f34e52"
   ],
-  "docs/MATLOW_AND_SELECTIONS_AR.md": [
-    "7577cf5f4d2d96e15c414980dea0dbfa57bc49e5"
+  "docs/MATLOW_AND_SELECTIONS.md": [
+    "7577cf5f4d2d96e15c414980dea0dbfa57bc49e5",
+    "1185755c8fc877b7d9b9297287127d2bd7be7047"
   ],
-  "docs/MODERNIZATION_2026_10_13_AR.md": [
+  "docs/MATLOW_AND_SELECTIONS_AR.md": [
+    "1185755c8fc877b7d9b9297287127d2bd7be7047"
+  ],
+  "docs/MODERNIZATION_2026_10_13.md": [
     "a8d13687abee4323ab4fe9695001473a80c12f77",
     "ac54e428b06db69ff3d2a759f41272b5fa962692",
+    "f333a389ca8cda92717a920790fb35570e7b74ca"
+  ],
+  "docs/MODERNIZATION_2026_10_13_AR.md": [
     "f333a389ca8cda92717a920790fb35570e7b74ca"
   ],
   "docs/MODERNIZATION_TEST_RESULTS.json": [
@@ -726,6 +792,12 @@
     "9f1b8440111ce59326c1e145d6cc1701088f7e76",
     "b3349c16dcd3ca752cf9cf84b051013087d904b7"
   ],
+  "docs/ORGANIZATION_AND_REUSE.md": [
+    "e6197307debfe736ecf5d9a5985893d02d952cbb"
+  ],
+  "docs/ORGANIZATION_AND_REUSE_AR.md": [
+    "e6197307debfe736ecf5d9a5985893d02d952cbb"
+  ],
   "docs/PIKA_FLEX.md": [
     "208274b7c68906f506bb622275647941cfbdc921",
     "558573f68014b54a802ff2bd82663d6bd7631198"
@@ -733,13 +805,28 @@
   "docs/PRODUCTION_READINESS_2026_10_15.md": [
     "14cdaa5497ef176bead78e91c1248ec59031c9f1"
   ],
+  "docs/PROJECT_ELEMENTS_PLAN_2026_10_29.md": [
+    "e5bf5fd3baec1f7c061a513cdaf25941e7062274"
+  ],
+  "docs/PROJECT_REFERENCE_AUDIT_2026_10_21.md": [
+    "0901d36ce4fabc4c315570f3f051c0fa20af9c9b"
+  ],
+  "docs/PROJECT_REFERENCE_AUDIT_2026_10_21_AR.md": [
+    "0901d36ce4fabc4c315570f3f051c0fa20af9c9b"
+  ],
+  "docs/PROJECT_SCENES.md": [
+    "1489eb40c9b87ef4177a421866341468d7583f0f"
+  ],
   "docs/PROJECT_SCENES_AR.md": [
     "1489eb40c9b87ef4177a421866341468d7583f0f"
   ],
-  "docs/PROJECT_WORKSPACE_AR.md": [
+  "docs/PROJECT_WORKSPACE.md": [
     "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5",
     "44d43123b276cd171f04622a9b6309e2a7b6340b",
     "81680e83cfaa7e5934ebc755f69b769c3f461c13"
+  ],
+  "docs/PROJECT_WORKSPACE_AR.md": [
+    "0d485687cfc0f8c7ab91dd1f16bdd12dba452ca5"
   ],
   "docs/PROMPT_INPUT.md": [
     "14dea56c7edaaf4785158ece7194000f4b1b90ce",
@@ -750,27 +837,52 @@
   "docs/README.md": [
     "5c4283dc468103a6dfbb2e20096a99c114af56db",
     "6a3c2305134163e0e5aeec517cb616b062b26726",
-    "713c0a3d91cfa97c1958ad3dc11b2afa7febbc70"
+    "713c0a3d91cfa97c1958ad3dc11b2afa7febbc70",
+    "690078f4cd987e0fe8743ce0c7443bc80324a634"
+  ],
+  "docs/RELEASE_2_6.md": [
+    "12cde9c1f5e71ac0dcc12253bca3186f50ecfa14"
+  ],
+  "docs/RELEASE_2_7.md": [
+    "b71303d1bb73e20752a7b5c2d7dc1112213ea3e9"
   ],
   "docs/RENDER_RECOVERY.md": [
     "0e7df303d7d97ca3e6267d9033c5c9c5584af991",
     "120648e53577e3155922218c4d251cfc0c5004a6",
     "b29debe73f76266110726e9d75a6e24e11d37def"
   ],
-  "docs/RESOLUTION_AND_SAME_TAKE_AR.md": [
+  "docs/RESOLUTION_AND_SAME_TAKE.md": [
     "0b7a36135798ab76aa7e6f8db575c21d28e8d78a",
     "17eb38b983738b60dcfe749710ad85259012e301",
     "4b0eb9c9d892f09565f1177cb4fdf8299a98a2d4"
   ],
-  "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
+  "docs/RESOLUTION_AND_SAME_TAKE_AR.md": [
+    "4b0eb9c9d892f09565f1177cb4fdf8299a98a2d4"
+  ],
+  "docs/SCENE_WORKSPACE_2026_10_29.md": [
+    "8253e7c24a3f86727aa8bfee422eb7d3a40e911c"
+  ],
+  "docs/SEED_AND_DURATION.md": [
+    "cbc073f1d107f046a56a0ec225e63f0416815541"
+  ],
+  "docs/SEED_AND_DURATION_AR.md": [
+    "cbc073f1d107f046a56a0ec225e63f0416815541"
+  ],
+  "docs/SERVER_VERIFICATION_2026_10_13.md": [
     "817177d474bfb9b9994fda0a18229d55f9bc73e8",
     "99f64153a2bda15c7cb6cf85bd10edb8c8fa4b94"
   ],
-  "docs/TAB_PERSISTENCE_AR.md": [
+  "docs/SERVER_VERIFICATION_2026_10_13_AR.md": [
+    "817177d474bfb9b9994fda0a18229d55f9bc73e8"
+  ],
+  "docs/TAB_PERSISTENCE.md": [
     "1a46dac5df8f891a53af11929d678452440f437c",
     "2d4423f18a69ae017441988ea5db504756150dba",
     "52dc425d257e9fe63e0a884d705d1e6e744d5d7e",
     "72ce2b1ce6d66c93889022680705aa45ce451b22"
+  ],
+  "docs/TAB_PERSISTENCE_AR.md": [
+    "52dc425d257e9fe63e0a884d705d1e6e744d5d7e"
   ],
   "docs/TURBO_V4.md": [
     "1b7a836e3a20e58ffc3e4bafb06b43911287d0b1",
@@ -794,10 +906,13 @@
     "eafc89e497b0d31bdf89232f898215f506d253b9",
     "fd24f5ace2e6c91b90254c57e82799ea41978ea5"
   ],
-  "docs/V2_UPGRADE_AR.md": [
+  "docs/V2_UPGRADE.md": [
     "45e2d9518b38b824dd0d55400c2dfd664a3e7316",
     "4ec03e3185d7b08f3f6ce34ac007bad3972043bd",
     "c642715d8504d65b07e44ab224735b331da57574"
+  ],
+  "docs/V2_UPGRADE_AR.md": [
+    "45e2d9518b38b824dd0d55400c2dfd664a3e7316"
   ],
   "docs/VERIFIED_BEHAVIOR.md": [
     "05af2eb7bb878cf9dc92f9393a804cf51ae95b2f",
@@ -815,6 +930,39 @@
     "e9da59772ced315e41ca67246c5cb5ed7d4a247a",
     "ecce4158567733086087f1d072189212aeaa7325",
     "ef704715b380eb66f18aa89d88946aea87224dde"
+  ],
+  "docs/VIDEO_REFERENCE_UPLOAD.md": [
+    "53660564b1fda38972016be3abd670d33ab0b6dd"
+  ],
+  "docs/VIDEO_REFERENCE_UPLOAD_AR.md": [
+    "53660564b1fda38972016be3abd670d33ab0b6dd"
+  ],
+  "docs/anime/anime-realism-prepared.png": [
+    "c125f9423c6a4c0b653674351d22304c8d018c13"
+  ],
+  "docs/audio/audio-browser-verification.json": [
+    "965e2a8fed39f724507894d392f07b6abab52a07"
+  ],
+  "docs/audio/audio-enhancement.png": [
+    "15d213769e77bf5c8590dc1935372859f42310a4"
+  ],
+  "docs/demo/audit-2.5.5/production-layout.png": [
+    "c58588931cf88295665ae96bc52161614f80220f"
+  ],
+  "docs/demo/audit-2.5.5/projects-grid.png": [
+    "d2424e79823eb5be3e59e540e382f90226370cc1"
+  ],
+  "docs/demo/audit-2.5.5/projects-list.png": [
+    "0b978f6425cb35d815569dfae183a101208f9597"
+  ],
+  "docs/demo/audit-2.5.5/test-results.json": [
+    "e828cdeaf32041b96bfeb672f8a6b37a59d7b178"
+  ],
+  "docs/demo/audit-2.5.5/updates-mobile.png": [
+    "7ed7f34c7c937471a3317e1335401c793b4543f9"
+  ],
+  "docs/demo/interface-elements.png": [
+    "b755e5e50ede700a14508b3e911ddb02171800b2"
   ],
   "docs/demo/interface-motioncache.png": [
     "a83c7d3bb3a855abe40f2c2d0ec9451785780c09",
@@ -884,6 +1032,9 @@
     "19bae5fd2f9b458281692ecfdf1723deaaedab56",
     "6f36ce599d64f6ad0c057f5ae2efd063b7a00b01",
     "8a560d2e2babd3b7daf94f994bccb8b270561b0f"
+  ],
+  "docs/images/canvas-refresh.png": [
+    "7a7d62821f281f79e3ef4e2261852eff14b2063b"
   ],
   "docs/lab/ARCHITECTURE.md": [
     "100d278cfd28e809b995e9fd6e4492b921523d0d",
@@ -979,6 +1130,24 @@
     "0e3291e610ee5000a681049e6a76132fb133131c",
     "dba35b7a04d4a289e0a2875e2d86e7c33007e556"
   ],
+  "docs/organization/missing-reuse-blocked.png": [
+    "8ef189adda6601d410e8c1aadb9872a81b61765f"
+  ],
+  "docs/organization/organization-mobile.png": [
+    "3f48ae3c864b431fc7518de7aca6014d0f91de61"
+  ],
+  "docs/organization/organized-elements.png": [
+    "1352cbfa2e5f9a987a95eef034d5379ac6b1b66c"
+  ],
+  "docs/organization/organized-projects.png": [
+    "56f875b923ded41ec70db144fe66577ab3ffa164"
+  ],
+  "docs/organization/reused-setup.png": [
+    "547b7a670e30d3021cd036fb3b9541ef21a552aa"
+  ],
+  "docs/organization/verification.json": [
+    "7283a87dce93e1e8eaea922d8584a912579e8232"
+  ],
   "docs/screenshot.webp": [
     "668a98b793ede9486caf3de7d6e5b472aeb5c671",
     "7a4b58aa668f13b2f7f9d618ac91ebb52a6ff6df"
@@ -1000,6 +1169,12 @@
     "535d1f1670bbc68543d5c58d366b7065091edfde",
     "8936a067ca60cc7d0da128e718318fd99e35074e"
   ],
+  "docs/superpowers/plans/2026-10-16-scenes-ledger.md": [
+    "a06fa1ec8b840361c0d56f0b5dec02ec2b99416e"
+  ],
+  "docs/superpowers/plans/2026-10-16-scenes.md": [
+    "545245c692d3bd93acb9323f83d0b3dcfa7bfc14"
+  ],
   "docs/superpowers/specs/2026-09-28-qwen-image-studio-design.md": [
     "5f663e5294dc9b36e527493fca4d43b7e43621fa",
     "90bd9d3b2cb89e087fc44c96ab6b1412b50f6346"
@@ -1007,6 +1182,15 @@
   "docs/superpowers/specs/2026-10-12-launcher.md": [
     "a123f4729deff0f33e5434193057ef4f41a49ccf",
     "b04d3c0a8c304a64aab458ab58eb08091097a941"
+  ],
+  "docs/superpowers/specs/2026-10-16-scenes-design.md": [
+    "bd331993da13e70967d731d0d7124c8f775bedee"
+  ],
+  "docs/tabs/tab-browser-verification.json": [
+    "aba9bc37e457f4adcd810f838e942d73749d277a"
+  ],
+  "docs/tabs/tab-restored.png": [
+    "26ea0ac9484fe4eeaebce2607f67e6877004f670"
   ],
   "h3_audio_refine.py": [
     "1f54f939284d6cf5afd2e972d8088674e839ca45",
@@ -1259,7 +1443,8 @@
     "96cb2ff32bb419ac324539095d8e9bb433f34744",
     "ad2a518b8736a42fea4473e60846b50126c56fd5",
     "fb85d18bb31b59557c4bc94b7bc94472996a7fb2",
-    "fca93b138886a5910703e9492cda44517c8e9114"
+    "fca93b138886a5910703e9492cda44517c8e9114",
+    "411eb701c3be30d80ca6c3028d22eed183c692dd"
   ],
   "install.sh": [
     "1a3f4eaeede3a98ea1d78dd8b8dc5b90817cb6af",
@@ -1274,7 +1459,8 @@
     "ca3414ae7c1a663dfb4eac266a7d7afd4c6661fb",
     "d4c9f2480d942f8872bfb33387ca5cae76c99562",
     "e81d4fc901b7adab623007752a37645969cb57fe",
-    "f65c00ce9d32fefdd879256c0670015b151909e6"
+    "f65c00ce9d32fefdd879256c0670015b151909e6",
+    "5f97c0b53934065986857efc5dfdb77f6d73e4ec"
   ],
   "lab/dependencies.lock.json": [
     "22788ffee953a94668f47b31454f716166fa8659",
@@ -1309,7 +1495,8 @@
     "52beeba80c3a60f9dbe2d8dacd5c9bcaf8770b12",
     "6009a909f6a01566e6b18b7f6978e9fe5a7666e8",
     "688b49099164447f263da6fd20a77ef0bede331c",
-    "97135399fa25496f7f7c53b50807593b374a8681"
+    "97135399fa25496f7f7c53b50807593b374a8681",
+    "6fa471ddeecd762ff54c8cbeadaa8d896394b8e8"
   ],
   "scripts/build_corpus.py": [
     "65fa7eff5c940c947b1d02fb46a42de0383f985f",
@@ -1339,6 +1526,21 @@
     "8b137891791fe96927ad78e64b0aad7bded08bdc",
     "d3f5a12faa99758192ecc4ed3fc22c9249232e86"
   ],
+  "tests/browser/anime-realism.cjs": [
+    "cfab21e3900d1a6ba13dfaff298c3f6578822797"
+  ],
+  "tests/browser/audio-refine.cjs": [
+    "09f756650db8727e3abb1705132952ce50e993fe"
+  ],
+  "tests/browser/image-proxy.cjs": [
+    "baa903f46cb7cccda04286953592767a053a042c"
+  ],
+  "tests/browser/image-workspace.cjs": [
+    "3f23eaf0e70412d1002501fe3bdfa974b117ad09"
+  ],
+  "tests/browser/layout-audit.cjs": [
+    "328a062dff56a7692a7b96b719a06fc612c93309"
+  ],
   "tests/browser/modernization.cjs": [
     "069ab29b5c2f8aad282608f6d0b0253cc7c5cc5d",
     "08c599bc2ba2d9886e8fbcc27f4d132a04dc5847",
@@ -1350,6 +1552,15 @@
     "ccc4a9d2ff74bf183cb52ace201620e9bbbce74e",
     "f0e2719a6ee7e6225c33e0e2b44cca6072ac23fb"
   ],
+  "tests/browser/organization.cjs": [
+    "739a063e66637305d5cd4112deca17dd999c7f78"
+  ],
+  "tests/browser/project-elements.cjs": [
+    "d252eb5a82ba4d46bd33b919a49a09e6d8a96dad"
+  ],
+  "tests/browser/project-library.cjs": [
+    "c5ce26ac159c4ea4fe123fae785e72c56ca88023"
+  ],
   "tests/browser/project-workspace.cjs": [
     "044167d75432fa5806aa1863e1fb2a8a3f35804d",
     "164fe8bc1d90c8b1fcc3f2f17093507ac26e5e83",
@@ -1360,10 +1571,31 @@
     "d1c580ca3d8f29afc4df1b191901a5912beef2da",
     "f2c54d7fb012d581b1688c19b7d681762922e981"
   ],
+  "tests/browser/scene-start.cjs": [
+    "6365efa429819a5c515d58b15ee7ee61cdf2067f"
+  ],
+  "tests/browser/scenes.cjs": [
+    "6b73b9a3613d46cf9311dd560048423d26342c36"
+  ],
+  "tests/browser/scenes_server.py": [
+    "e87a2e2f0f4bc21c64fa5672908661b50dd616fd"
+  ],
+  "tests/browser/seed-duration.cjs": [
+    "9f797c8e340b928cb7860a732ab89cdff436fd8b"
+  ],
+  "tests/browser/selection-policy.cjs": [
+    "36a0b905b0fcb58663c99fbc5f8f4b37d2c345cb"
+  ],
   "tests/browser/shared-export.cjs": [
     "5c229456b4c50bc966c49bdab95367c388ef3da5",
     "6c1cc4ad81afad03cdfa631aeaa1e167606f10ad",
     "f14ee9067fd2e81647a4e2876884c1d81b525e55"
+  ],
+  "tests/browser/tab-persistence.cjs": [
+    "00c85abe600a795410aa105d9895bea908ccca35"
+  ],
+  "tests/browser/updates.cjs": [
+    "116d9db55ac45f7e77a809c6ba8a4de018a34568"
   ],
   "tests/browser/workspace_server.py": [
     "630a36e1de59ebe0cbf9a4290372bfacdd38f04f",
@@ -1412,6 +1644,12 @@
     "6bb8cc9ee46e6ce586b3267b27b6bbcaed7d8818",
     "967def05226b11b04aae042a2f6d0f573929fcc5"
   ],
+  "tests/js/adapter-family.test.cjs": [
+    "eae8ca9f4f1c860b4ccfffdf5db3b363a1d7951d"
+  ],
+  "tests/js/audio-refine.test.cjs": [
+    "a23ba155939be545a7d4ab07a4d038b0c0f648a4"
+  ],
   "tests/js/cancellation.test.cjs": [
     "3eceb321e700af4272a82eeb0cf41c89d258c83c",
     "8c6507b18a28b699bf3d81d346a8afb0f8c06a43"
@@ -1426,7 +1664,8 @@
     "44a7e28c08ffb2fe040d17e447e8975e37b8c09a",
     "6e5dcf40788c2c234c61590b224be126d905eed2",
     "87eb28097eb61eb1ca0800bbf8d1a2f9040211f4",
-    "8a8c49e409efdbde8bade1a952c7f28318437dad"
+    "8a8c49e409efdbde8bade1a952c7f28318437dad",
+    "c67de91ed638d451c9058d32288874d7d7590126"
   ],
   "tests/js/connected-graph.test.cjs": [
     "0a6998c3dd1dfbc51ec5d65ee59cb3f32c407c7e",
@@ -1437,6 +1676,9 @@
   "tests/js/control-upload.test.cjs": [
     "13fe8becffc69f54a66e43d186ee4ed916d96411",
     "8b5c0edeb0bf4e827b041c9f7aa1716051ec707f"
+  ],
+  "tests/js/dials.test.cjs": [
+    "48b893be02a32c10054c10b8e34f86dd6b353912"
   ],
   "tests/js/fullhd-methods.test.cjs": [
     "b7a533ce73071613e1d04dd8179d4a5d9ac2990f",
@@ -1457,6 +1699,18 @@
     "7dd14769976da9dc89966ac4f185448c8c95b681",
     "8e841bd352ad35cf7b684be468f73773889856fa"
   ],
+  "tests/js/guidance-language.test.cjs": [
+    "0e54dad7c246209d8d797dd06f8738e33f77af2c"
+  ],
+  "tests/js/image-history.test.cjs": [
+    "3c8fe62f1091c0aef9817541316027cfcbc2ac5d"
+  ],
+  "tests/js/lora-triggers.test.cjs": [
+    "72f2aa1b4cdd29c42b2072d407bda9d059b355ce"
+  ],
+  "tests/js/pika-flex.test.cjs": [
+    "698a569498ad86aa2d4024132fb21d6697d73868"
+  ],
   "tests/js/preparation-restore.test.cjs": [
     "25590dfeeb5a3f538ec786674b5105b62800043b",
     "3c546ddb9a61619ed7ebdd0ff6cf3bb2efe9eb5a"
@@ -1467,6 +1721,9 @@
     "7d553d1a96adb55c2627b88fba619c9078ab83eb",
     "fb872e3fd564394e5220a0e1e01b89b9acbbbf96"
   ],
+  "tests/js/project-mentions.test.cjs": [
+    "1363a0ec01c4cb94362b9fd2fcf5fee5e5106feb"
+  ],
   "tests/js/prompt-compiler.test.cjs": [
     "0f8841aa44e73561894f6656d20c31fca84a2d2e",
     "26728bcec67b7caf78c2a8cde555e15266260e16",
@@ -1476,7 +1733,8 @@
     "aab402d4d47c347ae66c129a7d4dffec7927de6a",
     "ce0ed426282d45f4526f326025449ed1a98e6b74",
     "e00d3601814a2cabcb8ba898ac4a2dfc97f51624",
-    "f5e35592c249b989d5005531fcc2b8e20cb87c9a"
+    "f5e35592c249b989d5005531fcc2b8e20cb87c9a",
+    "a7d394e7eb0bb90bb1e8bfce90a53b261c27dd8f"
   ],
   "tests/js/prompt-input.test.cjs": [
     "a73e61fa76ebba920c1a2597c2ce165a3b1dacfa",
@@ -1486,13 +1744,37 @@
     "4e0541d6af882c5f07b334a494aa5f3ce8ce7a95",
     "ef18fefa835209ac00326443a5aaf535f5f1ed7f"
   ],
+  "tests/js/qwen-lora.test.cjs": [
+    "11aa51d05152552a054e7788d52f989818745781"
+  ],
+  "tests/js/reference-definition-resolution.test.cjs": [
+    "a0648b605b06eb82583e16ff78a611199fbee1a4"
+  ],
   "tests/js/reference-role-matrix.test.cjs": [
     "680fa324480405eb6ddb6358753596c7777a4aac",
     "f9160730c7efbbbdb7b15f8e89ad40489461a24d"
   ],
+  "tests/js/reference-upload.test.cjs": [
+    "255d30242c99ad5c43239aa5834424be1b16258b"
+  ],
+  "tests/js/render-values.test.cjs": [
+    "d3bdea8cb1538f2effc7a9b590a963b6daf111d8"
+  ],
   "tests/js/resolution-studio.test.cjs": [
     "19a3cbbd5fa693fe7d9715638486afdb51ae43ea",
     "76aae5e757c9fcf73824e0beaf039dc965aa2e6e"
+  ],
+  "tests/js/restored-inputs.test.cjs": [
+    "de74b7104e5371603684773ed6570d60509c2016"
+  ],
+  "tests/js/reuse-direct.test.cjs": [
+    "d21a1fa6c6030b0ab814fffcd6c43e28902b94f8"
+  ],
+  "tests/js/scenes.test.cjs": [
+    "b04161cb1fc1289429015ae49ef02dbf501aaefd"
+  ],
+  "tests/js/selection-policy.test.cjs": [
+    "711777cbdc1f50c4079e9fb5a9cddb39992e88a1"
   ],
   "tests/js/studio-ux.test.cjs": [
     "7385236e9f97b883874ebcee7ad7004f89771895",
@@ -1501,6 +1783,9 @@
   "tests/js/subject-binding-repair.test.cjs": [
     "513b977ba4661459c29a5aa690ae9a648e24ec42",
     "d20ff18dc2141f66170bd8d89dfe0aaa4539412c"
+  ],
+  "tests/js/tab-session.test.cjs": [
+    "31fc7ccae26ea5b9e2ce8e6cdf4e994b5dfb94d9"
   ],
   "tests/js/timing-estimator.test.cjs": [
     "0c49d6779f56a3b8bdd7d7210bb8d65df227d6d9",
@@ -1515,6 +1800,12 @@
     "61a6be4bae13e251207949930fb655f8aa1bd353",
     "a8451736d9ca6104cd0f252ab87d8170e0bf3a01"
   ],
+  "tests/js/workspace-navigation.test.cjs": [
+    "131eb8700e713a56d4cc689c4d9a3ffd3bc67cc8"
+  ],
+  "tests/requirements.txt": [
+    "03c626b8af81ded1ab1bfe44bdaeceabb7347275"
+  ],
   "tests/test_acceleration_audit.py": [
     "09a9a77cef76913bb077e64e81d5cf912dbca3a9"
   ],
@@ -1523,6 +1814,18 @@
     "5035cc534721042544b6d5570732fcfcbb237c1f",
     "6f2e799f13311fc9c445e4fbbdcbe7177ea7cea2",
     "fda825bfc967e71efd014a3b03f5b05aed4eda94"
+  ],
+  "tests/test_adapter_family.py": [
+    "5bec00571dcefc2b7cdd8011b2df42090f92db09"
+  ],
+  "tests/test_archive_source.py": [
+    "7b73f588da615eb6a6f9e3408447b89a5edff361"
+  ],
+  "tests/test_asset_thumbnails.py": [
+    "0f48bb1cc1ba6b79af49dcdc988465c5c261bf58"
+  ],
+  "tests/test_audio_refine.py": [
+    "c801f5a907adfa9bc01d9f2196c7aad503eded84"
   ],
   "tests/test_benchmark_attention.py": [
     "8afb6d81e1a8a23803bd22c63d74ab8fea5f7b58"
@@ -1558,7 +1861,8 @@
   "tests/test_control_preprocessor_install.py": [
     "505a59cd90cb6a537206a3a08ecbda4165c076a6",
     "969bd44cd3627d0d216e5d1ceb9a901f501b4e1a",
-    "b7202128d522735982f41b725b68c8a5f6f2f03d"
+    "b7202128d522735982f41b725b68c8a5f6f2f03d",
+    "d9bece8b69e696d532d3d84dc728b4c6e236bcb0"
   ],
   "tests/test_control_prompt_context.py": [
     "21a797713c8f78ce8301233ab79f95dc39654a45",
@@ -1569,7 +1873,8 @@
     "738664c063d397ba9abbdc3ce64655a07a69a8c3"
   ],
   "tests/test_cuda_install_preflight.py": [
-    "ac37fe962e14dd924b6465318bef80e554c702a3"
+    "ac37fe962e14dd924b6465318bef80e554c702a3",
+    "8aa0380c61d1189c762fbc7809a825c9e073d5ef"
   ],
   "tests/test_decode_durability.py": [
     "7eae2b6fd934418d890052a8d075ecd3fc40970a"
@@ -1582,11 +1887,13 @@
     "4c961b8fc817cd404bed9959aa9c236381af1a9f",
     "a4947463c1ccfdabee76a04956e927de87b6e0f7",
     "ade0e1edd6783869278647f05290146e8da83281",
-    "f309f11274841890c9b05d14ca9cddd5d891b04d"
+    "f309f11274841890c9b05d14ca9cddd5d891b04d",
+    "ccc943e5e655a4f775b6741715f70d26c99db08c"
   ],
   "tests/test_export_jobs.py": [
     "a156a6a3fe857654b08777f9a4f9e2df9dc2f362",
-    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e"
+    "d3db5236450b28ddc51fe39db072d0b3fd22ed1e",
+    "82a9f9bbdc28d26ba90ff732e27a37a78ad7ce3e"
   ],
   "tests/test_h3_asset_leases.py": [
     "0511b912d51687acf05243e7f9de722839a0432b",
@@ -1634,7 +1941,8 @@
     "22c23ab28b3f7ef16465853d3fb090d4cae7ac8e",
     "6a04c547dd5deffd90c64059993e6053ec1eebfb",
     "89eaf2d672f62974bbae3b982eb0fb728d4b36e8",
-    "f635bf26fcf4d83da312c874406e5ef7970ff944"
+    "f635bf26fcf4d83da312c874406e5ef7970ff944",
+    "57c1292dabe1e3a3447cc87106beca82776b2ae8"
   ],
   "tests/test_h3_runtime_contract.py": [
     "1c98c0f51ad32e21fe56ffc85909f5546e512644",
@@ -1651,29 +1959,42 @@
     "f2d9313b043ba22f47c259ebda1064efc05d122a",
     "f9a5ac2c7b9498ce5d0227a26e7e0b4b20be68b4"
   ],
+  "tests/test_image_upload_transport.py": [
+    "c7fca6954d0920dee89ace3cb3f3f91488c22317"
+  ],
   "tests/test_installer_compressed_assets.py": [
     "740261d43ca4ff673989f6cc9423efb04012628a",
-    "b32a3baed3fa94659ec781ad6a0f20d23ae5bdbc"
+    "b32a3baed3fa94659ec781ad6a0f20d23ae5bdbc",
+    "40eb55bfc6c4e61d6d35b67b12c25f9b5711d51c"
   ],
   "tests/test_installer_python_safety.py": [
     "a42b5b4f0518f8c4b9a6478a4d081a00efaa88ac",
     "b125cbef45f8d3e2adb54d7af53acfd7e724cf50",
-    "c759555b55356fcf1bc26b51b1b41d5111c9ceeb"
+    "c759555b55356fcf1bc26b51b1b41d5111c9ceeb",
+    "7bd7d91eeabba699079db1dfbbf4b7df32694e6d"
+  ],
+  "tests/test_launch_recovery.py": [
+    "a232f3450ba3537f88419ee398e479dfc229a39e"
   ],
   "tests/test_launcher.py": [
     "0c9669317a198858d223d7ed6f12e101ad6ab008",
     "0d46e89d673afd3bf12a25a5f4c381c1a5c02b70",
     "1997a5468600faa909685e0709d24bbf8a3dad32",
     "6803058eaf5ec27f4db3b0ab182c0a6a97f18aa0",
-    "c555e542ec0ed779e0fcfa5061c5aedad03ec74e"
+    "c555e542ec0ed779e0fcfa5061c5aedad03ec74e",
+    "1d5d278a4af318cbdbf3e02831172c317bac7c1e"
   ],
   "tests/test_launcher_models.py": [
     "46e4af4e5e68204c72088d8249def24327120947",
-    "71854f101cf0dde9c4966eca1fba2b5b10a5b40d"
+    "71854f101cf0dde9c4966eca1fba2b5b10a5b40d",
+    "f723045500755bfaddfa397bf646764444cc0a35"
   ],
   "tests/test_launcher_smoke.py": [
     "46ec348a962de86adb21879a75a3f53f614dc7fe",
     "ccac272b61af7e8ed42d743d0b6dbd7c0b099f26"
+  ],
+  "tests/test_matlow.py": [
+    "c817aab8105771d239ccd082a88480e0e547e100"
   ],
   "tests/test_media_export.py": [
     "8022ee26d5cc71fbd87782a1500f613988ecb6c7",
@@ -1685,19 +2006,32 @@
     "28b22e5301adc3a7976797e25496efd35a2f8f26",
     "307bc14119c8292e75063b00926f113334c1a454",
     "591599ac55ccdeadc0be61c335d5c10b808d8ed3",
-    "7aaa7aa7eeec528fe70ef0505805ddf9da20557b"
+    "7aaa7aa7eeec528fe70ef0505805ddf9da20557b",
+    "9575a1818991bdcf92d945a1de647e9263dd8046"
+  ],
+  "tests/test_operation_readiness.py": [
+    "68a3b43755407cf62cf80b3df7080881311efcd8"
   ],
   "tests/test_optional_dependencies.py": [
     "bbfde0e5a126b441b1b48df53fac52973bad0bfa",
     "fd916b3642c6472e76f6c3931d933c642e008551"
   ],
+  "tests/test_optional_lora_offline.py": [
+    "373c94e9b4fc3a6309329c63551465748c30846c"
+  ],
   "tests/test_organization.py": [
     "9575fff6adebe73a9d12528c0cd8e92fff57b60c",
     "bd67b459f5980e3aec7fbb7e540b0ff375816c58"
   ],
+  "tests/test_pika_flex.py": [
+    "a440ac9889730223064e7561a810b249966f6747"
+  ],
   "tests/test_portrait_resource_contract.py": [
     "2972d8dbe692ce293f39ee5bf3ab18032ba3d702",
     "ad5011897f1e6f62592418a5ef0128951f054d13"
+  ],
+  "tests/test_project_asset_upload.py": [
+    "706c72e0fd65d7678a1add6daab94058857ba36e"
   ],
   "tests/test_project_workspace.py": [
     "12fb2dc40f1082bff1b81d2f28d3b83b9c213145",
@@ -1713,7 +2047,11 @@
     "2b77ab07335f875629b787fe5c70555b8c5d228b",
     "366485fa1aec9bfeb85ea0370175b34d12262521",
     "97c7391c5ad4739da81c2b771e5b59dd3d80b75f",
-    "d45ec4ee697485df942b0382c44121cf020d3a5d"
+    "d45ec4ee697485df942b0382c44121cf020d3a5d",
+    "20b04673aa78baeaa69b1a8556cb7654c8509b1d"
+  ],
+  "tests/test_promptwriter_limits.py": [
+    "7c7a660ccd2b7af5606e3b08f13f58d59e40f7bb"
   ],
   "tests/test_qwen_downloader.py": [
     "19438447c2c8fdbab062182f4d63fb345569c181",
@@ -1729,16 +2067,39 @@
   ],
   "tests/test_qwen_routes.py": [
     "7a983eacaab7b6e70c2a9fcd90e3a1c9548230d0",
-    "7cdd7b4c343bc90abd0c117881794b8e05b73f76"
+    "7cdd7b4c343bc90abd0c117881794b8e05b73f76",
+    "3f40ec37ebac0d7dc8a7ebf0d02d4a3fe4fa9278"
+  ],
+  "tests/test_render_values.py": [
+    "4b7082b2606cae5ec08e331ca6c4a950246e5052"
+  ],
+  "tests/test_reuse_reconciliation.py": [
+    "da4f5f2f6771606378c5b3718bae48fefc8fdc4d"
   ],
   "tests/test_runtime_attention.py": [
     "2e7e8a1cbd1f43ccf28131230f15632d7781797f",
     "50a23a4c5c667d41c17236427d5b6106ac0b2c39",
-    "acc775db00689984a8ece3705e20048328922f8a"
+    "acc775db00689984a8ece3705e20048328922f8a",
+    "b6cf6e6573ce179733c7f6213764c3108510978a"
   ],
   "tests/test_runtime_patches.py": [
     "c9b4242c86149ba5a8f8d4bcc9967e6932ae5624",
     "e01675231bea365c2249b211ca000cff9cd8ef2b"
+  ],
+  "tests/test_runtime_policy.py": [
+    "976d33d143c7752c01e28571e38388eb73d4cb2c"
+  ],
+  "tests/test_scenes.py": [
+    "cbdabaeb7734e039db1fe990775a4e858e172c55"
+  ],
+  "tests/test_selection_contract.py": [
+    "de930ad727ad85abeebb066ae51247be31491c52"
+  ],
+  "tests/test_server_lora_readiness.py": [
+    "38f5374f3bc38e5088590a3b05f6fd357837baf1"
+  ],
+  "tests/test_shared_gpu_queue.py": [
+    "d8e88d8e66640634ff940cf55145b05f9c0b9e6a"
   ],
   "tests/test_shared_timing.py": [
     "2175ff1a3744201b8bc8542650db865fa33a0f4c",
@@ -1746,22 +2107,31 @@
   ],
   "tests/test_source_update.py": [
     "ad13f5a8aef7a52a00e65b60c02e6aafd6410e36",
-    "bee50db0b7e22eee23516083fa9d3805b29f66ab"
+    "bee50db0b7e22eee23516083fa9d3805b29f66ab",
+    "f0638f23e516f86c88e9e44e81e993d44a9a5181"
   ],
   "tests/test_storage.py": [
     "7a07d5b592062610fce7aa41ca0e81cf3602b94f",
-    "858b909080eadf33dd3ebc6333aa8cbe4379dbd4"
+    "858b909080eadf33dd3ebc6333aa8cbe4379dbd4",
+    "8720b36c4f1899494f6478d33a7353d7e0755517"
   ],
   "tests/test_timing_progress.py": [
     "0a816b7d32c55e1cd2567698183090cb229ebf67",
     "656f8038a3a138cc05c55b5226cb5c9af5f38993"
   ],
   "tests/test_turbo_v4.py": [
-    "e258443916dc3c4f008928fae418c2a198dbf928"
+    "e258443916dc3c4f008928fae418c2a198dbf928",
+    "3b487558dc5e9c99c1b776379d65b98b496c71b6"
+  ],
+  "tests/test_ui_update_worker.py": [
+    "5cb2289aefbd0eaac05b701566bc60a4a63e1e38"
   ],
   "tests/test_uninstall_h3.py": [
     "6de2b3cd66549a5a7b0f64eb0dd231153016c286",
     "6f047b73bb3d127b566bf2a37b92b2631fc121bb"
+  ],
+  "tests/test_update_integrity.py": [
+    "47a996c6938e407af3b368f79e6517f0241f5355"
   ],
   "tests/test_updates.py": [
     "ffb259b48cb46aa0ec169f8c2921147604fa49e0"
@@ -1770,7 +2140,8 @@
     "30129767de834db2491eb19210354f1f642764fb",
     "5fb9751360a909ae1044b8497a54a1c733a6fe73",
     "72585d7d34baf6513c017f105258518e556f76bf",
-    "98c9fbcf4346f5cd5d7c19e380698f016f179fb5"
+    "98c9fbcf4346f5cd5d7c19e380698f016f179fb5",
+    "1a7cb4620d20afbb824a04593d68fb179b52932d"
   ],
   "tests/test_v2_standby.py": [
     "03589206a96c1b3e14781c0841214e3b9b3e1dfe",
@@ -2018,7 +2389,8 @@
     "d63f32928fc8aa51164b3c00c28990ae0cf33568",
     "d9cbc7ca9341296b62ec49ebab31c2381f19266a",
     "fb36e0dee3be3004a5a6aab8a020cf15c5fd330d",
-    "178e71a432a6efd91f943d36516fc83267d8d40a"
+    "178e71a432a6efd91f943d36516fc83267d8d40a",
+    "ad4e1f342fb7cd344cd1d0d2d95e24124ca9f84b"
   ],
   "web/image.html": [
     "00e3902fe955696f89e2202bbe567e9fa772c3f4",
@@ -2048,7 +2420,8 @@
     "cecc54f1e7f40b91cd7e4dab17b9b4f531593161",
     "d510237645f7c3fd80959b0fd1bf6327b1f075cf",
     "de856112b57055737f3efc592ace8a32aa486421",
-    "a56749825373d250debd8136c0f6f86337c39b55"
+    "a56749825373d250debd8136c0f6f86337c39b55",
+    "8d3f805d946c5f8fbd68d554f5d0f86256cd62ae"
   ],
   "web/index.html": [
     "051539fadfb199ea67679997e0bb04c848fdb6eb",
@@ -2122,7 +2495,8 @@
     "f93169a8b3359f220d5c3a2fa0e02b483817f05b",
     "f99b331526ef9639ba5cdcba42678f0938b64578",
     "fdca5f4655f9445045fd4dd366543bd51bfd721a",
-    "5922c1a9eb50d9c53816fb7194af5abc3cda3e6d"
+    "5922c1a9eb50d9c53816fb7194af5abc3cda3e6d",
+    "89ce730fe047d97750433c2d3915fe201b9ea1b0"
   ],
   "web/lab-ui.js": [
     "0034a31c4d87689cb67bd0209ea8555cc6cb2a41",
@@ -2232,7 +2606,8 @@
     "f2b5e2265b33a7eed5d4c38967e089c6f970d7c8",
     "f551efa1e149d870c3325eb3f7073dc9fa799d43",
     "ff233a13bdfeeab696adf484010a326f5048548e",
-    "fd5995f41a9ce9a1ebfa4ffc983e273ba4b7b8be"
+    "fd5995f41a9ce9a1ebfa4ffc983e273ba4b7b8be",
+    "30796462192ece98a938f5ef2642a8eba377a45e"
   ],
   "workflows/h3_t2v_api.json": [
     "6862ce962e1eba0217d02b82b6dcaa192bddd6df",

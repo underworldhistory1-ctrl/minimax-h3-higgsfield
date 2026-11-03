@@ -14,13 +14,13 @@ import zipfile
 SOURCE_FILES = (
     "CHANGELOG.md", "docs/README.md", "docs/RELEASE_2_7.md", "tests/requirements.txt", "docs/RELEASE_2_6.md", "docs/SCENE_WORKSPACE_2026_10_29.md",
     "docs/PROJECT_ELEMENTS_PLAN_2026_10_29.md", "docs/COMMUNITY_REVIEW_2026_10_29.md",
-    "docs/VIDEO_REFERENCE_UPLOAD_AR.md",
-    "docs/IMAGE_WORKSPACE_FIX_AR.md", "docs/images/canvas-refresh.png",
-    "docs/ANIME_TO_REALISM_AR.md", "docs/anime/anime-realism-prepared.png",
-    "docs/TAB_PERSISTENCE_AR.md", "docs/tabs/tab-restored.png", "docs/tabs/tab-browser-verification.json",
-    "docs/AUDIO_ENHANCEMENT_AR.md", "docs/audio/audio-enhancement.png", "docs/audio/audio-browser-verification.json",
+    "docs/VIDEO_REFERENCE_UPLOAD.md",
+    "docs/IMAGE_WORKSPACE_FIX.md", "docs/images/canvas-refresh.png",
+    "docs/ANIME_TO_REALISM.md", "docs/anime/anime-realism-prepared.png",
+    "docs/TAB_PERSISTENCE.md", "docs/tabs/tab-restored.png", "docs/tabs/tab-browser-verification.json",
+    "docs/AUDIO_ENHANCEMENT.md", "docs/audio/audio-enhancement.png", "docs/audio/audio-browser-verification.json",
     "uninstall.ps1", "uninstall.sh", "deploy/uninstall_h3.py", "docs/UNINSTALL.md",
-    "AGENTS.md", "START_HERE_AR.md", "LICENSE", "VERSION", "README.md", "install.sh", "install.ps1", "__init__.py", "h3_video_save.py", "qwen_image.py",
+    "AGENTS.md", "START_HERE.md", "LICENSE", "VERSION", "README.md", "install.sh", "install.ps1", "__init__.py", "h3_video_save.py", "qwen_image.py",
     "Dockerfile.salad", ".dockerignore", ".gitattributes", ".github/workflows/verify.yml", "deploy/ci/verify.yml", "deploy/ci/README.md",
     "deploy/openbayes_h3.sh", "deploy/openbayes_fresh_workspace.sh",
     "web/index.html", "web/studio.js", "web/image.html", "web/image-studio.js",
@@ -29,11 +29,11 @@ SOURCE_FILES = (
     "deploy/download_optional_loras.py", "deploy/make_h3_landing.py",
     "deploy/provision_h3.py", "deploy/activate_h3.py", "deploy/verify_h3_server.py",
     "deploy/backup_h3_library.py", "deploy/restore_h3_library.py",
-    "deploy/build_final_folder.py", "deploy/CLOUD_BOOTSTRAP_AR.md", "deploy/SALAD_DEPLOYMENT.md",
+    "deploy/build_final_folder.py", "deploy/CLOUD_BOOTSTRAP.md", "deploy/SALAD_DEPLOYMENT.md",
     "deploy/salad/entrypoint.sh", "deploy/salad/nginx.conf.template",
     "scripts/verify_h3_video.py", "docs/UX_FLOW.md", "docs/GRAPH_MAP.md",
-    "docs/ORGANIZATION_AND_REUSE_AR.md", "docs/organization/organized-projects.png", "docs/organization/organized-elements.png", "docs/organization/reused-setup.png", "docs/organization/missing-reuse-blocked.png", "docs/organization/organization-mobile.png", "docs/organization/verification.json",
-    "docs/PROJECT_WORKSPACE_AR.md", "docs/SEED_AND_DURATION_AR.md", "docs/FINAL_AUDIT_AR.md", "docs/COMPATIBILITY_MATRIX_AR.md", "docs/social-preview.png",
+    "docs/ORGANIZATION_AND_REUSE.md", "docs/organization/organized-projects.png", "docs/organization/organized-elements.png", "docs/organization/reused-setup.png", "docs/organization/missing-reuse-blocked.png", "docs/organization/organization-mobile.png", "docs/organization/verification.json",
+    "docs/PROJECT_WORKSPACE.md", "docs/SEED_AND_DURATION.md", "docs/FINAL_AUDIT.md", "docs/COMPATIBILITY_MATRIX.md", "docs/social-preview.png",
     "docs/demo/interface-elements.png", "docs/demo/interface-references.png", "docs/demo/interface-motioncache.png",
     "docs/demo/spectrum-preview.jpg", "docs/demo/motioncache-preview.jpg",
     "docs/demo/spectrum-no-lora.mp4", "docs/demo/motioncache-no-lora.mp4",
@@ -121,7 +121,7 @@ def main():
             target.write_bytes(target.read_bytes().replace(b"\r\n", b"\n"))
     for original, target in (
         (source / "AGENTS.md", output / "AGENTS.md"),
-        (source / "START_HERE_AR.md", output / "START_HERE_AR.md"),
+        (source / "START_HERE.md", output / "START_HERE.md"),
         (source / "deploy/provision_h3.py", output / "provision_h3.py"),
         (source / "deploy/verify_h3_server.py", output / "verify_h3_server.py"),
     ):
@@ -149,14 +149,14 @@ def main():
         shutil.copy2(args.library_backup, output / "library-backup.zip")
         with zipfile.ZipFile(args.library_backup) as archive:
             snapshot = json.loads(archive.read("snapshot.json"))
-        (output / "LIBRARY_SNAPSHOT_AR.md").write_text(
-            "# لقطة مكتبة الفيديوهات\n\n"
-            f"عدد الفيديوهات المكتملة في اللقطة: **{snapshot.get('video_count', 0)}**. "
-            f"وقت أخذها UTC: `{snapshot.get('created_at_utc', 'غير مسجل')}`.\n\n"
-            "تحتوي اللقطة الفيديوهات وملفات الإعدادات/التوقيت والمفضلة؛ لا تحتوي أي رندر "
-            "كان ما زال شغالًا وقت أخذها. لاستعادتها على خادم جديد أضف "
-            "`--library-backup library-backup.zip` لأمر `provision_h3.py`. "
-            "سيضيف الملفات الناقصة فقط، ولن يستبدل فيديو موجودًا مختلفًا.\n",
+        (output / "LIBRARY_SNAPSHOT.md").write_text(
+            "# Video library snapshot\n\n"
+            f"Completed videos: **{snapshot.get('video_count', 0)}**. "
+            f"Captured UTC: `{snapshot.get('created_at_utc', 'not recorded')}`.\n\n"
+            "Includes completed videos, settings/timing metadata and favorites. "
+            "Active renders are excluded. Restore with "
+            "`--library-backup library-backup.zip` on `provision_h3.py`. "
+            "Only missing files are added; differing existing videos are preserved.\n",
             encoding="utf-8",
         )
     files = sorted(p for p in output.rglob("*")

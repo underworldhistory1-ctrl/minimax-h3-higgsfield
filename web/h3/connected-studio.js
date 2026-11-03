@@ -237,7 +237,8 @@
         const kind=item.kind||'image';let file=item.file,result;
         if(kind==='image'&&item.assetId){
           const fit=state.mode==='frames'?(item.imageFit||$('frameFit').value):item.imageFit||'preserve';
-          result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(item.assetId)}/resolve`,{method:'POST',body:JSON.stringify({fit,width:samplingCanvas().width,height:samplingCanvas().height})});result.name=result.filename;state.uploads.push(result.name);
+          const resize=state.mode==='frames'?$('fitFrames').checked:$('fitImages').checked;
+          result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(item.assetId)}/resolve`,{method:'POST',body:JSON.stringify({fit,resize,width:samplingCanvas().width,height:samplingCanvas().height})});result.name=result.filename;state.uploads.push(result.name);
         }else{
           if(kind==='image'&&state.mode==='frames')file=await fitFrameImage(file,item.imageFit||null);
           else if(kind==='image'&&item.imageFit&&item.imageFit!=='preserve')file=await fitFrameImage(file,item.imageFit);

@@ -49,7 +49,7 @@ let browser;
  await page.waitForFunction(()=>!document.querySelector('#h3UpdatesDialog [data-error]').hidden);
  assert.equal(await page.locator('[data-update-badge]').isVisible(),true,'A network failure preserves a known update');
  assert.equal(await page.locator('[data-apply]').isVisible(),false);
- await page.locator('#guidanceLanguage').selectOption('ar');assert.equal(await page.locator('[data-apply]').isVisible(),false,'Language rerender cannot reauthorize a stale target');await page.locator('#guidanceLanguage').selectOption('en');
+ await page.evaluate(()=>H3Guidance.setLanguage('ar'));assert.equal(await page.locator('[data-apply]').isVisible(),false,'Language rerender cannot reauthorize a stale target');await page.evaluate(()=>H3Guidance.setLanguage('en'));
  checkFails=false;checkState='current';
  await page.locator('[data-check]').click();
  await page.waitForFunction(()=>document.querySelector('[data-update-badge]').hidden);
@@ -79,7 +79,7 @@ let browser;
  await page.keyboard.press('Escape');
  assert.equal(await page.locator('#h3UpdatesButton').evaluate(el=>document.activeElement===el),true);
  await page.goto('http://127.0.0.1:18925/web/image.html');await page.locator('#h3UpdatesButton').waitFor();
- assert.equal(await page.locator('#guidanceLanguage').inputValue(),'en');
+ assert.equal(await page.locator('#guidanceLanguage').count(),0);
  await page.locator('#h3UpdatesButton').click();assert.ok((await page.locator('[data-copy]').textContent()).includes('never start a generation'));
  const proxy='/jobs/demo/proxy/8188';
  await page.route('**'+proxy+'/extensions/h3_studio/**',route=>{

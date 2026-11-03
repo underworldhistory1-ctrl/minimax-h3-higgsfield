@@ -13,4 +13,4 @@ RTX5090 compatibility is expected with a working H3 INT8 ComfyUI setup, subject 
 
 The model derivative uses the MiniMax H3 Community License Agreement, separately from this project's source license. Credits: MiniMax, Pika/Mellis, LightX2V and the adapter publisher.
 
-Studio2.8 applies required Pika settings automatically and preserves supported Dial steering separately. Reference video soundtracks and standalone audio use independent budgets; see [selection policy](MATLOW_AND_SELECTIONS_AR.md).
+Studio2.8 applies required Pika settings automatically and preserves supported Dial steering separately. Reference video soundtracks and standalone audio use independent budgets; see [selection policy](MATLOW_AND_SELECTIONS.md).

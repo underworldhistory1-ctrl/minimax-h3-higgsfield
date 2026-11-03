@@ -133,11 +133,11 @@
 
   function normalizeNativeReferenceTags(text) {
     const kinds={picture:'Picture',pictre:'Picture',subject:'Subject',video:'Video',audio:'Audio'};
-    const result=text.replace(/<\s*(picture|pictre|subject|video|audio)[\s_]*([0-9٠-٩۰-۹]+)\s*>/gi,(_,kind,digits)=>{
-      const number=digits.replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0));
+    const result=text.replace(/<\s*(picture|pictre|subject|video|audio)[\s_]*([0-9\u0660-\u0669\u06f0-\u06f9]+)\s*>/gi,(_,kind,digits)=>{
+      const number=digits.replace(/[\u0660-\u0669]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/[\u06f0-\u06f9]/g,d=>String(d.charCodeAt(0)-0x6f0));
       return '<'+kinds[kind.toLowerCase()]+' '+Number(number)+'>';
     });
-    for(const match of result.matchAll(/<\s*(?:picture|pictre|subject|video|audio)(?=[\s_\-0-9٠-٩۰-۹])[^<>]*>/gi)){
+    for(const match of result.matchAll(/<\s*(?:picture|pictre|subject|video|audio)(?=[\s_\-0-9\u0660-\u0669\u06f0-\u06f9])[^<>]*>/gi)){
       if(!/^<(?:Picture|Subject|Video|Audio) [0-9]+>$/.test(match[0]))throw Error('Invalid reference tag '+match[0]+'. Use <Picture 1> or <Subject 1> with a connected reference.');
     }
     return result;

@@ -92,7 +92,7 @@ class PromptContextTests(unittest.TestCase):
 
     def test_validation_retry_retains_original_media_and_exact_dialogue(self):
         calls=[]
-        dialogue='<d>[Arabic] أهلا</d>'
+        dialogue='<d>[Arabic] \u0623\u0647\u0644\u0627</d>'
         def writer(messages):
             calls.append(messages)
             return TEXT if len(calls)==1 else TEXT.replace('walks.', 'says '+dialogue+'.')
@@ -152,7 +152,7 @@ class PromptContextTests(unittest.TestCase):
 
     def test_dialogue_cannot_be_silently_rewritten(self):
         with self.assertRaisesRegex(ValueError, 'dialogue'):
-            prepare_studio_context({'source_prompt': 'Say <d>[Arabic] أهلا</d>'}, chat=lambda messages: TEXT)
+            prepare_studio_context({'source_prompt': 'Say <d>[Arabic] \u0623\u0647\u0644\u0627</d>'}, chat=lambda messages: TEXT)
 
     def test_duplicate_sections_rejected(self):
         with self.assertRaisesRegex(ValueError, 'sections'):

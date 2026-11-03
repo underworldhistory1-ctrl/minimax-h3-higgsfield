@@ -26,6 +26,7 @@ let browser;
 
  await page.goto('http://127.0.0.1:18925/web/index.html');
  await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);
+ await page.locator('[data-workspace-nav=projects]').click();
  await page.locator('#newProjectName').fill('Usability regression');await page.locator('#projectHubCreate').click();
  await page.waitForFunction(()=>state.currentProject?.name==='Usability regression'&&!state.projectLoading);
  await page.evaluate(()=>setWorkspaceView('studio'));
@@ -35,13 +36,13 @@ let browser;
  assert.ok(order.indexOf('renderSetupHeading')<order.indexOf('modelConfiguration'));
  assert.ok(order.indexOf('optionalGuidanceHeading')<order.indexOf('sourcePanel'));
  await page.locator('#prompt').fill('A steady scene. Preserve this prompt.');
- assert.equal(await page.locator('#guidanceLanguage').inputValue(),'en');
+ assert.equal(await page.locator('#guidanceLanguage').count(),0);
  assert.equal(await page.locator('[data-guidance-key=model]').getAttribute('lang'),'en');
- await page.locator('#guidanceLanguage').selectOption('ar');
- assert.equal(await page.locator('[data-guidance-key=model]').getAttribute('dir'),'rtl');
+ await page.evaluate(()=>H3Guidance.setLanguage('ar'));
+ assert.equal(await page.locator('[data-guidance-key=model]').getAttribute('dir'),'ltr');
  assert.equal(await page.locator('#prompt').inputValue(),'A steady scene. Preserve this prompt.');
  await page.reload();await page.waitForFunction(()=>projectCtrl&&!state.projectLoading);await page.evaluate(()=>setWorkspaceView('studio'));
- assert.equal(await page.locator('#guidanceLanguage').inputValue(),'ar');await page.locator('#guidanceLanguage').selectOption('en');
+ assert.equal(await page.locator('[data-guidance-key=model]').getAttribute('lang'),'en');
  for(const width of [1920,1440,1024,768,720,390]){
    await page.setViewportSize({width,height:900});
    await page.evaluate(()=>document.querySelectorAll('.sidebar-scroll details').forEach(el=>el.open=true));
@@ -62,5 +63,5 @@ let browser;
    await page.evaluate(view=>setWorkspaceView(view),view);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),view+' has no horizontal overflow');
  }
- assert.deepEqual(errors,[]);await browser.close();console.log('PASS: option hierarchy, bilingual persistence, six widths, three modes, five workspaces and Generate hit testing. No GPU submitted.');
+ assert.deepEqual(errors,[]);await browser.close();console.log('PASS: option hierarchy, English guidance, six widths, three modes, five workspaces and Generate hit testing. No GPU submitted.');
 })().catch(async e=>{console.error(e);await browser?.close();process.exitCode=1;});

@@ -229,6 +229,63 @@ def _validate_execution_path(spec, graph, audio_sampler):
     positive=chain(base.get('positive'),'positive')
     guides=spec.get('guides') or []
     if len(positive)!=len(guides)+1 or not positive or positive[-1]!='6' or any(graph[key].get('class_type')!='MiniMaxH3AddGuide' for key in positive[:-1]): raise ValueError('Selected temporal guides/conditioning disagree')
+    for key, guide in zip(reversed(positive[:-1]), guides):
+        values = node(key)
+        frame = guide.get('frame_idx')
+        if type(frame) is not int:
+            raise ValueError('Temporal guide frame index must be an integer')
+        if guide.get('relative_to_new_content') and spec.get('continuation'):
+            frame += spec['continuation'].get('context_length', 39)
+        length = conditioning.get('length')
+        if type(length) is not int or not 0 <= frame < length:
+            raise ValueError('Temporal guide is outside the selected timeline')
+        if values.get('frame_idx') != frame or values.get('latent') != ['6', 1]:
+            raise ValueError('Selected temporal guide timing/latent disagrees')
+        kind = guide.get('kind', 'image')
+        if kind == 'audio':
+            node(linked(values.get('audio')), 'LoadAudio')
+            if 'image' in values or values.get('audio_vae') != ['5', 0]:
+                raise ValueError('Selected audio guide disagrees')
+        elif kind == 'image':
+            node(linked(values.get('image')), 'LoadImage')
+            if 'audio' in values or values.get('vae') != ['4', 0]:
+                raise ValueError('Selected image guide disagrees')
+        elif kind == 'video':
+            split_id = linked(values.get('image'))
+            split = node(split_id, 'GetVideoComponents')
+            node(linked(split.get('video')), 'LoadVideo')
+            if values.get('vae') != ['4', 0] or bool(guide.get('use_audio')) != ('audio' in values):
+                raise ValueError('Selected video guide disagrees')
+            if guide.get('use_audio') and (values.get('audio') != [split_id, 1] or values.get('audio_vae') != ['5', 0]):
+                raise ValueError('Selected video guide audio disagrees')
+        else:
+            raise ValueError('Unknown temporal guide kind')
+    if spec.get('mode') == 'refs' and conditioning.get('ref_image_size') != (spec.get('ref_image_size') or 'match'):
+        raise ValueError('Selected reference detail disagrees')
+    if node('11').get('fps') != spec.get('fps', 24):
+        raise ValueError('Selected video frame rate disagrees')
+    # The connected decoder alone does not prove the selected output size.
+    width, height = spec.get('width', 1280), spec.get('height', 704)
+    exact1080 = (width, height) in ((1920, 1080), (1080, 1920))
+    sampling_width = (width + 31)//32*32 if exact1080 else width
+    sampling_height = (height + 31)//32*32 if exact1080 else height
+    output_link = node('11').get('images')
+    if exact1080:
+        crop = node(linked(output_link), 'ImageCrop')
+        expected = {'width': width, 'height': height, 'x': (sampling_width-width)/2, 'y': (sampling_height-height)/2}
+        if any(crop.get(field) != value for field, value in expected.items()):
+            raise ValueError('Selected output crop disagrees')
+        output_link = crop.get('image')
+    if (spec.get('enable_refine') or spec.get('refine')) and (exact1080 or (width, height) == (1664, 928)):
+        scale = node(linked(output_link), 'ImageScale')
+        expected = {'width': sampling_width, 'height': sampling_height, 'upscale_method': 'lanczos', 'crop': 'center'}
+        if any(scale.get(field) != value for field, value in expected.items()):
+            raise ValueError('Selected refinement output scale disagrees')
+        output_link = scale.get('image')
+    if spec.get('continuation'):
+        output_link = node(linked(output_link), 'H3LabTrimAV').get('images')
+    if output_link != ['9', 0]:
+        raise ValueError('Selected output transform path disagrees')
     if base.get('negative')!=['7',0] or node('7','ConditioningZeroOut').get('conditioning')!=['6',0]: raise ValueError('Negative conditioning disagrees')
     if spec.get('continuation'):
         kind='MiniMaxH3GeneratedAVMaskedContext' if spec['continuation'].get('type')=='generated' else 'MiniMaxH3ExistingVideoMaskedContext'

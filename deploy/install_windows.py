@@ -39,7 +39,7 @@ RUNTIME_FILES = (
     "deploy/bootstrap_h3_server.sh", "deploy/download_h3_models.sh",
     "deploy/download_control_preprocessors.py", "deploy/download_refine_models.py", "deploy/download_control_models.py", "deploy/download_h3_models.py", "deploy/download_optional_loras.py", "deploy/download_qwen_image_models.py",
     "deploy/make_h3_landing.py", "deploy/verify_h3_server.py",
-    "docs/COMPATIBILITY_MATRIX_AR.md", "docs/GRAPH_MAP.md", "docs/UX_FLOW.md",
+    "docs/COMPATIBILITY_MATRIX.md", "docs/GRAPH_MAP.md", "docs/UX_FLOW.md",
 )
 RUNTIME_FILES += tuple(line.strip() for line in (PROJECT / "deploy/v2_runtime_files.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
 CONTEXT_NODE = ("ComfyUI-H3-Motion-Context-MultiRef", "https://github.com/seitanism/ComfyUI-H3-Motion-Context-MultiRef.git",

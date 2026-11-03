@@ -1391,7 +1391,8 @@ async function generate() {
       progress(0,file.size);
       if(kind==="image"&&ref?.assetId){
         const frame=!isControl&&(state.mode==="frames"||label.startsWith("Keyframe"));const fit=isControl?"preserve":frame?(ref.imageFit||$("frameFit").value):ref.imageFit||"preserve";
-        const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,width:samplingCanvas().width,height:samplingCanvas().height})});
+        const resize=isControl|| (state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked);
+        const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,resize,width:samplingCanvas().width,height:samplingCanvas().height})});
         state.uploads.push(result.filename);saveSession();uploadMessage("Linked server image · "+label,100);ref.uploadProgress=undefined;ref.uploadReady=true;
         return {...result,name:result.filename};
       }

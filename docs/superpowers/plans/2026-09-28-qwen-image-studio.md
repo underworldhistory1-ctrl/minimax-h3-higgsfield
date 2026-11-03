@@ -112,10 +112,10 @@
 
 **Files:**
 - Modify: `README.md`
-- Modify: `START_HERE_AR.md`
+- Modify: `START_HERE.md`
 - Modify: `docs/GRAPH_MAP.md`
 - Modify: `docs/UX_FLOW.md`
-- Modify: `docs/COMPATIBILITY_MATRIX_AR.md`
+- Modify: `docs/COMPATIBILITY_MATRIX.md`
 - Modify: `deploy/SALAD_DEPLOYMENT.md`
 - Modify: `deploy/build_final_folder.py`
 

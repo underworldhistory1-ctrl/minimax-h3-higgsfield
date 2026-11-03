@@ -5,13 +5,13 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(parsers) {
   'use strict';
   const aliases = {
-    subject_definitions: ['subject definitions', 'تعريفات الشخصيات', 'تعريف الشخصيات'],
-    summary: ['summary', 'ملخص', 'الملخص'],
-    retention_analysis: ['retention analysis', 'تحليل الاحتفاظ'],
-    detailed_description: ['detailed description', 'description', 'scene description', 'الوصف التفصيلي', 'وصف المشهد', 'الوصف'],
-    integrated_multimodal_description: ['integrated multimodal description', 'الوصف المتكامل'],
-    overall_soundscape: ['overall soundscape', 'soundscape', 'sound', 'audio', 'الصوت', 'المشهد الصوتي'],
-    non_diegetic_music: ['non diegetic music', 'music', 'الموسيقى', 'موسيقى'],
+    subject_definitions: ['subject definitions', '\u062a\u0639\u0631\u064a\u0641\u0627\u062a \u0627\u0644\u0634\u062e\u0635\u064a\u0627\u062a', '\u062a\u0639\u0631\u064a\u0641 \u0627\u0644\u0634\u062e\u0635\u064a\u0627\u062a'],
+    summary: ['summary', '\u0645\u0644\u062e\u0635', '\u0627\u0644\u0645\u0644\u062e\u0635'],
+    retention_analysis: ['retention analysis', '\u062a\u062d\u0644\u064a\u0644 \u0627\u0644\u0627\u062d\u062a\u0641\u0627\u0638'],
+    detailed_description: ['detailed description', 'description', 'scene description', '\u0627\u0644\u0648\u0635\u0641 \u0627\u0644\u062a\u0641\u0635\u064a\u0644\u064a', '\u0648\u0635\u0641 \u0627\u0644\u0645\u0634\u0647\u062f', '\u0627\u0644\u0648\u0635\u0641'],
+    integrated_multimodal_description: ['integrated multimodal description', '\u0627\u0644\u0648\u0635\u0641 \u0627\u0644\u0645\u062a\u0643\u0627\u0645\u0644'],
+    overall_soundscape: ['overall soundscape', 'soundscape', 'sound', 'audio', '\u0627\u0644\u0635\u0648\u062a', '\u0627\u0644\u0645\u0634\u0647\u062f \u0627\u0644\u0635\u0648\u062a\u064a'],
+    non_diegetic_music: ['non diegetic music', 'music', '\u0627\u0644\u0645\u0648\u0633\u064a\u0642\u0649', '\u0645\u0648\u0633\u064a\u0642\u0649'],
   };
   const key = value => String(value).normalize('NFKC').trim().toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ');
   const names = new Map();
