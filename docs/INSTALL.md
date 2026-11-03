@@ -1,4 +1,4 @@
-# Install H3 Higgsfield
+# Install H3 Interface
 
 ## One-command launcher
 
@@ -43,8 +43,8 @@ recovery reduce specific risks, not all possible interruptions.
 Use the [official ComfyUI Portable NVIDIA build](https://github.com/Comfy-Org/ComfyUI/releases/latest) or an existing ComfyUI source checkout. The installer detects Portable's `python_embeded`, installs the H3 interface and optional methods, checks the queue, and opens the H3 page when ready. Git for Windows and an NVIDIA driver are required; the installer attempts to get missing FFmpeg tools through Windows Package Manager.
 
 ```powershell
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
+git clone https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git
+cd minimax-h3-interface
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ComfyRoot "C:\path\to\ComfyUI_windows_portable"
 ```
 
@@ -57,12 +57,12 @@ If an already-running ComfyUI has no Manager restart endpoint, rerun with `-NoSt
 ### Linux (Bash)
 
 ```bash
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
+git clone https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git
+cd minimax-h3-interface
 bash install.sh
 ```
 
-The Linux installer finds an existing ComfyUI or installs pinned ComfyUI 0.43.0 revision `426f5eea52a7ece1dd599fff4cb6cd1f352ddd24`. That revision contains the corrected H3 VAE tile decode and native Qwen Image 2.1 nodes. The installer checks those source markers before continuing, reuses or downloads verified model files, prepares the optional nodes and LoRAs, and opens **H3 Higgsfield** as the ComfyUI landing page.
+The Linux installer finds an existing ComfyUI or installs pinned ComfyUI 0.43.0 revision `426f5eea52a7ece1dd599fff4cb6cd1f352ddd24`. That revision contains the corrected H3 VAE tile decode and native Qwen Image 2.1 nodes. The installer checks those source markers before continuing, reuses or downloads verified model files, prepares the optional nodes and LoRAs, and opens **H3 Interface** as the ComfyUI landing page.
 
 For a different Linux ComfyUI location, use `bash install.sh --comfy-root /path/to/ComfyUI`. Both new installs bind to `127.0.0.1:8188` by default. Reach a remote server through an SSH tunnel or an authenticated cloud proxy; only use `--bind 0.0.0.0` (Linux) or `-Bind 0.0.0.0` (Windows) behind access control. Once ready, open `/extensions/h3_studio/index.html` at your server address. The server root also redirects to this page; the Comfy node editor is reserved for maintenance at `/?view=nodes`.
 

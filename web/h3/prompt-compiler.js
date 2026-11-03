@@ -186,8 +186,8 @@
       if (index < 1 || !pictures.length || pictures.some(picture => picture < 1 || picture > imageCount)) {
         throw new Error(`Subject ${index} must be defined with a connected Picture in subject_definitions.`);
       }
-      const bound = bindings.find(binding => binding.subject_idx === index);
-      if (bound && !pictures.includes(bound.picture_idx)) throw new Error(`Subject ${index} definition conflicts with its attached image binding.`);
+      const bound = bindings.filter(binding => binding.subject_idx === index);
+      if (bound.some(binding => !pictures.includes(binding.picture_idx))) throw new Error(`Subject ${index} definition conflicts with its attached image binding.`);
     }
   }
 
@@ -373,6 +373,11 @@
     // --- REFERENCES MODE ---
     if (mode === 'refs') {
       const rawRefs = refs.map(ref=>({...ref,instruction:normalize(ref.instruction || '')}));
+      for (const ref of rawRefs) {
+        if (ref.subject_group == null || ref.subject_group === '') continue;
+        if (typeof ref.subject_group !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(ref.subject_group) || ref.kind !== 'image' || (ref.role || '').toLowerCase().trim() !== 'character identity')
+          throw Error('@' + ref.alias + ': invalid character group. Select a Character group again or clear it.');
+      }
       if (!rawRefs.length) {
         throw new Error('Add at least one reference.');
       }
@@ -402,6 +407,7 @@
       const hasExplicitSubjects = [...explicitSubjects.values()].some(pictures => pictures.length);
       let subjectNumberingAdjusted = false;
       let cardSubjectIdx = 0;
+      const characterGroups = new Map(), automaticSubjects = new Map();
       // A partial schema pasted into Guided still needs its card guidance.
       // Complete native prompts and explicitly Structured input keep authority.
       const supplementGuidedCards = promptMode !== 'structured' && originalSections &&
@@ -421,6 +427,7 @@
           kind: ref.kind,
           role: role,
           instruction: ref.instruction || '',
+          ...(ref.subject_group ? {subject_group: ref.subject_group} : {}),
           ...(ref.panel_order ? {panel_order: ref.panel_order} : {}),
         };
 
@@ -439,7 +446,12 @@
             if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
             retention.push(`${picTag}: attribute_transfer - guide shot order, framing and visual progression; do not treat the sheet as a single visible subject.`);
           } else {
-            const cardSubNum = ++cardSubjectIdx;
+            const group = role === 'character identity' && ref.subject_group;
+            if (!group || !characterGroups.has(group)) {
+              ++cardSubjectIdx;
+              if (group) characterGroups.set(group, cardSubjectIdx);
+            }
+            const cardSubNum = group ? characterGroups.get(group) : cardSubjectIdx;
             const assigned = [...explicitSubjects].filter(([, pictures]) => pictures.includes(picNum)).map(([index]) => index);
             if (hasExplicitSubjects && assigned.length !== 1) {
               // A picture may be shared by several explicitly defined subjects,
@@ -456,7 +468,8 @@
               tag = `<Subject ${subNum}>`;
               bindingInfo.tag = tag;
               bindingInfo.subject_idx = subNum;
-              definitions.push(`${tag} is the ${role} shown in ${picTag}. Keep its visible defining details.`);
+              if (!automaticSubjects.has(subNum)) automaticSubjects.set(subNum, {tag,role,pictures:[]});
+              automaticSubjects.get(subNum).pictures.push(picTag);
               const retainMode = role === 'visual style' ? 'attribute_transfer' : 'fully_preserved';
               retention.push(`${tag}: ${retainMode} - preserve the defining visual attributes shown in ${picTag} wherever this subject appears in the target sequence.`);
             }
@@ -522,6 +535,8 @@
         bindings.push(bindingInfo);
       }
 
+      for (const {tag,role,pictures} of automaticSubjects.values()) definitions.push(`${tag} is the ${role} shown in ${pictures.join(' and ')}. These pictures show the same subject. Keep its visible defining details.`);
+
       if (subjectNumberingAdjusted) warnings.push('Attached images matched to the subject definitions in your prompt.');
 
       // Native structured tags are valid reference mentions as well as aliases.
@@ -529,6 +544,7 @@
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
+        if (binding.subject_group && binding.subject_idx && bindings.some(other => other.subject_group === binding.subject_group && other.subject_idx === binding.subject_idx && new RegExp('@' + other.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u').test(source))) return false;
         if ((!nativeSections || supplementGuidedCards) && binding.role==='custom' && binding.instruction.trim()) return false;
         const tags = [binding.tag];
         if (binding.picture_idx) tags.push(`<Picture ${binding.picture_idx}>`);

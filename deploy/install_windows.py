@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install H3 Higgsfield on native Windows ComfyUI (portable or source)."""
+"""Install H3 Interface on native Windows ComfyUI (portable or source)."""
 
 import argparse
 import datetime
@@ -329,6 +329,12 @@ def speed_node(root, git, name, url, revision):
         raise RuntimeError("Unexpected Git origin for optional node: " + str(target))
     current = subprocess.run([str(git), "-C", str(target), "rev-parse", "HEAD"],
                              capture_output=True, text=True)
+    if current.returncode == 0:
+        try:
+            from .node_integrity import assert_node_integrity
+        except ImportError:
+            from node_integrity import assert_node_integrity
+        assert_node_integrity(target, git, allow_runtime_patch=current.stdout.strip() == revision)
     if current.returncode == 0 and current.stdout.strip() == revision:
         print("Reusing optional node:", name)
         return
@@ -484,7 +490,7 @@ def main():
     install_workflows(root)
     page = url + "/extensions/" + runtime_target(root).name + "/index.html"
     if args.no_start:
-        print("Setup complete. Start/restart ComfyUI to load H3 Higgsfield:", page)
+        print("Setup complete. Start/restart ComfyUI to load H3 Interface:", page)
         return 0
     if status == "online":
         print("Restarting idle ComfyUI through ComfyUI Manager...", flush=True)
@@ -506,7 +512,7 @@ def main():
     env["H3_ACCESS_TOKEN"] = ""
     env["QWEN_IMAGE_PROFILES"] = args.qwen_image_profiles
     call(python, PROJECT / "deploy" / "verify_h3_server.py", "--url", url, env=env)
-    print("H3 Higgsfield is ready:", page)
+    print("H3 Interface is ready:", page)
     webbrowser.open(page)
     return 0
 

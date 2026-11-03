@@ -44,9 +44,12 @@ async def fixture(request, handler):
         return web.json_response({'queue_running':[item] if item and image_queue_mode=='running' else [],'queue_pending':[item] if item and image_queue_mode=='pending' else []})
     if path.startswith('/history'): return web.json_response({})
     if path == '/h3_studio/upload_ref':
-        reader=await request.multipart();field=await reader.next();data=await field.read()
+        if request.content_type.startswith('multipart/'):
+            reader=await request.multipart();field=await reader.next();data=await field.read();filename=field.filename
+        else:
+            data=await request.read();filename=request.query.get('filename','fixture.bin')
         kind=request.query.get('kind','image')
-        return web.json_response({'name':f'fixture_{len(data)}_{field.filename}','width':1280,'height':704,'kind':kind,'fps':24,'frame_count':48,'duration':2,'has_audio':True})
+        return web.json_response({'name':f'fixture_{len(data)}_{filename}','width':1280,'height':704,'kind':kind,'fps':24,'frame_count':48,'duration':2,'has_audio':True})
     if path == '/prompt':
         record=await request.json();record['image_prompt_id']='qwen_fixture_'+str(len(captured)+1);captured.append(record);image_queue_mode='pending'
         return web.json_response({'prompt_id':record['image_prompt_id'],'number':1})

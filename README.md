@@ -1,20 +1,22 @@
-# H3 Higgsfield
+# H3 Interface
 
 **MiniMax H3 video with native audio. Qwen Image 2.1 creation and editing. One browser workspace on your own NVIDIA machine or GPU server.**
 
-Current software: **2.8.1** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
+Current software: **2.9.0** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
 
 [![Superman above Earth — watch with audio](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
 A creator-supplied storyboard and character reference guide this shot. [Watch the excerpt](docs/demo/superman/superman-excerpt.mp4) or [open the complete setup](docs/demo/superman/README.md). Examples demonstrate particular outputs, not guaranteed results for other prompts.
+
+[Public website](https://underworldhistory1-ctrl.github.io/minimax-h3-interface/) · [Installer transparency and provenance](docs/PROVENANCE_AND_INSTALLER.md) · [Reference controls](docs/REFERENCE_CONTROLS.md)
 
 ## Get started
 
 Clone the source outside ComfyUI's `custom_nodes` directory:
 
 ```bash
-git clone https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git
-cd minimax-h3-higgsfield
+git clone https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git
+cd minimax-h3-interface
 bash launcher.sh --comfy-root /path/to/ComfyUI --models-root /path/to/models
 ```
 
@@ -93,12 +95,12 @@ Generations/Favorites use the selected scope, offer direct downloads and search 
 
 The launcher follows official main by default, verifies provenance/ancestry, preserves local edits and waits for accepted work, preparation and exports before replacing runtime. Supported code-only updates are available through **Updates**; environment changes need the full launcher. Restart when idle after installing code. Never interrupt an active render. [Upgrade/rollback](docs/V2_UPGRADE.md) · [Safe uninstall](docs/UNINSTALL.md).
 
-Source tests, local API/browser checks and GPU rendering are reported separately. Local verification passed 585 Python tests (one platform skip), 277 JavaScript tests and 528 persisted builder-to-server combinations. Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
+Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 589 Python tests (one platform skip), 285 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_9.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
 
 Read-only server validation: `python deploy/verify_h3_server.py --url COMFY_URL`. Readiness is not a visual-quality certificate. Models need substantial disk and host RAM as well as VRAM. Completed sampler latents support tracked decode recovery, not mid-sampling resume. Optional AI prompt preparation requires a configured provider; otherwise Automatic formats locally.
 
 ## Documentation and community
 
-[Documentation index](docs/README.md) · [Shared GPU and optional image adapter](docs/OPERATIONS.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Discussions](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/discussions) · [Issues](https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield/issues)
+[Documentation index](docs/README.md) · [Shared GPU and optional image adapter](docs/OPERATIONS.md) · [Prompt formats](docs/PROMPT_INPUT.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Verified behavior](docs/VERIFIED_BEHAVIOR.md) · [Discussions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/discussions) · [Issues](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/issues)
 
-Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Independent project, with no affiliation to Higgsfield or MiniMax. Code: [MIT](LICENSE). Model weights, external packs and demo media have separate licenses; Qwen Image 2.1 uses the Qwen Research License.
+Built on [MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and [ComfyUI](https://github.com/Comfy-Org/ComfyUI). Developed independently by H3 Interface contributors, building on the MIT-licensed [CharlesMod H3 Studio foundation](https://github.com/CharlesMod/h3-studio). Original notices are preserved. Code: [MIT](LICENSE). Model weights, external packs and demo media have separate licenses; Qwen Image 2.1 uses the Qwen Research License.

@@ -210,3 +210,27 @@ class ShortDurationPreparationTests(unittest.TestCase):
             with self.assertRaises(ValueError):service.prepare({**spec,'target_frames':24})
 
 if __name__=='__main__': unittest.main()
+
+
+class CharacterGroupPreparationTests(unittest.TestCase):
+    def test_provider_receives_shared_subject_and_all_picture_relations(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder)
+            for name in ('front','back','other'):
+                Image.new('RGB',(8,8)).save(root/f'h3_studio_kf_{name}.png')
+            calls=[]
+            def chat(messages):
+                calls.append(messages)
+                return ('subject_definitions: <Subject 1> is shown in <Picture 1> and <Picture 2>.\n<Subject 2> is shown in <Picture 3>.\n'
+                        'summary: <Subject 1> meets <Subject 2>.\nretention_analysis: Keep both.\n'
+                        'detailed_description: [Shot 1] <Subject 1> meets <Subject 2>.\noverall_soundscape: None.\nnon_diegetic_music: None.')
+            service=PromptContextService(root,writer=lambda spec,parts:prepare_studio_context(spec,parts,chat=chat))
+            refs=[{'kind':'image','role':'character identity','alias':name,'filename':f'h3_studio_kf_{name}.png',**({'subject_group':'hero'} if name!='other' else {})} for name in ('front','back','other')]
+            result=service.prepare({'mode':'refs','source_prompt':'@front meets @other.','references':refs})
+            self.assertEqual([b['tag'] for b in result['bindings']],['<Subject 1>','<Subject 1>','<Subject 2>'])
+            manifest=json.loads(calls[0][1]['content'][0]['text'])['references']
+            self.assertEqual([b.get('subject_group') for b in manifest],['hero','hero',None])
+            refs[0]['subject_group']='invalid group!'
+            with self.assertRaisesRegex(ValueError,'Invalid character group'):
+                service.prepare({'mode':'refs','references':refs})

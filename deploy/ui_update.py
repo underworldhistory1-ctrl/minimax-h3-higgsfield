@@ -74,7 +74,10 @@ def code_only_update(root, target, staged=False):
 
     accepted = {'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield',
                 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git',
-                'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
+                'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git',
+                    'git@github.com:underworldhistory1-ctrl/minimax-h3-interface.git'}
     if git('remote', 'get-url', 'origin') not in accepted or git('branch', '--show-current') != 'main' or git('status', '--porcelain'):
         raise RuntimeError('UI update requires clean official main; customized source was preserved')
     try:
@@ -86,7 +89,7 @@ def code_only_update(root, target, staged=False):
         if not staged:
             if before != receipt.get('installed_commit'):
                 raise RuntimeError('Source differs from the installed receipt; use the launcher for recovery')
-            git('fetch', 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git', 'refs/heads/main')
+            git('fetch', 'https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git', 'refs/heads/main')
             if git('rev-parse', 'FETCH_HEAD') != target:
                 raise RuntimeError('Official main changed since checking; check again before installation')
             if subprocess.run(['git', '-C', str(source), 'merge-base', '--is-ancestor', before, target]).returncode:

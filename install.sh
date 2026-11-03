@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install H3 Higgsfield on an NVIDIA Linux server with or without ComfyUI.
+# Install H3 Interface on an NVIDIA Linux server with or without ComfyUI.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +22,7 @@ Usage: bash install.sh [--comfy-root PATH] [--port 8188] [--bind 127.0.0.1] [--n
 On an NVIDIA Linux server, detects an existing ComfyUI installation or installs
 the verified H3-capable ComfyUI revision. It installs the H3 models, optional
 accelerators and LoRAs, starts/restarts ComfyUI when safe, checks readiness,
-and prints the H3 Higgsfield web address. Model downloads are about 63.4 GB.
+and prints the H3 Interface web address. Model downloads are about 63.4 GB.
 
 The default bind address is local-only. Use --bind 0.0.0.0 only behind your
 cloud provider's authenticated proxy or firewall.
@@ -200,15 +200,15 @@ fi
 
 status="$(python3 "$ROOT/deploy/activate_h3.py" check --url "$SERVER_URL")"
 if [[ "$status" == "COMFYUI_OFFLINE" ]]; then
-    echo "Starting ComfyUI with H3 Higgsfield as its landing page..."
+    echo "Starting ComfyUI with H3 Interface as its landing page..."
     (cd "$COMFY_ROOT" && nohup "$H3_PYTHON" main.py --listen "$BIND" --port "$PORT" --reserve-vram 3.0 "$ATTENTION_FLAG" \
         "${COMFY_START_ARGS[@]}" \
         > "$COMFY_ROOT/h3-higgsfield-server.log" 2>&1 < /dev/null & echo $! > "$COMFY_ROOT/.h3-higgsfield-server.pid")
     python3 "$ROOT/deploy/activate_h3.py" wait --url "$SERVER_URL" --timeout 240
 else
-    echo "Restarting the idle ComfyUI process to load H3 Higgsfield..."
+    echo "Restarting the idle ComfyUI process to load H3 Interface..."
     python3 "$ROOT/deploy/activate_h3.py" restart --url "$SERVER_URL" --timeout 240
 fi
 H3_ACCESS_TOKEN='' "$H3_PYTHON" "$ROOT/deploy/verify_h3_server.py" --url "$SERVER_URL"
-echo "Open H3 Higgsfield: $SERVER_URL/extensions/$STUDIO_NAME/index.html"
+echo "Open H3 Interface: $SERVER_URL/extensions/$STUDIO_NAME/index.html"
 echo "For a remote local-only server, tunnel port $PORT from your computer or use your provider's authenticated ComfyUI URL."

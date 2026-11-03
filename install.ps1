@@ -1,4 +1,4 @@
-# Native Windows installer for H3 Higgsfield; no WSL or Bash required.
+# Native Windows installer for H3 Interface; no WSL or Bash required.
 param(
     [string]$ComfyRoot = "",
     [string]$ComfyPython = "",

@@ -358,8 +358,9 @@ function captureSettings(){
     dials:(state.dials||[]).filter(d=>d.enabled),loras:adapters,reference_detail:refs?$("refSize").value:null,
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
       file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
-      trim:ref.kind==="video"&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
-      auto_fit:ref.kind==="video"?ref.fitVideo!==false:ref.kind==="image"?$("fitImages").checked:null})):[],
+      trim:(ref.kind==="video"||ref.kind==="audio")&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
+      subject_group:ref.subject_group||"",instruction:ref.instruction||"",panel_order:ref.panelOrder||"",use_original_resolution:ref.useOriginalResolution===true,
+      auto_fit:ref.kind==="video"?ref.fitVideo!==false:ref.kind==="image"?H3ReferencePolicy.imageResize(ref,$("fitImages").checked):null})):[],
     start_frame:state.mode==="frames"?state.first?.file.name||null:null,
     end_frame:state.mode==="frames"?state.last?.file.name||null:null,
     frame_references:state.mode==="frames"?[[state.first,"@start"],[state.last,"@end"]].filter(([item])=>item).map(([item,name])=>({name,type:"image",use_as:name==="@start"?"Start frame":"End frame",file:item.file.name,asset_id:item.assetId||null,thumbnail:H3StudioUX.captureThumbnail(item)})):[],
@@ -455,7 +456,7 @@ function renderLoras() {
     if(incompatible&&!managed){const warning=document.createElement("div");warning.className="tip error";warning.textContent="This adapter appears to target a different H3 checkpoint.";row.append(warning);}
     if(item.enabled&&!managed){
       const strengthLabel=document.createElement("label");strengthLabel.textContent="MODEL STRENGTH";row.append(strengthLabel);
-      const strength=document.createElement("input");strength.type="number";strength.min="0";strength.max="2";strength.step=".05";strength.value=String(item.strength);strength.disabled=state.busy||!!H3Configuration.pikaVariant(item.name);
+      const strength=document.createElement("input");strength.type="number";strength.min="0";strength.max="2";strength.step=".05";strength.value=String(item.strength);strength.disabled=state.busy||state.projectLoading||!!H3Configuration.pikaVariant(item.name);
       strength.onchange=()=>{if(!strength.checkValidity()){strength.reportValidity();strength.value=String(item.strength);return;}item.strength=Number(strength.value);renderEstimates();updatePreviewLive();saveDraft();};row.append(strength);
       const note=document.createElement("div");note.className="tip";note.textContent="Applied to the H3 model. Compatibility and quality depend on this adapter.";row.append(note);
     }
@@ -582,6 +583,7 @@ function updateRefDurationNotice() {
 }
 function renderRefs() {
   const locked=state.busy||state.projectLoading||(typeof referenceMutationLocked==='function'&&referenceMutationLocked());
+  H3ReferenceControls.cleanup($("refs"));
   $("refs").replaceChildren();
   state.refs.forEach((ref,index) => {
     if(ref.restoreError){$("refs").append(missingInputCard(ref,()=>state.refs.splice(index,1)));return;}
@@ -604,7 +606,7 @@ function renderRefs() {
     }else icon.textContent=ref.kind==="audio"?"♫":ref.kind==="video"?"▶":"I";
     const title=document.createElement("strong");title.textContent="@"+ref.alias+(ref.label&&ref.label!==ref.alias?" ("+ref.label+")":"")+" · "+ref.role;
     const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=locked;
-    remove.onclick=()=>{if(locked)return;state.refs.splice(state.refs.indexOf(ref),1);if(ref.previewUrl)URL.revokeObjectURL(ref.previewUrl);renderRefs();renderEstimates();updatePreviewLive();saveDraft();};
+    remove.onclick=()=>{if(locked)return;state.refs.splice(state.refs.indexOf(ref),1);for(const url of new Set([ref.previewUrl,ref.originalPreviewUrl,ref.url]))if(url)URL.revokeObjectURL(url);renderRefs();renderEstimates();updatePreviewLive();saveDraft();};
     const replace=document.createElement("button");replace.type="button";replace.className="button alt smallbtn ref-replace";replace.textContent="Replace";replace.disabled=locked;replace.hidden=ref.kind!=="image";replace.title="Replace this shot image and keep its name and position";replace.onclick=event=>{event.preventDefault();event.stopPropagation();requestReferenceReplacement(ref);};
     const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();saveDraft();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,replace,up,down,remove);
     const meta=document.createElement("div");meta.className="refmeta";
@@ -639,24 +641,18 @@ function renderRefs() {
     options.forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;role.append(o);});
     role.value=ref.role||options[0][0];
     role.disabled=locked;
-    role.onchange=()=>{ref.role=role.value;saveDraft();renderRefs();updatePreviewLive();};
+    role.onchange=()=>{ref.role=role.value;if(ref.role!=="character identity")ref.subject_group="";saveDraft();renderRefs();updatePreviewLive();};
     roleWrap.append(roleLabel,role);fields.append(nameWrap,roleWrap);
     card.append(head,meta,fields);
     if(ref.kind==="image"){
       const large=document.createElement("img");if(card.open)large.src=ref.previewUrl;large.loading="lazy";large.decoding="async";large.alt="Expanded preview of @"+ref.alias;large.className="ref-expanded-preview";card.append(large);
       const label=document.createElement("label"),fit=document.createElement("select");label.textContent="IMAGE FIT";for(const [value,title] of [["preserve","Preserve original proportions"],["crop","Crop to canvas"],["contain","Contain on canvas"]]){const o=document.createElement("option");o.value=value;o.textContent=title;fit.append(o);}fit.value=ref.imageFit||"preserve";fit.disabled=locked;fit.onchange=()=>{ref.imageFit=fit.value;updateRefFitPreview(ref).catch(e=>info(e.message,true));};card.append(label,fit);
     }
-    if(ref.role==="custom"||ref.role==="storyboard"){
-      const instWrap=document.createElement("div");instWrap.className="section";instWrap.style.marginTop="6px";instWrap.style.paddingTop="6px";
-      const instLabel=document.createElement("label");instLabel.textContent=ref.role==="storyboard"?"PANEL ORDER / SHOT MAP (OPTIONAL)":"CUSTOM INSTRUCTION (OPTIONAL)";instLabel.style.margin="4px 0 3px";
-      const instInput=document.createElement("input");instInput.placeholder="e.g. use for lighting direction only; replace subject";
-      instInput.value=ref.role==="storyboard"?ref.panelOrder||"":ref.instruction||"";instInput.disabled=locked;
-      instInput.oninput=()=>{if(ref.role==="storyboard")ref.panelOrder=instInput.value.trim();else ref.instruction=instInput.value.trim();saveDraft();updatePreviewLive();};
-      instWrap.append(instLabel,instInput);card.append(instWrap);
-    }
+    H3ReferenceControls.addFields(card,ref,state.refs,locked,rerender=>{saveDraft();if(rerender)renderRefs();updatePreviewLive();});
+    H3ReferenceControls.addPreview(card,ref,()=>{if(!state.refs.includes(ref))return;if(fitReferenceTrim(ref)){renderRefs();saveDraft();}else updateRefDurationNotice();});
     if(ref.kind==="audio"){
-      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;renderRefs();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
-      if(ref.trimEnabled)for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;input.onchange=()=>{ref[key]=Number(input.value);updateRefDurationNotice();};card.append(label,input);}
+      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;renderRefs();saveDraft();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
+      if(ref.trimEnabled)for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;input.oninput=()=>{ref[key]=Number(input.value);card.referencePreview?.update();updateRefDurationNotice();saveDraft();};card.append(label,input);}
     }
     const insert=document.createElement("button");insert.type="button";insert.className="button alt smallbtn ref-insert";insert.textContent="Insert @"+ref.alias+" into prompt";insert.title=insert.textContent;insert.disabled=locked;insert.onclick=()=>insertReferenceMention(ref.alias,true);card.append(insert);
     if(ref.kind==="video"){
@@ -664,7 +660,7 @@ function renderRefs() {
       const trimToggle=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;
       toggle.onchange=()=>{ref.trimEnabled=toggle.checked;fitReferenceTrim(ref);renderRefs();saveDraft();};
       trimToggle.append(toggle,document.createTextNode(" Trim this video to a selected range"));trim.append(trimToggle);
-      if(ref.trimEnabled){const range=document.createElement("div");range.className="row";let useInput;const hint=document.createElement("div");hint.className="tip";const updateHint=()=>{const source=Number(ref.meta?.source_duration||ref.localDuration||0),available=source-Number(ref.trimStart);hint.textContent=!source?"Checking source video length…":available<2?"Start must leave at least 2 seconds of video.":"Available from start: "+available.toFixed(2)+" s. Use up to "+Math.min(15,available).toFixed(2)+" s.";hint.style.color=source&&available<2?"var(--bad)":"";};for(const [key,label,min,max] of [["trimStart","Start (s)",0,3600],["trimDuration","Use (s)",2,15]]){const wrap=document.createElement("div"),caption=document.createElement("label"),input=document.createElement("input");caption.textContent=label;input.type="number";input.min=min;input.max=max;input.step="0.01";input.setAttribute("aria-label",label+" for @"+ref.alias);input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;if(key==="trimDuration")useInput=input;input.oninput=()=>{ref[key]=Number(input.value);if(key==="trimStart"&&Number.isFinite(ref.trimStart)){try{const video=icon.querySelector("video");if(video)video.currentTime=ref.trimStart;}catch{}if(fitReferenceTrim(ref))useInput.value=ref.trimDuration;}updateHint();updateRefDurationNotice();saveDraft();};wrap.append(caption,input);range.append(wrap);}trim.append(range,hint);updateHint();}
+      if(ref.trimEnabled){const range=document.createElement("div");range.className="row";let useInput;const hint=document.createElement("div");hint.className="tip";const updateHint=()=>{const source=Number(ref.meta?.source_duration||ref.localDuration||0),available=source-Number(ref.trimStart);hint.textContent=!source?"Checking source video length…":available<2?"Start must leave at least 2 seconds of video.":"Available from start: "+available.toFixed(2)+" s. Use up to "+Math.min(15,available).toFixed(2)+" s.";hint.style.color=source&&available<2?"var(--bad)":"";};for(const [key,label,min,max] of [["trimStart","Start (s)",0,3600],["trimDuration","Use (s)",2,15]]){const wrap=document.createElement("div"),caption=document.createElement("label"),input=document.createElement("input");caption.textContent=label;input.type="number";input.min=min;input.max=max;input.step="0.01";input.setAttribute("aria-label",label+" for @"+ref.alias);input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;if(key==="trimDuration")useInput=input;input.oninput=()=>{ref[key]=Number(input.value);if(key==="trimStart"&&Number.isFinite(ref.trimStart)){try{const video=icon.querySelector("video");if(video)video.currentTime=ref.trimStart;}catch{}if(fitReferenceTrim(ref))useInput.value=ref.trimDuration;}updateHint();card.referencePreview?.update();updateRefDurationNotice();saveDraft();};wrap.append(caption,input);range.append(wrap);}trim.append(range,hint);updateHint();}
       const fitLabel=document.createElement("label"),fit=document.createElement("input");fit.type="checkbox";fit.checked=ref.fitVideo!==false;fit.disabled=locked;fit.onchange=()=>{ref.fitVideo=fit.checked;saveDraft();};fitLabel.append(fit,document.createTextNode(" Auto fit oversized video to 1920×1080"));trim.append(fitLabel);card.append(trim);
       const guidance=document.createElement("div");guidance.className="tip video-guidance";
       guidance.textContent=ref.role==="whole scene"
@@ -855,6 +851,8 @@ function currentRenderSpec() {
     references: refs ? state.refs.map(r => ({
       asset_id: r.assetId || r.alias,
       panel_order:r.panelOrder||"",
+      subject_group:r.subject_group??"",
+      use_original_resolution:r.useOriginalResolution===true,
       alias: r.alias,
       ...referenceDisplay(r),
       kind: r.kind,
@@ -1205,14 +1203,14 @@ async function checkConnection() {
         fetch(api("/h3_studio/readiness"),{signal:controller.signal}),
       ]);
       if(!stats.ok)throw Error("ComfyUI is not responding.");
-      if(!readiness.ok)throw Error("Install or update H3 Higgsfield on this server.");
+      if(!readiness.ok)throw Error("Install or update H3 Interface on this server.");
       const data=await stats.json(),ready=await readiness.json();
       state.modelsReady=ready.models||{};
       state.nodesReady=ready.nodes||null;
       await refreshLabCapabilities();
       if(window.H3ConnectedStudio)await H3ConnectedStudio.refreshProvider();
       state.ramLimit=Number(ready.system_ram_limit_gb)||null;
-      if(!state.nodesReady)throw Error("Update H3 Higgsfield to check the installed ComfyUI nodes.");
+      if(!state.nodesReady)throw Error("Update H3 Interface to check the installed ComfyUI nodes.");
       if(!ready.quality?.h3_vae_tile_fix)throw Error("Update ComfyUI: the H3 VAE quality fix is missing.");
       state.gpu=data.devices?.[0]?.name||"unknown";
       await loadLoras();
@@ -1391,19 +1389,18 @@ async function generate() {
       progress(0,file.size);
       if(kind==="image"&&ref?.assetId){
         const frame=!isControl&&(state.mode==="frames"||label.startsWith("Keyframe"));const fit=isControl?"preserve":frame?(ref.imageFit||$("frameFit").value):ref.imageFit||"preserve";
-        const resize=isControl|| (state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked);
+        const resize=isControl||H3ReferencePolicy.imageResize(ref,state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked);
         const result=await projectCtrl.fetchJson(`/h3_studio/lab/assets/${encodeURIComponent(ref.assetId)}/resolve`,{method:"POST",body:JSON.stringify({fit,resize,width:samplingCanvas().width,height:samplingCanvas().height})});
-        state.uploads.push(result.filename);saveSession();uploadMessage("Linked server image · "+label,100);ref.uploadProgress=undefined;ref.uploadReady=true;
+        state.uploads.push(result.filename);saveSession();uploadMessage("Linked server image · "+label,100);ref.uploadProgress=undefined;ref.uploadReady=true;ref.meta=result;renderRefs();
         return {...result,name:result.filename};
       }
       if(kind==="image" && !isControl && (state.mode==="frames" || label.startsWith("Keyframe"))) file=await fitFrameImage(file,ref?.imageFit||null);
       if(kind==="image" && !isControl && ref?.imageFit && ref.imageFit!=="preserve")file=await fitFrameImage(file,ref.imageFit);
-      const options={resize:kind==="image"?(isControl?true:state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked):kind==="video"&&ref?.fitVideo!==false,
+      const options={resize:kind==="image"?(isControl?true:H3ReferencePolicy.imageResize(ref,state.mode==="frames"?$("fitFrames").checked:$("fitImages").checked)):kind==="video"&&ref?.fitVideo!==false,
         trimEnabled:(kind==="video"||kind==="audio")&&!!ref?.trimEnabled,trimStart:ref?.trimStart||0,trimDuration:ref?.trimDuration};
       const result=await uploadOne(file,kind,progress,()=>uploadMessage("Checking "+label+" on the server · converting to 24 fps if needed",100),options);
       uploadMessage("Uploaded "+index+" of "+totalFiles+" · "+label+" · "+fmtBytes(file.size)+" · checked on server",100);
-      if(ref){ref.uploadProgress=undefined;ref.uploadReady=true;renderRefs();}
-      if(ref)ref.meta=result;
+      if(ref){ref.uploadProgress=undefined;ref.uploadReady=true;ref.meta=result;renderRefs();}
       return result;
     };
     if(state.mode==="frames"){
@@ -2178,7 +2175,7 @@ async function initProjectController() {
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"studio",{history:false});}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof renderLoras==='function')renderLoras();if(typeof updateCapabilities==='function')updateCapabilities();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"studio",{history:false});}}
 }
 
 function updateProjectUI(proj) {

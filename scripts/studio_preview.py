@@ -4,6 +4,7 @@ Real project/assets, prompt media sampling and control validation are exercised;
 only provider inference, Comfy readiness and generated clips are simulated.
 """
 import argparse
+import re
 import asyncio
 import json
 import pathlib
@@ -126,7 +127,7 @@ def create_app(storage):
         if path in ('/', '/extensions/h3_studio/index.html'):
             html = (ROOT / 'web' / 'index.html').read_text(encoding='utf-8')
             banner = '<div id="simulationBanner" role="status" style="padding:8px 18px;background:#253f5c;color:#e4f0ff;font:14px/1.4 Segoe UI,sans-serif">LOCAL SIMULATION · Mock prompt provider, mocked GPU readiness and synthetic clips. No AI model has run.</div>'
-            html = html.replace('<body>', '<body>' + banner).replace('</head>', '<style>.shell{height:calc(100dvh - 98px)}.result-label:before{content:"SIMULATION · ";color:#84b8ff;font-size:11px}@media(max-width:720px){.shell{height:auto}}</style></head>')
+            html = re.sub(r'(<body\b[^>]*>)', lambda match: match[1] + banner, html, count=1).replace('</head>', '<style>.shell{height:calc(100dvh - 98px)}.result-label:before{content:"SIMULATION · ";color:#84b8ff;font-size:11px}@media(max-width:720px){.shell{height:auto}}</style></head>')
             return web.Response(text=html, content_type='text/html')
         if path == '/system_stats': return web.json_response({'devices': [{'name': 'LOCAL CPU SIMULATOR · no GPU'}]})
         if path == '/h3_studio/readiness': return web.json_response({'simulation': True, 'models': MODELS, 'nodes': dict.fromkeys(NODES, True), 'quality': {'h3_vae_tile_fix': True}, 'system_ram_limit_gb': 128})

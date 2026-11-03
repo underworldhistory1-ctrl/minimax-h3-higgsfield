@@ -139,3 +139,10 @@ web/h3/dials-ui.js
 docs/MATLOW_AND_SELECTIONS.md
 docs/RELEASE_2_8_1.md
 docs/OPERATIONS.md
+web/h3/reference-policy.js
+web/h3/reference-controls.js
+web/reference-controls.css
+deploy/node_integrity.py
+docs/PROVENANCE_AND_INSTALLER.md
+docs/REFERENCE_CONTROLS.md
+docs/RELEASE_2_9.md

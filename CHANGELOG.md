@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.9.0 - 2026-11-03
+
+- Adopt H3 Interface branding with legacy-origin update compatibility and a public documentation site.
+- Add shared Character groups, independent reference instructions, original-resolution input overrides and selected audio/video segment previews, with persisted settings and provider-aware mappings.
+- Refresh dynamic controls after project/source restoration; retain continuation guards.
+- Close optional-node local-edit reuse and prompt-provider redirect credential gaps; document actual installer behavior and preserve upstream MIT provenance.
+- Verify 589 Python tests (one platform skip), 285 JavaScript tests and focused real-API browser journeys. No new GPU rendering. [Release details](docs/RELEASE_2_9.md).
+
 ## 2.8.1 - 2026-11-03
 
 - Consolidate the README around current behavior; translate and rename guides in English and remove product translation controls. Unicode prompts remain supported.

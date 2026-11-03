@@ -67,7 +67,10 @@ def _update_source(project, policy='latest', before_update=None):
 
     accepted = {'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield',
                 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git',
-                'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
+                'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git',
+                    'git@github.com:underworldhistory1-ctrl/minimax-h3-interface.git'}
     if git('remote', 'get-url', 'origin') not in accepted or git('branch', '--show-current') != 'main':
         raise RuntimeError('Automatic updates require official origin and main; use --no-update for a custom checkout.')
     if git('status', '--porcelain', '--untracked-files=no'):

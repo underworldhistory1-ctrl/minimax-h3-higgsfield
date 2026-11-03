@@ -15,9 +15,25 @@ import os
 import re
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 
 DEFAULT_LLM_BASE = "http://127.0.0.1:8080"
+
+
+class _ProviderRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        before, after = urlparse(req.full_url), urlparse(newurl)
+        if after.scheme not in ("http", "https") or (before.scheme == "https" and after.scheme != "https"):
+            raise ValueError("Unsafe prompt provider redirect was blocked.")
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and (before.scheme, before.hostname, before.port) != (after.scheme, after.hostname, after.port):
+            redirected.remove_header("Authorization")
+        return redirected
+
+
+def _provider_open(request, timeout):
+    return urllib.request.build_opener(_ProviderRedirect()).open(request, timeout=timeout)
 SETTINGS_FILE = Path(__file__).with_name("settings.json")
 
 # Best first. The A4B is a 26B MoE with only 4B active, so it writes faster than
@@ -105,6 +121,8 @@ def studio_chat(messages, fields=None):
         raise ValueError("Invalid server-side H3_LLM_BASE.")
     headers = {"Content-Type": "application/json"}
     if os.environ.get("H3_LLM_API_KEY"):
+        if parsed.scheme != "https" and parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+            raise ValueError("H3_LLM_API_KEY requires HTTPS outside loopback.")
         headers["Authorization"] = "Bearer " + os.environ["H3_LLM_API_KEY"]
     payload = {"model": provider["model"], "messages": messages,
                "temperature": 0.2, "max_tokens": 6500,
@@ -119,13 +137,13 @@ def studio_chat(messages, fields=None):
     request = urllib.request.Request(base + "/v1/chat/completions", data=body, headers=headers)
     try:
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
+            with _provider_open(request, timeout=120) as response:
                 raw = response.read(1024 * 1024 + 1)
         finally:
             if os.environ.get("H3_LLM_ISOLATED") != "1":
                 release = urllib.request.Request(base + "/unload", headers=headers)
                 try:
-                    with urllib.request.urlopen(release, timeout=30) as response:
+                    with _provider_open(release, timeout=30) as response:
                         response.read(1024)
                 except OSError as error:
                     raise ValueError("Prompt model could not release its memory. Use a compatible /unload provider, or set H3_LLM_ISOLATED=1 only for separate hardware/CPU. No render was submitted.") from error
@@ -201,7 +219,7 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         if not re.fullmatch(r"[\w-]{1,32}", alias) or not re.fullmatch(r"<(?:Picture|Subject|Video|Audio) [1-9][0-9]*>", tag) or alias in alias_map:
             raise ValueError("Invalid or duplicate reference binding.")
         alias_map[alias] = tag
-        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "panel_order", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
+        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "panel_order", "subject_group", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
     def replace_alias(match):
         if match[1] not in alias_map:
             raise ValueError("Unknown reference mention: @" + match[1])
@@ -219,7 +237,7 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         "Do not invent observed actions, camera cuts, timings, dialogue or relationships absent from the supplied frames/brief. "
         "Video frames are sparse samples, not exhaustive observation. Do not claim frame-exact reconstruction. "
         "Audio has not been transcribed: do not infer words from mouths or images. Preserve exact supplied dialogue/language verbatim. "
-        "Use every connected reference with its exact native tag. Character subjects require a Picture relation in subject_definitions. "
+        "Use every connected reference with its exact native tag. Character subjects require a Picture relation in subject_definitions. References sharing subject_group are views of the same Subject; include every Picture relationship without splitting that identity. "
         "Custom references transfer only attributes expressly requested. No universal motion/sound retention. "
         "Preserve each reference card's explicit instruction and storyboard panel_order, including panel-to-shot mappings. "
         "For storyboards, use the panel order and mappings to guide shots and composition without rendering panel borders or labels. "

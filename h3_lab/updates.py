@@ -17,8 +17,9 @@ from urllib.request import Request, urlopen
 from aiohttp import web
 from .runtime_fingerprint import runtime_fingerprint
 
-OFFICIAL = 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield'
-ORIGINS = {OFFICIAL, OFFICIAL + '.git', 'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
+OFFICIAL = 'https://github.com/underworldhistory1-ctrl/minimax-h3-interface'
+LEGACY = 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield'
+ORIGINS = {LEGACY, LEGACY + '.git', 'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git', OFFICIAL, OFFICIAL + '.git', 'git@github.com:underworldhistory1-ctrl/minimax-h3-interface.git'}
 SHA = re.compile(r'^[0-9a-f]{40}$')
 
 
@@ -140,7 +141,7 @@ class UpdateService:
         try:
             source, receipt = self.source()
         except RuntimeError:
-            request = Request('https://api.github.com/repos/underworldhistory1-ctrl/minimax-h3-higgsfield/commits/main',
+            request = Request('https://api.github.com/repos/underworldhistory1-ctrl/minimax-h3-interface/commits/main',
                               headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'H3-Studio-Updater'})
             with urlopen(request, timeout=30) as response:
                 target = json.load(response)['sha']

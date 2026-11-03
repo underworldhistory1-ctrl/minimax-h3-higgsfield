@@ -52,7 +52,10 @@ def write_source_receipt(root):
     try:
         accepted = {'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield',
                     'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git',
-                    'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
+                    'git@github.com:underworldhistory1-ctrl/minimax-h3-higgsfield.git',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface',
+                    'https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git',
+                    'git@github.com:underworldhistory1-ctrl/minimax-h3-interface.git'}
         runtime = runtime_target(root).resolve()
         if (PROJECT.resolve() == runtime or git('remote', 'get-url', 'origin') not in accepted
                 or git('branch', '--show-current') != 'main'
@@ -425,6 +428,7 @@ def optional_nodes_ready(root, args):
         required.append(("Comfyui_Minimax_h3_latent_Upscaler", "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler.git", "40316cf008b2fd8663263270669eb4da23f89d2c"))
     if not args.no_controlnet:
         required.append(("comfyui_controlnet_aux", "https://github.com/Fannovel16/comfyui_controlnet_aux.git", "0cd290477128d42cdc3e76a826a402d866e8c684"))
+    integrity = import_module("deploy.node_integrity") if __package__ else import_module("node_integrity")
     for name, url, revision in required:
         path = root / "custom_nodes" / name
         if not (path / ".git").is_dir():
@@ -432,6 +436,10 @@ def optional_nodes_ready(root, args):
         head = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True)
         origin = subprocess.run(["git", "-C", str(path), "remote", "get-url", "origin"], capture_output=True, text=True)
         if head.returncode or head.stdout.strip() != revision or origin.stdout.strip() != url:
+            return False
+        try:
+            integrity.assert_node_integrity(path)
+        except (RuntimeError, OSError, subprocess.SubprocessError):
             return False
     return True
 

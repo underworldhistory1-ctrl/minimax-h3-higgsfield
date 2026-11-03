@@ -6,7 +6,7 @@ import re
 import subprocess
 import tempfile
 
-OFFICIAL_SOURCE = 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git'
+OFFICIAL_SOURCE = 'https://github.com/underworldhistory1-ctrl/minimax-h3-interface.git'
 
 
 def git(root, *args):
@@ -16,7 +16,7 @@ def git(root, *args):
 
 def validate_checkout(target):
     if (not (target / '.git').is_dir()
-            or git(target, 'remote', 'get-url', 'origin') != OFFICIAL_SOURCE
+            or git(target, 'remote', 'get-url', 'origin') not in {OFFICIAL_SOURCE, 'https://github.com/underworldhistory1-ctrl/minimax-h3-higgsfield.git'}
             or git(target, 'branch', '--show-current') != 'main'
             or git(target, 'status', '--porcelain', '--untracked-files=no')):
         raise RuntimeError('The persistent H3 source is unrecognized or customized; it was preserved. Review it or use --no-update for the original archive.')

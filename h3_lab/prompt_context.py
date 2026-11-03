@@ -60,6 +60,7 @@ class PromptContextService:
             raise ValueError('Select a supported H3 duration before preparation.')
         parts=[];bindings=[];hashes=[];aliases=set();pic=sub=vid=aud=0
         video_seconds=audio_seconds=0
+        character_groups={}
         for ref in sorted(refs,key=lambda r:('image','video','audio').index(r['kind'])):
             alias=ref.get('alias','')
             if not isinstance(alias,str) or not re.fullmatch(r'[\w-]{1,32}',alias) or alias in aliases:
@@ -75,14 +76,21 @@ class PromptContextService:
             with path.open('rb') as stream:
                 for chunk in iter(lambda:stream.read(1024*1024),b''): digest.update(chunk)
             hashes.append(digest.hexdigest())
-            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','panel_order','audio_transcript') if ref.get(k) is not None}
+            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','panel_order','audio_transcript','subject_group') if ref.get(k) is not None}
             role=str(ref.get('role','custom')).lower().strip()
+            group=ref.get('subject_group')
+            if group is not None and group != '' and (not isinstance(group,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',group) or ref['kind']!='image' or role!='character identity'):
+                raise ValueError('Invalid character group.')
             if ref['kind']=='image':
                 pic+=1;binding['picture_idx']=pic
                 if mode=='frames' or role in ('custom','storyboard'):
                     binding['tag']=f'<Picture {pic}>'
                 else:
-                    sub+=1;binding.update(tag=f'<Subject {sub}>',subject_idx=sub)
+                    if not group or group not in character_groups:
+                        sub+=1
+                        if group: character_groups[group]=sub
+                    subject=character_groups[group] if group else sub
+                    binding.update(tag=f'<Subject {subject}>',subject_idx=subject)
                 parts.append({'type':'text','text':f'<Picture {pic}> (@{alias}, {role})'})
                 parts.append(picture_part(path))
             elif ref['kind']=='video':

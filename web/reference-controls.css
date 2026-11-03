@@ -1,0 +1,5 @@
+.compact-ref .ref-source-player{display:block;width:100%;max-height:300px;margin:8px 0;background:#111;border-radius:8px}
+.compact-ref textarea.ref-additional-instruction{box-sizing:border-box;width:100%;resize:vertical;min-height:52px}
+.compact-ref .ref-policy-error{color:var(--bad);font-size:12px}
+.compact-ref .ref-segment-label,.compact-ref .ref-sizing{overflow-wrap:anywhere}
+.compact-ref .ref-subject-group{max-width:100%}
