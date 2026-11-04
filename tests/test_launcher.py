@@ -12,6 +12,16 @@ from deploy.worker_lifecycle import interpreter_identity
 
 
 class LauncherTests(unittest.TestCase):
+    def setUp(self):
+        # Coordinator tests isolate network preparation; test_matlow covers packs.
+        preparation = patch('deploy.matlow.prepare')
+        preparation.start()
+        self.addCleanup(preparation.stop)
+
+    def test_matlow_enabled_by_default_with_explicit_opt_out(self):
+        self.assertTrue(launcher.parser().parse_args([]).matlow)
+        self.assertFalse(launcher.parser().parse_args(['--no-matlow']).matlow)
+
     def test_attention_backend_defaults_and_explicit_commands(self):
         self.assertEqual(launcher.parser().parse_args([]).attention_backend, 'ck-int8')
         for backend, flag in [('pytorch', '--use-pytorch-cross-attention'), ('ck-int8', '--use-ck-attention')]:

@@ -22,7 +22,7 @@ Required compatibility values are automated. Arbitrary third-party adapters cann
 
 ## Installation
 
-Run the normal launcher once with Linux `./launcher.sh --matlow` or Windows `./launcher.ps1 -Matlow`, plus your ComfyUI path options. Recognized installs remain managed afterward. Setup waits for accepted work to drain, fetches pinned sources without demo videos and adds ten small Dial assets with notices. No extra Python dependencies are installed. Custom edits and conflicting assets are preserved.
+Run the normal launcher with your ComfyUI path options. MAINodes, Dials and the publisher library are prepared by default; recognized installs remain managed afterward. Setup waits for accepted work to drain, fetches pinned sources without demo videos and adds ten small Dial assets with notices. No extra Python dependencies are installed. Custom edits and conflicting assets are preserved. Advanced Linux installations can explicitly opt out with `--no-matlow`.
 
 | Component | Pinned revision |
 | --- | --- |

@@ -778,7 +778,7 @@ def parser():
     result.add_argument("--url", help="Current ComfyUI URL; credentials come from environment variables")
     result.add_argument("--turbo", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--checkpoint", choices=('singularity-int8', 'singularity-v2-int8'), help="Explicit opt-in to an optional 20.97 GB community checkpoint")
-    result.add_argument("--matlow", action="store_true", help="Prepare pinned MAINodes and Dials, including the small publisher dial library")
+    result.add_argument("--matlow", action=argparse.BooleanOptionalAction, default=True, help="Prepare pinned MAINodes and Dials with the publisher library (enabled by default)")
     result.add_argument("--hybrid", action="store_true", help="Prepare the pinned community hybrid loader (no new model downloads)")
     result.add_argument("--update-policy", choices=('latest','notify','verified'), default='latest', help="Automatically update official main (default), notify only, or apply manifest-approved commits")
     result.add_argument("--video-only", action="store_true", help="Omit Qwen Image weights")

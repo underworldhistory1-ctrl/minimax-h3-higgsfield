@@ -78,7 +78,7 @@ See the [upstream audit and orchestration assessment](docs/UPSTREAM_AND_ORCHESTR
 
 ## Optional Matlow tools
 
-Run Linux `./launcher.sh --matlow` or Windows `./launcher.ps1 -Matlow` once, with normal ComfyUI path options. The launcher installs reviewed pinned sources and small Dial files; recognized installs remain managed during later updates.
+The normal launcher prepares MAINodes, Dials and the publisher Dial library by default. It installs reviewed pinned sources and small Dial files; recognized installs remain managed during later updates. Advanced Linux installations can explicitly opt out with `--no-matlow`.
 
 - **ComfyUI-Dials:** motion/mood steering connected to Studio, project persistence and applicable model passes.
 - **ComfyUI-MAINodes:** installed as an independent optional backend pack. MotionLab and Contact Sheet are not integrated Studio controls. MotionLab adds a guided rerender and computation; it is not a general speed boost.
