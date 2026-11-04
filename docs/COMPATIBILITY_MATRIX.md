@@ -6,14 +6,14 @@ Pinned core: ComfyUI 0.43.0. Native CK INT8 attention is the default; `--attenti
 | --- | --- |
 | Original Text/Frames | FL2VA + ImageToVideo; optional first/last images and supported passes |
 | Original References | Ref2VA + ReferenceToVideo; named images, videos and audio |
-| Singularity v1.3 INT8 | Independent optional checkpoint; historical 209-frame 1024×576 Anime → Realism output passed full video/audio decode |
+| Singularity v1.3 / v2 INT8 | Independent community checkpoints. v1.3 has historical 209-frame Anime → Realism output/full-decode evidence; v2 has source/graph checks only, no new GPU render |
 | Hybrid conditioning | FL2VA with reference conditioning; experimental, GPU quality unverified here |
 | Hybrid loader | Optional pinned tensor-overlay loader; experimental, GPU quality unverified here |
 | Native | Default 20 steps, res_multistep/simple, CFG 1, denoise 1, shifts 12/3 |
 | Spectrum / MotionCache | Separate approximation methods, mutually exclusive and capability-gated |
 | Turbo v4 EMA | Original Text/Frames, 4–8 steps and dedicated sampler, no extra adapters/passes |
 | LightX2V 8-step | Original References Turbo route; historical 124-frame 864×480 video/audio output verified |
-| Pika Flex Turbo | Original, matching 4/8-step FL2VA/Ref2VA adapter; [required settings](PIKA_FLEX.md) |
+| Pika Flex Turbo | Original or exact Singularity v2 pruned INT8 in References, matching 2-step Draft / 4-step / 4-step Lite / 8-step HD FL2VA/Ref2VA adapter; [required settings](PIKA_FLEX.md) |
 | Dials | Installed motion/mood vectors after LoRAs before Sigma Shift, saved with the project |
 | MotionLab / Contact Sheet | Optional MAINodes backend tools; not integrated Studio controls |
 

@@ -229,3 +229,7 @@ With the default latest policy, a source ZIP promotes to a separate official Git
 A packaged archive includes its source commit and payload hashes. Modified packaged files or a revision not yet contained in official main block promotion instead of silently losing unpublished fixes. An unknown/customized persistent checkout is preserved and rejected. Read-only plan/status never clones source. --no-update explicitly runs the archive as a frozen/custom source; notify/verified policies do not implicitly promote archives to latest.
 
 A plain GitHub ZIP without build provenance is promoted only when its full tree matches an official ancestor among the latest 512 commits. Unknown or older unrecognized archives require a fresh checkout or explicit --no-update.
+
+## Optional community checkpoints
+
+Linux: append `--checkpoint singularity-v2-int8`; Windows: append `-Checkpoint singularity-v2-int8` to the normal launcher command. This adds the pinned 20,967,647,456-byte v2 pruned INT8 file only when explicitly requested; the older `singularity-int8` option still selects v1.3. Preflight reports uncached bytes. In Studio select Singularity, then the installed checkpoint. Pika Ref2VA variants support this exact v2 checkpoint in References. GPU quality and memory requirements remain unverified for the new combination.

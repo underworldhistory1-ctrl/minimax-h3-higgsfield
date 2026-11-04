@@ -3,6 +3,7 @@ import inspect
 from pathlib import Path
 
 SINGULARITY = {
+    'Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors': 20967647456,
     'Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors': 20967647456,
     'Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors': 34004507622,
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.0 - 2026-11-04
+
+- Add managed Pika Draft/Lite variants, Character Swap 1.5 and opt-in Singularity v2 pruned INT8, with checkpoint-aware automatic selection, matched sampling and version exclusivity. Keep existing weights and saved legacy choices.
+- Update pinned optional MAINodes/Dials sources; audit unchanged base/control/refine/Qwen files against publisher metadata.
+- Verify 593 Python tests (one platform skip), 295 JavaScript tests and local browser graph/persistence journeys; no new GPU rendering. [Release details](docs/RELEASE_2_10.md) · [Motion tools and local-agent assessment](docs/UPSTREAM_AND_ORCHESTRATION.md).
+
 ## 2.9.1 - 2026-11-03
 
 - Clear a prior Character group when the Character Swap shortcut changes the replacement image to Custom; keep its instruction and original-resolution override. This prevents a valid shortcut selection from failing prompt compilation.

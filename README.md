@@ -2,7 +2,7 @@
 
 **MiniMax H3 video with native audio. Qwen Image 2.1 creation and editing. One browser workspace on your own NVIDIA machine or GPU server.**
 
-Current software: **2.9.1** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
+Current software: **2.10.0** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
 
 [![Superman above Earth — watch with audio](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
@@ -50,7 +50,7 @@ Studio compiles the current setup into a connected ComfyUI graph. Shared fronten
 | Selection | Automatic behavior |
 | --- | --- |
 | Original | FL2VA for Text/Frames, Ref2VA for References |
-| Pika Flex Turbo | Matching installed 4/8-step FL2VA/Ref2VA adapter, Original/native path, required strength/sampler/shifts and compatible single pass |
+| Pika Flex Turbo | Matching installed 2-step Draft, 4-step/Lite or 8-step HD adapter, Original or supported Singularity v2 References/native path, required strength/sampler/shifts and compatible single pass |
 | Turbo | Text/Frames Turbo v4 or References LightX2V 8-step; matching mode/availability and required sampling contract |
 | LoRAs and Dials | Selected order/strengths reach the model chain and saved setup; refinement uses its declared strengths |
 | Control, Refine, audio and continuation | Capability checks, supported pass ordering and explicit rejection of conflicting combinations |
@@ -63,7 +63,7 @@ This is deterministic configuration coordination. It does not infer the training
 | Choice | Scope |
 | --- | --- |
 | Original quality | Default H3 INT8 ConvRot; 20 steps, res_multistep/simple, CFG 1, native audio |
-| Singularity v1.3 INT8 | Optional independent checkpoint; historical output evidence is limited to tested setups |
+| Singularity v1.3 / v2 INT8 | Explicit optional checkpoints; v2 has no new GPU evidence here; v1.3 historical evidence is limited to tested setups |
 | Hybrid conditioning / Hybrid loader | Two distinct experimental routes; completed GPU output quality remains unverified here |
 | Spectrum / MotionCache | Separate optional approximation methods, selected one at a time |
 | Qwen Image 2.1 | INT8 installed by default; BF16 optional, separate image workspace |
@@ -73,6 +73,8 @@ This is deterministic configuration coordination. It does not infer the training
 Attention, model precision and render acceleration are separate. A historical matched RTX 5090 Ref2VA workload took **9m43s with CK INT8 versus 20m01s with PyTorch Flash** at 1024×576, 362 frames, 20 steps and identical inputs. This is one measurement on an earlier runtime; quantized attention can change the result. [Measured settings and boundaries](docs/LAUNCHER.md#attention-selection-and-supervised-workers).
 
 Native detail **1344×768** is the recommended upper starting canvas. Larger direct-generation choices are experimental and can change the shot even with the same seed. For an approved take, use **Upscale same take**; it preserves frames/audio but does not invent detail. [Resolution behavior](docs/RESOLUTION_AND_SAME_TAKE.md).
+
+See the [upstream audit and orchestration assessment](docs/UPSTREAM_AND_ORCHESTRATION.md) for current additions, practical motion tools and local-agent boundaries.
 
 ## Optional Matlow tools
 
@@ -95,7 +97,7 @@ Generations/Favorites use the selected scope, offer direct downloads and search 
 
 The launcher follows official main by default, verifies provenance/ancestry, preserves local edits and waits for accepted work, preparation and exports before replacing runtime. Supported code-only updates are available through **Updates**; environment changes need the full launcher. Restart when idle after installing code. Never interrupt an active render. [Upgrade/rollback](docs/V2_UPGRADE.md) · [Safe uninstall](docs/UNINSTALL.md).
 
-Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 589 Python tests (one platform skip), 286 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_9_1.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
+Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 593 Python tests (one platform skip), 295 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_10.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
 
 Read-only server validation: `python deploy/verify_h3_server.py --url COMFY_URL`. Readiness is not a visual-quality certificate. Models need substantial disk and host RAM as well as VRAM. Completed sampler latents support tracked decode recovery, not mid-sampling resume. Optional AI prompt preparation requires a configured provider; otherwise Automatic formats locally.
 

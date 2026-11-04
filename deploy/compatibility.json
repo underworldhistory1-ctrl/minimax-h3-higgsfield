@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "audit_date": "2026-11-03",
+  "audit_date": "2026-11-04",
   "source_update_policy": "latest",
   "approved_source_commits": [],
   "comfyui_commit": "426f5eea52a7ece1dd599fff4cb6cd1f352ddd24",
@@ -16,13 +16,13 @@
     "mainodes": {
       "directory": "ComfyUI-MAINodes",
       "repository": "https://github.com/matlowai/ComfyUI-MAINodes.git",
-      "commit": "069d7d6ca7a006dac3f9e264bca8ea9fa41aa08b",
+      "commit": "1880dfcc231c15179507d2b4d78b9a59bea229b1",
       "status": "source_audited_gpu_untested"
     },
     "dials": {
       "directory": "ComfyUI-Dials",
       "repository": "https://github.com/matlowai/ComfyUI-Dials.git",
-      "commit": "3fe5159cad2dbcf62a61dce21696855c9f2795d7",
+      "commit": "7dd0b7e3513eb60915833eecfc6e547f3976762f",
       "status": "source_audited_gpu_untested"
     }
   },
@@ -34,6 +34,14 @@
       "size": 20967647456,
       "sha256": "412a7b126595a958964193f3b42513d7cf2df4196ef04223a0f05e3622949cce",
       "status": "gpu_render_and_full_file_decode_verified"
+    },
+    "singularity-v2-int8": {
+      "repository": "WarmBloodAban/Minimax-h3_Singularity",
+      "revision": "1259cf16cd0b655ba691a32fb46a409142762972",
+      "filename": "Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors",
+      "size": 20967647456,
+      "sha256": "d7637c2c35cd30facd9e93778c491f6d82f91c4a441aecbdb4c384a62a5f3d9f",
+      "status": "publisher_released_source_contract_tested_gpu_untested"
     }
   },
   "retired": [
@@ -41,7 +49,7 @@
     "lightx2v"
   ],
   "gpu_evidence": "RTX 5090, PyTorch 2.9.1+cu130: native CUDA INT8 linear passed. Original Ref2VA INT8 + CombatV2 strength1: 362 frames 1024x576, 24fps, stereo audio, full file decode passed (20m01). Singularity INT8 + Anime2Realism strength1 with references/guides: 209 frames 1024x576, 24fps stereo, full file decode passed (22m36). These establish technical execution for those profiles, not perceptual quality or all optional accelerators. A matched fresh-worker Original test with native CK INT8 attention completed all 20 steps and full video/audio decode in 582.94 s versus 1201.28 s for PyTorch Flash at identical 1024x576, 362 frames, 20 steps, seed42 and references. Frame spot checks are not perceptual equivalence; supervised idle-worker restart retained native CUDA and selected attention.",
-  "project_version": "2.9.1",
+  "project_version": "2.10.0",
   "audio_enhancement": {
     "upstream": "https://github.com/Adudeguyman/ComfyUI-H3-AudioRefine",
     "source_commit": "d78d34f2f1100b0422047e9d784a3bdb4e1061d3",

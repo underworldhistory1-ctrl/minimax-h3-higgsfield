@@ -10,7 +10,7 @@ class PikaTests(unittest.TestCase):
         spec={'model_profile':'original','mode':'refs' if family=='ref2va' else 'text','render_method':'native','steps':steps,'sampling':sampling,'loras':[{'name':name,'enabled':True,'strength':1}], 'references':[{'kind':'image','alias':'hero'}]}
         script="const s=JSON.parse(process.argv[1]);s.workflow=require('./web/h3/graph-builder').buildGraph(s,{hero:'hero.png'},{sampling_options:{samplers:['euler'],schedulers:['simple'],weight_dtypes:['default']}});console.log(JSON.stringify(s));"
         return json.loads(subprocess.check_output(['node','-e',script,json.dumps(spec)],text=True))
-    def test_all_four_native_adapters(self):
+    def test_all_managed_native_adapters(self):
         for name,(steps,family) in PIKA.items():
             with self.subTest(name=name):validate_configuration(self.spec(name,steps,family),{})
     def test_mismatched_and_hidden_graph_changes_rejected(self):

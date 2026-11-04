@@ -28,6 +28,6 @@ Optional Matlow packs use Linux `--matlow` or Windows `-Matlow` once. Dials are 
 
 The launcher follows official main by default, preserves local edits and waits for accepted work, preparation and exports before changing runtime. Never restart an active render. The Updates panel installs supported code changes; environment changes require the full launcher and installed code requires a restart.
 
-Run `python deploy/verify_h3_server.py --url COMFY_URL` for read-only checks. Source tests, API readiness and GPU outputs are separate evidence. Current 2.9 changes have no new GPU render; dated GPU reports describe earlier tested workloads only.
+Run `python deploy/verify_h3_server.py --url COMFY_URL` for read-only checks. Source tests, API readiness and GPU outputs are separate evidence. Current 2.10 changes have no new GPU render; dated GPU reports describe earlier tested workloads only.
 
 Back up projects, input/output and continuation contexts before important updates. Completed sampler latents support tracked decode recovery, not mid-sampling resume. [Upgrade](docs/V2_UPGRADE.md) · [Documentation](docs/README.md) · [Changelog](CHANGELOG.md).

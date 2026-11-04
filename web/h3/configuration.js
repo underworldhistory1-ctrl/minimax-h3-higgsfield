@@ -15,15 +15,22 @@
     if(spec.mode!=='refs')throw Error('Anime → Realism requires Ref2VA reference conditioning.');
     if(!(spec.references||[]).some(r=>r.kind==='video'))throw Error('Anime → Realism requires a source video in References.');
   }
-  function isCharacterSwap(name){return String(name||'').split(/[\\/]/).pop().toLowerCase()===CHARACTER_SWAP;}
+  function isCharacterSwap(name){return [CHARACTER_SWAP,'h3_character_swap_v1.5.safetensors'].includes(String(name||'').split(/[\\/]/).pop().toLowerCase());}
+  function preferredCharacterSwap(loras){const matches=loras.filter(x=>isCharacterSwap(x.name));return matches.find(x=>x.enabled)||matches.find(x=>String(x.name).endsWith('h3_character_swap_v1.5.safetensors'))||matches[0];}
   function validateCharacterSwap(spec){
+    if((spec.loras||[]).filter(x=>x.enabled&&isCharacterSwap(x.name)).length>1)throw Error('Choose one Character Swap version.');
     if(!(spec.loras||[]).some(x=>x.enabled&&isCharacterSwap(x.name)))return;
     if(spec.mode!=='refs')throw Error('Character Swap requires Ref2VA reference conditioning.');
     const refs=spec.references||[];
     if(!refs.some(r=>r.kind==='video')||!refs.some(r=>r.kind==='image'))throw Error('Character Swap requires a source video and replacement character image in References.');
   }
-  const PIKA=Object.freeze(Object.fromEntries([4,8].flatMap(steps=>['fl2va','ref2va'].map(family=>[`pika_h3_flex_turbo_${steps}step${steps===8?'_hd':''}_${family}.safetensors`,{steps,family}]))));
+  const PIKA=Object.freeze(Object.fromEntries([
+    ...[4,8].flatMap(steps=>['fl2va','ref2va'].map(family=>[`pika_h3_flex_turbo_${steps}step${steps===8?'_hd':''}_${family}.safetensors`,{steps,family,variant:steps===8?'hd':'full'}])),
+    ...['fl2va','ref2va'].map(family=>[`pika_h3_flex_turbo_4step_${family}_lite_r32.safetensors`,{steps:4,family,variant:'lite'}]),
+    ['pika_h3_flex_turbo_2step_draft_ref2va.safetensors',{steps:2,family:'ref2va',variant:'draft'}]
+  ]));
   function pikaVariant(name){return PIKA[name]||null;}
+  function pikaProfileCompatible(spec){return (spec.model_profile||'original')==='original'||(spec.model_profile==='singularity'&&spec.mode==='refs'&&String(spec.checkpoint||'').split(/[\\/]/).pop()==='Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors');}
   function pikaSampling(variant){return {sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};}
   // Interactive transitions apply prerequisites. Restoring saved work never rewrites intent.
   function normalizeSelection(spec,action,caps={}){
@@ -33,9 +40,9 @@
     if(action==='continuation'&&s.continuation){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;if(['turbo','turbo_ref'].includes(s.render_method)){s.render_method='native';s.steps=20;}s.enable_refine=false;s.refine=false;s.control={...s.control,enabled:false};}
     if(action==='mode'&&pika){
       const variant=pikaVariant(pika.name),family=s.mode==='refs'?'ref2va':'fl2va';
-      if(variant.family!==family){const name=Object.keys(PIKA).find(n=>PIKA[n].steps===variant.steps&&PIKA[n].family===family),other=s.loras.find(x=>x.name===name);pika.enabled=false;if(other){other.enabled=true;pika=other;}else pika=null;}
+      if(variant.family!==family){const name=Object.keys(PIKA).find(n=>PIKA[n].steps===variant.steps&&PIKA[n].variant===variant.variant&&PIKA[n].family===family),other=s.loras.find(x=>x.name===name);pika.enabled=false;if(other){other.enabled=true;pika=other;}else pika=null;}
     }
-    if(action==='profile'&&s.model_profile!=='original'){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;}
+    if(action==='profile'&&!pikaProfileCompatible(s)){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;}
     if(action==='method'&&s.render_method!=='native'){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;}
     if(['mode','profile'].includes(action)&&['turbo','turbo_ref'].includes(s.render_method)){
       const matching=s.mode==='refs'?'turbo_ref':'turbo';
@@ -43,7 +50,7 @@
       s.steps=s.render_method==='turbo_ref'?8:s.render_method==='turbo'?6:20;
     }
     if(pika){
-      const variant=pikaVariant(pika.name);s.model_profile='original';s.render_method='native';s.steps=variant.steps;
+      const variant=pikaVariant(pika.name);if(!pikaProfileCompatible(s))s.model_profile='original';s.render_method='native';s.steps=variant.steps;
       s.sampling={...s.sampling,...pikaSampling(variant)};pika.strength=1;
       for(const l of s.loras)if(l!==pika)l.enabled=false;
     }
@@ -68,7 +75,7 @@
     if(!selected.length)return null;
     const lora=selected[0], variant=pikaVariant(lora.name);
     if(active.length!==1||Number(lora.strength??1)!==1)throw Error('Pika Flex requires one adapter at strength 1.');
-    if((spec.model_profile||'original')!=='original'||(spec.render_method||'native')!=='native'||variant.family!==(spec.mode==='refs'?'ref2va':'fl2va'))throw Error('Pika Flex requires Original quality and the matching FL2VA or Ref2VA adapter.');
+    if(!pikaProfileCompatible(spec)||(spec.render_method||'native')!=='native'||variant.family!==(spec.mode==='refs'?'ref2va':'fl2va'))throw Error('Pika Flex requires Original or supported Singularity v2 References with the matching adapter.');
     if(Number(spec.steps)!==variant.steps)throw Error('Pika Flex requires '+variant.steps+' steps.');
     if(spec.enable_refine||spec.refine||spec.control?.enabled||spec.continuation||spec.audio_refinement?.enabled)throw Error('Pika Flex requires a single pass without refinement, ControlNet or continuation.');
     const required={sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};
@@ -138,5 +145,5 @@
     }
     return node;
   }
-  return {PIKA,pikaVariant,pikaSampling,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {PIKA,pikaVariant,pikaSampling,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,preferredCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

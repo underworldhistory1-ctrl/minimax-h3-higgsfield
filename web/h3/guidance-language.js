@@ -94,7 +94,7 @@
     "en": "Connect ComfyUI to load installed LoRAs."
   },
   "videoHelp16": {
-    "en": "Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. Character Swap requires Original Ref2VA with a source video and replacement image. Turbo is optional in Render method; choose the version matching Text/Frames or References."
+    "en": "Realism People supports all three modes; start prompts with r34l1sm. Combat V2 can also be selected in References, but its creator tested FL2VA only, so Ref2VA results are experimental. Both are optional and off by default. Character Swap requires References with a source video and replacement image; select one version. Turbo is optional in Render method; choose the version matching Text/Frames or References."
   },
   "videoHelp17": {
     "en": "Choose the canvas used to generate a new shot. Native detail is the recommended upper baseline."

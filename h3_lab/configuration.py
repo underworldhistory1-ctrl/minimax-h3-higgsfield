@@ -3,6 +3,7 @@ FL = 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'
 REF = 'minimax_h3_ref2va_pruned_int8_convrot.safetensors'
 
 CHARACTER_SWAP = 'h3_character_swap_pro4500_1000.safetensors'
+CHARACTER_SWAPS = (CHARACTER_SWAP, 'h3_character_swap_v1.5.safetensors')
 ANIME_TO_REALISM = 'Anime2Realsim__H3.safetensors'
 
 
@@ -135,13 +136,21 @@ def _validate_ref2va_adapter(spec, filename, label, replacement_image):
 
 
 def validate_character_swap(spec):
-    _validate_ref2va_adapter(spec, CHARACTER_SWAP, 'Character Swap', True)
+    names = [x.get('name', '') for x in spec.get('loras', []) if isinstance(x, dict) and x.get('enabled')]
+    names += [x.get('inputs', {}).get('lora_name', '') for x in spec.get('workflow', {}).values()]
+    versions = {name.replace('\\', '/').rsplit('/', 1)[-1].lower() for name in names if isinstance(name, str)}.intersection(CHARACTER_SWAPS)
+    if len(versions) > 1:
+        raise ValueError('Choose one Character Swap version')
+    for filename in CHARACTER_SWAPS:
+        _validate_ref2va_adapter(spec, filename, 'Character Swap', True)
 
 def validate_anime_to_realism(spec):
     _validate_ref2va_adapter(spec, ANIME_TO_REALISM, 'Anime → Realism', False)
 
 PIKA = {f"pika_h3_flex_turbo_{steps}step{'_hd' if steps == 8 else ''}_{family}.safetensors": (steps, family)
         for steps in (4, 8) for family in ('fl2va', 'ref2va')}
+PIKA.update({f'pika_h3_flex_turbo_4step_{family}_lite_r32.safetensors': (4, family) for family in ('fl2va', 'ref2va')})
+PIKA['pika_h3_flex_turbo_2step_draft_ref2va.safetensors'] = (2, 'ref2va')
 
 
 def _before_dials(graph, link):
@@ -162,8 +171,9 @@ def validate_pika(spec):
     if len(nodes) != 1 or len(selected) != 1 or len(active) != 1 or 'model_profile' not in spec:
         raise ValueError('Pika Flex requires one explicit adapter and configuration contract')
     key, node = nodes[0]; lora = selected[0]; name = lora['name']; steps, family = PIKA[name]
-    if spec['model_profile'] != 'original' or spec.get('render_method', 'native') != 'native' or family != ('ref2va' if spec.get('mode') == 'refs' else 'fl2va'):
-        raise ValueError('Pika Flex requires Original quality and its matching transformer')
+    supported_profile = spec['model_profile'] == 'original' or (spec['model_profile'] == 'singularity' and spec.get('mode') == 'refs' and str(spec.get('checkpoint', '')).replace('\\', '/').rsplit('/', 1)[-1] == 'Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors')
+    if not supported_profile or spec.get('render_method', 'native') != 'native' or family != ('ref2va' if spec.get('mode') == 'refs' else 'fl2va'):
+        raise ValueError('Pika Flex requires Original or supported Singularity v2 References and its matching transformer')
     if lora.get('strength', 1) != 1 or node.get('class_type') != 'LoraLoaderModelOnly' or node.get('inputs') != {'model': ['1', 0], 'lora_name': name, 'strength_model': 1}:
         raise ValueError('Pika Flex adapter wiring or strength disagrees')
     if any(spec.get(k) for k in ('enable_refine', 'refine', 'continuation')) or (spec.get('control') or {}).get('enabled') or (spec.get('audio_refinement') or {}).get('enabled'):
@@ -176,7 +186,7 @@ def validate_pika(spec):
         raise ValueError('Pika Flex decode must follow the approved single sampler')
     required = {'sampler_name': 'euler', 'scheduler': 'simple', 'cfg': 1, 'denoise': 1, 'shift_video': 12 if family == 'ref2va' else 6, 'shift_audio': 3}
     if spec.get('steps') != steps or graph.get('8', {}).get('inputs', {}).get('steps') != steps:
-        raise ValueError('Pika Flex requires the matching 4 or 8 step count')
+        raise ValueError('Pika Flex requires the matching 2, 4 or 8 step count')
     for field, value in required.items():
         target = '2' if field.startswith('shift_') else '8'
         if (spec.get('sampling') or {}).get(field) != value or graph.get(target, {}).get('inputs', {}).get(field) != value:

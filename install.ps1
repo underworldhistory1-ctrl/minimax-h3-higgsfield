@@ -16,6 +16,7 @@ param(
     [string[]]$ModelsRoot = @(),
     [switch]$Turbo,
     [switch]$Matlow,
+    [ValidateSet("singularity-int8", "singularity-v2-int8")][string]$Checkpoint = "",
     [switch]$SkipControlNet,
     [switch]$VideoOnly,
     [switch]$SkipSmoke,
@@ -94,6 +95,7 @@ if ($QwenImageProfiles) { $arguments += @("--qwen-image-profiles", $QwenImagePro
 foreach ($storagePath in $ModelsRoot) { $arguments += @("--models-root", $storagePath) }
 if ($Turbo) { $arguments += "--turbo" }
 if ($Matlow) { $arguments += "--matlow" }
+if ($Checkpoint) { $arguments += @("--checkpoint", $Checkpoint) }
 if ($SkipControlNet) { $arguments += "--no-controlnet" }
 if ($VideoOnly) { $arguments += "--video-only" }
 if ($SkipSmoke) { $arguments += "--skip-smoke" }

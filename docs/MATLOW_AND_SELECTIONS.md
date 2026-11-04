@@ -4,7 +4,7 @@ Studio builds the workflow from current controls; users do not choose a workflow
 
 ## Automatic transitions
 
-- Pika selects Original, Native, matching 4/8 steps, Euler/simple, CFG 1, denoise 1, video shift 6 for FL2VA or 12 for Ref2VA, audio shift 3 and strength 1. Conflicting adapters and extra passes are disabled. Mode changes select the corresponding installed family. Leaving Pika restores the prior setup under the new selection's restrictions.
+- Pika selects Original (or retains explicitly selected Singularity v2 in References), Native, matching 2/4/8 steps, Euler/simple, CFG 1, denoise 1, video shift 6 for FL2VA or 12 for Ref2VA, audio shift 3 and strength 1. Conflicting adapters and extra passes are disabled. Mode changes select the corresponding installed family and preserve Lite versus full; Draft has no FL2VA counterpart and is disabled when leaving References. Leaving Pika restores the prior setup under the new selection's restrictions.
 - Turbo switches between Text/Frames Turbo v4 and References LightX2V 8-step when available. Unsupported profiles return to Native. Managed methods apply their required sampling settings.
 - Saved projects restore atomically. Unsupported saved combinations remain visible and block submission; restore does not silently replace the saved model or delete inputs.
 - Continuation selects a compatible Native path. ControlNet cannot currently combine with continuation, image refinement or audio enhancement. Invalid saved controls remain removable.
@@ -26,8 +26,8 @@ Run the normal launcher once with Linux `./launcher.sh --matlow` or Windows `./l
 
 | Component | Pinned revision |
 | --- | --- |
-| MAINodes v1.2.1 | `069d7d6ca7a006dac3f9e264bca8ea9fa41aa08b` |
-| Dials | `3fe5159cad2dbcf62a61dce21696855c9f2795d7` |
+| MAINodes v1.2.2 | `1880dfcc231c15179507d2b4d78b9a59bea229b1` |
+| Dials | `7dd0b7e3513eb60915833eecfc6e547f3976762f` |
 
 External GPL/AGPL source and model notices remain with the independent packages; their implementation was not copied into Studio's MIT code. Dependency changes require a reviewed pin. A Dial is available only with its node and file; missing saved assets block submission visibly.
 

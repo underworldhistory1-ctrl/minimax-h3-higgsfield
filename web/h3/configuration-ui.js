@@ -15,7 +15,7 @@
   $('prepareSwap').onclick=()=>{
     if(state.busy)return;
     const videos=state.refs.filter(r=>r.kind==='video'),images=state.refs.filter(r=>r.kind==='image');
-    const adapter=state.loras.find(x=>H3Configuration.isCharacterSwap(x.name));
+    const adapter=H3Configuration.preferredCharacterSwap(state.loras);
     const target=$('swapTarget').value.trim();
     if(!adapter){info('Character Swap is not installed. Run the updated launcher to prepare the verified adapter.',true);return;}
     if(videos.length!==1||images.length!==1||state.refs.length!==2||!target){info('Use exactly one source video and one replacement image for this preset, and identify the person to replace. Extra references remain attached; remove them or configure the prompt manually.',true);return;}
