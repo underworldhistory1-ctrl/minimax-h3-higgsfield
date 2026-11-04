@@ -62,6 +62,7 @@ class PromptContextService:
         video_seconds=audio_seconds=0
         character_groups={}
         group_roles={}
+        storyboard_modes={}
         for ref in sorted(refs,key=lambda r:('image','video','audio').index(r['kind'])):
             alias=ref.get('alias','')
             if not isinstance(alias,str) or not re.fullmatch(r'[\w-]{1,32}',alias) or alias.lower() in aliases:
@@ -84,6 +85,13 @@ class PromptContextService:
             if role=='storyboard':
                 binding['storyboard_mode']=ref.get('storyboard_mode') or 'auto'
                 if ref.get('panel_order'):binding['panel_order']=ref['panel_order']
+            sequence=ref.get('storyboard_group')
+            if sequence is not None and sequence != '':
+                if role!='storyboard' or ref['kind']!='image' or not isinstance(sequence,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',sequence):raise ValueError('Invalid storyboard sequence group.')
+                sequence_mode=binding['storyboard_mode']
+                if sequence in storyboard_modes and storyboard_modes[sequence]!=sequence_mode:raise ValueError('Storyboard sequence views must use the same sequence structure.')
+                storyboard_modes[sequence]=sequence_mode;binding['storyboard_group']=sequence
+                binding['storyboard_index']=1+sum(b.get('storyboard_group')==sequence for b in bindings)
             group=ref.get('subject_group')
             if group is not None and group != '':
                 if not isinstance(group,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',group) or ref['kind']!='image' or role not in ('character identity','location','object','visual style'):

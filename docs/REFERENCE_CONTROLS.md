@@ -1,5 +1,9 @@
 # Reference controls
 
+Use the grip beside a card or group to drag it. Alt + arrow keys and the existing arrow buttons provide alternatives. Numeric Picture/Subject/Video/Audio tags in the prompt and card instructions follow the same source after reorder; aliases stay unchanged. Qwen's numeric image tags follow image order too. Timed-guide card order can be changed without changing its explicit timestamps.
+
+**Customize layout** controls section/stage order and visibility independently for the video and image pages. Sections can move between video stages. Hiding preserves active settings; mode and capability availability continue to apply. Reset restores the default arrangement without clearing generation values. Preferences are local to the current browser/origin, not part of a shared project.
+
 Reference mode supports the model's native image, video and audio slots. Roles and instructions compile into its structured prompt; they do not invent unsupported per-reference attention-strength inputs.
 
 - Choose One character, One environment, One element or One style before uploading alternate views together. They appear in one group with side-by-side previews. Separate references remains the default: different people or places are not merged automatically.

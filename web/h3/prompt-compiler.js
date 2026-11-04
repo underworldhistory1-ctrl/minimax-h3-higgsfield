@@ -143,6 +143,14 @@
     return result;
   }
 
+  function ownsSubjectNumbering(text, references = []) {
+    const canonical = normalizeNativeReferenceTags(normalizeReferenceMentions(text, references));
+    const normalized = inputAdapter.normalize(canonical);
+    const sections = normalized.opaque ? null : normalized.sections || parseStructuredSections(normalized.text, true);
+    const definitions = resolveSubjectDefinitionPictures(sections?.subject_definitions || '', references);
+    return [...subjectPictureRelations(definitions).values()].some(pictures => pictures.length);
+  }
+
   function resolveSubjectDefinitionPictures(definitions, references) {
     const pictures=new Map(references.filter(ref=>ref.kind==='image').map((ref,i)=>[ref.alias,i+1]));
     let result=definitions;
@@ -374,9 +382,14 @@
     if (mode === 'refs') {
       const rawRefs = refs.map(ref=>({...ref,instruction:normalize(ref.instruction || '')}));
       const groupRoles = new Map();
+      const storyboardModes = new Map();
       for (const ref of rawRefs) {
         if(ref.role==='storyboard' && ref.storyboard_mode!=null && !['auto','continuous','cuts'].includes(ref.storyboard_mode))
           throw Error('@'+ref.alias+': select a valid storyboard sequence mode.');
+        if(ref.storyboard_group!=null&&ref.storyboard_group!==''){
+          if(ref.kind!=='image'||ref.role!=='storyboard'||typeof ref.storyboard_group!=='string'||!/^[A-Za-z0-9_-]{1,64}$/.test(ref.storyboard_group))throw Error('@'+ref.alias+': invalid storyboard sequence group.');
+          const mode=ref.storyboard_mode??'auto';if(storyboardModes.has(ref.storyboard_group)&&storyboardModes.get(ref.storyboard_group)!==mode)throw Error('Storyboard sequence views must use the same sequence structure. Select it again on any sequence member.');storyboardModes.set(ref.storyboard_group,mode);
+        }
         if (ref.subject_group == null || ref.subject_group === '') continue;
         const role = (ref.role || '').toLowerCase().trim();
         if (typeof ref.subject_group !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(ref.subject_group) || ref.kind !== 'image' || !['character identity','location','object','visual style'].includes(role))
@@ -437,6 +450,7 @@
           ...(ref.subject_group ? {subject_group: ref.subject_group} : {}),
           ...(role==='storyboard' && ref.panel_order ? {panel_order: ref.panel_order} : {}),
           ...(role==='storyboard' ? {storyboard_mode:ref.storyboard_mode||'auto'} : {}),
+          ...(role==='storyboard' && ref.storyboard_group ? {storyboard_group:ref.storyboard_group} : {}),
         };
 
         if (ref.kind === 'image') {
@@ -450,7 +464,8 @@
           } else if (role === 'storyboard') {
             tag = picTag;
             bindingInfo.tag = tag;
-            mediaNotes.push(`${picTag} is a multi-panel storyboard. Use the panel/shot order described in the prompt as a shot and composition guide; do not render panel borders or labels. Follow explicit shot descriptions when they differ.`);
+            if(ref.storyboard_group)bindingInfo.storyboard_index=1+bindings.filter(b=>b.storyboard_group===ref.storyboard_group).length;
+            mediaNotes.push(ref.storyboard_group?`${picTag} is an individual image in an ordered storyboard reference sequence. Use its framing, staging and action only; use separately supplied character/environment/style references and the written prompt for final identity and appearance. This is not a timed keyframe or an exact output frame.`:`${picTag} is a multi-panel storyboard. Use the panel/shot order described in the prompt as a shot and composition guide; do not render panel borders or labels. Use separately supplied character/style references and the written prompt for final appearance. Follow explicit shot descriptions when they differ.`);
             if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
             if(ref.storyboard_mode==='continuous')mediaNotes.push(`${picTag}: all panels are successive beats within one continuous take, not separate shots. Keep a continuous camera trajectory without cuts or transitions. Follow explicit shot descriptions when they differ.`);
             if(ref.storyboard_mode==='cuts')mediaNotes.push(`${picTag}: panels guide separate shots with cuts only where the prompt or panel-to-shot map specifies them; do not invent one cut per panel.`);
@@ -550,6 +565,10 @@
       }
 
       for (const {tag,role,pictures} of automaticSubjects.values()) definitions.push(`${tag} is the ${role} shown in ${pictures.join(' and ')}. These pictures show the same subject. Keep its visible defining details.`);
+      for(const group of storyboardModes.keys()){
+        const frames=bindings.filter(b=>b.storyboard_group===group).map(b=>b.tag);
+        mediaNotes.push(`${frames.join(' → ')} form one storyboard sequence in this reference order. Treat them as successive visual beats, not a collage in the generated video. Do not copy drawn/previs identities or style unless explicitly requested. Only explicit timed guides add frame anchors.`);
+      }
 
       if (subjectNumberingAdjusted) warnings.push('Attached images matched to the subject definitions in your prompt.');
 
@@ -558,6 +577,7 @@
       const missing = bindings.filter(binding => {
         const pattern = new RegExp('@' + binding.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u');
         if (pattern.test(source)) return false;
+        if(binding.storyboard_group&&(!originalSections||supplementGuidedCards)&&bindings.some(other=>other.storyboard_group===binding.storyboard_group&&(source.includes(other.tag)||new RegExp('@'+other.alias+'(?=$|[^\\p{L}\\p{N}_-])','u').test(source))))return false;
         if (binding.subject_group && binding.subject_idx && bindings.some(other => other.subject_group === binding.subject_group && other.subject_idx === binding.subject_idx && new RegExp('@' + other.alias + '(?=$|[^\\p{L}\\p{N}_-])', 'u').test(source))) return false;
         if ((!nativeSections || supplementGuidedCards) && binding.role==='custom' && binding.instruction.trim()) return false;
         const tags = [binding.tag];
@@ -678,6 +698,7 @@
     mentionName,
     normalizeReferenceMentions,
     normalizeNativeReferenceTags,
+    ownsSubjectNumbering,
     compilePrompt,
     adapterTriggerWords,
     referenceVideoSpan,

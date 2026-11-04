@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.13.0 - 2026-11-04
+
+- Add ordered storyboard image groups alongside single-sheet boards. Guided compilation includes each group member, keeps final character/style references separate and does not create implicit frame anchors. Sequence metadata survives preparation, save/reload and recorded settings.
+- Add personal video/image workspace layouts: drag sections and stages, move sections across stages, hide/show and reset. Browser preferences affect presentation; hidden settings stay active and capability checks remain in force.
+- Add offline mouse/touch drag handles plus keyboard/button alternatives for references, reference groups, Qwen images and timed guides. Native numeric tags follow their source when reordered; explicit subject definitions retain authority and guide times remain unchanged.
+- Vendor pinned MIT SortableJS 1.15.7 with license and SHA-256 receipts. No model/runtime pins change.
+- Validate with 596 Python tests (one platform skip), 314 JavaScript tests, independent reviews and real local browser/API journeys with simulated inference. No new GPU rendering or universal quality/physics guarantee.
+
+
 ## 2.12.0 - 2026-11-04
 
 - Add an optional Spatial plan image role with Picture bindings and planning-only guidance. Keep maps distinct from visible subjects, first/last frames and timed guides; no automatic trajectory-control claim.

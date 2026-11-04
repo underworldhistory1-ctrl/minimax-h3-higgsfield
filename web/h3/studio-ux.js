@@ -68,6 +68,7 @@
     container.append(list);
   }
   function revealControl(node){
+    root.H3WorkspaceLayout?.reveal(node);
     for(let parent=node?.parentElement;parent;parent=parent.parentElement)
       if(parent.tagName==='DETAILS'&&!parent.querySelector(':scope > summary')?.contains(node))parent.open=true;
   }
@@ -94,7 +95,7 @@
     function details(id,title,description,open,className){const d=document.createElement('details');d.id='fold-'+id;d.className=className;d.open=saved(d.id,open);const s=document.createElement('summary'),t=document.createElement('strong');t.textContent=title;s.append(t);if(description){const hint=document.createElement('span');hint.textContent=description;s.append(hint);}d.append(s);remember(d);return d;}
     for(const [id,title,description,open,items] of groups){
       const stage=details(id,title,description,open,'workspace-stage');
-      const jump=document.createElement('button');jump.type='button';jump.textContent=title;jump.onclick=()=>{stage.open=true;stage.scrollIntoView({block:'start'});stage.querySelector('summary').focus();};nav.append(jump);
+      const jump=document.createElement('button');jump.type='button';jump.textContent=title;jump.onclick=()=>{root.H3WorkspaceLayout?.reveal(stage);stage.open=true;stage.scrollIntoView({block:'start'});stage.querySelector('summary').focus();};nav.append(jump);
       for(const [key,label,node,expanded] of items){
         if(!node)continue;used.add(node);
         const fold=details(key+'-section',label,'',expanded,'workspace-fold');
@@ -118,10 +119,20 @@
     for(const node of panels)if(!used.has(node))node.classList.add('workspace-intro');
     rail.addEventListener('focusin',event=>revealControl(event.target));
     const error=document.getElementById('error');if(error)new MutationObserver(()=>{if(error.textContent&&!error.hidden&&!error.classList.contains('hidden'))revealControl(error);}).observe(error,{attributes:true,childList:true,subtree:true});
+    root.H3WorkspaceLayout?.mount(rail,{scope:'video'});
+  }
+  function arrangeImageWorkspace(){
+    const rail=document.querySelector('.sidebar');if(!rail||document.querySelector('.sidebar-scroll')||rail.dataset.arranged)return;rail.dataset.arranged='true';
+    const stage=document.createElement('details');stage.id='fold-image-workspace';stage.className='workspace-stage';stage.open=true;const summary=document.createElement('summary');summary.textContent='Image workspace';stage.append(summary);
+    for(const [id,label,node] of [['references','References',document.getElementById('editPanel')],['prompt','Prompt',document.getElementById('prompt')?.closest('.panel')],['output','Output settings',document.getElementById('profile')?.closest('.panel')]]){
+      if(!node)continue;const fold=document.createElement('details');fold.id='fold-image-'+id;fold.className='workspace-fold';let saved=null;try{saved=sessionStorage.getItem('h3studio.fold.'+fold.id);}catch{}fold.open=saved===null||saved==='open';const title=document.createElement('summary');title.textContent=label;fold.append(title,node);fold.addEventListener('toggle',event=>{if(event.target===fold)try{sessionStorage.setItem('h3studio.fold.'+fold.id,fold.open?'open':'closed');}catch{}});stage.append(fold);
+    }
+    rail.append(stage);root.H3WorkspaceLayout?.mount(rail,{scope:'image'});
+    const error=document.getElementById('error');if(error)new MutationObserver(()=>{if(error.textContent&&!error.classList.contains('hidden'))revealControl(error);}).observe(error,{attributes:true,childList:true,subtree:true});
   }
   root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards, arrangeWorkspace, revealControl };
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
-    attachPrompt(document.getElementById('prompt')); arrangeWorkspace();
+    attachPrompt(document.getElementById('prompt')); arrangeWorkspace();arrangeImageWorkspace();
     const refresh=document.getElementById('brandRefresh');
     if(refresh)refresh.onclick=async()=>{
       refresh.disabled=true;

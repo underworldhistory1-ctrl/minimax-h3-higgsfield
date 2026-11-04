@@ -7,12 +7,15 @@ Reviewed 4 November 2026 against the pinned ComfyUI 0.43.0 H3 nodes and the offi
 | Material | Studio destination | What it supplies |
 | --- | --- | --- |
 | Clean multi-panel storyboard | References / Storyboard | Viewpoint, composition, staging and panel-to-shot or panel-to-beat guidance |
+| Separate ordered storyboard images | References / Storyboard sequence group | Ordered visual beats; final character/style can come from different references; no automatic timestamps or keyframes |
 | Overhead map with camera and subject arrows | Keep in planning context by default; optionally References / Spatial plan | Experimental semantic layout and route guidance; no metric trajectory control |
 | Character, environment or prop views | References / Character, Location or Object | Visible identity/appearance, with multi-view groups where appropriate |
 | Clean individual target image at a chosen time | Temporal keyframes, when supported | A real AddGuide conditioning anchor at the selected frame index |
 | Desired opening/closing output image | Frames mode | Actual first/last-frame conditioning on the matching FL2VA path |
 
 A storyboard sheet or diagram is not an output frame. Do not put one into Frames or Temporal keyframes unless the generated video should literally contain that sheet or diagram.
+
+Choose **Storyboard sheet** in the upload menu for a single sheet, or **Storyboard sequence** to upload separate images together. Arrange sequence members with their drag grips or arrows; use the group menu to join existing storyboard images. A sequence is a group of independent native image references, not a collage and not a timed-keyframe track. Each image counts toward the nine-image reference limit. Mention the group through its displayed alias, choose the shared sequence structure and specify final character/style sources in the prompt. The compiler describes storyboard appearance as staging guidance, while separately supplied identity/style references remain authoritative. Model adherence still needs visual review.
 
 ## Recommended preparation
 

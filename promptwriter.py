@@ -219,7 +219,7 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         if not re.fullmatch(r"[\w-]{1,32}", alias) or not re.fullmatch(r"<(?:Picture|Subject|Video|Audio) [1-9][0-9]*>", tag) or alias in alias_map:
             raise ValueError("Invalid or duplicate reference binding.")
         alias_map[alias] = tag
-        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "panel_order", "storyboard_mode", "subject_group", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
+        manifest.append({key: binding.get(key) for key in ("alias", "tag", "kind", "role", "instruction", "panel_order", "storyboard_mode", "storyboard_group", "storyboard_index", "subject_group", "picture_idx", "subject_idx", "video_idx", "audio_idx", "paired_audio_tag", "effective_seconds", "audio_transcript") if binding.get(key) is not None})
     def replace_alias(match):
         if match[1] not in alias_map:
             raise ValueError("Unknown reference mention: @" + match[1])
@@ -241,6 +241,7 @@ def prepare_studio_context(spec, media_parts=(), chat=None):
         "Custom references transfer only attributes expressly requested. No universal motion/sound retention. "
         "Preserve each reference card's explicit instruction and storyboard panel_order, including panel-to-shot mappings. "
         "For storyboards, use the panel order and mappings to guide shots and composition without rendering panel borders or labels. "
+        "References sharing storyboard_group are an ordered sequence of separate storyboard images; follow storyboard_index rather than treating them as identity views or timed keyframes. They supply framing, staging and action; final character/environment identity and style come from separately assigned references and explicit scene instructions. Include every sequence Picture relationship even if the brief mentions only one member. "
         "Preserve storyboard_mode: continuous means successive beats in one uncut take, cuts means separate shots only where the brief specifies cuts, auto follows the brief. Explicit native shot descriptions retain authority. "
         "A spatial plan is optional semantic planning evidence, not an aerial output shot, first frame, exact timed guide or calibrated camera trajectory. Transfer only requested landmark/route relationships, distinguishing camera movement from subject movement. Never render its arrows, labels, borders, legends or camera icons, or copy its drawing style. "
         "Explicit native prompt instructions and shot descriptions take priority when they conflict with card guidance. "

@@ -43,7 +43,7 @@ const {spawn}=require('node:child_process');const path=require('node:path');cons
   assert.deepEqual(await page.evaluate(()=>state.refs.filter(r=>r.role==='location').map(r=>r.alias)),['door','room','ceiling']);
   assert.deepEqual(await page.evaluate(()=>state.refs.filter(r=>r.role==='object').map(r=>r.alias)),['prop','prop_side']);
   await page.locator('#fold-prompt-section > summary').click();assert.equal(await page.locator('#prompt').isVisible(),false);
-  await page.reload();await page.waitForFunction(()=>state.refs.length===8&&!state.projectLoading);
+  await page.evaluate(()=>H3VideoTabState.prepareReload());await page.reload();await page.waitForFunction(()=>state.refs.length===8&&!state.projectLoading);
   assert.equal(await page.locator('#prompt').isVisible(),false);
   await page.locator('.reference-group-heading button').filter({hasText:'Insert @front'}).click();assert.equal(await page.locator('#prompt').isVisible(),true);
   await page.locator('#prompt').fill('@back holds @prop inside @door.');

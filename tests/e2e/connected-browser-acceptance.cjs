@@ -13,7 +13,7 @@ const simulationQueue=async body=>(await fetch(base+'/__simulation/queue',{metho
   try{
     await simulationQueue({external:false,hold:false});
     await page.goto(base+'/extensions/h3_studio/index.html');
-    await page.waitForFunction(()=>state.promptProvider?.configured&&!state.projectLoading&&state.lorasLoaded);
+    await page.waitForFunction(()=>state.promptProvider?.configured&&!state.projectLoading&&state.lorasLoaded);await page.evaluate(()=>document.querySelectorAll('.workspace-stage,.workspace-fold').forEach(e=>e.open=true));
     await page.evaluate(()=>{state.width=1280;state.height=704;renderEstimates();}); // Explicit canvas matching source/mask fixtures.
     assert.match(await page.locator('#simulationBanner').textContent(),/No AI model has run/);
     assert.match(await page.locator('#writerStatus').textContent(),/SIMULATED/);

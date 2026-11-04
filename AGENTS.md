@@ -28,7 +28,7 @@ The 15 October runtime audit records complete Original Ref2VA INT8 + Combat V2 a
 
 ## Current source audit
 
-Read `docs/RELEASE_2_12.md` for current source verification and `docs/PRODUCTION_READINESS_2026_10_15.md` for historical GPU evidence. Do not assume an earlier rental is still connected in a new session. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.
+Read `docs/RELEASE_2_13.md` for current source verification and `docs/PRODUCTION_READINESS_2026_10_15.md` for historical GPU evidence. Do not assume an earlier rental is still connected in a new session. Preserve separate statuses for automated checks, real local API/browser checks and actual GPU inference. Keep current behavior in README, release history in CHANGELOG, and avoid repeated update appendices.
 
 
 ## Current runtime policy

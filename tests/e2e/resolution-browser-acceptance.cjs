@@ -12,12 +12,12 @@ const path=require('node:path');
   browser=await chromium.launch({headless:true});page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(15000);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base+'/extensions/h3_studio/index.html');
-  await page.waitForFunction(()=>state.currentProject&&!state.projectLoading&&state.lorasLoaded);
+  await page.waitForFunction(()=>!state.projectLoading&&state.lorasLoaded);await page.evaluate(()=>document.querySelectorAll('.workspace-stage,.workspace-fold').forEach(e=>e.open=true));await page.locator('#btnSaveProject').click();await page.waitForFunction(()=>state.currentProject&&!state.projectLoading);
   await page.locator('#preparationMode').selectOption('native');
   await page.locator('#estimates button').filter({hasText:'1664×928'}).click();
-  assert.match(await page.locator('#estimates button[aria-pressed="true"]').textContent(),/1\.54 MP/);
+  assert.deepEqual(await page.evaluate(()=>[state.width,state.height]),[1664,928]);
   await page.locator('#estimates button').filter({hasText:'1920×1080'}).click();
-  assert.match(await page.locator('#resolutionTip').textContent(),/1920×1088/);
+  assert.deepEqual(await page.evaluate(()=>[state.width,state.height,samplingCanvas().height]),[1920,1080,1088]);
   assert.equal(await page.locator('#renderMethod').inputValue(),'native');assert.equal(await page.locator('#steps').inputValue(),'20');
   const settings=await page.evaluate(()=>captureSettings());
   assert.equal(settings.canvas,'1920×1080');assert.equal(settings.sampling_canvas,'1920×1088');
@@ -83,7 +83,7 @@ const path=require('node:path');
   assert.deepEqual(await page.evaluate(()=>state.continuation.source_canvas),{width:1920,height:1080},'FL generated1088 to Ref2VA re-encode uses imported1080 source metadata');
   assert.deepEqual(errors,[]);
   if(process.env.H3_TEST_SCREENSHOT)await page.screenshot({path:process.env.H3_TEST_SCREENSHOT,fullPage:true});
-  console.log(JSON.stringify({passed:true,checks:['1.54/2.07MP preset labels and unchanged20step native quality','output1080/sampling1088 settings and timing','draft and saved project restore','actual savedframe fitting1088 and final crop','shared asset cards retain different fits and __proto__ alias','generated/imported continuation canvas prechecks','separate audio plus muted motion dialogue guard','local image fit and inpaint mask sampling-grid alignment','actual source upload preserves1080 with crop after AV trim','FL1088 to Ref2VA re-encode uses imported1080 metadata'],captured_graphs:captures.length,errors},null,2));
+  console.log(JSON.stringify({passed:true,checks:['large-canvas presets and unchanged20step native quality','output1080/sampling1088 settings and timing','draft and saved project restore','actual savedframe fitting1088 and final crop','shared asset cards retain different fits and __proto__ alias','generated/imported continuation canvas prechecks','separate audio plus muted motion dialogue guard','local image fit and inpaint mask sampling-grid alignment','actual source upload preserves1080 with crop after AV trim','FL1088 to Ref2VA re-encode uses imported1080 metadata'],captured_graphs:captures.length,errors},null,2));
  }catch(error){console.error(error.stack);if(page)console.error(await page.evaluate(()=>({error:$('error').textContent,mode:state.mode,busy:state.busy,loading:state.projectLoading})).catch(()=>({})));console.error(stderr);process.exitCode=1;}
  finally{if(browser)await browser.close();server.kill();}
 })();

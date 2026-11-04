@@ -152,3 +152,10 @@ docs/UPSTREAM_AND_ORCHESTRATION.md
 docs/RELEASE_2_11.md
 docs/RELEASE_2_12.md
 docs/STORYBOARD_AND_SPATIAL_PLANS.md
+web/h3/drag-sort.js
+web/h3/reference-order.js
+web/h3/workspace-layout.js
+web/h3/vendor/sortable.min.js
+web/h3/vendor/SORTABLE-LICENSE.txt
+web/h3/vendor/sortable-manifest.json
+docs/RELEASE_2_13.md

@@ -97,7 +97,7 @@ function restoreDraft(){
 function validName(name){return /^[\p{L}\p{N}_-]+$/u.test(name);}
 function suggestedName(file){const base=file.name.replace(/\.[^.]+$/,""),clean=base.replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^_+|_+$/g,"").slice(0,30)||"image";let name=clean,index=2;while(state.refs.some(ref=>ref.name.toLowerCase()===name.toLowerCase()))name=`${clean}_${index++}`;return name;}
 function resolveMentions(prompt){const names=new Map(state.refs.map((ref,index)=>[ref.name.toLowerCase(),index+1]));return prompt.replace(/(^|[^\p{L}\p{N}_])@([\p{L}\p{N}_-]+)/gu,(full,prefix,name)=>{const index=names.get(name.toLowerCase());if(!index)throw Error(`@${name} has no attached reference. Add it or remove the mention.`);return `${prefix}<image${index}>`;});}
-function insertMention(name){const field=$("prompt"),at=field.selectionStart,before=field.value.slice(0,at),match=before.match(/@([\p{L}\p{N}_-]*)$/u),start=match?at-match[0].length:at,token=`@${name} `;field.setRangeText(token,start,at,"end");field.focus();saveDraft();renderMentions();}
+function insertMention(name){const field=$("prompt"),at=field.selectionStart,before=field.value.slice(0,at),match=before.match(/@([\p{L}\p{N}_-]*)$/u),start=match?at-match[0].length:at,token=`@${name} `;field.setRangeText(token,start,at,"end");H3StudioUX.revealControl(field);field.focus();saveDraft();renderMentions();}
 function renderMentions(){
   const field=$("prompt"),list=$("mentionList"),menu=$("mentionMenu");list.replaceChildren();menu.replaceChildren();
   state.refs.forEach((ref,index)=>{const chip=document.createElement("button");chip.type="button";chip.textContent=`@${ref.name} · image${index+1}`;chip.title=`Insert @${ref.name} into prompt`;chip.onclick=()=>insertMention(ref.name);list.append(chip);});
@@ -109,11 +109,16 @@ function moveReference(index,direction){
   if(state.busy)return;
   const next=index+direction;
   if(next<0||next>=state.refs.length)return;
-  [state.refs[index],state.refs[next]]=[state.refs[next],state.refs[index]];
-  renderRefs();saveDraft();showError("");
+  const reordered=state.refs.slice();[reordered[index],reordered[next]]=[reordered[next],reordered[index]];commitImageReferenceOrder(reordered);
+}
+function commitImageReferenceOrder(next){
+  if(state.busy||!state.referencesReady)return;
+  const before=state.refs;if(next.length!==before.length||new Set(next).size!==before.length||next.some(ref=>!before.includes(ref)))throw Error('Reference order changed. Try again.');
+  $('prompt').value=H3ReferenceOrder.remapQwen($('prompt').value,before,next);state.refs=next;renderRefs();saveDraft();showError('');
 }
 
 function renderRefs(){
+  H3Drag.destroyTree($("referenceList"));const before=state.refs.slice();
   $("referenceList").replaceChildren();state.refs.forEach((ref,index)=>{
     const row=document.createElement("div");row.className="ref";const image=document.createElement("img");image.src=ref.url;image.alt=`Preview of image ${index+1}`;
     const text=document.createElement("div");const title=document.createElement("strong");title.textContent=`image${index+1} · ${ref.file.name}`;const meta=document.createElement("small");meta.dataset.referenceCanvas=String(index===0);meta.textContent=fmtBytes(ref.file.size)+(index===0?" · sets canvas size":" · reference");const nameLabel=document.createElement("label");nameLabel.textContent="MENTION NAME";const nameInput=document.createElement("input");nameInput.className="ref-name";nameInput.value=ref.name;nameInput.maxLength=32;nameInput.setAttribute("aria-label",`Mention name for image ${index+1}`);nameInput.onchange=()=>{const next=nameInput.value.trim();if(!validName(next)||state.refs.some(other=>other!==ref&&other.name.toLowerCase()===next.toLowerCase())){showError("Use a unique reference name with letters, numbers, _ or -.");nameInput.value=ref.name;return;}const old=ref.name;ref.name=next;if(old!==next){const escaped=old.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");$("prompt").value=$("prompt").value.replace(new RegExp(`(^|[^\\p{L}\\p{N}_])@${escaped}(?![\\p{L}\\p{N}_-])`,"gu"),(full,prefix)=>`${prefix}@${next}`);}showError("");renderMentions();saveDraft();};nameInput.oninput=()=>{if(validName(nameInput.value.trim())&&!state.refs.some(other=>other!==ref&&other.name.toLowerCase()===nameInput.value.trim().toLowerCase()))nameInput.onchange();};text.append(title,meta,nameLabel,nameInput);
@@ -129,8 +134,13 @@ function renderRefs(){
       button.setAttribute("aria-label",`${label} ${ref.name}`);button.disabled=state.busy||index+direction<0||index+direction>=state.refs.length;
       button.onclick=()=>moveReference(index,direction);order.append(button);
     }
-    row.append(image,text,remove,aliasRow,order,insert);$("referenceList").append(row);
+    row.classList.add('image-reference-row');row.dataset.referenceIndex=String(index);const grip=H3Drag.handle('Move image reference '+ref.name,offset=>moveReference(index,offset),'image-reference-handle');grip.disabled=state.busy||!state.referencesReady;
+    row.append(grip,image,text,remove,aliasRow,order,insert);$("referenceList").append(row);
   });renderMentions();updateSettings();
+  H3Drag.attach($('referenceList'),{selector:'.ref',handle:'.image-reference-handle',locked:()=>state.busy||!state.referencesReady,onCancel:renderRefs,onCommit:()=>{
+    if(before.length!==state.refs.length||before.some((ref,index)=>ref!==state.refs[index])){renderRefs();return;}
+    commitImageReferenceOrder(H3ReferenceOrder.permutation(before,[...$('referenceList').children].map(n=>Number(n.dataset.referenceIndex))));
+  }});
 }
 $("addReferences").onclick=()=>{if(!state.busy&&state.referencesReady)$("referenceFiles").click();};
 $("referenceFiles").onchange=()=>{

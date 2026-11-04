@@ -2,7 +2,7 @@
 
 **MiniMax H3 video with native audio. Qwen Image 2.1 creation and editing. One browser workspace on your own NVIDIA machine or GPU server.**
 
-Current software: **2.12.0** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
+Current software: **2.13.0** · [Install](docs/INSTALL.md) · [Launcher](docs/LAUNCHER.md) · [Compatibility](docs/COMPATIBILITY_MATRIX.md) · [Changelog](CHANGELOG.md)
 
 [![Superman above Earth — watch with audio](docs/demo/superman/video-poster.jpg)](docs/demo/superman/superman-excerpt.mp4)
 
@@ -33,7 +33,7 @@ Start directly in Production, write a prompt, attach inputs and generate. **Save
 | Text to video | Original FL2VA generation with native audio |
 | Animate opening/closing images | Frames mode with independent input fit settings |
 | Direct from references | Named images, video and audio; roles, @mentions and connected native tags |
-| Guide with a storyboard | Storyboard image role for composition/shot order, with separate character references |
+| Guide with a storyboard | One sheet or an ordered group of separate storyboard images, with separate character/style references |
 | Set timed images | Temporal guides at selected frames, when native capability is present |
 | Guide structure or motion | Optional Fun-ControlNet 2.0 and installed pose/depth/outline/lighting extractors |
 | Continue or refine | Saved AV context, optional latent refinement and generated-audio enhancement under compatibility checks |
@@ -85,6 +85,12 @@ Run Linux `./launcher.sh --matlow` or Windows `./launcher.ps1 -Matlow` once, wit
 
 The packs retain their external licenses and notices. [Versions, installation and supported scope](docs/MATLOW_AND_SELECTIONS.md).
 
+## Arrange your workspace
+
+Use **Customize layout** to hide/show sections, reorder stages, move sections between stages or reset your layout. Drag the grip beside a section title or reference; arrows and Alt + arrow keys provide alternatives. Video and image layouts are stored separately in this browser. Hiding a section keeps its settings active; changing mode still controls which features are available.
+
+For storyboards, choose **Storyboard sheet** for one image or **Storyboard sequence** for separate ordered images. Sequence images share a group, with per-image instructions and a shared sequence structure. They guide staging and action; they do not become timed keyframes. [Reference and storyboard guidance](docs/STORYBOARD_AND_SPATIAL_PLANS.md).
+
 ## Projects, tabs and media
 
 **Save scene to** creates a new scene/shot in a selected project. **New scene** saves current work before clean defaults. Elements holds reusable assets; shot mention names remain separate from catalog names. Replace updates a shot or editable element bindings while historical takes retain their originals.
@@ -97,7 +103,7 @@ Generations/Favorites use the selected scope, offer direct downloads and search 
 
 The launcher follows official main by default, verifies provenance/ancestry, preserves local edits and waits for accepted work, preparation and exports before replacing runtime. Supported code-only updates are available through **Updates**; environment changes need the full launcher. Restart when idle after installing code. Never interrupt an active render. [Upgrade/rollback](docs/V2_UPGRADE.md) · [Safe uninstall](docs/UNINSTALL.md).
 
-Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 595 Python tests (one platform skip), 304 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_12.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
+Source tests, local API/browser checks and GPU rendering are reported separately. Current verification: 596 Python tests (one platform skip), 314 JavaScript tests, the 528-combination persisted graph matrix and real-API browser journeys. [Current evidence and boundaries](docs/RELEASE_2_13.md). Windows/Linux CI reports the status of each exact commit. This does not establish every possible setting combination. Current changes have **no new GPU render**; earlier decoded Original/Singularity outputs are [historical evidence](docs/PRODUCTION_READINESS_2026_10_15.md). Check [Actions](https://github.com/underworldhistory1-ctrl/minimax-h3-interface/actions/workflows/verify.yml) for the exact current commit and [release notes](CHANGELOG.md) for subsequent checks.
 
 Read-only server validation: `python deploy/verify_h3_server.py --url COMFY_URL`. Readiness is not a visual-quality certificate. Models need substantial disk and host RAM as well as VRAM. Completed sampler latents support tracked decode recovery, not mid-sampling resume. Optional AI prompt preparation requires a configured provider; otherwise Automatic formats locally.
 

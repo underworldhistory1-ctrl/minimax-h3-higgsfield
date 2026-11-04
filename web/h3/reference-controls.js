@@ -5,15 +5,16 @@
   function addFields(card,ref,refs,locked,changed){
     if(ref.kind==='image'){
       if(H3ReferencePolicy.canGroup(ref)||ref.subject_group){
+        const field=ref.role==='storyboard'?'storyboardGroup':'subject_group';
         const label=element('label','REFERENCE GROUP'),select=element('select');select.className='ref-subject-group';select.setAttribute('aria-label','Reference group for @'+ref.alias);select.disabled=locked;
         const add=(value,title)=>{const o=element('option',title);o.value=value;select.append(o);};add('','Separate reference');
-        const groups=[...new Set(refs.filter(r=>H3ReferencePolicy.groupKey(r)&&r.role===ref.role).map(r=>r.subject_group))];
-        for(const group of groups){const members=refs.filter(r=>r.subject_group===group&&r.role===ref.role);add(group,'Same '+(H3ReferencePolicy.groupRoles[ref.role]||'reference').toLowerCase()+': '+members.map(r=>'@'+r.alias).join(', '));}
-        const valid=ref.subject_group==null||ref.subject_group===''||!!H3ReferencePolicy.groupKey(ref)&&!refs.some(r=>r!==ref&&r.subject_group===ref.subject_group&&r.role!==ref.role);
+        const groups=[...new Set(refs.filter(r=>H3ReferencePolicy.groupKey(r)&&r.role===ref.role).map(r=>r[field]))];
+        for(const group of groups){const members=refs.filter(r=>r[field]===group&&r.role===ref.role);add(group,'Same '+(H3ReferencePolicy.groupRoles[ref.role]||'reference').toLowerCase()+': '+members.map(r=>'@'+r.alias).join(', '));}
+        const valid=!(ref.role==='storyboard'&&ref.subject_group)&&(ref[field]==null||ref[field]===''||!!H3ReferencePolicy.groupKey(ref)&&!refs.some(r=>r!==ref&&r[field]===ref[field]&&r.role!==ref.role));
         if(!valid){add('__invalid','Invalid stored group — clear or select again');card.append(element('p','This stored group is invalid or mixes roles. Clear it or choose a group with the same image role.','ref-policy-error'));}
-        if(H3ReferencePolicy.canGroup(ref))add('__new','Create a '+H3ReferencePolicy.groupRoles[ref.role].toLowerCase()+' group');select.value=valid?(ref.subject_group||''):'__invalid';
-        select.onchange=()=>{if(select.value==='__invalid')return;ref.subject_group=select.value==='__new'?'character_'+crypto.randomUUID().replaceAll('-',''):select.value;changed(true);};
-        card.append(label,select,element('p','Group alternate views of the same subject. Mention any member once to include every view. Each image keeps its own instruction. Native structured subject definitions keep authority.','tip'));
+        if(H3ReferencePolicy.canGroup(ref))add('__new','Create a '+H3ReferencePolicy.groupRoles[ref.role].toLowerCase()+' group');select.value=valid?(ref[field]||''):'__invalid';
+        select.onchange=()=>{if(select.value==='__invalid')return;if(ref.role==='storyboard')ref.subject_group='';ref[field]=select.value==='__new'?'reference_'+crypto.randomUUID().replaceAll('-',''):select.value;if(ref.role==='storyboard'&&ref[field]){const peer=refs.find(r=>r!==ref&&r.role==='storyboard'&&r[field]===ref[field]);if(peer)ref.storyboardMode=peer.storyboardMode??'auto';}changed(true);};
+        card.append(label,select,element('p',ref.role==='storyboard'?'Group separate storyboard images in playback order. They guide staging, not exact timed frames or character/style identity. Mention any member to include the sequence in Guided mode.':'Group alternate views of the same subject. Mention any member once to include every view. Each image keeps its own instruction. Native structured subject definitions keep authority.','tip'));
       }
       const label=element('label'),check=element('input');check.type='checkbox';check.className='ref-original-resolution';check.checked=ref.useOriginalResolution===true;check.disabled=locked;check.onchange=()=>{ref.useOriginalResolution=check.checked;changed(false);};
       label.append(check,document.createTextNode(' Use original resolution before native sizing'));card.append(label,element('p','Bypasses Auto-fit 2048 for this image. Your selected image fit and H3 native sizing still apply. The original file is retained; this does not guarantee more model detail.','tip'));
@@ -23,7 +24,7 @@
       const label=element('label','SEQUENCE STRUCTURE'),select=element('select');select.className='ref-storyboard-mode';select.setAttribute('aria-label','Storyboard sequence structure for @'+ref.alias);select.disabled=locked;
       for(const [value,title] of [['auto','Follow the prompt (default)'],['continuous','One continuous take · no cuts'],['cuts','Separate shots · explicit cuts']]){const option=element('option',title);option.value=value;select.append(option);}
       const mode=ref.storyboardMode??'auto';if(!['auto','continuous','cuts'].includes(mode)){const option=element('option','Invalid saved sequence · select again');option.value='__invalid';select.append(option);select.value='__invalid';}else select.value=mode;
-      select.onchange=()=>{if(select.value==='__invalid')return;ref.storyboardMode=select.value;changed(false);};card.append(label,select,element('p','Panels can be beats inside one take. Timing labels are prompt guidance; they do not add timed image anchors.','tip'));
+      select.onchange=()=>{if(select.value==='__invalid')return;ref.storyboardMode=select.value;if(ref.storyboardGroup)for(const peer of refs.filter(r=>r.role==='storyboard'&&r.storyboardGroup===ref.storyboardGroup))peer.storyboardMode=select.value;changed(!!ref.storyboardGroup);};card.append(label,select,element('p','Panels can be beats inside one take. Timing labels are prompt guidance; they do not add timed image anchors.','tip'));
       addInstruction('PANEL ORDER / SHOT MAP (OPTIONAL)','panelOrder','e.g. left to right, top to bottom');
     }
     if(ref.role==='spatial plan')card.append(element('p','Optional experiment: send a separate layout/camera/subject-route diagram as semantic guidance. Prefer translating the plan into written action and camera directions first. This does not add geometric camera control. Never use the map as a start/end frame or timed keyframe.','tip'));
@@ -48,15 +49,16 @@
     }
     const toggle=()=>{if(card.open)mount();else media?.pause();};card.addEventListener('toggle',toggle);card.referencePreview={update,mount,dispose(){disposed=true;card.removeEventListener('toggle',toggle);if(frame!==null)cancelAnimationFrame(frame);if(media){media.pause();media.removeAttribute('src');media.load();media.remove();}}};mount();
   }
-  function cleanup(container){for(const card of container.querySelectorAll('.compact-ref'))card.referencePreview?.dispose();for(const media of container.querySelectorAll('video,audio')){media.pause();media.removeAttribute('src');media.load();}}
+  function cleanup(container){root.H3Drag?.destroyTree(container);for(const card of container.querySelectorAll('.compact-ref'))card.referencePreview?.dispose();for(const media of container.querySelectorAll('video,audio')){media.pause();media.removeAttribute('src');media.load();}}
   function groupContainer(container,ref,refs,locked,insert,addImages){
     const key=H3ReferencePolicy.groupKey(ref);if(!key)return container;
     let group=[...container.children].find(e=>e.dataset.referenceGroup===key);if(group)return group.querySelector('.reference-group-views');
     const members=refs.filter(r=>H3ReferencePolicy.groupKey(r)===key);
-    group=element('section',null,'reference-group');group.dataset.referenceGroup=key;
+    group=element('section',null,'reference-group reference-unit');group.dataset.referenceGroup=key;
     const header=element('div',null,'reference-group-heading'),title=element('strong',H3ReferencePolicy.groupRoles[ref.role]+' · @'+members[0].alias);
     const mention=element('button','Insert @'+members[0].alias,'button alt smallbtn');mention.type='button';mention.disabled=locked;mention.onclick=()=>insert(members[0].alias);
     const add=element('button','+ Add views','button alt smallbtn');add.type='button';add.disabled=locked;add.onclick=()=>addImages(ref);
+    if(ref.role==='storyboard')add.textContent='+ Add frames';
     header.append(title,mention,add);group.append(header,element('p',members.length+' view'+(members.length===1?'':'s')+' · each image stays connected','tip'));
     const views=element('div',null,'reference-group-views');group.append(views);container.append(group);return views;
   }

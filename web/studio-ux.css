@@ -138,3 +138,13 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 .workspace-stage>details.panel.workspace-fold:not([open]){padding-bottom:0}
 .workspace-stage>details.panel.workspace-fold>summary:focus-visible,.workspace-fold>summary:focus-visible,.workspace-stage>summary:focus-visible{outline:2px solid var(--acid);outline-offset:2px}
 .workspace-fold[hidden],.workspace-stage [hidden]{display:none!important}
+.layout-user-hidden{display:none!important}
+.drag-handle{display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:2px 5px;border:1px solid var(--line,#444);border-radius:5px;background:transparent;color:var(--muted,#aaa);cursor:grab;touch-action:none;font:inherit;user-select:none}
+.drag-handle:active{cursor:grabbing}.drag-handle:focus-visible{outline:2px solid var(--acid);outline-offset:2px}
+.workspace-fold>summary,.workspace-stage>summary{position:relative;padding-right:46px}
+.workspace-fold>summary>.drag-handle,.workspace-stage>summary>.drag-handle{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
+.drag-placeholder{opacity:.25;border:1px dashed var(--acid)!important}.drag-chosen{outline:1px solid var(--acid);outline-offset:1px}
+.compact-ref .refhead{position:relative}.reference-group-views .refhead>.drag-handle{position:absolute;top:10px;right:10px;z-index:1;background:#171c14}.image-reference-row{position:relative;padding-top:34px!important}.image-reference-row>.drag-handle{position:absolute;right:7px;top:5px}
+.layout-dialog{width:min(700px,calc(100vw - 24px));max-height:85dvh;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:12px;color:var(--text);background:var(--bg,#151515);font:inherit}.layout-dialog::backdrop{background:#000a}
+.layout-dialog h2{font-size:19px;margin:0 0 10px}.layout-dialog h3{font-size:13px;margin:20px 0 7px;color:var(--acid)}.layout-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid var(--line)}.layout-row label,.layout-row>span{flex:1;min-width:0;margin:0;font-size:12px}.layout-row input[type=checkbox]{width:auto;margin-right:8px}.layout-row select{width:150px!important;min-width:0;font-size:11px}.layout-dialog>.row{margin-top:20px}.layout-customize{font:inherit;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;margin-bottom:8px}
+@media(max-width:540px){.layout-row{flex-wrap:wrap}.layout-row label{flex-basis:100%}.layout-row select{flex:1}.layout-dialog{padding:14px}}

@@ -140,9 +140,12 @@ async function useContinuationReferences(){
   });
 }
 function renderGuides(){
-  const wrap=$("guideList");if(!wrap)return;wrap.replaceChildren();
+  const wrap=$("guideList");if(!wrap)return;H3Drag.destroyTree(wrap);wrap.replaceChildren();
+  const before=state.guides.slice(),locked=()=>state.busy||state.projectLoading||referenceMutationLocked();
+  const commit=indices=>{if(locked()||before.length!==state.guides.length||before.some((g,i)=>g!==state.guides[i])){renderGuides();return;}state.guides=H3ReferenceOrder.permutation(before,indices);renderGuides();updatePreviewLive();saveDraft();};
+  const addOrder=(card,index)=>{card.classList.add('guide-sort-item');card.dataset.guideIndex=String(index);const move=offset=>{const indices=before.map((_,i)=>i),target=index+offset;if(target<0||target>=indices.length)return;[indices[index],indices[target]]=[indices[target],indices[index]];commit(indices);};const grip=H3Drag.handle('Move timed guide '+(index+1),move,'guide-drag-handle');grip.disabled=locked();card.prepend(grip);for(const [label,offset] of [['Move guide up',-1],['Move guide down',1]]){const b=document.createElement('button');b.type='button';b.className='button alt smallbtn';b.textContent=offset<0?'↑':'↓';b.setAttribute('aria-label',label);b.disabled=locked()||index+offset<0||index+offset>=before.length;b.onclick=()=>move(offset);card.append(b);}};
   state.guides.forEach((guide,index)=>{
-    if(guide.restoreError){wrap.append(missingInputCard(guide,()=>state.guides.splice(index,1)));return;}
+    if(guide.restoreError){const card=missingInputCard(guide,()=>state.guides.splice(index,1));addOrder(card,index);wrap.append(card);return;}
     const card=document.createElement("div");card.className="ref";
     const img=document.createElement(guide.kind==="audio"?"audio":guide.kind==="video"?"video":"img");img.src=guide.url;img.alt="Guide "+(index+1);if(guide.kind==="audio"||guide.kind==="video")img.controls=true;img.style.cssText="width:100%;max-height:100px;object-fit:contain";
     const label=document.createElement("label");label.textContent=state.continuation?"TIME IN NEW CONTENT (seconds)":"TIME (seconds)";
@@ -157,8 +160,9 @@ function renderGuides(){
       if(guide.trimEnabled)for(const [key,title,min,max] of [["trimStart","Source start (s)",0,3600],["trimDuration","Source use (s)",2,15]]){const l=document.createElement("label"),input=document.createElement("input");l.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=guide[key]??(key==="trimStart"?0:2);input.disabled=state.busy;input.onchange=()=>guide[key]=Number(input.value);card.append(l,input);}
     }
     if(guide.kind&&guide.kind!=="image"){const tip=document.createElement("div");tip.className="tip";tip.textContent="Native video guides crop to 5 + 17k frames. Audio is timed conditioning; exact PCM reuse or lip sync is not guaranteed.";card.append(tip);}
-    wrap.append(card);
+    addOrder(card,index);wrap.append(card);
   });
+  H3Drag.attach(wrap,{selector:'.guide-sort-item',handle:'.guide-drag-handle',locked,onCommit:()=>commit([...wrap.children].map(n=>Number(n.dataset.guideIndex))),onCancel:renderGuides});
 }
 async function fitFrameImage(file,fitOverride=null){
   const bitmap=await createImageBitmap(file);const canvas=document.createElement("canvas"),sampling=samplingCanvas();canvas.width=sampling.width;canvas.height=sampling.height;
@@ -411,5 +415,5 @@ function appendProjectResults(project){
 async function withProjectLoading(action){
   if(state.busy||state.projectLoading)throw Error("Wait for the current operation to finish.");
   state.projectLoading=true;refreshVideoActions();renderRefs();if(typeof renderProjectCatalog==='function')renderProjectCatalog();const controls=["generate","projectSelect","btnNewProject","btnSaveProject","btnExportProject","importProject","useResult","extendVideo","server","saveServer","uploadContinuation","sourceTailSeconds","sourceFit","sourceMode","continuationReferences","clearContinuation","acceptTake","btnAssembleSequence","exportMedia","upscaleTake","upscaleTarget","refreshContextStorage","purgeContext"].map(id=>$(id)).filter(Boolean);controls.push(...[...document.querySelectorAll('.left input,.left select,.left textarea,.left button')].filter(node=>!controls.includes(node)));const previous=controls.map(x=>x.disabled);controls.forEach(x=>x.disabled=true);
-  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();refreshVideoActions();renderRefs();if(typeof renderLoras==='function')renderLoras();if(typeof updateCapabilities==='function')updateCapabilities();if(typeof renderProjectCatalog==='function')renderProjectCatalog();}
+  try{return await action();}finally{state.projectLoading=false;controls.forEach((x,i)=>x.disabled=x.id==="upscaleTake"?!!(state.busy||state.mediaExporting):state.busy||previous[i]);renderEstimates();refreshLabControls();refreshVideoActions();renderRefs();renderGuides();if(typeof renderLoras==='function')renderLoras();if(typeof updateCapabilities==='function')updateCapabilities();if(typeof renderProjectCatalog==='function')renderProjectCatalog();}
 }

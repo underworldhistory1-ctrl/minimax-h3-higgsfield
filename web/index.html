@@ -53,7 +53,7 @@
 .brand{border:0;padding:0;background:none;color:inherit;font:inherit}.brand:focus-visible{outline:2px solid var(--acid);outline-offset:6px;border-radius:8px}
 </style>
 <link rel="stylesheet" href="./reference-controls.css?v=20261104-interface-2.11.0">
-<link rel="stylesheet" href="./studio-ux.css?v=20261104-interface-2.11.0">
+<link rel="stylesheet" href="./studio-ux.css?v=20261104-interface-2.13.0">
 <link rel="stylesheet" href="./scenes.css?v=20261103-interface-2.9.0">
 <link rel="stylesheet" href="./organization.css?v=20261103-interface-2.9.0">
 </head>
@@ -125,7 +125,7 @@
    <section class="panel" id="refsSection" hidden><div class="workflow-help" data-guidance-key="references" lang="en" dir="ltr">Appearance and identity references: choose each image’s role and mention its name with @. A multi-panel storyboard uses the Storyboard role to guide shot order, without exact timing. Upload structural motion guidance in Motion &amp; region control.</div>
     <h2>Reference library</h2><p data-guidance-key="videoHelp9" lang="en" dir="ltr">Name each asset, then type @name in the prompt. Each asset is bound to its H3 reference input.</p>
     <div class="ref-add"><select id="refKind" aria-label="Reference type"><option value="image">Image · person / place / look</option><option value="video">Video · motion / scene guide</option><option value="audio">Audio · voice / music</option></select><button class="button alt smallbtn" id="addRef">+ Add</button></div>
-    <label for="refBatchRole">Image upload</label><select id="refBatchRole"><option value="">Separate references</option><option value="character identity">One character · multiple views</option><option value="location">One environment · multiple views</option><option value="object">One element · multiple views</option><option value="visual style">One style · multiple examples</option></select>
+    <label for="refBatchRole">Image upload</label><select id="refBatchRole"><option value="">Separate references</option><option value="storyboard-sheet">Storyboard sheet · one image</option><option value="storyboard">Storyboard sequence · ordered images</option><option value="character identity">One character · multiple views</option><option value="location">One environment · multiple views</option><option value="object">One element · multiple views</option><option value="visual style">One style · multiple examples</option></select>
     <input type="file" id="refFile" multiple class="file-picker" aria-label="Choose reference file"><div id="refs" class="refs"></div><div id="refDurationNotice" class="tip" aria-live="polite"></div>
     <details class="reference-options"><summary>Image quality &amp; reference limits</summary><label style="display:flex;gap:8px;align-items:center"><input id="fitImages" type="checkbox" checked style="width:auto"> Auto fit oversized reference images · 2048 px maximum</label>
     <div class="tip" data-guidance-key="videoHelp10" lang="en" dir="ltr">Video references guide a new generation. “Whole scene” asks H3 to follow the full clip while changing the detail in your prompt, but cannot preserve every other frame or pixel. For a multi-panel shot sheet, select Storyboard and mention it in the prompt. Up to 9 images, 3 videos, 3 audio references and 12 files total. Video soundtracks stay paired with their videos and do not consume standalone audio slots. Each video/audio: 2–15 s; each type totals 15 s. Trim longer clips below; oversized video can fit within 1920×1080. Frame rates convert to 24 fps after upload.</div>
@@ -207,22 +207,26 @@
 <script src="./h3/vendor/prompt-parsers.js?v=20261103-interface-2.9.0"></script>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">ELEMENT DISPLAY NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
 <script src="./h3/prompt-input.js?v=20261103-interface-2.9.0"></script>
-<script src="./h3/reference-policy.js?v=20261104-interface-2.11.0"></script>
-<script src="./h3/reference-controls.js?v=20261104-interface-2.12.0"></script>
-<script src="./h3/prompt-compiler.js?v=20261104-interface-2.12.0"></script>
+<script src="./h3/reference-policy.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/reference-controls.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/prompt-compiler.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/configuration.js?v=20261104-interface-2.10.0"></script>
 <script src="./h3/graph-builder.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/scenes-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/project-controller.js?v=20261103-interface-2.9.0"></script>
-<script src="./lab-ui.js?v=20261103-interface-2.9.0"></script>
-<script src="./h3/studio-ux.js?v=20261104-interface-2.11.0"></script>
+<script src="./lab-ui.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/vendor/sortable.min.js?v=1.15.7"></script>
+<script src="./h3/drag-sort.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/reference-order.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/workspace-layout.js?v=20261104-interface-2.13.0"></script>
+<script src="./h3/studio-ux.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/queue-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/timing-estimator.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/tab-draft-store.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/reuse-navigation.js?v=20261103-interface-2.9.0"></script>
-<script src="./studio.js?v=20261104-interface-2.12.0"></script>
+<script src="./studio.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/updates-ui.js?v=20261103-interface-2.9.0"></script>
-<script src="./h3/connected-studio.js?v=20261104-interface-2.12.0"></script>
+<script src="./h3/connected-studio.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/configuration-ui.js?v=20261104-interface-2.10.0"></script>
 <script src="./h3/dials-ui.js?v=20261103-interface-2.9.0"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>

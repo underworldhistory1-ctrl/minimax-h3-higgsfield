@@ -10,6 +10,28 @@ TEXT = 'integrated_multimodal_description: [Shot 1] A person walks.\noverall_sou
 
 
 class PromptContextTests(unittest.TestCase):
+    def test_ordered_storyboard_group_reaches_preparation_and_rejects_mixed_modes(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            refs=[]
+            for alias in ('first','second'):
+                filename=f'h3_studio_kf_{alias}.png';Image.new('RGB',(8,8)).save(root/filename)
+                refs.append({'alias':alias,'role':'storyboard','kind':'image','filename':filename,'storyboard_group':'sequence','storyboard_mode':'continuous'})
+            calls=[]
+            def writer(spec,parts):
+                calls.append(spec);return {'compiled_prompt':'fixture','bindings':spec['bindings']}
+            service=PromptContextService(root,writer=writer)
+            result=service.prepare({'mode':'refs','source_prompt':'Follow @first.','references':refs})
+            self.assertEqual([b['storyboard_index'] for b in result['bindings']],[1,2])
+            self.assertTrue(all(b['storyboard_group']=='sequence' for b in calls[0]['bindings']))
+            other=service.prepare({'mode':'refs','source_prompt':'Follow @first.','references':list(reversed(refs))})
+            self.assertEqual(other['bindings'][0]['alias'],'second')
+            self.assertNotEqual(result['fingerprint'],other['fingerprint'])
+            refs[1]['storyboard_mode']='cuts'
+            with self.assertRaisesRegex(ValueError,'same sequence structure'):
+                service.prepare({'mode':'refs','references':refs})
+
     def test_spatial_plan_is_picture_and_storyboard_sequence_reaches_preparation(self):
         from h3_lab.prompt_context import PromptContextService
         with tempfile.TemporaryDirectory() as directory:
