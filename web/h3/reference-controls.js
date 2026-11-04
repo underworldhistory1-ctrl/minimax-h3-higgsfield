@@ -50,7 +50,7 @@
     const header=element('div',null,'reference-group-heading'),title=element('strong',H3ReferencePolicy.groupRoles[ref.role]+' · @'+members[0].alias);
     const mention=element('button','Insert @'+members[0].alias,'button alt smallbtn');mention.type='button';mention.disabled=locked;mention.onclick=()=>insert(members[0].alias);
     const add=element('button','+ Add views','button alt smallbtn');add.type='button';add.disabled=locked;add.onclick=()=>addImages(ref);
-    header.append(title,mention,add);group.append(header,element('p',members.length+' view'+(members.length===1?'':'s')+' · one subject · mention any view','tip'));
+    header.append(title,mention,add);group.append(header,element('p',members.length+' view'+(members.length===1?'':'s')+' · each image stays connected','tip'));
     const views=element('div',null,'reference-group-views');group.append(views);container.append(group);return views;
   }
   root.H3ReferenceControls={addFields,addPreview,cleanup,groupContainer};
