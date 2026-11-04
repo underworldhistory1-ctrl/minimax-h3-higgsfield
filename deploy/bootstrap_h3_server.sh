@@ -167,7 +167,7 @@ install_speed_node() {
     origin="$(git -C "$target" remote get-url origin)"
     [[ "$origin" == "$url" ]] || { echo "Unexpected speed node origin in $target: $origin" >&2; exit 1; }
     local current
-    current="$(git -C "$target" rev-parse HEAD 2>/dev/null || true)"
+    current="$(git -C "$target" rev-parse --verify HEAD 2>/dev/null || true)"
     if [[ -n "$current" ]]; then
         if [[ "$current" == "$revision" ]]; then
             "$H3_PYTHON" "$H3_STUDIO/deploy/node_integrity.py" "$target"
