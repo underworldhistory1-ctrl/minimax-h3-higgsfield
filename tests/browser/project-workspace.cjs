@@ -34,7 +34,7 @@ let browser;
  assert.deepEqual(await page.locator('#assetCategory option').allTextContents(),['Characters','Locations','Props','Style','Audio','Storyboards','Custom']);
  const image=fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'));
  await page.locator('#assetCategory').selectOption('characters');
- await page.locator('#projectAssetFiles').setInputFiles(['hero','room'].map((name,i)=>({name:name+'.jpg',mimeType:'image/jpeg',buffer:Buffer.concat([image,Buffer.from('fixture'+i)])})));
+ await page.locator('#projectAssetFiles').setInputFiles(['hero','room'].map((name,i)=>({name:name+'.jpg',mimeType:'image/jpeg',buffer:Buffer.concat([image,Buffer.from('fixture'+i)])})));await page.locator('#assetUploadName0').fill('hero');await page.locator('#assetUploadName1').fill('room');await page.locator('#assetNameSave').click();
  await page.waitForFunction(()=>state.currentProject?.assets.length===2&&!workspaceCatalogBusy);
  assert.equal(await page.locator('.catalog-asset').count(),2);
  await page.locator('#assetKindFilter').selectOption('audio');assert.equal(await page.locator('.catalog-asset').count(),0);await page.locator('#assetKindFilter').selectOption('all');

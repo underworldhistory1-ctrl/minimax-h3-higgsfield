@@ -161,3 +161,6 @@ web/h3/vendor/sortable-manifest.json
 docs/RELEASE_2_13.md
 h3_lab/execution_inputs.py
 docs/RELEASE_2_14.md
+web/h3/project-settings.js
+web/h3/storage-status.js
+docs/RELEASE_2_15.md

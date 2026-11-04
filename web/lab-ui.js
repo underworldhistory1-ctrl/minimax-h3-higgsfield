@@ -184,7 +184,7 @@ async function persistProjectDraft(){
   if(!projectCtrl?.currentProject)throw Error("Open or create a project before saving inputs.");
   const controller=projectCtrl,original=controller.currentProject,scope={...controller.draftScope};
   if(scope.scene_id&&!scope.shot_id)throw Error("Create or select a shot before saving inputs.");
-  for(const item of allInputItems())if(!item.assetId){if(item.restoreError||!item.file)throw Error("Reattach or remove the unavailable input @"+(item.alias||"reference"));const rec=await projectCtrl.uploadAsset(item.file);item.assetId=rec.asset_id;}
+  for(const item of allInputItems())if(!item.assetId){if(item.restoreError||!item.file)throw Error("Reattach or remove the unavailable input @"+(item.alias||"reference"));const rec=await projectCtrl.uploadAsset(item.file,null);item.assetId=rec.asset_id;}
   const refreshed=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(original.project_id)}`);
   if(controller!==projectCtrl||controller.currentProject?.project_id!==original.project_id)throw Error("Project changed while saving inputs.");
   if(typeof H3Scenes!=='undefined')H3Scenes.assertCanRebase(original,refreshed,scope);
@@ -205,7 +205,7 @@ function captureProjectDraft(local=false){
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:[...state.loras.filter(x=>x.enabled),...(state.reuseRequiredLoras||[]).filter(l=>!state.loras.some(current=>current.name===l.name&&current.enabled))]};
 }
 function emptyWorkspaceDraft(){return {mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[],canvas:{width:1344,height:768},settings:{duration:'124',durationSeconds:'5.167',steps:'20',seed:'42',refSize:'max',renderMethod:'native'},loras:[]};}
-async function hydrateWorkspaceDraft(project){
+async function hydrateWorkspaceDraft(project,{freshTab=false}={}){
   const controller=projectCtrl,id=project?.project_id||'unassigned';
   if(project&&typeof H3ScenesUI!=='undefined')H3ScenesUI.restore(project);
   const scopeKey=tabProjectDraftKey(id);
@@ -213,7 +213,12 @@ async function hydrateWorkspaceDraft(project){
   try{local=await H3TabDraftStore.load(scopeKey);}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
   if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
   const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
-  await hydrateProjectDraft(rebaseWorkspaceAssets(local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft(),project),{preserveFailedLocal:!!state.tabDraftRestoreError});
+  let draft=local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft();
+  if(!local&&!state.tabDraftRestoreError&&!new URL(location.href).searchParams.has('reuse')&&typeof H3ProjectSettings!=='undefined'){
+    if(freshTab)draft=emptyWorkspaceDraft();
+    draft=H3ProjectSettings.inherit(draft,project);
+  }
+  await hydrateProjectDraft(rebaseWorkspaceAssets(draft,project),{preserveFailedLocal:!!state.tabDraftRestoreError});
   return true;
 }
 async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){

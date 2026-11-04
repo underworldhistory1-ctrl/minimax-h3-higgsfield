@@ -22,3 +22,7 @@ Video references and standalone audio each have their own 15-second total budget
 Explicit Structured/native-complete prompts own their directives. The UI warns that card roles, panel order and instructions are bypassed in that path; choose Guided mode to compile card instructions automatically.
 
 Production sections and stages have independent disclosure arrows. Collapse completed work or use the section shortcuts to jump between stages. Fold state is per tab and does not modify render inputs. Mention insertion reveals the prompt when closed; validation errors reveal their prompt section.
+
+Project elements require a name at upload. Only the current named catalog @mention is offered; original filenames and previous names do not auto-attach elements. Attached shot aliases remain authoritative. Remove on an element hides it from the reusable catalog while retaining media required by saved setups and takes. Replace remains available separately.
+
+A fresh project tab inherits independent controls from its latest completed generation, with empty prompts and inputs. Refresh restores the tab draft; explicit Reuse restores a full take. Storage reports the server output filesystem, including space used outside this project.

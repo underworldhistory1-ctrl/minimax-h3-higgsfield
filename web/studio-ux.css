@@ -148,3 +148,14 @@ body[data-workspace-view=elements] .workspace-page,body[data-workspace-view=gene
 .layout-dialog{width:min(700px,calc(100vw - 24px));max-height:85dvh;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:12px;color:var(--text);background:var(--bg,#151515);font:inherit}.layout-dialog::backdrop{background:#000a}
 .layout-dialog h2{font-size:19px;margin:0 0 10px}.layout-dialog h3{font-size:13px;margin:20px 0 7px;color:var(--acid)}.layout-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid var(--line)}.layout-row label,.layout-row>span{flex:1;min-width:0;margin:0;font-size:12px}.layout-row input[type=checkbox]{width:auto;margin-right:8px}.layout-row select{width:150px!important;min-width:0;font-size:11px}.layout-dialog>.row{margin-top:20px}.layout-customize{font:inherit;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;margin-bottom:8px}
 @media(max-width:540px){.layout-row{flex-wrap:wrap}.layout-row label{flex-basis:100%}.layout-row select{flex:1}.layout-dialog{padding:14px}}
+
+/* Card actions remain outside expandable settings, with room for explicit labels. */
+#elementsWorkspace .catalog-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#elementsWorkspace .catalog-actions button{min-height:36px;white-space:normal}
+#elementsWorkspace .catalog-actions .danger{grid-column:1/-1}
+#assetNameDialog{width:min(520px,90vw);max-height:80vh;overflow:auto;background:var(--panel,#1d1e1a);color:var(--text);border:1px solid #555;border-radius:12px;padding:24px}
+#assetNameDialog::backdrop{background:#0009}.asset-name-row{padding:10px 0;border-bottom:1px solid #353831}.asset-name-row label{overflow-wrap:anywhere}.asset-name-row input{width:100%;box-sizing:border-box}
+
+.ref-card-actions{display:flex;gap:8px;flex:1 0 100%;padding-top:8px;border-top:1px solid #353831}.ref-card-actions .button{flex:1;min-height:34px}.ref-order-actions{display:flex;gap:4px;margin-left:auto}
+
+.storage-status{position:relative;font-size:12px;margin-left:auto;flex-shrink:0}.storage-status summary{cursor:pointer;padding:8px;border:1px solid #414731;border-radius:8px;white-space:nowrap}.storage-status>div{position:absolute;right:0;top:100%;z-index:120;width:220px;padding:12px;background:#1d1e1a;border:1px solid #555;border-radius:8px;line-height:1.5}.storage-status[data-low=true] summary{color:#ffcb70}@media(max-width:720px){.storage-status summary{font-size:10px;padding:5px}}

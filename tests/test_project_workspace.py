@@ -19,7 +19,7 @@ class ProjectWorkspaceTests(unittest.TestCase):
     def test_simultaneous_uploads_preserve_all_assets_and_unique_aliases(self):
         assets=[self.asset(n) for n in range(8)]
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-            list(pool.map(lambda asset:self.projects.attach_asset(self.pid,asset,'characters','\u0627\u0644\u0628\u0637\u0644'),assets))
+            list(pool.map(lambda asset:self.projects.attach_asset(self.pid,asset,'characters','Hero_'+asset['asset_id']),assets))
         project=self.projects.get_project(self.pid)
         self.assertEqual(len(project['assets']),8);self.assertEqual(len({a['alias'] for a in project['assets']}),8)
         self.assertTrue(all(a['role']=='character identity' for a in project['assets']))
@@ -241,3 +241,19 @@ class ProjectWorkspaceTests(unittest.TestCase):
                 op={'action':'save_scene','request_id':str(uuid.uuid4()),'name':'Invalid','draft':draft}
                 with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,op,self.project['revision'])
                 self.assertEqual(self.projects.get_project(self.pid)['scenes'],[])
+
+    def test_remove_catalog_element_preserves_saved_inputs_and_history(self):
+        asset=self.asset(99);project=self.projects.attach_asset(self.pid,asset,'characters','Hero')
+        draft={'refs':[{'assetId':asset['asset_id'],'alias':'hero'}]}
+        project['draft']=draft;project['takes']=[{'take_id':'past','draft':draft}]
+        project=self.projects.save_project(self.pid,project,project['revision'])
+        removed=self.projects.update_workspace(self.pid,{'action':'remove_asset','asset_id':asset['asset_id']},project['revision'])
+        self.assertTrue(removed['assets'][0]['catalog_hidden'])
+        self.assertEqual(removed['draft'],draft);self.assertEqual(removed['takes'],project['takes'])
+        self.assertTrue(self.assets.get_asset(asset['asset_id']))
+
+    def test_named_catalog_rejects_ambiguous_current_mentions(self):
+        project=self.projects.attach_asset(self.pid,self.asset(91),'characters','Hero One')
+        with self.assertRaises(ValueError):self.projects.attach_asset(self.pid,self.asset(92),'characters','hero_one')
+        project=self.projects.attach_asset(self.pid,self.asset(93),'characters','Other')
+        with self.assertRaises(ValueError):self.projects.update_workspace(self.pid,{'action':'edit_asset','asset_id':project['assets'][-1]['asset_id'],'name':'Hero One'},project['revision'])

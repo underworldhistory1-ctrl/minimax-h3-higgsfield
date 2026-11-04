@@ -23,10 +23,13 @@ let workspaceCatalogBusy=false;
 let catalogPage={key:'',limit:60},catalogSearchTimer;
 function workspaceLocked(){return state.busy||state.projectLoading||workspaceCatalogBusy;}
 function projectCatalogItems(){
-  return (state.currentProject?.assets||[]).filter(asset=>asset.asset_id&&asset.alias).map(asset=>({
-    ...asset,assetId:asset.asset_id,label:asset.name||asset.alias,tag:state.currentProject.asset_categories?.find(c=>c.id===asset.category)?.name||'Custom',
-    previewUrl:asset.kind!=='image'?null:projectCtrl.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(asset.asset_id)}/thumbnail`),catalog:true,
-  }));
+  const used=new Set();
+  return (state.currentProject?.assets||[]).filter(asset=>asset.asset_id&&asset.alias&&!asset.catalog_hidden).map(asset=>{
+    const base=H3PromptCompiler.mentionName({name:asset.name||asset.alias,alias:asset.alias}).slice(0,32);let alias=base,index=2;
+    while(used.has(alias.toLocaleLowerCase())){const suffix='_'+index++;alias=base.slice(0,32-suffix.length)+suffix;}used.add(alias.toLocaleLowerCase());
+    return {...asset,storedAlias:asset.alias,alias,mention_names:[],mention_policy:'canonical',assetId:asset.asset_id,label:asset.name||alias,tag:state.currentProject.asset_categories?.find(c=>c.id===asset.category)?.name||'Custom',
+      previewUrl:asset.kind!=='image'?null:projectCtrl.apiUrl(`/h3_studio/lab/assets/${encodeURIComponent(asset.asset_id)}/thumbnail`),catalog:true};
+  });
 }
 async function workspaceMutation(operation,project=state.currentProject){
   if(!project||workspaceLocked())throw Error('Wait for the current project operation to finish.');
@@ -220,7 +223,7 @@ function renderProjectCatalog(){
   const pageKey=JSON.stringify([project.project_id,search,filter,kind,folder,$('assetSort')?.value]);
   if(catalogPage.key!==pageKey)catalogPage={key:pageKey,limit:60};
   const visible=items.slice(0,catalogPage.limit);
-  $('assetLibraryCount').textContent=visible.length+' / '+items.length+' shown · '+project.assets.length+' in project';
+  $('assetLibraryCount').textContent=visible.length+' / '+items.length+' shown · '+projectCatalogItems().length+' in project';
   for(const item of visible){
     const row=workspaceElement('article',undefined,'catalog-asset');
     if(typeof H3OrganizationUI!=='undefined')H3OrganizationUI.assetSelection(item,row);
@@ -230,11 +233,16 @@ function renderProjectCatalog(){
     const actions=workspaceElement('div',undefined,'catalog-actions');
     const use=workspaceButton('Use',()=>insertProjectMention(item).then(()=>setWorkspaceView('studio')));use.disabled=workspaceLocked();
     const preview=workspaceButton('Preview',()=>previewProjectAsset(item));preview.disabled=workspaceLocked();
-    const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(preview,use,edit);if(item.kind==='image'){const replace=workspaceButton('Replace image',()=>requestElementReplacement(item));replace.disabled=workspaceLocked();replace.title='Replace this element in editable setups; existing takes keep their original image.';actions.append(replace);}row.append(actions);list.append(row);
+    const edit=workspaceButton('Edit',()=>editProjectAsset(item));edit.disabled=workspaceLocked();actions.append(preview,use,edit);if(item.kind==='image'){const replace=workspaceButton('Replace image',()=>requestElementReplacement(item));replace.disabled=workspaceLocked();replace.title='Replace this element in editable setups; existing takes keep their original image.';actions.append(replace);}const remove=workspaceButton('Remove',()=>removeProjectElement(item));remove.classList.add('danger');remove.disabled=workspaceLocked();remove.title='Remove from project elements. Saved shots and takes keep their media.';actions.append(remove);row.append(actions);list.append(row);
   }
   if(items.length>visible.length){const more=workspaceButton('Show next 60 elements',()=>{catalogPage.limit+=60;renderProjectCatalog();});more.classList.add('catalog-more');list.append(more);}
   if(!items.length){const empty=workspaceElement('div','No assets here yet. Choose an upload category and add your files, or change the filters.','asset-library-empty');list.append(empty);}
 
+}
+async function removeProjectElement(item){
+  if(workspaceLocked())return;
+  await workspaceMutation({action:'remove_asset',asset_id:item.assetId});
+  $('assetUploadStatus').textContent='Element removed from the catalog. Saved shots and takes retain their media.';
 }
 function editProjectAsset(item){
   const dialog=$('assetEditDialog');dialog.dataset.assetId=item.assetId;dialog.dataset.projectId=state.activeProjectId;dialog.dataset.revision=state.currentProject.revision;
@@ -242,7 +250,7 @@ function editProjectAsset(item){
   const updateAliasPreview=()=>{
     const custom=$('assetEditName').value.trim();
     const alias=H3PromptCompiler.mentionName({name:custom,alias:item.alias});
-    $('assetEditAlias').textContent='Suggested name: @'+alias+' · Stable identifier: @'+item.alias;
+    $('assetEditAlias').textContent='Mention: @'+alias;
   };
   $('assetEditName').oninput=updateAliasPreview;
   updateAliasPreview();
@@ -299,7 +307,7 @@ async function replaceProjectElement(item,file){
       // the exact swap once; never retry a mutation or overwrite a different edit.
       if(error.status&&error.status<500)throw error;
       const latest=await controller.fetchJson(`/h3_studio/lab/projects/${encodeURIComponent(project.project_id)}`).catch(()=>null);
-      if(!latest?.assets.some(entry=>entry.asset_id===asset.asset_id&&entry.alias===item.alias)||
+      if(!latest?.assets.some(entry=>entry.asset_id===asset.asset_id&&entry.alias===(item.storedAlias||item.alias))||
         item.assetId!==asset.asset_id&&latest.asset_replacements?.[item.assetId]!==asset.asset_id)throw error;
       updated=latest;
     }
@@ -413,6 +421,29 @@ async function exportWorkspaceProject(){
   });
 }
 function requireWorkspaceShot(){if(projectCtrl.draftScope?.scene_id&&!projectCtrl.draftScope.shot_id)throw Error('Create or select a shot in this scene before saving or exporting its setup. Your local inputs are retained.');}
+function nameCatalogFiles(files){
+  const dialog=$('assetNameDialog'),list=$('assetNameFields');if(dialog.open)return Promise.resolve(null);
+  list.replaceChildren();const fields=files.map((file,index)=>{
+    const row=workspaceElement('div',undefined,'asset-name-row'),label=workspaceElement('label',file.name),input=workspaceElement('input');
+    input.id='assetUploadName'+index;input.maxLength=160;input.required=true;input.autocomplete='off';label.htmlFor=input.id;
+    input.placeholder='Choose an element name';row.append(label,input);list.append(row);return input;
+  });
+  $('assetNameStatus').textContent='';dialog.showModal();fields[0]?.focus();
+  return new Promise(resolve=>{
+    dialog.onclose=()=>resolve(null);
+    $('assetNameCancel').onclick=()=>dialog.close();
+    $('assetNameSave').onclick=()=>{
+      const used=new Set(projectCatalogItems().map(item=>item.alias.toLocaleLowerCase())),names=[];
+      for(const input of fields){
+        const name=input.value.trim(),alias=H3PromptCompiler.mentionName({name,alias:''})?.slice(0,32);
+        if(!name||!alias){$('assetNameStatus').textContent='Give every element a name containing letters or numbers.';input.focus();return;}
+        if(used.has(alias.toLocaleLowerCase())){$('assetNameStatus').textContent='Each @mention must be unique in this project: @'+alias;input.focus();return;}
+        used.add(alias.toLocaleLowerCase());names.push(name);
+      }
+      dialog.onclose=null;dialog.close();resolve(names);
+    };
+  });
+}
 function initProjectWorkspace(){
   H3ScenesUI.init();
   $('btnNewProject').onclick=async()=>{try{if(workspaceLocked())return;const name=await H3OrganizationUI.askName('New project');if(name)await createWorkspaceProject(name);}catch(error){info(error.message,true);}};
@@ -437,10 +468,12 @@ function initProjectWorkspace(){
   $('assetUpload').onclick=()=>{if(!workspaceLocked())$('projectAssetFiles').click();};
   async function uploadCatalogFiles(files){
     const controller=projectCtrl,pid=state.activeProjectId,category=$('assetCategory').value;
-    if(!pid||workspaceLocked())return;workspaceCatalogBusy=true;renderProjectCatalog();
+    if(!pid||workspaceLocked()||!files.length)return;
+    const names=await nameCatalogFiles(files);$('projectAssetFiles').value='';if(!names||controller!==projectCtrl||pid!==state.activeProjectId||workspaceLocked())return;
+    workspaceCatalogBusy=true;renderProjectCatalog();
     try{
-      let done=0;for(const file of files){
-        await controller.uploadAsset(file,pid,{category,name:file.name});
+      let done=0;for(const [index,file] of files.entries()){
+        await controller.uploadAsset(file,pid,{category,name:names[index]});
         $('assetUploadStatus').textContent=`Saved ${++done}/${files.length} assets`;
       }
     }catch(error){$('assetUploadStatus').textContent=error.message;}

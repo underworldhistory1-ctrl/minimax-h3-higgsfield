@@ -46,7 +46,7 @@ class ProjectAssetUploadTests(AioHTTPTestCase):
     async def test_multipart_upload_remains_backward_compatible(self):
         body = FormData()
         body.add_field('file', self.picture, filename='legacy.png', content_type='image/png')
-        response = await self.client.post('/h3_studio/lab/assets?project_id=' + self.project['project_id'], data=body)
+        response = await self.client.post('/h3_studio/lab/assets?name=Legacy&project_id=' + self.project['project_id'], data=body)
         self.assertEqual(response.status, 201, await response.text())
 
     async def test_invalid_or_empty_transport_never_creates_catalog_assets(self):
@@ -62,3 +62,20 @@ class ProjectAssetUploadTests(AioHTTPTestCase):
         response=await self.client.post('/h3_studio/lab/assets?filename=broken.png&project_id='+self.project['project_id'],data=b'not an image',headers={'Content-Type':'application/octet-stream'})
         self.assertEqual(response.status,400)
         self.assertEqual(self.services['projects'].get_project(self.project['project_id'])['assets'],[])
+
+    async def test_catalog_upload_requires_explicit_element_name(self):
+        query = urlencode({'project_id': self.project['project_id'], 'filename': 'Ibrahim.png'})
+        response = await self.client.post('/h3_studio/lab/assets?' + query, data=self.picture,
+                                         headers={'Content-Type': 'application/octet-stream'})
+        self.assertEqual(response.status, 400, await response.text())
+        self.assertEqual(self.services['projects'].get_project(self.project['project_id'])['assets'], [])
+
+    async def test_storage_reports_real_disk_bytes_without_paths(self):
+        response=await self.client.get('/h3_studio/lab/storage')
+        self.assertEqual(response.status,200)
+        data=await response.json()
+        self.assertEqual(data['scope'],'server_output')
+        self.assertGreater(data['total_bytes'],0)
+        self.assertGreaterEqual(data['free_bytes'],0)
+        self.assertEqual(data['used_bytes']+data['free_bytes'],data['total_bytes'])
+        self.assertNotIn('path',data)

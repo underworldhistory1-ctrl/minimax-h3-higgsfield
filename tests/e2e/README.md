@@ -24,3 +24,5 @@ Image cancellation removes only the identified pending queue entry and verifies 
 `node tests/e2e/custom-layout-browser.cjs` uses port 18777. It checks actual mouse reference dragging, keyboard alternatives, storyboard sequence upload and group modes, source-preserving numeric tag remapping, section relocation/visibility persistence and reset, guide timestamps, Qwen reference order and hidden-control reveal. Inference is simulated; graph submission and project routes are real.
 
 `selection-audit-browser.cjs` checks explicit soundtrack selection, duplicate/reordered sources, project persistence, canonical submission metadata, malformed frame requests, inactive trim handling and Qwen metadata retry/unlock against the real local routes with simulated inference.
+
+`project-settings-browser.cjs` verifies mandatory element names, filename collision isolation, visible actions, catalog removal persistence, empty-input fresh tabs with latest generation controls, reload retention, cross-project isolation and real server storage.

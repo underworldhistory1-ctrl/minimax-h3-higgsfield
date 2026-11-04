@@ -75,7 +75,7 @@ class TestH3Projects(unittest.TestCase):
         renamed_item = renamed["assets"][0]
         self.assertEqual(renamed_item["name"], "Vanguard Shepard")
         self.assertEqual(renamed_item["alias"], "Commander_Shepard")
-        self.assertIn('Commander Shepard', renamed_item['mention_names'])
+        self.assertNotIn('mention_names', renamed_item)
         self.assertEqual(renamed["draft"]["refs"][0]["alias"], "Commander_Shepard")
         self.assertEqual(renamed["draft"]["prompts"]["refs"], "Close-up of @Commander_Shepard walking into the light.")
         self.assertEqual(renamed["draft"]["source_prompt"], "Close-up of @Commander_Shepard walking into the light.")

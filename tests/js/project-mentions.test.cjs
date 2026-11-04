@@ -39,7 +39,7 @@ test('unattached named catalog assets still attach alongside numeric shot aliase
  const {context,state}=workspace([{asset_id:'ghost',alias:'victor',name:'1',kind:'image'},{asset_id:'room',alias:'room',name:'Alley',kind:'image'}],'@1 enters @Alley');
  state.refs=[{assetId:'person',alias:'1',kind:'image'}];
  context.activateProjectAsset=async item=>state.refs.push(item);
- await context.syncPromptMentionsToReferences();assert.deepEqual(state.refs.map(ref=>ref.alias),['1','room']);
+ await context.syncPromptMentionsToReferences();assert.deepEqual(state.refs.map(ref=>ref.alias),['1','Alley']);
 });
 test('display names compile to canonical IDs while legacy aliases remain valid',()=>{
  const references=[{asset_id:'a',alias:'old_filename',name:'Bathroom set',kind:'image',role:'custom'}];
@@ -107,11 +107,31 @@ test('large catalogs normalize pasted mentions once, not once per element',async
 });
 
 
-test('display mention cannot shadow an unattached canonical element alias',()=>{
+test('current named mention replaces the obsolete unattached filename alias',()=>{
  const {context,state}=workspace([{asset_id:'other',alias:'Hero',name:'Other person',kind:'image'},{asset_id:'attached',alias:'hero_2',name:'Hero',kind:'image'}]);
  state.refs=[{assetId:'attached',alias:'hero_2',name:'Hero'}];
  context.currentRenderSpec=()=>({references:state.refs.map(ref=>({...ref,asset_id:ref.assetId}))});
  const source=fs.readFileSync('web/studio.js','utf8');
  vm.runInContext(source.slice(source.indexOf('function preferredReferenceMention(alias)'),source.indexOf('function insertReferenceMention(alias,scroll)')),context);
- assert.equal(context.preferredReferenceMention('hero_2'),'hero_2');
+ assert.equal(context.preferredReferenceMention('hero_2'),'Hero');
+});
+
+
+test('renamed catalog filenames and historical names cannot steal a fresh upload mention',async()=>{
+ const {context,state}=workspace([{asset_id:'old',alias:'Ibrahim',name:'Main villain',mention_names:['Ibrahim'],kind:'image'}],'@Ibrahim walks');
+ state.refs=[{assetId:'fresh',alias:'Ibrahim',kind:'image'}];
+ context.activateProjectAsset=async()=>assert.fail('Old filename must not reattach');
+ await context.syncPromptMentionsToReferences();assert.equal(state.refs.length,1);
+ const item=context.projectCatalogItems()[0];assert.equal(item.alias,'Main_villain');assert.equal(item.mention_names.length,0);
+ state.refs=[];await context.syncPromptMentionsToReferences();assert.equal(state.refs.length,0);
+});
+
+test('fresh direct reference aliases reserve only active cards, never historical catalog filenames',()=>{
+ const {context,state}=workspace([{asset_id:'old',alias:'Ibrahim',name:'Villain'}]);
+ const source=fs.readFileSync('web/studio.js','utf8');vm.runInContext(source.slice(source.indexOf('function aliasName(fileName)'),source.indexOf('function setAspectFormat')),context);
+ assert.equal(context.aliasName('Ibrahim.png'),'Ibrahim');state.refs.push({alias:'Ibrahim'});assert.equal(context.aliasName('Ibrahim.png'),'Ibrahim_2');
+});
+
+test('removed catalog items stay hidden while remaining available to saved references',()=>{
+ const {context}=workspace([{asset_id:'old',alias:'hero',name:'Hero',catalog_hidden:true}]);assert.equal(context.projectCatalogItems().length,0);
 });

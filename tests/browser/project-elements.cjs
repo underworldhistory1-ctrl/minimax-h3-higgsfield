@@ -37,7 +37,7 @@ let browser;
  const picture=name=>({name,mimeType:'image/jpeg',buffer:Buffer.concat([image,Buffer.from(name)])});
  await page.locator('[data-workspace-nav=elements]').click();
  await page.locator('#assetCategory').selectOption('characters');
- await page.locator('#projectAssetFiles').setInputFiles([picture('Hero.jpg'),picture('hero.jpg')]);
+ await page.locator('#projectAssetFiles').setInputFiles([picture('Hero.jpg'),picture('hero.jpg')]);await page.locator('#assetUploadName0').fill('Hero');await page.locator('#assetUploadName1').fill('Alternate hero');await page.locator('#assetNameSave').click();
  await page.waitForFunction(()=>state.currentProject.assets.length===2&&!workspaceLocked());
  const aliases=await page.evaluate(()=>state.currentProject.assets.map(asset=>asset.alias.toLowerCase()));assert.equal(new Set(aliases).size,2);
  await page.locator('.catalog-asset').first().getByRole('button',{name:'Use',exact:true}).click();

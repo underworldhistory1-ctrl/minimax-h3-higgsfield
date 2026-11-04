@@ -528,7 +528,7 @@ function aliasName(fileName) {
   let name = fileName.replace(/\.[^.]+$/,"").trim().replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^_+|_+$/g,"").slice(0,32);
   if (!name) name="ref";
   let unique=name,i=2;
-  while(state.refs.some(r=>r.alias.toLocaleLowerCase()===unique.toLocaleLowerCase())||(state.currentProject?.assets||[]).some(a=>a.alias?.toLocaleLowerCase()===unique.toLocaleLowerCase())) {const suffix="_"+i++;unique=name.slice(0,32-suffix.length)+suffix;}
+  while(state.refs.some(r=>r.alias.toLocaleLowerCase()===unique.toLocaleLowerCase())) {const suffix="_"+i++;unique=name.slice(0,32-suffix.length)+suffix;}
   return unique;
 }
 function setAspectFormat(fmt){
@@ -639,7 +639,7 @@ function renderRefs() {
     const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=locked;
     remove.onclick=()=>{if(locked)return;state.refs.splice(state.refs.indexOf(ref),1);for(const url of new Set([ref.previewUrl,ref.originalPreviewUrl,ref.url]))if(url)URL.revokeObjectURL(url);renderRefs();renderEstimates();updatePreviewLive();saveDraft();};
     const replace=document.createElement("button");replace.type="button";replace.className="button alt smallbtn ref-replace";replace.textContent="Replace";replace.disabled=locked;replace.hidden=ref.kind!=="image";replace.title="Replace this shot image and keep its name and position";replace.onclick=event=>{event.preventDefault();event.stopPropagation();requestReferenceReplacement(ref);};
-    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";up.title="Move earlier within this reference group or media type";down.title="Move later within this reference group or media type";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const group=H3ReferencePolicy.groupKey(ref),same=state.refs.map((r,i)=>r.kind===ref.kind&&(!group||H3ReferencePolicy.groupKey(r)===group)?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;const next=state.refs.slice();[next[index],next[target]]=[next[target],next[index]];commitReferenceOrder(next);};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,replace,up,down,remove);
+    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";up.title="Move earlier within this reference group or media type";down.title="Move later within this reference group or media type";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const group=H3ReferencePolicy.groupKey(ref),same=state.refs.map((r,i)=>r.kind===ref.kind&&(!group||H3ReferencePolicy.groupKey(r)===group)?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;const next=state.refs.slice();[next[index],next[target]]=[next[target],next[index]];commitReferenceOrder(next);};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());const order=document.createElement("span");order.className="ref-order-actions";order.append(up,down);const actions=document.createElement("span");actions.className="ref-card-actions";actions.append(replace,remove);head.append(icon,title,order,actions);
     const meta=document.createElement("div");meta.className="refmeta";
     meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+(ref.label||ref.name||ref.file.name)
       +(ref.kind==="video"&&ref.localDuration?" · source "+ref.localDuration.toFixed(2)+"s":ref.kind==="audio"&&ref.localDuration?" · "+ref.localDuration.toFixed(2)+"s":"")
@@ -2220,7 +2220,7 @@ async function initProjectController() {
     if(pid&&!project){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;
     if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
-    if(!await hydrateWorkspaceDraft(project))return;
+    if(!await hydrateWorkspaceDraft(project,{freshTab:true}))return;
     if(reuseRequested)state.tabRestoredView='studio';
     else if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);
     else if(navigation.searchParams.has('project'))state.tabRestoredView='studio';

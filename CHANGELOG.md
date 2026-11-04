@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.15.0 - 2026-11-04
+
+- Require named project elements and use only current catalog mentions; prevent historical filename collisions with direct references.
+- Add visible catalog Remove alongside Replace and separate reference card actions. Keep saved media/history portable.
+- In fresh project tabs, inherit only the latest completed generation controls with empty prompts and inputs; preserve refresh drafts and explicit Reuse.
+- Add server output disk Storage indicators and clarify checkpoint/Pika adapter choices. Runtime/model pins remain unchanged.
+- Verify 609 Python tests (one platform skip), 327 JavaScript tests and real local browser/API journeys with simulated inference. [Details](docs/RELEASE_2_15.md).
+
 ## 2.14.0 - 2026-11-04
 
 - Add explicit persisted source-video soundtrack selection and fail closed for missing/ambiguous sources. Preserve source identity across duplicate uploads, trims and reorder.

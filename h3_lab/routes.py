@@ -637,8 +637,15 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         if suffix not in kinds:
             return web.json_response({"error": "Unsupported asset format"}, status=400)
         pid = request.query.get("project_id")
-        if pid and not projects.get_project(pid):
-            return web.json_response({"error": "Project not found"}, status=404)
+        if pid:
+            project = projects.get_project(pid)
+            if not project:
+                return web.json_response({"error": "Project not found"}, status=404)
+            try:
+                from .projects import validate_element_name
+                validate_element_name(project, request.query.get('name'))
+            except ValueError as error:
+                return web.json_response({'error': str(error)}, status=400)
         temporary = services["storage_root"] / ("upload_" + uuid.uuid4().hex + suffix)
         size = 0
         limit_mb = {"image": 25, "audio": 100, "video": 500}[kinds[suffix]]
@@ -794,6 +801,20 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             resp["frame_count"] = meta.get("frame_count")
             resp["duration"] = meta.get("duration")
         return web.json_response(resp)
+
+    async def handle_storage_usage(request):
+        def usage():
+            import shutil
+            directory = pathlib.Path(output_root or services['storage_root'])
+            while not directory.exists() and directory != directory.parent:
+                directory = directory.parent
+            disk = shutil.disk_usage(directory)
+            return {'scope': 'server_output', 'total_bytes': disk.total,
+                    'used_bytes': disk.used, 'free_bytes': disk.free}
+        try:
+            return web.json_response(await asyncio.to_thread(usage))
+        except OSError:
+            return web.json_response({'error': 'Storage information unavailable'}, status=503)
 
     # Context endpoints
     async def handle_context_usage(request):
@@ -1123,6 +1144,7 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
         ("POST", "/h3_studio/lab/jobs/{id}/cancel", handle_cancel_job),
         ("POST", "/h3_studio/lab/jobs/{id}/recover", handle_recover_job),
         ("POST", "/h3_studio/lab/import_qwen_image", handle_import_qwen_image),
+        ("GET", "/h3_studio/lab/storage", handle_storage_usage),
         ("GET", "/h3_studio/lab/contexts/usage", handle_context_usage),
         ("GET", "/h3_studio/lab/contexts/{id}", handle_context_metadata),
         ("POST", "/h3_studio/lab/contexts/{id}/purge", handle_context_purge),

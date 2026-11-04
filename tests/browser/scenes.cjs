@@ -58,7 +58,7 @@ async function stop(){if(browser)await browser.close();if(server){if(base)await 
  await ui.select('Legacy content');await ui.check('Legacy untouched prompt','100');await ui.select('Arrival');await ui.check('Arrival wide framing','111');
  // Attach one project asset in Wide only, using the actual asset catalog UI.
  await page.locator('[data-workspace-nav=elements]').click();await page.locator('#assetCategory').selectOption('characters');
- await page.locator('#projectAssetFiles').setInputFiles({name:'Hero.jpg',mimeType:'image/jpeg',buffer:fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'))});await page.waitForFunction(()=>state.currentProject.assets.length===1&&!workspaceCatalogBusy);
+ await page.locator('#projectAssetFiles').setInputFiles({name:'Hero.jpg',mimeType:'image/jpeg',buffer:fs.readFileSync(path.join(root,'docs/demo/superman/character-reference-preview.jpg'))});await page.locator('#assetUploadName0').fill('Hero');await page.locator('#assetNameSave').click();await page.waitForFunction(()=>state.currentProject.assets.length===1&&!workspaceCatalogBusy);
  const aid=await page.evaluate(()=>state.currentProject.assets[0].asset_id);
  await page.locator('[data-workspace-nav=studio]').click();
  await page.evaluate(async assetId=>{selectMode('refs');await activateProjectAsset(projectCatalogItems().find(a=>a.assetId===assetId));},aid);

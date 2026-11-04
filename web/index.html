@@ -53,7 +53,7 @@
 .brand{border:0;padding:0;background:none;color:inherit;font:inherit}.brand:focus-visible{outline:2px solid var(--acid);outline-offset:6px;border-radius:8px}
 </style>
 <link rel="stylesheet" href="./reference-controls.css?v=20261104-interface-2.11.0">
-<link rel="stylesheet" href="./studio-ux.css?v=20261104-interface-2.13.0">
+<link rel="stylesheet" href="./studio-ux.css?v=20261104-interface-2.15.0">
 <link rel="stylesheet" href="./scenes.css?v=20261103-interface-2.9.0">
 <link rel="stylesheet" href="./organization.css?v=20261103-interface-2.9.0">
 </head>
@@ -62,6 +62,7 @@
  <button class="brand" id="brandRefresh" type="button" title="Refresh this tab" aria-label="Refresh H3 Studio"><span class="mark">H3</span><span class="brand-name">H3 Interface</span></button>
  <nav class="topnav" aria-label="Studio workspace"><button type="button" class="button alt smallbtn" id="projectsHome">Projects</button><a class="active" href="index.html">Create Video</a><a href="image.html">Create Image</a></nav>
  <div class="connection" id="connection"><i class="dot"></i><span id="connectionText">Checking ComfyUI</span><button id="retry" class="button alt smallbtn">Retry</button></div>
+<details class="storage-status" id="storageStatus"><summary>Storage <span id="storageFree">—</span></summary><div id="storageDetails" role="status">Server output disk · checking…</div></details>
 </header>
 <section id="projectHub" aria-label="Projects">
  <div class="project-hub-heading"><div><div class="eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>Projects</h1><p data-guidance-key="videoHelp1" lang="en" dir="ltr">Open a project to work with its assets, prompts and takes.</p></div><button id="projectHubRefresh" class="button alt smallbtn">Refresh</button></div>
@@ -205,6 +206,7 @@
 <script src="./h3/uuid.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/tab-session.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/vendor/prompt-parsers.js?v=20261103-interface-2.9.0"></script>
+<dialog id="assetNameDialog" aria-labelledby="assetNameTitle"><h2 id="assetNameTitle">Name project elements</h2><p class="tip">Choose one name for each element. Its @mention comes from this name.</p><div id="assetNameFields"></div><p id="assetNameStatus" role="status"></p><div class="row"><button id="assetNameSave" class="button" type="button">Upload elements</button><button id="assetNameCancel" class="button alt" type="button">Cancel</button></div></dialog>
 <dialog id="assetEditDialog"><h2>Edit project asset</h2><label for="assetEditName">ELEMENT DISPLAY NAME</label><input id="assetEditName" maxlength="160"><div class="tip" id="assetEditAlias"></div><label for="assetEditCategory">CATEGORY</label><select id="assetEditCategory"></select><label for="assetEditNotes">NOTES / REFERENCE INSTRUCTION</label><textarea id="assetEditNotes" maxlength="4000"></textarea><p id="assetEditStatus" role="status"></p><div class="row"><button id="assetEditSave" class="button">Save asset</button><button id="assetEditClose" class="button alt">Close</button></div></dialog>
 <script src="./h3/prompt-input.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/reference-policy.js?v=20261104-interface-2.13.0"></script>
@@ -214,7 +216,8 @@
 <script src="./h3/graph-builder.js?v=20261104-interface-2.14.0"></script>
 <script src="./h3/scenes-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/project-controller.js?v=20261103-interface-2.9.0"></script>
-<script src="./lab-ui.js?v=20261104-interface-2.14.0"></script>
+<script src="./h3/project-settings.js?v=20261104-interface-2.15.0"></script>
+<script src="./lab-ui.js?v=20261104-interface-2.15.0"></script>
 <script src="./h3/vendor/sortable.min.js?v=1.15.7"></script>
 <script src="./h3/drag-sort.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/reference-order.js?v=20261104-interface-2.13.0"></script>
@@ -224,18 +227,19 @@
 <script src="./h3/timing-estimator.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/tab-draft-store.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/reuse-navigation.js?v=20261103-interface-2.9.0"></script>
-<script src="./studio.js?v=20261104-interface-2.14.0"></script>
+<script src="./studio.js?v=20261104-interface-2.15.0"></script>
 <script src="./h3/updates-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/connected-studio.js?v=20261104-interface-2.13.0"></script>
-<script src="./h3/configuration-ui.js?v=20261104-interface-2.14.0"></script>
+<script src="./h3/configuration-ui.js?v=20261104-interface-2.15.0"></script>
 <script src="./h3/dials-ui.js?v=20261103-interface-2.9.0"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>
 <dialog id="fileAssetsDialog" class="organization-dialog" aria-labelledby="fileAssetsTitle"><h2 id="fileAssetsTitle">Organize selected assets</h2><p data-guidance-key="videoHelp28" lang="en" dir="ltr">Folders organize media independently of its reference role.</p><label for="fileAssetsFolder">DESTINATION FOLDER</label><select id="fileAssetsFolder"></select><p id="fileAssetsStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileAssetsApply" class="button">Move selected assets</button></div></dialog>
 <dialog id="transferDialog" class="organization-dialog" aria-labelledby="transferTitle"><h2 id="transferTitle">Transfer materials</h2><p id="transferSummary"></p><label for="transferTarget">DESTINATION PROJECT</label><select id="transferTarget"></select><label for="transferMode">ACTION</label><select id="transferMode"><option value="copy">Copy · preserve source</option><option value="move">Move · check dependencies</option></select><p id="transferStatus" role="status" aria-live="polite"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="transferApply" class="button">Transfer selected materials</button></div></dialog>
 <script src="./h3/organization-ui.js?v=20261103-interface-2.9.0"></script>
-<script src="./h3/project-workspace.js?v=20261104-interface-2.11.0"></script>
+<script src="./h3/project-workspace.js?v=20261104-interface-2.15.0"></script>
 
 <script src="./h3/video-tab-state.js?v=20261103-interface-2.9.0"></script>
+<script src="./h3/storage-status.js?v=20261104-interface-2.15.0"></script>
 </body>
 </html>

@@ -49,6 +49,23 @@ def reference_alias(name, used):
         candidate = base[:32-len(str(suffix))-1] + "_" + str(suffix)
     return candidate
 
+def element_mention(name):
+    label = workspace_name(name)
+    label = re.sub(r"\.(?:png|jpe?g|webp|gif|bmp|mp4|mov|webm|mkv|wav|mp3|ogg|flac|m4a)$", "", label, flags=re.IGNORECASE)
+    token = re.sub(r"[^\w-]+", "_", label, flags=re.UNICODE).strip("_")[:32]
+    if not token or not any(c.isalnum() for c in token):
+        raise ValueError("Element name must contain letters or numbers")
+    return token
+
+
+def validate_element_name(project, name, asset_id=None):
+    token = element_mention(name)
+    for item in project.get('assets', []):
+        if not item.get('catalog_hidden') and item.get('asset_id') != asset_id and element_mention(item.get('name') or item.get('alias') or 'Reference').casefold() == token.casefold():
+            raise ValueError('An element already uses @' + token + '. Choose a unique name.')
+    return workspace_name(name)
+
+
 def image_category_role(category):
     return category['role'] if category['role'] in ('character identity', 'location', 'object', 'visual style', 'storyboard', 'custom') else 'custom'
 
@@ -168,8 +185,11 @@ class ProjectService(OrganizationMixin):
             if not selected:
                 raise ValueError("Unknown asset category")
             existing = next((a for a in project["assets"] if a["asset_id"] == asset["asset_id"]), None)
+            if existing and existing.get('catalog_hidden'):
+                existing['name'] = validate_element_name(project, name, asset['asset_id'])
+                existing.pop('catalog_hidden', None)
             if not existing:
-                label = workspace_name(name or asset.get("original_name") or "Reference")
+                label = validate_element_name(project, name, asset["asset_id"]) if name is not None else workspace_name(asset.get("original_name") or "Reference")
                 alias = reference_alias(pathlib.Path(label).stem, {a["alias"].casefold() for a in project["assets"]})
                 role = "voice" if asset["kind"] == "audio" else "motion" if asset["kind"] == "video" else image_category_role(selected)
                 project["assets"].append({"asset_id": asset["asset_id"], "kind": asset["kind"], "server_path": asset["server_path"],
@@ -248,17 +268,22 @@ class ProjectService(OrganizationMixin):
                 category['name'] = name
             elif action == "replace_asset":
                 self._replace_workspace_asset(project, operation)
+            elif action == "remove_asset":
+                asset_id = operation.get('asset_id')
+                if not any(a['asset_id'] == asset_id for a in project['assets']):
+                    raise ValueError('Asset is not in this project')
+                # Unlink only the catalog entry; saved setups/takes own their media.
+                next(a for a in project['assets'] if a['asset_id'] == asset_id)['catalog_hidden'] = True
             elif action == "edit_asset":
                 item = next((a for a in project["assets"] if a["asset_id"] == operation.get("asset_id")), None)
                 if not item:
                     raise ValueError("Asset is not in this project")
                 if "name" in operation:
-                    name = workspace_name(operation["name"])
-                    if name != item.get("name") and item.get("name"):
-                        item["mention_names"] = list(dict.fromkeys([*item.get("mention_names", []), item["name"]]))
+                    name = validate_element_name(project, operation["name"], item["asset_id"])
+                    item.pop("mention_names", None)
                     item["name"] = name
-                    # The display name is also a mention; the canonical alias and
-                    # saved take/draft bindings remain backward compatible.
+                    # The stable stored ID/alias preserves historical draft bindings.
+                    # The live catalog exposes only the current named mention.
                 if "notes" in operation:
                     if not isinstance(operation["notes"], str) or len(operation["notes"]) > 4000:
                         raise ValueError("Notes must contain at most 4000 characters")

@@ -18,7 +18,7 @@ Pinned core: ComfyUI 0.43.0. Native Comfy Kitchen INT8 attention is the default;
 
 ## Create
 
-Open `/extensions/h3_studio/index.html`. The server root redirects to Studio; `/?view=nodes` opens the technical editor. Start in Production, attach inputs and generate. Save scene or Generate creates a workspace when needed. Refresh keeps the current tab; a new plain Studio page starts independently.
+Open `/extensions/h3_studio/index.html`. The server root redirects to Studio; `/?view=nodes` opens the technical editor. Start in Production, attach inputs and generate. Save scene or Generate creates a workspace when needed. Refresh keeps the current tab. A fresh project tab starts with empty prompts and inputs and inherits that project’s latest completed generation controls; a new plain Studio page starts independently.
 
 Original uses FL2VA for Text/Frames and Ref2VA for References. Supported Pika/Turbo choices apply required sampling and model settings automatically. Unsupported saved setups remain visible and block generation. See [selection rules](docs/MATLOW_AND_SELECTIONS.md) and [compatibility](docs/COMPATIBILITY_MATRIX.md).
 
@@ -28,6 +28,6 @@ Optional Matlow packs use Linux `--matlow` or Windows `-Matlow` once. Dials are 
 
 The launcher follows official main by default, preserves local edits and waits for accepted work, preparation and exports before changing runtime. Never restart an active render. The Updates panel installs supported code changes; environment changes require the full launcher and installed code requires a restart.
 
-Run `python deploy/verify_h3_server.py --url COMFY_URL` for read-only checks. Source tests, API readiness and GPU outputs are separate evidence. Current 2.14 changes have no new GPU render; dated GPU reports describe earlier tested workloads only.
+Run `python deploy/verify_h3_server.py --url COMFY_URL` for read-only checks. Source tests, API readiness and GPU outputs are separate evidence. Current 2.15 changes have no new GPU render; dated GPU reports describe earlier tested workloads only.
 
 Back up projects, input/output and continuation contexts before important updates. Completed sampler latents support tracked decode recovery, not mid-sampling resume. [Upgrade](docs/V2_UPGRADE.md) · [Documentation](docs/README.md) · [Changelog](CHANGELOG.md).
