@@ -4,7 +4,7 @@ const {compilePrompt,parseStructuredSections}=require('../../web/h3/prompt-compi
 const {buildGraph}=require('../../web/h3/graph-builder.js');
 
 const roles={
-  image:['character identity','custom','storyboard','location','visual style','object'],
+  image:['character identity','custom','storyboard','spatial plan','location','visual style','object'],
   video:['motion','custom','motion and camera','camera movement','action','whole scene'],
   audio:['voice','custom','music','sound effects'],
 };
@@ -20,7 +20,7 @@ for(const [kind,choices] of Object.entries(roles))for(const role of choices){
     const sections=parseStructuredSections(compiled.compiled_prompt);
     assert.equal(binding.alias,'evidence');assert.equal(binding.kind,kind);assert.equal(binding.role,role);
     assert.equal(binding.instruction,instruction);
-    const tag=kind==='image'?['custom','storyboard'].includes(role)?'<Picture 1>':'<Subject 1>':kind==='video'?'<Video 1>':'<Audio 1>';
+    const tag=kind==='image'?['custom','storyboard','spatial plan'].includes(role)?'<Picture 1>':'<Subject 1>':kind==='video'?'<Video 1>':'<Audio 1>';
     assert.equal(binding.tag,tag);assert.ok(compiled.compiled_prompt.includes(tag));
     assert.ok(!compiled.compiled_prompt.includes('@evidence'),'Only the native tag enters the model prompt');
     if(instruction)assert.ok(compiled.compiled_prompt.includes(instruction));

@@ -10,6 +10,32 @@ TEXT = 'integrated_multimodal_description: [Shot 1] A person walks.\noverall_sou
 
 
 class PromptContextTests(unittest.TestCase):
+    def test_spatial_plan_is_picture_and_storyboard_sequence_reaches_preparation(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            refs=[]
+            for alias,role in (('plan','spatial plan'),('board','storyboard'),('hero','character identity')):
+                filename=f'h3_studio_kf_{alias}.png';Image.new('RGB',(8,8)).save(root/filename)
+                refs.append({'alias':alias,'role':role,'kind':'image','filename':filename})
+            refs[1]['storyboard_mode']='continuous'
+            calls=[]
+            output='subject_definitions: <Picture 1> is a plan. <Picture 2> is a board. <Subject 1> is shown in <Picture 3>.\nsummary: Follow <Picture 1> and <Picture 2> with <Subject 1>.\nretention_analysis: Planning only.\ndetailed_description: [Shot 1] The person walks.\noverall_soundscape: Wind.\nnon_diegetic_music: None.'
+            def chat(messages):
+                calls.append(messages);return output
+            service=PromptContextService(root,writer=lambda spec,parts:prepare_studio_context(spec,parts,chat=chat))
+            result=service.prepare({'mode':'refs','source_prompt':'@hero follows @board using @plan.','references':refs})
+            self.assertEqual([b['tag'] for b in result['bindings']],['<Picture 1>','<Picture 2>','<Subject 1>'])
+            manifest=json.loads(calls[0][1]['content'][0]['text'])['references']
+            self.assertEqual(manifest[1]['storyboard_mode'],'continuous')
+            self.assertIn('spatial plan',calls[0][0]['content'])
+            refs[1]['storyboard_mode']='cuts'
+            other=service.prepare({'mode':'refs','source_prompt':'@hero follows @board using @plan.','references':refs})
+            self.assertNotEqual(result['fingerprint'],other['fingerprint'])
+            refs[1]['storyboard_mode']='bad'
+            with self.assertRaisesRegex(ValueError,'valid storyboard sequence'):
+                service.prepare({'mode':'refs','references':refs})
+
     def test_grouped_environment_element_style_bindings_and_role_conflicts(self):
         from h3_lab.prompt_context import PromptContextService
         with tempfile.TemporaryDirectory() as directory:

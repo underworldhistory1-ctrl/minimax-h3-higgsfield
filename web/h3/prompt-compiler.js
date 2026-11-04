@@ -375,6 +375,8 @@
       const rawRefs = refs.map(ref=>({...ref,instruction:normalize(ref.instruction || '')}));
       const groupRoles = new Map();
       for (const ref of rawRefs) {
+        if(ref.role==='storyboard' && ref.storyboard_mode!=null && !['auto','continuous','cuts'].includes(ref.storyboard_mode))
+          throw Error('@'+ref.alias+': select a valid storyboard sequence mode.');
         if (ref.subject_group == null || ref.subject_group === '') continue;
         const role = (ref.role || '').toLowerCase().trim();
         if (typeof ref.subject_group !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(ref.subject_group) || ref.kind !== 'image' || !['character identity','location','object','visual style'].includes(role))
@@ -434,6 +436,7 @@
           instruction: ref.instruction || '',
           ...(ref.subject_group ? {subject_group: ref.subject_group} : {}),
           ...(ref.panel_order ? {panel_order: ref.panel_order} : {}),
+          ...(role==='storyboard' ? {storyboard_mode:ref.storyboard_mode||'auto'} : {}),
         };
 
         if (ref.kind === 'image') {
@@ -449,7 +452,13 @@
             bindingInfo.tag = tag;
             mediaNotes.push(`${picTag} is a multi-panel storyboard. Use the panel/shot order described in the prompt as a shot and composition guide; do not render panel borders or labels. Follow explicit shot descriptions when they differ.`);
             if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
+            if(ref.storyboard_mode==='continuous')mediaNotes.push(`${picTag}: all panels are successive beats within one continuous take, not separate shots. Keep a continuous camera trajectory without cuts or transitions. Follow explicit shot descriptions when they differ.`);
+            if(ref.storyboard_mode==='cuts')mediaNotes.push(`${picTag}: panels guide separate shots with cuts only where the prompt or panel-to-shot map specifies them; do not invent one cut per panel.`);
             retention.push(`${picTag}: attribute_transfer - guide shot order, framing and visual progression; do not treat the sheet as a single visible subject.`);
+          } else if (role === 'spatial plan') {
+            tag=picTag;bindingInfo.tag=tag;
+            mediaNotes.push(`${picTag} is a spatial planning diagram, not an output frame or an aerial shot. Use only the requested landmark relationships, subject routes and camera direction as semantic guidance. Distinguish camera travel from subject travel; arrows, labels, legends and camera icons are annotations and must not appear in the video. Do not copy its drawing style. Written scene instructions take priority; this is not calibrated camera or physical trajectory control.`);
+            retention.push(`${picTag}: attribute_transfer - planning relationships only; do not render the diagram, borders, arrows or labels.`);
           } else {
             const group = ref.subject_group;
             if (!group || !characterGroups.has(group)) {

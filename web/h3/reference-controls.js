@@ -19,7 +19,14 @@
       label.append(check,document.createTextNode(' Use original resolution before native sizing'));card.append(label,element('p','Bypasses Auto-fit 2048 for this image. Your selected image fit and H3 native sizing still apply. The original file is retained; this does not guarantee more model detail.','tip'));
       const sizing=H3ReferencePolicy.sizingText(ref.meta);if(sizing)card.append(element('p',sizing,'ref-sizing tip'));
     }
-    if(ref.role==='storyboard')addInstruction('PANEL ORDER / SHOT MAP (OPTIONAL)','panelOrder','e.g. left to right, top to bottom');
+    if(ref.role==='storyboard'){
+      const label=element('label','SEQUENCE STRUCTURE'),select=element('select');select.className='ref-storyboard-mode';select.setAttribute('aria-label','Storyboard sequence structure for @'+ref.alias);select.disabled=locked;
+      for(const [value,title] of [['auto','Follow the prompt (default)'],['continuous','One continuous take · no cuts'],['cuts','Separate shots · explicit cuts']]){const option=element('option',title);option.value=value;select.append(option);}
+      const mode=ref.storyboardMode??'auto';if(!['auto','continuous','cuts'].includes(mode)){const option=element('option','Invalid saved sequence · select again');option.value='__invalid';select.append(option);select.value='__invalid';}else select.value=mode;
+      select.onchange=()=>{if(select.value==='__invalid')return;ref.storyboardMode=select.value;changed(false);};card.append(label,select,element('p','Panels can be beats inside one take. Timing labels are prompt guidance; they do not add timed image anchors.','tip'));
+      addInstruction('PANEL ORDER / SHOT MAP (OPTIONAL)','panelOrder','e.g. left to right, top to bottom');
+    }
+    if(ref.role==='spatial plan')card.append(element('p','Optional experiment: send a separate layout/camera/subject-route diagram as semantic guidance. Prefer translating the plan into written action and camera directions first. This does not add geometric camera control. Never use the map as a start/end frame or timed keyframe.','tip'));
     addInstruction('ADDITIONAL INSTRUCTION (OPTIONAL)','instruction','e.g. retain the scar; use only the camera movement');
     card.append(element('p','Guided prompts include this instruction. Complete structured prompts keep their own instructions.','tip'));
     function addInstruction(title,key,placeholder){const label=element('label',title),input=element('textarea');input.rows=2;input.className='ref-additional-instruction';input.setAttribute('aria-label',title+' for @'+ref.alias);input.placeholder=placeholder;input.value=ref[key]||'';input.disabled=locked;input.oninput=()=>{ref[key]=input.value;changed(false);};card.append(label,input);}

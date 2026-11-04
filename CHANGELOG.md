@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.12.0 - 2026-11-04
+
+- Add an optional Spatial plan image role with Picture bindings and planning-only guidance. Keep maps distinct from visible subjects, first/last frames and timed guides; no automatic trajectory-control claim.
+- Add Storyboard sequence structure: follow the prompt, one continuous take or separately mapped shots. Persist the choice through drafts, project reload, saved settings and local preparation metadata. Complete native prompts retain authority.
+- Verify 595 Python tests (one platform skip), 304 JavaScript tests and a real local browser project/graph journey with simulated inference. No new GPU rendering. [Release details](docs/RELEASE_2_12.md) · [Storyboards and spatial plans](docs/STORYBOARD_AND_SPATIAL_PLANS.md).
+
 ## 2.11.0 - 2026-11-04
 
 - Replace the long Production rail with four clearly separated, independently collapsible stages and foldable sections. Preserve tab-local fold state, original controls and capability gates; reveal the prompt for mention insertion and errors.
