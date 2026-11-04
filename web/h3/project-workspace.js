@@ -187,7 +187,7 @@ async function insertProjectMention(item,range=null){
   let name=ref.alias;
   try{if(H3PromptCompiler.normalizeReferenceMentions(token,catalog.length?catalog:[ref])==='@'+ref.alias)name=preferred;}catch{}
   input.setRangeText('@'+name+' ',Math.min(start,input.value.length),Math.min(end,input.value.length),'end');
-  $('mentionMenu').classList.add('hidden');input.focus();renderPromptAssets();saveDraft();
+  $('mentionMenu').classList.add('hidden');H3StudioUX.revealControl(input);input.focus();renderPromptAssets();saveDraft();
 }
 function refreshProjectHubControls(){
   const locked=workspaceLocked();
@@ -357,7 +357,7 @@ async function newWorkingScene(){
     detachWorkingProject();await hydrateProjectDraft(emptyWorkspaceDraft());
     await H3TabDraftStore.save(tabProjectDraftKey('unassigned'),captureProjectDraft(true));
   });
-  setWorkspaceView('studio');$('resultCard').classList.add('hidden');showStageMessage('New scene','Write a prompt or attach references. A project is optional.');$('prompt').focus();
+  setWorkspaceView('studio');$('resultCard').classList.add('hidden');showStageMessage('New scene','Write a prompt or attach references. A project is optional.');H3StudioUX.revealControl($('prompt'));$('prompt').focus();
 }
 let sceneAssignment=null;
 async function assignWorkingScene(targetId){

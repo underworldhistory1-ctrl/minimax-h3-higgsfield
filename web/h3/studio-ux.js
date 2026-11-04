@@ -67,33 +67,59 @@
     }
     container.append(list);
   }
+  function revealControl(node){
+    for(let parent=node?.parentElement;parent;parent=parent.parentElement)
+      if(parent.tagName==='DETAILS'&&!parent.querySelector(':scope > summary')?.contains(node))parent.open=true;
+  }
   function arrangeWorkspace() {
     const rail = document.querySelector('.sidebar-scroll');
     if (!rail || !document.getElementById('modelConfiguration') || rail.dataset.arranged) return;
     rail.dataset.arranged = 'true';
     const panels = [...rail.children];
     const panelFor = id => document.getElementById(id)?.closest('.panel');
-    const heading = (id, text) => {
-      const node = document.createElement('h2'); node.id = id; node.className = 'workspace-step'; node.textContent = text; return node;
-    };
     const prompt = panelFor('prompt');
     const generation = panelFor('renderMethod');
     const refinement = panelFor('enableRefine');
     const loras = panelFor('loraList');
     const advanced = panelFor('seed');
-    const order = [document.getElementById('projectPanel'), document.getElementById('scenesPanel'), document.getElementById('openProjectElements'),
-      heading('shotInputsHeading', '1 · Direct the shot'), rail.querySelector('.modes'),
-      document.getElementById('framesSection'), document.getElementById('refsSection'), prompt,
-      document.getElementById('preparationPanel'), heading('renderSetupHeading', '2 · Render setup'),
-      generation, document.getElementById('modelConfiguration'), loras, refinement,
-      heading('optionalGuidanceHeading', '3 · Optional guidance'), document.getElementById('sourcePanel'),
-      document.getElementById('continuationPanel'), document.getElementById('guidesPanel'),
-      document.getElementById('controlPanel'), advanced];
-    // Move the existing controls, preserving listeners, values and capability gates.
-    for (const node of order.filter(Boolean)) rail.append(node);
-    for (const node of panels) if (!order.includes(node)) node.classList.add('workspace-intro');
+    const groups = [
+      ['workspace','Workspace','Scene, projects & reusable assets',false,[['scene','Scene workspace',document.getElementById('projectPanel'),true],['scenes','Scenes & shots',document.getElementById('scenesPanel'),false]]],
+      ['shot','Shot inputs','Mode, references & prompt',true,[['mode','Generation mode',rail.querySelector('.modes'),true],['frames','Start & end frames',document.getElementById('framesSection'),true],['references','References',document.getElementById('refsSection'),true],['prompt','Prompt',prompt,true],['preparation','Prompt preparation',document.getElementById('preparationPanel'),false]]],
+      ['render','Render setup','Quality, model & adapters',true,[['generation','Output & sampling',generation,true],['model','Model configuration',document.getElementById('modelConfiguration'),false],['loras','LoRAs',loras,false],['refinement','Generative refinement',refinement,false]]],
+      ['guidance','Optional guidance','Continuation, keyframes & controls',false,[['source','Continue a video',document.getElementById('sourcePanel'),false],['continuation','Active continuation',document.getElementById('continuationPanel'),true],['keyframes','Temporal keyframes',document.getElementById('guidesPanel'),false],['control','Motion & region control',document.getElementById('controlPanel'),false],['advanced','Advanced settings',advanced,false]]]
+    ];
+    const used=new Set(),nav=document.createElement('nav');nav.className='workspace-jumps';nav.setAttribute('aria-label','Production sections');
+    function saved(id,fallback){try{const v=sessionStorage.getItem('h3studio.fold.'+id);return v===null?fallback:v==='open';}catch{return fallback;}}
+    function remember(fold){fold.addEventListener('toggle',event=>{if(event.target!==fold)return;try{sessionStorage.setItem('h3studio.fold.'+fold.id,fold.open?'open':'closed');}catch{}});}
+    function details(id,title,description,open,className){const d=document.createElement('details');d.id='fold-'+id;d.className=className;d.open=saved(d.id,open);const s=document.createElement('summary'),t=document.createElement('strong');t.textContent=title;s.append(t);if(description){const hint=document.createElement('span');hint.textContent=description;s.append(hint);}d.append(s);remember(d);return d;}
+    for(const [id,title,description,open,items] of groups){
+      const stage=details(id,title,description,open,'workspace-stage');
+      const jump=document.createElement('button');jump.type='button';jump.textContent=title;jump.onclick=()=>{stage.open=true;stage.scrollIntoView({block:'start'});stage.querySelector('summary').focus();};nav.append(jump);
+      for(const [key,label,node,expanded] of items){
+        if(!node)continue;used.add(node);
+        const fold=details(key+'-section',label,'',expanded,'workspace-fold');
+        if(node.tagName==='DETAILS'){
+          // Keep the real details element: other modules set .open to reveal it.
+          const old=node.querySelector(':scope > summary');if(!old)node.prepend(fold.querySelector('summary'));node.classList.add('workspace-fold');node.open=fold.open;node.dataset.foldKey=fold.id;
+          node.addEventListener('toggle',event=>{if(event.target===node)try{sessionStorage.setItem('h3studio.fold.'+node.dataset.foldKey,node.open?'open':'closed');}catch{}});
+          stage.append(node);
+        }else{
+          fold.append(node);stage.append(fold);
+          // Visibility stays owned by mode/capability code on the original node.
+          const sync=()=>{fold.hidden=node.hidden||node.classList.contains('hidden');};sync();new MutationObserver(sync).observe(node,{attributes:true,attributeFilter:['hidden','class']});
+        }
+      }
+      if(id==='workspace'){
+        const assets=document.createElement('button');assets.type='button';assets.className='button alt smallbtn';assets.textContent='Open reusable assets';assets.onclick=()=>Promise.resolve(root.navigateWorkspace?.('elements')).catch(error=>root.info?.(error.message,true));stage.append(assets);
+      }
+      rail.append(stage);
+    }
+    const collapse=document.createElement('button');collapse.type='button';collapse.textContent='Collapse all';collapse.onclick=()=>{for(const stage of rail.querySelectorAll('.workspace-stage'))stage.open=false;rail.scrollTop=0;};nav.append(collapse);rail.prepend(nav);
+    for(const node of panels)if(!used.has(node))node.classList.add('workspace-intro');
+    rail.addEventListener('focusin',event=>revealControl(event.target));
+    const error=document.getElementById('error');if(error)new MutationObserver(()=>{if(error.textContent&&!error.hidden&&!error.classList.contains('hidden'))revealControl(error);}).observe(error,{attributes:true,childList:true,subtree:true});
   }
-  root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards, arrangeWorkspace };
+  root.H3StudioUX = { mentionNodes, attachPrompt, captureThumbnail, referenceCards, arrangeWorkspace, revealControl };
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
     attachPrompt(document.getElementById('prompt')); arrangeWorkspace();
     const refresh=document.getElementById('brandRefresh');

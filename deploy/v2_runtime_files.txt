@@ -149,3 +149,4 @@ docs/RELEASE_2_9.md
 docs/RELEASE_2_9_1.md
 docs/RELEASE_2_10.md
 docs/UPSTREAM_AND_ORCHESTRATION.md
+docs/RELEASE_2_11.md

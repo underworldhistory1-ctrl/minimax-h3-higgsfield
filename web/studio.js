@@ -604,11 +604,11 @@ function renderRefs() {
       preview.onerror=()=>{icon.textContent=ref.kind==="video"?"▶":"I";};
       icon.append(preview);
     }else icon.textContent=ref.kind==="audio"?"♫":ref.kind==="video"?"▶":"I";
-    const title=document.createElement("strong");title.textContent="@"+ref.alias+(ref.label&&ref.label!==ref.alias?" ("+ref.label+")":"")+" · "+ref.role;
+    const title=document.createElement("strong");title.textContent="@"+ref.alias+(ref.kind==="image"?" · Picture "+(state.refs.filter(r=>r.kind==="image").indexOf(ref)+1):"")+(ref.label&&ref.label!==ref.alias?" ("+ref.label+")":"")+" · "+ref.role;
     const remove=document.createElement("button");remove.className="button alt smallbtn";remove.textContent="Remove";remove.disabled=locked;
     remove.onclick=()=>{if(locked)return;state.refs.splice(state.refs.indexOf(ref),1);for(const url of new Set([ref.previewUrl,ref.originalPreviewUrl,ref.url]))if(url)URL.revokeObjectURL(url);renderRefs();renderEstimates();updatePreviewLive();saveDraft();};
     const replace=document.createElement("button");replace.type="button";replace.className="button alt smallbtn ref-replace";replace.textContent="Replace";replace.disabled=locked;replace.hidden=ref.kind!=="image";replace.title="Replace this shot image and keep its name and position";replace.onclick=event=>{event.preventDefault();event.stopPropagation();requestReferenceReplacement(ref);};
-    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const same=state.refs.map((r,i)=>r.kind===ref.kind?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();saveDraft();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,replace,up,down,remove);
+    const up=document.createElement("button"),down=document.createElement("button");up.textContent="↑";down.textContent="↓";up.title="Move earlier within this reference group or media type";down.title="Move later within this reference group or media type";for(const button of [up,down]){button.className="button alt smallbtn";button.disabled=locked;}for(const [button,direction] of [[up,-1],[down,1]])button.onclick=()=>{if(locked)return;const group=H3ReferencePolicy.groupKey(ref),same=state.refs.map((r,i)=>r.kind===ref.kind&&(!group||H3ReferencePolicy.groupKey(r)===group)?i:-1).filter(i=>i>=0),target=same[same.indexOf(index)+direction];if(target===undefined)return;[state.refs[index],state.refs[target]]=[state.refs[target],state.refs[index]];renderRefs();updatePreviewLive();saveDraft();};for(const button of [up,down,remove])button.addEventListener("click",e=>e.preventDefault());head.append(icon,title,replace,up,down,remove);
     const meta=document.createElement("div");meta.className="refmeta";
     meta.textContent=({image:"Image",video:"Video",audio:"Audio"}[ref.kind])+" · "+(ref.label||ref.name||ref.file.name)
       +(ref.kind==="video"&&ref.localDuration?" · source "+ref.localDuration.toFixed(2)+"s":ref.kind==="audio"&&ref.localDuration?" · "+ref.localDuration.toFixed(2)+"s":"")
@@ -641,7 +641,7 @@ function renderRefs() {
     options.forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;role.append(o);});
     role.value=ref.role||options[0][0];
     role.disabled=locked;
-    role.onchange=()=>{ref.role=role.value;if(ref.role!=="character identity")ref.subject_group="";saveDraft();renderRefs();updatePreviewLive();};
+    role.onchange=()=>{if(ref.role!==role.value)ref.subject_group="";ref.role=role.value;saveDraft();renderRefs();updatePreviewLive();};
     roleWrap.append(roleLabel,role);fields.append(nameWrap,roleWrap);
     card.append(head,meta,fields);
     if(ref.kind==="image"){
@@ -676,24 +676,26 @@ function renderRefs() {
       sound.append(check,document.createTextNode(" Also use this video's soundtrack as an audio reference"));card.append(sound);
       const soundHint=document.createElement("div");soundHint.className="tip";soundHint.textContent="Audio reference may also carry the original voice. For exact words with a new voice, write the dialogue and language in the prompt; H3 still generates new audio.";card.append(soundHint);
     }
-    $("refs").append(card);
+    H3ReferenceControls.groupContainer($("refs"),ref,state.refs,locked,alias=>insertReferenceMention(alias,true),member=>openReferencePicker("image",member)).append(card);
   });
   updateRefDurationNotice();
   renderPromptAssets();
 }
-$("addRef").onclick=()=>{
+function openReferencePicker(kind,member=null){
   if(state.busy||state.projectLoading||typeof referenceMutationLocked==='function'&&referenceMutationLocked())return;
-  const kind=$("refKind").value;
   if(state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]){
     info("This reference type reached the H3 limit.",true);return;
   }
   if(state.refs.length>=12){info("H3 accepts at most 12 reference files in total.",true);return;}
   if(kind==="audio"&&state.refs.filter(r=>r.kind==="audio").length>=3){info("H3 accepts at most three standalone audio references.",true);return;}
   state.pendingRefKind=kind;
+  state.pendingRefGroup=member?{role:member.role,subject_group:member.subject_group}:kind==="image"&&H3ReferencePolicy.groupRoles[$("refBatchRole").value]?{role:$("refBatchRole").value,subject_group:"reference_"+crypto.randomUUID().replaceAll("-","")}:null;
   $("refFile").accept={image:".png,.jpg,.jpeg,.webp",video:".mp4,.mov,.webm",audio:".wav,.mp3,.flac,.m4a"}[kind];
   const picker=$("refFile");
   try{picker.showPicker();}catch{picker.click();}
-};
+}
+$("addRef").onclick=()=>openReferencePicker($("refKind").value);
+$("refKind").addEventListener("change",()=>{$("refBatchRole").hidden=$("refKind").value!=="image";document.querySelector('label[for="refBatchRole"]').hidden=$("refKind").value!=="image";});
 $("refFile").onchange=()=>{
   const kind=state.pendingRefKind;if(!kind||state.busy||state.projectLoading||typeof referenceMutationLocked==='function'&&referenceMutationLocked()){ $('refFile').value='';return;}
   const errors=[];
@@ -701,12 +703,14 @@ $("refFile").onchange=()=>{
     if(state.refs.length>=12||state.refs.filter(r=>r.kind===kind).length>=maxRefs[kind]||(kind==="audio"&&state.refs.filter(r=>r.kind==="audio").length>=3)){errors.push("Reference limit reached; remaining files were not added.");break;}
     if(!mediaRules[kind].ext.test(file.name)||!file.size||file.size>mediaRules[kind].max){errors.push(file.name+": unsupported, empty or too large.");continue;}
     const ref={assetId:null,kind,file,alias:aliasName(file.name),role:{image:"character identity",video:"motion",audio:"voice"}[kind],useAudio:false,meta:null,trimEnabled:false,trimStart:0,trimDuration:15,fitVideo:true,previewUrl:kind==="audio"?null:URL.createObjectURL(file)};
+    if(kind==="image"&&state.pendingRefGroup)Object.assign(ref,state.pendingRefGroup);
     state.refs.push(ref);
     if(kind==="audio"){
       const url=URL.createObjectURL(file),probe=document.createElement("audio");probe.preload="metadata";probe.src=url;
       probe.onloadedmetadata=()=>{if(Number.isFinite(probe.duration)&&probe.duration>0)ref.localDuration=probe.duration;URL.revokeObjectURL(url);renderRefs();};probe.onerror=()=>URL.revokeObjectURL(url);
     }
   }
+  state.pendingRefGroup=null;
   $("refFile").value="";renderRefs();renderEstimates();info(errors.join(" "),!!errors.length);saveDraft();
 };
 
@@ -730,7 +734,7 @@ function mentionItems(){
   }
   const attached=orderedRefs().map(ref=>{
     const b=bindings.find(b=>b.alias===ref.alias),picture=b?.picture_idx?`<Picture ${b.picture_idx}>`:null;
-    return {alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,nativeTags:b?[...new Set([b.tag,picture,b.paired_audio_tag].filter(Boolean))]:[],tag:b?(picture&&b.subject_idx?picture+' → ':'')+b.tag+(b.paired_audio_tag?' + '+b.paired_audio_tag:''):ref.kind,...referenceDisplay(ref),assetId:ref.assetId};
+    return {alias:ref.alias,kind:ref.kind,previewUrl:ref.previewUrl,group:b?.subject_idx&&H3ReferencePolicy.groupKey(ref)?H3ReferencePolicy.groupKey(ref)+':'+b.subject_idx:null,nativeTags:b?[...new Set([b.tag,picture,b.paired_audio_tag].filter(Boolean))]:[],tag:b?(picture&&b.subject_idx?picture+' → ':'')+b.tag+(b.paired_audio_tag?' + '+b.paired_audio_tag:''):ref.kind,...referenceDisplay(ref),assetId:ref.assetId};
   });
   return attached.concat(typeof projectCatalogItems==='function'?projectCatalogItems().filter(item=>!attached.some(ref=>ref.alias===item.alias||(ref.assetId&&ref.assetId===item.assetId))):[]);
 }
@@ -749,15 +753,18 @@ function renderPromptAssets(knownItems=null){
   let prompt=$("prompt").value;
   if(state.mode==='refs'){try{prompt=H3PromptCompiler.normalizeNativeReferenceTags(H3PromptCompiler.normalizeReferenceMentions(prompt,currentRenderSpec().references));}catch{}}
   const items=(knownItems||mentionItems()).filter(item=>!item.catalog);
+  const shownGroups=new Set();
   for(const item of items){
+    if(item.group&&shownGroups.has(item.group))continue;if(item.group)shownGroups.add(item.group);
+    const views=item.group?items.filter(other=>other.group===item.group):[item];
     const chip=document.createElement("button");chip.type="button";chip.className="prompt-asset";
-    if(new RegExp("@"+item.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt)||(item.nativeTags||[]).some(tag=>prompt.includes(tag)))chip.classList.add("used");
+    if(views.some(view=>new RegExp("@"+view.alias+"(?=$|[^\\p{L}\\p{N}_-])","u").test(prompt)||(view.nativeTags||[]).some(tag=>prompt.includes(tag))))chip.classList.add("used");
     chip.disabled=state.busy;
     chip.title="Insert @"+preferredReferenceMention(item.alias)+" into the prompt";
     chip.onclick=()=>item.catalog?insertProjectMention(item).catch(error=>info(error.message,true)):insertReferenceMention(item.alias,false);
-    const preview=mentionPreview(item);if(preview)chip.append(preview);
+    for(const view of views){const preview=mentionPreview(view);if(preview)chip.append(preview);}
     const name=document.createElement("span"),preferred=preferredReferenceMention(item.alias);name.textContent="@"+item.alias+(preferred!==item.alias?' · '+preferred:'');
-    const tag=document.createElement("small");tag.textContent=item.tag;
+    const tag=document.createElement("small");tag.textContent=(views.length>1?views.length+' views · ':'')+item.tag;
     chip.append(name,tag);wrap.append(chip);
   }
 }
@@ -774,7 +781,7 @@ function preferredReferenceMention(alias){
 function insertReferenceMention(alias,scroll){
   const input=$("prompt"),at=input.selectionStart;
   input.setRangeText("@"+preferredReferenceMention(alias)+" ",at,input.selectionEnd,"end");
-  input.focus();if(scroll)input.scrollIntoView({behavior:"smooth",block:"center"});
+  H3StudioUX.revealControl(input);input.focus();if(scroll)input.scrollIntoView({behavior:"smooth",block:"center"});
   renderPromptAssets();saveDraft();
 }
 function mentionState() {
@@ -798,7 +805,7 @@ function mentionState() {
       const start=input.selectionStart-match[0].length,end=input.selectionStart;
       if(item.catalog){insertProjectMention(item,{start,end}).catch(error=>info(error.message,true));return;}
       input.setRangeText("@"+preferredReferenceMention(item.alias)+" ",start,end,"end");
-      menu.classList.add("hidden");input.focus();renderPromptAssets();saveDraft();
+      menu.classList.add("hidden");H3StudioUX.revealControl(input);input.focus();renderPromptAssets();saveDraft();
     };
     b.onmousedown=e=>{e.preventDefault();choose();};
     menu.append(b);
@@ -1800,7 +1807,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
       state.currentClipId="clip_"+crypto.randomUUID();
     state.continuation={type:"imported",source_take_id:entry.takeId,source_asset_id:imported.asset.asset_id,source_canvas:{width:imported.metadata.width,height:imported.metadata.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,source_duration_seconds:imported.metadata.frame_count/24,context_length:39,audio_feather_ticks:8};
       setContinuationMode(state.mode==="frames"?"text":state.mode);
-      $("durationSeconds").value="7.3";syncDuration();renderContinuation();$("prompt").focus();updatePreviewLive();return;
+      $("durationSeconds").value="7.3";syncDuration();renderContinuation();H3StudioUX.revealControl($("prompt"));$("prompt").focus();updatePreviewLive();return;
     }
     if(!token)throw Error("This older clip has no saved sampler context. Choose Video context · re-encode.");
     const context=await projectCtrl.fetchJson(`/h3_studio/lab/contexts/${encodeURIComponent(token)}`);
@@ -1810,7 +1817,7 @@ if($("extendVideo")) $("extendVideo").onclick=async()=>{
     state.continuation={type:"generated",source_take_id:entry.takeId,source_token:token,source_model:context.model_id,source_canvas:{width:context.width,height:context.height},source_output:resultOutputPath(entry),source_name:entry.file.filename,context_length:39,audio_feather_ticks:8};
     setContinuationMode(state.mode==="frames"?"text":state.mode);
     $("durationSeconds").value="7.3";syncDuration();renderContinuation();
-    $("prompt").placeholder="Describe continuation motion and sound…";$("prompt").focus();
+    $("prompt").placeholder="Describe continuation motion and sound…";H3StudioUX.revealControl($("prompt"));$("prompt").focus();
     updatePreviewLive();
     });
   }catch(e){info(e.message,true);}
@@ -2175,7 +2182,7 @@ async function initProjectController() {
     const json=sessionStorage.getItem("h3_lab.imported_handoff");
     if(json){const handoff=JSON.parse(json);if(handoff?.asset){await applyQwenHandoff(handoff.asset,handoff.as_role);sessionStorage.removeItem("h3_lab.imported_handoff");}}
   }catch(e){info("Project setup unavailable: "+e.message,true);}
-  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof renderLoras==='function')renderLoras();if(typeof updateCapabilities==='function')updateCapabilities();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"studio",{history:false});}}
+  finally{if(controller===projectCtrl){state.projectLoading=false;refreshLabControls();if(typeof renderRefs==='function')renderRefs();if(typeof renderGuides==='function')renderGuides();if(typeof renderLoras==='function')renderLoras();if(typeof updateCapabilities==='function')updateCapabilities();if(typeof setWorkspaceView==="function")setWorkspaceView(new URLSearchParams(location.search).has('reuse')?'studio':state.tabRestoredView||location.hash.slice(1)||"studio",{history:false});}}
 }
 
 function updateProjectUI(proj) {

@@ -61,11 +61,12 @@ class PromptContextService:
         parts=[];bindings=[];hashes=[];aliases=set();pic=sub=vid=aud=0
         video_seconds=audio_seconds=0
         character_groups={}
+        group_roles={}
         for ref in sorted(refs,key=lambda r:('image','video','audio').index(r['kind'])):
             alias=ref.get('alias','')
-            if not isinstance(alias,str) or not re.fullmatch(r'[\w-]{1,32}',alias) or alias in aliases:
+            if not isinstance(alias,str) or not re.fullmatch(r'[\w-]{1,32}',alias) or alias.lower() in aliases:
                 raise ValueError('Invalid or duplicate reference name.')
-            aliases.add(alias)
+            aliases.add(alias.lower())
             name=ref.get('filename','')
             if not isinstance(name,str) or not pathlib.PurePosixPath(name).name.startswith('h3_studio_kf_'):
                 raise ValueError('Only uploaded Studio input files may be prepared.')
@@ -79,8 +80,12 @@ class PromptContextService:
             binding={k:ref.get(k) for k in ('alias','kind','role','instruction','panel_order','audio_transcript','subject_group') if ref.get(k) is not None}
             role=str(ref.get('role','custom')).lower().strip()
             group=ref.get('subject_group')
-            if group is not None and group != '' and (not isinstance(group,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',group) or ref['kind']!='image' or role!='character identity'):
-                raise ValueError('Invalid character group.')
+            if group is not None and group != '':
+                if not isinstance(group,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',group) or ref['kind']!='image' or role not in ('character identity','location','object','visual style'):
+                    raise ValueError('Invalid character group or reference group.')
+                if group in group_roles and group_roles[group] != role:
+                    raise ValueError('A reference group cannot mix roles.')
+                group_roles[group]=role
             if ref['kind']=='image':
                 pic+=1;binding['picture_idx']=pic
                 if mode=='frames' or role in ('custom','storyboard'):

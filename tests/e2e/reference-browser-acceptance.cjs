@@ -8,7 +8,7 @@ const {spawn}=require('node:child_process');const path=require('node:path');cons
   browser=await chromium.launch({headless:true});page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(12000);const errors=[],resolveCalls=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().endsWith('/resolve'))resolveCalls.push(r.postDataJSON());});
   await page.goto(base+'/extensions/h3_studio/index.html');await page.waitForFunction(()=>document.querySelector('#connectionText').textContent.includes('Connected')&&!state.projectLoading);
-  await page.locator('[data-mode="refs"]').click();await page.locator('#preparationMode').selectOption('native');
+  await page.evaluate(()=>document.querySelectorAll('.workspace-stage,.workspace-fold').forEach(e=>e.open=true));await page.locator('[data-mode="refs"]').click();await page.locator('#preparationMode').selectOption('native');
   const image=Buffer.from(await page.evaluate(()=>{const c=document.createElement('canvas');c.width=2304;c.height=1408;c.getContext('2d').fillRect(0,0,c.width,c.height);return c.toDataURL('image/png').split(',')[1];}),'base64');
   async function add(kind,file){await page.locator('#refKind').selectOption(kind);const chooser=page.waitForEvent('filechooser');await page.locator('#addRef').click();await(await chooser).setFiles(file);await page.waitForFunction(()=>!state.projectLoading);}
   await add('image',{name:'front.png',mimeType:'image/png',buffer:image});await add('image',{name:'back.png',mimeType:'image/png',buffer:image});

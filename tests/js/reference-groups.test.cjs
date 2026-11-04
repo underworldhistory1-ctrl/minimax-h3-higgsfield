@@ -9,6 +9,18 @@ test('additional instructions propagate for character, storyboard, video and aud
 
 test('mentioning one grouped character view also connects its alternate views',()=>{const r=C.compilePrompt({mode:'refs',source_prompt:'@front walks.',references:[ref('front','hero'),ref('back','hero')]});assert.equal(r.bindings.length,2);assert.match(r.compiled_prompt,/<Picture 1> and <Picture 2>/);});
 
+for(const role of ['location','object','visual style'])test('one mention binds every grouped '+role+' image and keeps per-view instructions',()=>{
+  const r=C.compilePrompt({mode:'refs',source_prompt:'Show @front beside @other.',references:[{...ref('front','same',role),instruction:'Keep the red marking.'},{...ref('side','same',role),instruction:'Retain the wood grain.'},ref('other',undefined,role)]});
+  assert.deepEqual(r.bindings.map(b=>b.tag),['<Subject 1>','<Subject 1>','<Subject 2>']);
+  assert.match(r.compiled_prompt,/<Picture 1> and <Picture 2>/);
+  for(const text of ['Keep the red marking.','Retain the wood grain.'])assert.ok(r.compiled_prompt.includes(text));
+});
+
+test('groups reject incompatible roles and case-insensitive duplicate names',()=>{
+  assert.throws(()=>compile([ref('a','shared'),ref('b','shared','location')]),/cannot mix roles/);
+  assert.throws(()=>compile([ref('Hero'),ref('hero')]),/Duplicate reference alias/);
+});
+
 
 test('Character Swap preset releases a former character group while retaining input guidance',()=>{
   const fs=require('node:fs'),vm=require('node:vm');

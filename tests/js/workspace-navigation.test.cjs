@@ -4,7 +4,7 @@ const vm=require('node:vm'),fs=require('node:fs');
 function workspace(){
  const draft={mode:'refs',prompts:{refs:'@1 inside @2'},refs:[{assetId:'a',alias:'1'},{assetId:'b',alias:'2'}]};
  const calls=[],state={activeProjectId:'p',currentProject:{project_id:'p',draft},refs:draft.refs};
- const context={state,projectCtrl:{currentProject:state.currentProject,saveCurrentProject:async()=>calls.push('server-save')},
+ const context={state,H3StudioUX:{revealControl(){}},projectCtrl:{currentProject:state.currentProject,saveCurrentProject:async()=>calls.push('server-save')},
   allInputItems:()=>state.refs,captureProjectDraft:local=>local?{...draft,tab_view:'projects'}:draft,
   H3TabDraftStore:{save:async()=>calls.push('local-save')},tabProjectDraftKey:id=>id,
   persistProjectDraft:async()=>{calls.push('persist');return draft;},mergeProjectAssetDescriptors:()=>[],

@@ -373,10 +373,15 @@
     // --- REFERENCES MODE ---
     if (mode === 'refs') {
       const rawRefs = refs.map(ref=>({...ref,instruction:normalize(ref.instruction || '')}));
+      const groupRoles = new Map();
       for (const ref of rawRefs) {
         if (ref.subject_group == null || ref.subject_group === '') continue;
-        if (typeof ref.subject_group !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(ref.subject_group) || ref.kind !== 'image' || (ref.role || '').toLowerCase().trim() !== 'character identity')
-          throw Error('@' + ref.alias + ': invalid character group. Select a Character group again or clear it.');
+        const role = (ref.role || '').toLowerCase().trim();
+        if (typeof ref.subject_group !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(ref.subject_group) || ref.kind !== 'image' || !['character identity','location','object','visual style'].includes(role))
+          throw Error('@' + ref.alias + ': invalid character group or reference group. Select a compatible image group again or clear it.');
+        if (groupRoles.has(ref.subject_group) && groupRoles.get(ref.subject_group) !== role)
+          throw Error('@' + ref.alias + ': a reference group cannot mix roles. Separate the groups or use the same role.');
+        groupRoles.set(ref.subject_group, role);
       }
       if (!rawRefs.length) {
         throw new Error('Add at least one reference.');
@@ -389,10 +394,10 @@
         if (!r.alias || !/^[\p{L}\p{N}_-]{1,32}$/u.test(r.alias)) {
           throw new Error(`Invalid reference alias: '${r.alias}'. Use 1-32 letters, numbers, _ or -.`);
         }
-        if (aliasSet.has(r.alias)) {
+        if (aliasSet.has(r.alias.toLocaleLowerCase())) {
           throw new Error(`Duplicate reference alias: @${r.alias}`);
         }
-        aliasSet.add(r.alias);
+        aliasSet.add(r.alias.toLocaleLowerCase());
       }
 
       const ordered = orderedReferences(rawRefs);
@@ -446,7 +451,7 @@
             if (ref.panel_order) mediaNotes.push(`${picTag}: ${ref.panel_order}`);
             retention.push(`${picTag}: attribute_transfer - guide shot order, framing and visual progression; do not treat the sheet as a single visible subject.`);
           } else {
-            const group = role === 'character identity' && ref.subject_group;
+            const group = ref.subject_group;
             if (!group || !characterGroups.has(group)) {
               ++cardSubjectIdx;
               if (group) characterGroups.set(group, cardSubjectIdx);

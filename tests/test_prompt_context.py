@@ -10,6 +10,25 @@ TEXT = 'integrated_multimodal_description: [Shot 1] A person walks.\noverall_sou
 
 
 class PromptContextTests(unittest.TestCase):
+    def test_grouped_environment_element_style_bindings_and_role_conflicts(self):
+        from h3_lab.prompt_context import PromptContextService
+        with tempfile.TemporaryDirectory() as directory:
+            root=pathlib.Path(directory)
+            for name in ('front','side','other'):
+                Image.new('RGB',(8,8)).save(root/f'h3_studio_kf_{name}.png')
+            service=PromptContextService(root,writer=lambda spec,parts: {'bindings':spec['bindings']})
+            for role in ('location','object','visual style'):
+                refs=[{'kind':'image','role':role,'alias':name,'filename':f'h3_studio_kf_{name}.png',**({'subject_group':'same'} if name!='other' else {})} for name in ('front','side','other')]
+                result=service.prepare({'mode':'refs','references':refs})
+                self.assertEqual([b['tag'] for b in result['bindings']],['<Subject 1>','<Subject 1>','<Subject 2>'])
+                refs[1]['role']='character identity'
+                with self.assertRaisesRegex(ValueError,'cannot mix roles'):
+                    service.prepare({'mode':'refs','references':refs})
+            refs[1]['subject_group']=''
+            refs[1]['alias']='FRONT'
+            with self.assertRaisesRegex(ValueError,'duplicate reference name'):
+                service.prepare({'mode':'refs','references':refs})
+
     def test_video_soundtracks_and_standalone_audio_have_separate_verified_limits(self):
         from unittest.mock import patch, Mock
         from h3_lab.prompt_context import PromptContextService

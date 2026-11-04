@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.11.0 - 2026-11-04
+
+- Replace the long Production rail with four clearly separated, independently collapsible stages and foldable sections. Preserve tab-local fold state, original controls and capability gates; reveal the prompt for mention insertion and errors.
+- Add grouped character, environment, element and style uploads with side-by-side views and group chips. One Guided mention includes every image; per-view instructions, native Picture order, original files and explicit native definitions retain authority.
+- Reject mixed-role groups and duplicate case-insensitive mention names. Fix reference controls staying locked after project restoration.
+- Verify 594 Python tests (one platform skip), 299 JavaScript tests and real local browser project/graph/media journeys with simulated inference. No new GPU rendering. [Release details](docs/RELEASE_2_11.md).
+
 ## 2.10.0 - 2026-11-04
 
 - Add managed Pika Draft/Lite variants, Character Swap 1.5 and opt-in Singularity v2 pruned INT8, with checkpoint-aware automatic selection, matched sampling and version exclusivity. Keep existing weights and saved legacy choices.
