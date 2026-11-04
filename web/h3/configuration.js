@@ -32,10 +32,27 @@
   function pikaVariant(name){return PIKA[name]||null;}
   function pikaProfileCompatible(spec){return (spec.model_profile||'original')==='original'||(spec.model_profile==='singularity'&&spec.mode==='refs'&&String(spec.checkpoint||'').split(/[\\/]/).pop()==='Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors');}
   function pikaSampling(variant){return {sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};}
+  function loraModeCompatible(name,mode){
+    const pika=pikaVariant(name);if(pika)return pika.family===(mode==='refs'?'ref2va':'fl2va');
+    if(isCharacterSwap(name)||isAnimeToRealism(name))return mode==='refs';
+    if(/turbo|lightx2v/i.test(name))return false;
+    const fl=/fl2v|t2v/i.test(name),ref=/ref2v|r2v/i.test(name);
+    return mode==='refs'?!(fl&&!ref):!(ref&&!fl);
+  }
+  function preservedReference(spec){
+    const key=spec.preserve_reference_audio;if(!key)return null;
+    if(spec.mode!=='refs')throw Error('Source soundtrack reuse requires References mode.');
+    if(spec.continuation)throw Error('Source soundtrack reuse with continuation has not been validated.');
+    const videos=(spec.references||[]).filter(r=>r.kind==='video'),aliases=videos.filter(r=>r.alias===key),matches=aliases.length?aliases:videos.filter(r=>r.asset_id===key);
+    if(matches.length!==1)throw Error('Select an unambiguous source video for soundtrack reuse.');
+    if(!matches[0].use_audio)throw Error('Enable the selected source video soundtrack before reusing audio.');
+    return matches[0];
+  }
   // Interactive transitions apply prerequisites. Restoring saved work never rewrites intent.
   function normalizeSelection(spec,action,caps={}){
     if(action==='restore')return {...spec};
     const s={...spec,sampling:{...spec.sampling},loras:(spec.loras||[]).map(x=>({...x}))};
+    if(action==='mode'&&s.mode!=='refs')s.preserve_reference_audio=null;
     let pika=s.loras.find(x=>x.enabled&&pikaVariant(x.name));
     if(action==='continuation'&&s.continuation){for(const l of s.loras)if(pikaVariant(l.name))l.enabled=false;pika=null;if(['turbo','turbo_ref'].includes(s.render_method)){s.render_method='native';s.steps=20;}s.enable_refine=false;s.refine=false;s.control={...s.control,enabled:false};}
     if(action==='mode'&&pika){
@@ -83,6 +100,7 @@
     return variant;
   }
   function resolve(spec,caps={}){
+    preservedReference(spec);
     const dials=spec.dials||[];
     if(!Array.isArray(dials))throw Error('Dials must be a list.');
     if(dials.filter(x=>x.enabled).length>12)throw Error('At most 12 Dials can be applied.');
@@ -97,6 +115,7 @@
     validatePika(spec);
     validateCharacterSwap(spec);
     validateAnimeToRealism(spec);
+    for(const lora of spec.loras||[])if(lora.enabled&&!loraModeCompatible(lora.name,spec.mode))throw Error('LoRA '+lora.name+' is unsupported in the selected input mode/family.');
     const profile=spec.model_profile||'original';if(!profiles[profile])throw Error('Unknown model profile.');
     const family=spec.mode==='refs'?'ref2va':'fl2va';
     let name=profile==='original'?(family==='ref2va'?REF:FL):profile==='singularity'?filename(spec.checkpoint):FL;
@@ -145,5 +164,5 @@
     }
     return node;
   }
-  return {PIKA,pikaVariant,pikaSampling,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,preferredCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {PIKA,pikaVariant,pikaSampling,loraModeCompatible,preservedReference,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,preferredCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

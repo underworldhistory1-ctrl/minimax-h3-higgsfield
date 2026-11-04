@@ -7,6 +7,13 @@ from h3_lab.configuration import validate_configuration
 
 
 class SelectionContractTests(unittest.TestCase):
+    def test_expanded_profiles_passes_dials_guides_and_managed_adapters(self):
+        data=json.loads(subprocess.check_output(['node','tests/fixtures/selection_matrix.cjs'],text=True))
+        self.assertEqual(len(data['specs']),2096)
+        for index,spec in enumerate(data['specs']):
+            with self.subTest(index=index,profile=spec['model_profile'],mode=spec['mode'],method=spec['render_method']):
+                validate_configuration(spec,data['caps'])
+
     def test_supported_selection_matrix_matches_backend(self):
         script="""const C=require('./web/h3/configuration'),B=require('./web/h3/graph-builder');
 const caps={sampling_options:{samplers:['res_multistep','euler'],schedulers:['simple'],weight_dtypes:['default']},refine_ready:true,audio_refine_ready:true,hybrid_loader_ready:true,model_catalog:[{name:'community.safetensors',profiles:['singularity']},{name:C.FL,profiles:['hybrid_conditioning','hybrid_loader']}]};const specs=[];

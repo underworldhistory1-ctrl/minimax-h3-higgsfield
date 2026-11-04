@@ -33,7 +33,7 @@ function setProgress(label,pct,remaining=null,indeterminate=false){
   $("progressFill").style.width=Math.max(0,Math.min(100,pct||0))+"%";$("progressBar").classList.toggle("busy",indeterminate);
   $("remaining").textContent="Time remaining: "+(remaining===null?"—":fmt(remaining));
 }
-function setBusy(value){state.busy=value;$("generate").disabled=value||!state.ready||!state.referencesReady;$("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);document.querySelectorAll(".left input,.left select,.left textarea,#addReferences").forEach(el=>{if(el.id!=="aspect"&&el.id!=="resolution")el.disabled=value;});updateSettings();}
+function setBusy(value){const changed=state.busy!==value;state.busy=value;$("generate").disabled=value||!state.ready||!state.referencesReady;$("generate").classList.toggle("hidden",value);$("cancel").classList.toggle("hidden",!value);if(changed)renderRefs();document.querySelectorAll(".left input,.left select,.left textarea,#addReferences").forEach(el=>{if(el.id!=="aspect"&&el.id!=="resolution")el.disabled=value;});updateSettings();}
 function dimensions(){return sizeMap[$("resolution").value][$("aspect").value];}
 function outputDimensions(){
   const first=state.refs[0];if(!first||$("customSize").checked||!first.width||!first.height)return dimensions();
@@ -187,7 +187,7 @@ function handleSocket(message){
     if(data.node===null){pollHistory(true);}else if(data.node==="save")setProgress("Saving PNG and settings",96,2);else if(data.node==="decode")setProgress("Decoding image",91,5);else if(!state.lastStepAt)setProgress("Loading Qwen Image",8,estimateSeconds(),true);
   }else if(message.type==="execution_error"&&state.busy){failGeneration(data.exception_message||"ComfyUI graph failed");}
 }
-function saveActiveJob(){if(!state.activePromptId)return;sessionStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8)}));}
+function saveActiveJob(){if(!state.activePromptId)return;sessionStorage.setItem("qwen.activeJob",JSON.stringify({promptId:state.activePromptId,pendingToken:state.pendingToken,settings:state.settings,started:state.started,uploaded:state.uploaded,lastStep:state.lastStep,stepTotal:state.stepTotal,stepTimes:state.stepTimes.slice(-8),completionObservation:state.completionObservation}));}
 async function pollImageProgress(){const id=state.activePromptId;if(!id)return;try{const response=await fetch(api("/h3_studio/job_progress?prompt_id="+encodeURIComponent(id)),{cache:"no-store"});if(!response.ok)return;const data=await H3RenderValues.readJson(response);if(id!==state.activePromptId||!Number.isFinite(data.step)||!Number.isFinite(data.total)||data.total<=0||data.step<state.lastStep)return;state.lastStep=data.step;state.stepTotal=data.total;state.lastStepAt=Date.now();const avg=state.stepTimes.length?state.stepTimes.reduce((a,b)=>a+b,0)/state.stepTimes.length:0;setProgress(`Sampling · ${data.step}/${data.total}`,12+Math.round(78*data.step/data.total),avg?avg*(data.total-data.step):null);saveActiveJob();}catch{}}
 
 function qwenLora(settings){
@@ -248,7 +248,7 @@ async function uploadOne(file,index){
     xhr.send(JSON.stringify({filename:file.name,data:encoded}));
   });
 }
-async function cleanupUploads(){const names=state.uploaded.splice(0);await Promise.allSettled(names.map(filename=>fetch(api("/h3_studio/discard"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename})})));}
+async function cleanupUploads(){const names=state.uploaded.splice(0);await Promise.allSettled(names.map(filename=>fetch(api("/h3_studio/discard"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename}),signal:AbortSignal.timeout(5000)})));}
 function captureSettings(){
   const [width,height]=outputDimensions(),sourcePrompt=$("prompt").value.trim(),steps=Number($("steps").value),seed=H3RenderValues.seed($("seed").value,{allowRandom:true}),profile=$("profile").value,mode=state.refs.length?"edit":"create";
   if(!sourcePrompt)throw Error("Write a prompt.");if(!state.profiles[profile]?.ready)throw Error("The selected precision profile is not installed.");if(!Number.isInteger(steps)||steps<1||steps>100)throw Error("Steps must be between 1 and 100.");if(state.refs.length>10)throw Error("Qwen Image supports up to 10 images.");
@@ -266,8 +266,8 @@ async function recoverPendingImage(){
   const token=state.pendingToken;
   const matches=graph=>graph?.save?.inputs?.token===token;
   let found=null;
-  try{const queue=await(await fetch(api('/queue'))).json();found=[...(queue.queue_running||[]),...(queue.queue_pending||[])].find(item=>matches(item[2]))?.[1];}catch{}
-  if(!found)try{const history=await(await fetch(api('/history?max_items=100'))).json();found=Object.entries(history).find(([,item])=>matches(item.prompt?.[2]))?.[0];}catch{}
+  try{const queue=await(await fetch(api('/queue'),{signal:AbortSignal.timeout(10000)})).json();found=[...(queue.queue_running||[]),...(queue.queue_pending||[])].find(item=>matches(item[2]))?.[1];}catch{}
+  if(!found)try{const history=await(await fetch(api('/history?max_items=100'),{signal:AbortSignal.timeout(10000)})).json();found=Object.entries(history).find(([,item])=>matches(item.prompt?.[2]))?.[0];}catch{}
   if(found&&state.pendingToken===token){state.activePromptId=found;state.pendingToken=null;sessionStorage.setItem('qwen.activePromptId',found);saveActiveJob();return found;}
   return null;
 }
@@ -284,9 +284,10 @@ async function cancelQueuedImage(promptId){
 }
 async function generate(){
   if(state.busy)return;
+  stopImagePolling();
   const promptEpoch=++state.generationEpoch;
   showError("");let settings;try{if(!await checkConnection())throw Error(state.standbyReason||"Qwen Image is not ready on this server.");if(promptEpoch!==state.generationEpoch||state.busy)return;settings=captureSettings();}catch(error){showError(error.message);return;}
-  state.settings=settings;state.abort=new AbortController();state.uploaded=[];state.started=Date.now();state.lastStepAt=0;state.lastStep=0;state.stepTotal=0;state.stepTimes=[];setBusy(true);setProgress("Preparing inputs",2,estimateSeconds(),true);showStage("Generating your image","The first run can include model loading.");
+  state.completionObservation=null;state.settings=settings;state.abort=new AbortController();state.uploaded=[];state.started=Date.now();state.lastStepAt=0;state.lastStep=0;state.stepTotal=0;state.stepTimes=[];setBusy(true);setProgress("Preparing inputs",2,estimateSeconds(),true);showStage("Generating your image","The first run can include model loading.");
   let submitted=false,submissionSettled=false;
   try{
     if(settings.mode==="edit")for(let i=0;i<state.refs.length;i++){const name=await uploadOne(state.refs[i].file,i);state.uploaded.push(name);}
@@ -312,30 +313,37 @@ async function generate(){
   }catch(error){if(submitted&&!submissionSettled){setBusy(true);showError("Submission acknowledgement was lost. The image may still run. Inputs are retained; this workspace will look for its saved token in queue/history. Do not retry yet.");pollQueue();pollHistory(false);return;}if(state.activePromptId&&error.message!=="Cancelled"){setBusy(true);showError(error.message);return;}if(error.name==="AbortError"||error.message==="Cancelled"){await finishFailure("Cancelled",true);}else await finishFailure(error.message,false);}
 }
 function nodeError(data){const errors=[];if(data.error?.message)errors.push(data.error.message);for(const [id,node] of Object.entries(data.node_errors||{}))for(const error of node.errors||[])errors.push(`${id}: ${error.message||""} ${error.details||""}`.trim());return (errors.join(" · ")||"ComfyUI rejected the image graph").slice(0,700);}
-async function finishFailure(message,cancelled){state.activePromptId=null;state.pendingToken=null;state.completing=false;sessionStorage.removeItem("qwen.activePromptId");sessionStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress(cancelled?"Cancelled":"Generation failed",0,null);showStage(cancelled?"Generation cancelled":"Generation failed",cancelled?"Your prompt and references are still here.":message);if(!cancelled)showError(message);}
+async function finishFailure(message,cancelled){stopImagePolling();state.activePromptId=null;state.pendingToken=null;state.completing=false;state.completionObservation=null;sessionStorage.removeItem("qwen.activePromptId");sessionStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress(cancelled?"Cancelled":"Generation failed",0,null);showStage(cancelled?"Generation cancelled":"Generation failed",cancelled?"Your prompt and references are still here.":message);if(!cancelled)showError(message);}
 function failGeneration(message){finishFailure(message,false);}
 $("generate").onclick=generate;
 $("cancel").onclick=async()=>{
   ++state.generationEpoch;
   state.abort?.abort();const id=state.activePromptId;
   if(id){
-    try{if(!await cancelQueuedImage(id)){showError("Cancellation is unconfirmed. This version can remove queued images but cannot safely interrupt a running image. The job and inputs remain tracked.");setBusy(true);return;}}
-    catch{showError("Could not confirm cancellation. The job and inputs remain tracked.");setBusy(true);return;}
+    try{if(!await cancelQueuedImage(id)){showError("Cancellation is unconfirmed. This version can remove queued images but cannot safely interrupt a running image. The job and inputs remain tracked.");setBusy(true);pollQueue();pollHistory();return;}}
+    catch{showError("Could not confirm cancellation. The job and inputs remain tracked.");setBusy(true);pollQueue();pollHistory();return;}
   }
   await finishFailure("Cancelled",true);
 };
+let queuePollTimer=null,historyPollTimer=null,queuePollRequest=null,historyPollRequest=null;
+function stopImagePolling(){clearTimeout(queuePollTimer);clearTimeout(historyPollTimer);queuePollTimer=historyPollTimer=null;}
 async function pollQueue(){
-  if(!state.busy)return;if(state.pendingToken)await recoverPendingImage();try{const data=await (await fetch(api("/queue"),{cache:"no-store"})).json();const running=data.queue_running||[],pending=data.queue_pending||[];const position=pending.findIndex(item=>item[1]===state.activePromptId);$("queueInfo").textContent=running.some(item=>item[1]===state.activePromptId)?`Queue: rendering now · ${pending.length} waiting`:position>=0?`Queue: position ${position+1} · ${pending.length} waiting`:`Queue: ${running.length} active · ${pending.length} waiting`;if(running.some(item=>item[1]===state.activePromptId))await pollImageProgress();}catch{}setTimeout(pollQueue,2500);
+  clearTimeout(queuePollTimer);queuePollTimer=null;const epoch=state.generationEpoch;
+  if(!state.busy||queuePollRequest?.epoch===epoch)return;const request={epoch};queuePollRequest=request;
+  try{if(state.pendingToken)await recoverPendingImage();if(epoch!==state.generationEpoch||!state.busy)return;const id=state.activePromptId,data=await(await fetch(api('/queue'),{cache:'no-store',signal:AbortSignal.timeout(10000)})).json();if(epoch!==state.generationEpoch||id!==state.activePromptId||!state.busy)return;const running=data.queue_running||[],pending=data.queue_pending||[],position=pending.findIndex(item=>item[1]===id);$('queueInfo').textContent=running.some(item=>item[1]===id)?`Queue: rendering now · ${pending.length} waiting`:position>=0?`Queue: position ${position+1} · ${pending.length} waiting`:`Queue: ${running.length} active · ${pending.length} waiting`;if(running.some(item=>item[1]===id))await pollImageProgress();}catch{}
+  finally{if(queuePollRequest===request)queuePollRequest=null;if(epoch===state.generationEpoch&&state.busy)queuePollTimer=setTimeout(pollQueue,2500);}
 }
 function findOutput(history){for(const output of Object.values(history?.outputs||{})){for(const image of output.images||[]){if(/^qwen_studio_[A-Za-z0-9_-]+_[0-9]{5}\.png$/.test(image.filename||""))return image;}}return null;}
 async function pollHistory(force=false){
-  if(!state.activePromptId)return;
-  if(state.pendingToken&&!await recoverPendingImage()){setTimeout(()=>pollHistory(false),2000);return;}
-  const id=state.activePromptId;
+  clearTimeout(historyPollTimer);historyPollTimer=null;const epoch=state.generationEpoch;
+  if(!state.activePromptId||historyPollRequest?.epoch===epoch)return;
+  const request={epoch};historyPollRequest=request;let id=state.activePromptId;
   try{
-    const response=await fetch(api('/history/'+encodeURIComponent(id)),{cache:'no-store'});
+    if(state.pendingToken&&!await recoverPendingImage())return;
+    if(epoch!==state.generationEpoch)return;id=state.activePromptId;if(!id)return;
+    const response=await fetch(api('/history/'+encodeURIComponent(id)),{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('Image history is temporarily unavailable.');
     const all=await H3RenderValues.readJson(response);
-    if(state.activePromptId!==id)return;
+    if(state.activePromptId!==id||epoch!==state.generationEpoch)return;
     const history=all[id];
     if(history){
       const file=findOutput(history);if(file){await completeGeneration(file);return;}
@@ -346,14 +354,21 @@ async function pollHistory(force=false){
         await finishFailure(failure?.[1]?.exception_message||'The image graph stopped. Your inputs are retained.',interrupted);return;
       }
     }
-  }catch(error){if(state.activePromptId!==id)return;if(force){await finishFailure(error.message,false);return;}}
-  setTimeout(()=>pollHistory(false),2000);
+  }catch(error){if(state.activePromptId===id&&epoch===state.generationEpoch&&force)showError('Reconnecting to the saved image. '+error.message);}
+  finally{if(historyPollRequest===request)historyPollRequest=null;if(epoch===state.generationEpoch&&state.activePromptId)historyPollTimer=setTimeout(()=>pollHistory(false),2000);}
 }
 async function completeGeneration(file){
   if(state.completing)return;state.completing=true;
-  const elapsed=(Date.now()-state.started)/1000;const filename=file.filename,settings=state.settings||{};await fetch(api("/h3_studio/image_details"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename,render_seconds:elapsed,settings})});
-  if(settings.mode&&settings.profile&&settings.width&&settings.height&&settings.steps){const key=`qwen.eta.${settings.mode}.${settings.profile}.${settings.width}x${settings.height}.${settings.steps}`;let samples=[];try{samples=JSON.parse(localStorage.getItem(key)||"[]");}catch{}samples.push(elapsed);localStorage.setItem(key,JSON.stringify(samples.slice(-8)));}
-  state.activePromptId=null;sessionStorage.removeItem("qwen.activePromptId");sessionStorage.removeItem("qwen.activeJob");await cleanupUploads();setBusy(false);setProgress("Completed",100,0);$("timer").textContent="Actual time: "+fmt(elapsed);await loadLibrary(true);const entry=state.results.find(item=>item.filename===filename)||{filename,settings};showImage(entry);showError("");state.completing=false;
+  const epoch=state.generationEpoch,id=state.activePromptId,filename=file.filename,settings=state.settings||{};
+  if(state.completionObservation?.id!==id||state.completionObservation?.filename!==filename){state.completionObservation={id,filename,elapsed:(Date.now()-state.started)/1000,modified:Date.now()/1000};try{saveActiveJob();}catch{}}
+  const observation=state.completionObservation,elapsed=observation.elapsed;
+  try{
+    const response=await fetch(api('/h3_studio/image_details'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename,render_seconds:elapsed,settings}),signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Image settings could not be saved.');
+    if(epoch!==state.generationEpoch||id!==state.activePromptId)return;
+    try{if(settings.mode&&settings.profile&&settings.width&&settings.height&&settings.steps){const key=`qwen.eta.${settings.mode}.${settings.profile}.${settings.width}x${settings.height}.${settings.steps}`,stored=JSON.parse(localStorage.getItem(key)||'[]'),samples=Array.isArray(stored)?stored:[];samples.push(elapsed);localStorage.setItem(key,JSON.stringify(samples.slice(-8)));}}catch{}
+    stopImagePolling();state.activePromptId=null;sessionStorage.removeItem('qwen.activePromptId');sessionStorage.removeItem('qwen.activeJob');await cleanupUploads();if(epoch!==state.generationEpoch)return;setBusy(false);setProgress('Completed',100,0);$('timer').textContent='Actual time: '+fmt(elapsed);await loadLibrary(true);if(epoch!==state.generationEpoch)return;showImage(state.results.find(item=>item.filename===filename)||{filename,settings});showError('');
+  }catch(error){if(epoch===state.generationEpoch&&id===state.activePromptId){if(!observation.previewShown){showImage({filename,settings,modified:observation.modified});observation.previewShown=true;}showError('Image rendered. Retrying settings save after a connection error. '+error.message);}throw error;}
+  finally{state.completing=false;}
 }
 function imageUrl(entry){return api("/h3_studio/image_file?"+new URLSearchParams({filename:entry.filename,_time:String(entry.modified||Date.now())}));}
 function showImage(entry){state.current=entry;const image=document.createElement("img");image.src=imageUrl(entry);image.alt="Generated Qwen image";$("stage").replaceChildren(image);$("currentActions").classList.remove("hidden");}
@@ -399,7 +414,7 @@ $("randomSeed").onclick=()=>{$("seed").value=H3RenderValues.randomSeed();saveDra
 for(const id of ["prompt","aspect","resolution","steps","seed","transparent","referenceResolution","customSize","fitReferences","lora","loraStrength"]){$(id).addEventListener("input",()=>{if(id==="aspect"||id==="resolution")$("customSize").checked=true;updateSettings();saveDraft();if(id==="prompt")renderMentions();});}
 window.addEventListener("focus",()=>loadLibrary(false));
 state.timer=setInterval(()=>{if(state.busy&&state.started){const elapsed=(Date.now()-state.started)/1000;$("timer").textContent="Elapsed: "+fmt(elapsed);if(!state.lastStepAt)$("remaining").textContent="Time remaining: "+fmt(Math.max(0,estimateSeconds()-elapsed));}},1000);
-async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(sessionStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}state.busy=true;setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}
+async function resume(){if(!state.activePromptId)return;let job={};try{job=JSON.parse(sessionStorage.getItem("qwen.activeJob")||"{}");}catch{}if(job.promptId===state.activePromptId){state.settings=job.settings||null;const observation=job.completionObservation;if(observation?.id===state.activePromptId&&Number.isFinite(observation.elapsed)&&observation.elapsed>=0&&Number.isFinite(observation.modified)){state.completionObservation={...observation,previewShown:false};}state.pendingToken=job.pendingToken||null;state.started=Number(job.started)||Date.now();state.uploaded=Array.isArray(job.uploaded)?job.uploaded:[];state.lastStep=Number(job.lastStep)||0;state.stepTotal=Number(job.stepTotal)||0;state.stepTimes=Array.isArray(job.stepTimes)?job.stepTimes:[];}else{state.started=Date.now();}setBusy(true);setProgress("Restoring active generation",5,null,true);if(state.lastStep&&state.stepTotal)setProgress(`Sampling · ${state.lastStep}/${state.stepTotal}`,12+Math.round(78*state.lastStep/state.stepTotal),null);openSocket();pollQueue();pollHistory(false);}
 async function initialize(){
   restoreDraft();
   $("addReferences").disabled=true;

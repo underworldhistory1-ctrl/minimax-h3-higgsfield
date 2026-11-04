@@ -34,7 +34,7 @@ test('actual Studio selection passes the checkpoint through Pika reconciliation'
  const state={mode:'refs',modelProfile:'singularity',checkpoint,sampling:{},loras:[{name:'pika_h3_flex_turbo_4step_ref2va_lite_r32.safetensors',enabled:true,strength:1}]};
  const fields={steps:{value:'20'},renderMethod:{value:'native'},enableRefine:{checked:false},enableControl:{checked:false}};
  const ctx={state,H3Configuration:C,$:id=>fields[id],method:()=>fields.renderMethod.value,selectedPika:()=>state.loras.find(x=>x.enabled&&C.pikaVariant(x.name)),refreshSelectionAvailability(){},info(){}};
- vm.runInNewContext(source.slice(source.indexOf('function selectionSpec()'),source.indexOf('function refreshSelectionAvailability()')),ctx);
+ vm.runInNewContext(source.slice(source.indexOf('function preservedSoundtrack()'),source.indexOf('function refreshSelectionAvailability()')),ctx);
  ctx.applySelection('pika');assert.equal(state.modelProfile,'singularity');assert.equal(state.checkpoint,checkpoint);assert.equal(fields.steps.value,'4');
 });
 test('selecting a Character Swap version replaces the other version and retains unrelated adapters',()=>{

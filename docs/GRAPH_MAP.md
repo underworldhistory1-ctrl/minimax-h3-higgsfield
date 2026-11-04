@@ -2,6 +2,10 @@
 
 The user-facing app is web/index.html and web/studio.js with the modules in web/h3/. Deploy the matching interface and backend together. The dynamic graph is assembled by web/h3/graph-builder.js from the user’s controls and uploaded files; web/studio.js connects the workspace. The fixed quality/smoke workflows are starting points, not the contract for every optional branch.
 
+## Admission checks
+
+`h3_lab/configuration.py` and `h3_lab/execution_inputs.py` compare canonical declarations with the submitted graph before queue admission. Checks include source filenames and media slots, paired trim spans, encoder/VAEs, exact selected model layers, refinement and continuation dependencies. Filesystem access remains enforced by loaders and storage controls. Separate reference/guide asset maps prevent reference aliases from colliding with frame/control inputs. See [2.14 verification](RELEASE_2_14.md).
+
 ## Common graph
 
 | Node ID | ComfyUI class | Purpose / connection |

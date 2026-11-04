@@ -161,10 +161,7 @@ function restorePikaSampling(){
 }
 function selectedPika(){return H3Configuration.pikaVariant((state.loras||[]).find(x=>x.enabled&&H3Configuration.pikaVariant(x.name))?.name);}
 function loraModeCompatible(name,mode){
-  const pika=H3Configuration.pikaVariant(name);if(pika)return pika.family===(mode==='refs'?'ref2va':'fl2va');
-  if(H3Configuration.isCharacterSwap(name)||H3Configuration.isAnimeToRealism(name))return mode==='refs';
-  if(/turbo|lightx2v/i.test(name))return false;
-  return true;
+  return H3Configuration.loraModeCompatible(name,mode);
 }
 const info = (message, bad=false) => {
   $("error").textContent = message;
@@ -185,11 +182,13 @@ function updateCapabilities(){
   updateMethodAvailability();
   refreshSelectionAvailability();
 }
-function selectionSpec(){return {mode:state.mode,model_profile:state.modelProfile||'original',checkpoint:state.checkpoint,render_method:method(),steps:Number($('steps').value),sampling:state.sampling,loras:state.loras,enable_refine:!!$('enableRefine')?.checked,control:state.control,continuation:state.continuation,audio_refinement:state.audioRefinement,preserve_reference_audio:state.preserveReferenceAudio};}
+function preservedSoundtrack(){return state.preserveReferenceAudio?(state.preserveAudioSource||((state.refs||[]).filter(r=>r.kind==='video').length===1?state.refs.find(r=>r.kind==='video').alias:true)):null;}
+function selectionSpec(){return {mode:state.mode,model_profile:state.modelProfile||'original',checkpoint:state.checkpoint,render_method:method(),steps:Number($('steps').value),sampling:state.sampling,loras:state.loras,enable_refine:!!$('enableRefine')?.checked,control:state.control,continuation:state.continuation,audio_refinement:state.audioRefinement,preserve_reference_audio:preservedSoundtrack()};}
 function applySelection(action){
   const previous=selectionSpec();let next=H3Configuration.normalizeSelection(previous,action,state.labCapabilities||{});
   if(previous.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))&&!next.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))){next.sampling={...(state.pikaBefore?.sampling||H3Configuration.defaults)};if(!['turbo','turbo_ref'].includes(next.render_method))next.steps=state.pikaBefore?.steps>=8?state.pikaBefore.steps:20;delete state.pikaBefore;next=H3Configuration.normalizeSelection(next,action,state.labCapabilities||{});}
   state.modelProfile=next.model_profile;state.sampling=next.sampling;state.loras=next.loras.map(l=>Object.assign(state.loras.find(old=>old.name===l.name)||{},l));state.control=next.control||{enabled:false};state.audioRefinement=next.audio_refinement||{};
+  state.preserveReferenceAudio=!!next.preserve_reference_audio;if(!state.preserveReferenceAudio)state.preserveAudioSource=null;
   if(previous.model_profile!==next.model_profile)state.checkpoint=null;
   $('renderMethod').value=next.render_method;$('steps').value=String(next.steps);$('enableRefine').checked=!!next.enable_refine;
   if($('enableControl'))$('enableControl').checked=!!state.control.enabled;
@@ -198,6 +197,7 @@ function applySelection(action){
   refreshSelectionAvailability();
 }
 function refreshSelectionAvailability(){
+  window.H3ConfigurationUI?.refreshSoundtrackSource();
   const spec=selectionSpec(),rules=H3Configuration.selectionRestrictions(spec),caps=state.labCapabilities||{};
   for(const [id,reason,ready] of [['enableRefine',rules.refine,caps.refine_ready],['enableControl',rules.control,caps.controlnet_ready],['enhanceAudio',rules.audio,caps.audio_refine_ready]]){
     const field=$(id);if(field){field.disabled=!!state.busy||!!state.projectLoading||(id==='enhanceAudio'&&!!state.preserveReferenceAudio)||(!ready||!!reason)&&!field.checked;field.title=reason||(!ready?'Required runtime or model is unavailable.':'');}
@@ -287,14 +287,14 @@ document.querySelectorAll(".mode").forEach(b => b.onclick = () => selectMode(b.d
 
 function saveDraft(){
   try{sessionStorage.setItem(draftKey,JSON.stringify({
-    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
+    modelProfile:state.modelProfile||"original",checkpoint:state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,preserveAudioSource:state.preserveAudioSource||null,styleDirection:state.styleDirection,mode:state.mode,promptMode:state.promptMode||"guided",prompts:{...state.prompts,[state.mode]:$("prompt").value},width:state.width,height:state.height,
     duration:$("duration").value,durationRequested:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method(),enableRefine:$("enableRefine")?$("enableRefine").checked:false
   }));}catch{}
 }
 function restoreDraft(){
   let draft;try{draft=JSON.parse(sessionStorage.getItem(draftKey)||"null");}catch{}
   if(!draft)return false;
-  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.audioRefinement=draft.audioRefinement||{};state.dials=draft.dials||[];state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.styleDirection=draft.styleDirection;
+  state.modelProfile=draft.modelProfile||"original";state.checkpoint=draft.checkpoint;state.hybridPreset=draft.hybridPreset||"none";state.sampling=draft.sampling||{};state.nodeOptions=draft.nodeOptions||{};state.audioRefinement=draft.audioRefinement||{};state.dials=draft.dials||[];state.refinement=draft.refinement||{};state.refineScale=draft.refineScale??1.25;state.preserveReferenceAudio=!!draft.preserveReferenceAudio;state.preserveAudioSource=draft.preserveAudioSource||null;state.styleDirection=draft.styleDirection;
   state.promptMode=["guided","structured"].includes(draft.promptMode)?draft.promptMode:"guided";
   $("promptMode").value=state.promptMode;
   if(["text","frames","refs"].includes(draft.mode))state.mode=draft.mode;
@@ -355,7 +355,7 @@ function captureSettings(){
     canvas:state.width+"×"+state.height,sampling_canvas:samplingCanvas().width+"×"+samplingCanvas().height,output_canvas:{width:state.width,height:state.height},quality:sizes.find(([w,h])=>w===state.width&&h===state.height)?.[2]||"Custom",
     duration_seconds:(Number($("duration").value)-(state.continuation?.context_length||0))/24,frames:Number($("duration").value)-(state.continuation?.context_length||0),target_frames:Number($("duration").value),target_duration_seconds:seconds(),fps:24,
     steps:Number($("steps").value),seed:$("seed").value,render_method:method(),
-    dials:(state.dials||[]).filter(d=>d.enabled),loras:adapters,reference_detail:refs?$("refSize").value:null,
+    dials:(state.dials||[]).filter(d=>d.enabled),loras:adapters,reference_detail:refs?$("refSize").value:null,preserve_reference_audio:preservedSoundtrack(),
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
       file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
       trim:(ref.kind==="video"||ref.kind==="audio")&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
@@ -656,6 +656,7 @@ function renderRefs() {
         name.value=ref.alias; info("Use a unique name with letters, numbers, _ or -, and no spaces.",true);return;
       }
       const old=ref.alias;ref.alias=value;
+      if(state.preserveAudioSource===old)state.preserveAudioSource=value;
       if(!ref.label||ref.label===old)ref.label=value;
       $("prompt").value=$("prompt").value.replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","giu"),"@"+value);
       for(const m of ["text","frames","refs"]){if(state.prompts[m])state.prompts[m]=state.prompts[m].replace(new RegExp("@"+old+"(?=$|[^\\p{L}\\p{N}_-])","giu"),"@"+value);}
@@ -923,7 +924,7 @@ function currentRenderSpec() {
     steps: Number($("steps").value),
     render_method: method(),
     style_direction:state.styleDirection||null,
-    preserve_reference_audio:state.preserveReferenceAudio?(state.refs.find(r=>r.kind==="video")?.assetId||state.refs.find(r=>r.kind==="video")?.alias):null,
+    preserve_reference_audio:preservedSoundtrack(),
     ref_image_size: $("refSize") ? $("refSize").value : "match",
     loras: state.loras.filter(x => x.enabled),
     refine: $("enableRefine") ? $("enableRefine").checked : false,
@@ -996,8 +997,15 @@ function resolvedPrompt() {
 }
 function orderedRefs(){return ["image","video","audio"].flatMap(k=>state.refs.filter(r=>r.kind===k));}
 
+function resolvedRenderSpec(uploads){
+  const spec=currentRenderSpec();
+  if(spec.mode==='refs')spec.references=spec.references.map(ref=>({...ref,filename:uploads.refs?.get(state.refs.find(r=>r.alias===ref.alias))}));
+  for(const key of ['first','last'])if(spec.frames[key])spec.frames[key]={...spec.frames[key],filename:uploads[key]};
+  spec.guides=spec.guides.map((guide,index)=>({...guide,filename:uploads.guides?.get(state.guides[index])}));
+  return spec;
+}
 function graph(prompt,uploads,token) {
-  const spec = currentRenderSpec();
+  const spec = resolvedRenderSpec(uploads);
   spec.compiled_prompt = prompt;
   spec.token = token;
 
@@ -1005,17 +1013,19 @@ function graph(prompt,uploads,token) {
   resolvedAssets.first=uploads.first;
   resolvedAssets.last=uploads.last;
   if (uploads.refs) {
+    resolvedAssets.references=Object.create(null);
     state.refs.forEach(r => {
       const serverFile = uploads.refs.get(r);
       if (serverFile) {
-        resolvedAssets[r.alias] = serverFile;
-        if (r.assetId) resolvedAssets[r.assetId] = serverFile;
+        resolvedAssets.references[r.alias] = serverFile;
+        if (r.assetId) resolvedAssets.references[r.assetId] = serverFile;
       }
     });
   }
   if (state.guides && uploads.guides) {
+    resolvedAssets.guides=Object.create(null);
     state.guides.forEach(g => {
-      resolvedAssets[g.asset_id] = uploads.guides.get(g) || g.filename;
+      resolvedAssets.guides[g.asset_id] = uploads.guides.get(g) || g.filename;
     });
   }
 
@@ -1372,7 +1382,7 @@ async function generate() {
       if(lengths.length&&lengths.every(value=>Number.isFinite(value)&&value>0)&&lengths.reduce((sum,value)=>sum+value,0)>15.1)
         throw Error("Standalone audio references exceed 15 seconds combined. Shorten or deselect one before generating.");
     }
-    for(const ref of state.refs.filter(item=>item.kind==="video"||item.kind==="audio")){
+    for(const ref of (state.mode==='refs'?state.refs:[]).filter(item=>item.kind==="video"||item.kind==="audio")){
       const source=Number(ref.meta?.source_duration||ref.localDuration||0);
       if(ref.trimEnabled){
         const start=Number(ref.trimStart),length=Number(ref.trimDuration);
@@ -1498,7 +1508,7 @@ async function generate() {
     const submittedMeta={units:workUnits(),key:sampleKey(),mode:state.mode,size:sizeKey(),duration:settings.duration_seconds,prompt:$("prompt").value,settings,samplerNodes:Object.entries(workflow).filter(([,n])=>n.class_type==="KSampler").map(([id,n])=>({id,steps:n.inputs.steps,label:n._meta?.title})),project_id:state.currentProject?.project_id,...H3Scenes.ownership(projectCtrl?.draftScope,state.currentClipId),continuation:state.continuation?{...state.continuation}:null,draft};
     if(epoch!==state.generationEpoch)throw Error("Cancelled");
     state.runMeta=submittedMeta;
-    const submission={request_id:token,render_spec:{...currentRenderSpec(),workflow,client_id:state.clientId,project_snapshot:{draft,settings,...H3Scenes.ownership(projectCtrl?.draftScope,state.currentClipId),parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
+    const submission={request_id:token,render_spec:{...resolvedRenderSpec(uploads),compiled_prompt:prompt,token,workflow,client_id:state.clientId,project_snapshot:{draft,settings,...H3Scenes.ownership(projectCtrl?.draftScope,state.currentClipId),parent_take_id:state.continuation?.source_take_id||null} },asset_leases:[...state.uploads],project_id:submittedMeta.project_id,take_id:token};
     state.runMeta.request_id=token;state.runMeta.submission=submission;state.running="request:"+token;saveSession();
     const r=await fetch(api("/h3_studio/lab/jobs"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(submission)});
     const response=await H3RenderValues.readJson(r);
@@ -1656,6 +1666,7 @@ function openDetails(entry,trigger){
     row("Seed",settings.seed);
     row("LoRAs",Array.isArray(settings.loras)?settings.loras.length?settings.loras.map(x=>x.name+" · "+x.strength+(x.refinement_strength!==undefined?" / refinement "+x.refinement_strength:"")).join(" · "):"None":"Not recorded");
     if(settings.reference_detail)row("Reference detail",settings.reference_detail);
+    if(settings.preserve_reference_audio)row('Output soundtrack','Source video @'+settings.preserve_reference_audio);
     if(settings.refine)row("Refinement",settings.refine.scale+"× · "+settings.refine.steps+" steps · denoise "+settings.refine.denoise);
     const audioPass=settings.timingConfiguration?.audio_refinement;
     if(audioPass?.enabled)row("Audio enhancement",settings.timingConfiguration?.preserve_reference_audio?"Bypassed · source soundtrack preserved":(audioPass.steps??6)+" steps · denoise "+(audioPass.denoise??.5)+" · exact video preserved");

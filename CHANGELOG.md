@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.14.0 - 2026-11-04
+
+- Add explicit persisted source-video soundtrack selection and fail closed for missing/ambiguous sources. Preserve source identity across duplicate uploads, trims and reorder.
+- Validate native media/encoder/LoRA/model-pass/continuation wiring before admission; isolate reference and guide asset namespaces.
+- Harden Qwen network recovery, cancellation and polling; retain accurate observed render time and avoid duplicate preview downloads.
+- Verify 605 Python tests (one platform skip), 323 JavaScript tests, 528 persisted plus 2,096 expanded graph cases, independent reviews and local browser/API journeys. Runtime/model pins are unchanged; no new GPU render. [Evidence and boundaries](docs/RELEASE_2_14.md).
+
 ## 2.13.0 - 2026-11-04
 
 - Add ordered storyboard image groups alongside single-sheet boards. Guided compilation includes each group member, keeps final character/style references separate and does not create implicit frame anchors. Sequence metadata survives preparation, save/reload and recorded settings.

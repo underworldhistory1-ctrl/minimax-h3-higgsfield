@@ -37,7 +37,18 @@
   $('hybridPreset').onchange=()=>{state.hybridPreset=$('hybridPreset').value;changed();};
   $('resetSampling').onclick=()=>{state.sampling={};state.nodeOptions={};state.refinement={};state.refineScale=1.25;applySelection('reset');refresh();changed();};
   $('styleDirection').onchange=()=>{state.styleDirection=$('styleDirection').value;refresh();changed();};
-  $('preserveAudio').onchange=()=>{state.preserveReferenceAudio=$('preserveAudio').checked;refresh();changed();};
+  const sourceWrap=document.createElement('div'),sourceLabel=document.createElement('label'),audioSource=document.createElement('select');sourceLabel.textContent='Output soundtrack source';sourceLabel.htmlFor='preserveAudioSource';audioSource.id='preserveAudioSource';sourceWrap.append(sourceLabel,audioSource);$('preserveAudio').parentElement.after(sourceWrap);
+  let audioSourceSignature='';
+  function refreshSoundtrackSource(){
+    const videos=state.refs.filter(r=>r.kind==='video');
+    if(state.preserveReferenceAudio&&!state.preserveAudioSource&&videos.length===1)state.preserveAudioSource=videos[0].alias;
+    const selected=state.preserveAudioSource||'',signature=JSON.stringify([videos.map(r=>[r.alias,r.label]),selected]);
+    if(signature!==audioSourceSignature){audioSourceSignature=signature;audioSource.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose a source video';audioSource.append(placeholder);for(const ref of videos){const option=document.createElement('option');option.value=ref.alias;option.textContent='@'+ref.alias+(ref.label?' · '+ref.label:'');audioSource.append(option);}if(selected&&!videos.some(r=>r.alias===selected)){const missing=document.createElement('option');missing.value=selected;missing.textContent='Unavailable source · @'+selected;audioSource.append(missing);}audioSource.value=selected;}
+    sourceWrap.hidden=!state.preserveReferenceAudio;audioSource.disabled=state.busy||state.projectLoading||state.mode!=='refs';
+    $('preserveAudio').checked=!!state.preserveReferenceAudio;$('preserveAudio').disabled=state.busy||state.projectLoading||state.mode!=='refs'&&!state.preserveReferenceAudio;
+  }
+  audioSource.onchange=()=>{state.preserveAudioSource=audioSource.value;const ref=state.refs.find(r=>r.kind==='video'&&r.alias===audioSource.value);if(ref)ref.useAudio=true;renderRefs();refresh();changed();};
+  $('preserveAudio').onchange=()=>{state.preserveReferenceAudio=$('preserveAudio').checked;if(!state.preserveReferenceAudio)state.preserveAudioSource=null;else if(state.refs.filter(r=>r.kind==='video').length===1){const ref=state.refs.find(r=>r.kind==='video');state.preserveAudioSource=ref.alias;ref.useAudio=true;}renderRefs();refresh();changed();};
   $('applyStyle').onclick=()=>{
     if(state.busy)return;
     const refs=state.refs.filter(r=>r.kind==='video');if(refs.length!==1){info('Add one source video in References to prepare this transformation.',true);return;}
@@ -55,14 +66,14 @@
     const look=direction==='anime_to_realism'?'LumiReal, natural photorealistic live-action style':'anime with clean linework and cel shading';
     $('prompt').value='Transform @'+ref.alias+' into '+look+'. Retain recognizable character features, clothing, props and the environment. Follow the source framing, camera movement, poses, actions and their timing. Use one coherent visual style throughout. '+($('preserveAudio').checked?'Keep the source soundtrack.':'Generate synchronized native audio matching the scene.');
     for(const extra of state.refs.filter(r=>r!==ref))$('prompt').value+=' Use @'+extra.alias+' as '+(extra.role||'additional reference')+' guidance.';
-    state.preserveReferenceAudio=$('preserveAudio').checked;renderRefs();renderLoras();refresh();changed();info(direction==='anime_to_realism'?'Anime → Realism prompt preset applied. Your selected checkpoint, render method, keyframes and other adapters are preserved. Unverified combinations are available to experiment with.':'Prepared prompt-guided Realism → Anime; the Anime → Realism adapter is disabled.');
+    state.preserveReferenceAudio=$('preserveAudio').checked;if(state.preserveReferenceAudio){state.preserveAudioSource=ref.alias;ref.useAudio=true;}renderRefs();renderLoras();refresh();changed();info(direction==='anime_to_realism'?'Anime → Realism prompt preset applied. Your selected checkpoint, render method, keyframes and other adapters are preserved. Unverified combinations are available to experiment with.':'Prepared prompt-guided Realism → Anime; the Anime → Realism adapter is disabled.');
   };
   function field(parent,key,label,value,descriptor,onchange){
     const wrap=document.createElement('label');wrap.textContent=label;const [type,limits={}]=descriptor;
     let input;
     if(Array.isArray(type)){input=document.createElement('select');for(const item of type){const o=document.createElement('option');o.value=item;o.textContent=item;input.append(o);}input.value=value;}
     else {input=document.createElement('input');input.type=type==='BOOLEAN'?'checkbox':'number';if(type==='BOOLEAN')input.checked=!!value;else{input.value=value;input.step=limits.step??(type==='INT'?1:0.01);if(limits.min!=null)input.min=limits.min;if(limits.max!=null)input.max=limits.max;}}
-    input.dataset.setting=key;input.disabled=state.busy;input.onchange=()=>{if(input.type==='number'&&!input.checkValidity()){input.reportValidity();input.value=String(value);return;}value=type==='BOOLEAN'?input.checked:Array.isArray(type)?input.value:Number(input.value);onchange(value);changed();};wrap.append(input);parent.append(wrap);
+    input.dataset.setting=key;input.disabled=state.busy||state.projectLoading;input.onchange=()=>{if(state.busy||state.projectLoading)return;if(input.type==='number'&&!input.checkValidity()){input.reportValidity();input.value=String(value);return;}value=type==='BOOLEAN'?input.checked:Array.isArray(type)?input.value:Number(input.value);onchange(value);changed();};wrap.append(input);parent.append(wrap);
   }
   let schemaServer=null,liveSchemas={};
   async function schemas(){
@@ -87,7 +98,7 @@
     if(profile!=='original'&&state.checkpoint&&!names.includes(state.checkpoint))names.unshift(state.checkpoint);
     for(const name of names){const o=document.createElement('option');o.value=name;o.textContent=name;o.disabled=profile!=='original'&&!(caps.model_catalog||[]).some(x=>x.name===name);select.append(o);}
     if(names.length&&(profile==='original'||!state.checkpoint))state.checkpoint=names[0];select.value=state.checkpoint||'';
-    select.disabled=state.busy||profile==='original';$('modelProfile').disabled=state.busy;
+    select.disabled=state.busy||state.projectLoading||profile==='original';$('modelProfile').disabled=state.busy||state.projectLoading;
     $('hybridPreset').hidden=profile!=='hybrid_loader';document.querySelector('label[for="hybridPreset"]').hidden=profile!=='hybrid_loader';$('hybridPreset').value=state.hybridPreset||'none';
     $('checkpointNotice').textContent=profile==='original'?'Native audio · mode selects the original FL2VA or Ref2VA checkpoint.':profile==='hybrid_conditioning'?'Community experiment: FL2VA weights with native reference conditioning. This does not merge models. No GPU validation on this installation.':profile==='hybrid_loader'?'Community tensor overlays, separate from reference conditioning. Format compatibility is checked by the loader. No GPU validation on this installation.':'Independent community checkpoint. File availability does not certify quality or acceleration compatibility.';
     const attention=caps.server_attention;
@@ -109,7 +120,7 @@
     $('audioEnhancementNotice').textContent=restrictions.audio?restrictions.audio:state.preserveReferenceAudio?'Original reference soundtrack is preserved; generated-audio enhancement is bypassed.':!caps.audio_refine_ready?'Update the Studio runtime to enable this audio pass.':'An extra native pass refines audio only. Exact video latents are restored. Adds render time; no disk cache. Published evidence uses Original H3; other checkpoints/adapters can change audio quality.';
     const audioFields=$('audioEnhancementFields');audioFields.replaceChildren();
     for(const [key,d] of Object.entries({steps:['INT',{min:1,max:20}],denoise:['FLOAT',{min:.01,max:1,step:.01}],sampler_name:descriptors.sampler_name,scheduler:descriptors.scheduler}))field(audioFields,'audio_'+key,key.replaceAll('_',' '),audioOptions[key],d,value=>{state.audioRefinement={...state.audioRefinement,[key]:value};});
-    for(const input of audioFields.querySelectorAll('input,select'))input.disabled=state.busy||!audioOptions.enabled||!caps.audio_refine_ready||!!restrictions.audio;
+    for(const input of audioFields.querySelectorAll('input,select'))input.disabled=state.busy||state.projectLoading||!audioOptions.enabled||!caps.audio_refine_ready||!!restrictions.audio;
     const patches=$('patchFields');patches.replaceChildren();
     const klass=method()==='spectrum'?'SpectrumApplyMiniMaxH3':method()==='motioncache'?'MiniMaxH3MotionCache':null;
     if(klass&&caps.node_schemas?.[klass]){
@@ -123,10 +134,11 @@
     refreshSelectionAvailability();
     $('styleAdapterNotice').textContent=state.styleDirection==='realism_to_anime'?'Prompt-guided workflow; no verified dedicated reverse adapter is installed.':state.loras.some(x=>H3Configuration.isAnimeToRealism(x.name))?'Anime → Realism · LumiReal adapter installed (LiseTY). Uses your selected checkpoint and render method; community combinations are experimental.':'Anime → Realism adapter missing. Update the launcher to install the pinned 310 MB file.';
     $('preserveAudio').checked=!!state.preserveReferenceAudio;$('styleDirection').value=state.styleDirection||'anime_to_realism';
-    for(const id of ['prepareSwap','swapTarget','applyStyle','preserveAudio','styleDirection','hybridPreset','resetSampling'])$(id).disabled=state.busy;
+    for(const id of ['prepareSwap','swapTarget','applyStyle','styleDirection','hybridPreset','resetSampling'])$(id).disabled=state.busy||state.projectLoading;
+    refreshSoundtrackSource();
   }
   $('renderMethod').addEventListener('change',refresh);
-  window.H3ConfigurationUI={refresh};refresh();
+  window.H3ConfigurationUI={refresh,refreshSoundtrackSource};refresh();
   // Desktop resize handle supports pointer and keyboard, with a persisted width.
   const handle=document.createElement('div');handle.className='sidebar-resizer';handle.tabIndex=0;handle.setAttribute('role','separator');handle.setAttribute('aria-label','Resize settings sidebar');handle.setAttribute('aria-orientation','vertical');document.querySelector('.left').append(handle);
   function resize(value){const max=Math.min(850,innerWidth-360-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-width"))||0)),width=Math.max(390,Math.min(max,value));document.documentElement.style.setProperty('--settings-width',width+'px');handle.setAttribute('aria-valuenow',width);handle.setAttribute('aria-valuemin',390);handle.setAttribute('aria-valuemax',Math.max(390,max));return width;}

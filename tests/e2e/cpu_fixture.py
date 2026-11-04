@@ -4,6 +4,7 @@ from aiohttp import web
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from h3_lab.routes import register_lab_routes
+import h3_lab.routes as lab_routes
 NODES = 'UNETLoader MiniMaxH3SigmaShift CLIPLoader VAELoader MiniMaxH3ImageToVideo MiniMaxH3ReferenceToVideo ConditioningZeroOut KSampler H3ReleaseForDecode VAEDecode VAEDecodeAudio CreateVideo H3SaveVideo LoadImage LoadVideo GetVideoComponents ImageFromBatch TrimAudioDuration LoadAudio MiniMaxH3AddGuide'.split()
 MODELS = {k: True for k in ['fl2va','ref2va','text_encoder','video_vae','audio_vae']}
 captured=[]
@@ -13,6 +14,9 @@ ack_delay=0
 image_standby=False
 image_queue_mode='empty'
 interrupt_count=0
+def simulated_capabilities(*args):
+    return {'add_guide':True,'guides_ready':True,'guide_audio':True,'guide_video':True,'continuation_ready':continuation_enabled,'models':MODELS,'missing_reasons':['CPU fixture: model availability is simulated']}
+lab_routes.check_capabilities=simulated_capabilities
 @web.middleware
 async def fixture(request, handler):
     global fail_ack, continuation_enabled, ack_delay, image_standby, image_queue_mode, interrupt_count

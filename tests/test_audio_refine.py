@@ -51,7 +51,7 @@ class AudioRefineTests(unittest.TestCase):
         return json.loads(subprocess.check_output(['node','-e',script],cwd=Path(__file__).resolve().parents[1],text=True))
     def test_real_builder_and_admission_with_image_refinement(self):
         for image_refine in (False,True):
-            spec=self.spec(enable_refine=image_refine);validate_configuration(spec,{'audio_refine_ready':True})
+            spec=self.spec(enable_refine=image_refine);validate_configuration(spec,{'audio_refine_ready':True,'refine_ready':True})
     def test_tampered_stage_is_rejected(self):
         spec=self.spec();sampler=next(n for n in spec['workflow'].values() if n.get('inputs',{}).get('latent_image',[None])[0]=='180')
         for key,value in [('cfg',2),('model',['8',0]),('denoise',.9),('seed',42)]:

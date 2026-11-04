@@ -4,6 +4,8 @@ Use the grip beside a card or group to drag it. Alt + arrow keys and the existin
 
 **Customize layout** controls section/stage order and visibility independently for the video and image pages. Sections can move between video stages. Hiding preserves active settings; mode and capability availability continue to apply. Reset restores the default arrangement without clearing generation values. Preferences are local to the current browser/origin, not part of a shared project.
 
+Output soundtrack reuse offers an explicit source-video selector. The selected alias is saved with the scene and settings; reordering or attaching the same file twice does not change the source. Missing/ambiguous sources and insufficient selected audio duration block generation. Interactive mode changes outside References disable reuse; inactive reference trims do not block Text/Frames.
+
 Reference mode supports the model's native image, video and audio slots. Roles and instructions compile into its structured prompt; they do not invent unsupported per-reference attention-strength inputs.
 
 - Choose One character, One environment, One element or One style before uploading alternate views together. They appear in one group with side-by-side previews. Separate references remains the default: different people or places are not merged automatically.

@@ -1,6 +1,6 @@
 # H3 Interface documentation
 
-Current release: **2.13.0**. [Current verification and scope](RELEASE_2_13.md). The main [README](../README.md) introduces the studio;
+Current release: **2.14.0**. [Current verification and scope](RELEASE_2_14.md). The main [README](../README.md) introduces the studio;
 [CHANGELOG](../CHANGELOG.md) records release history. “H3 Studio” is the workspace
 name used in controls and historical guides; “V2” describes the earlier migration,
 not a separate current product release.
@@ -17,7 +17,7 @@ not a separate current product release.
 | Save projects, assets and takes | [Projects](PROJECT_WORKSPACE.md) · [Organization and Reuse](ORGANIZATION_AND_REUSE.md) |
 | Recover after a worker restart | [Render recovery](RENDER_RECOVERY.md) · [Tracked decode recovery](DECODE_RECOVERY.md) |
 | Upgrade an older V2 install or roll back | [Upgrade guide](V2_UPGRADE.md) |
-| Check what was actually verified | [Current source audit](RELEASE_2_13.md) · [Historical GPU audit](PRODUCTION_READINESS_2026_10_15.md) · [Evidence history](VERIFIED_BEHAVIOR.md) |
+| Check what was actually verified | [Current source audit](RELEASE_2_14.md) · [Historical GPU audit](PRODUCTION_READINESS_2026_10_15.md) · [Evidence history](VERIFIED_BEHAVIOR.md) |
 | Shared GPU and optional image adapter | [Operations](OPERATIONS.md) |
 | Provider-specific deployment | [OpenBayes](OPENBAYES.md) · [Legacy Salad image](../deploy/SALAD_DEPLOYMENT.md) |
 | Review the published example | [Superman reference walkthrough](demo/superman/README.md) |

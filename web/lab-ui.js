@@ -196,7 +196,7 @@ function captureProjectDraft(local=false){
   const descriptor=item=>item?Object.fromEntries(Object.entries(item).filter(([key])=>!(local&&!item.assetId?["url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]:["file","url","previewUrl","meta","uploadProgress","uploadReady","originalPreviewUrl"]).includes(key))):null;
   return {version:1,scene_name:$('sceneName')?.value||'',...(local?{tab_view:typeof workspaceView==='string'?workspaceView:'studio',tab_details:[...document.querySelectorAll('details[id]')].filter(el=>el.open).map(el=>el.id)}:{}),mode:state.mode,prompts:{...state.prompts,[state.mode]:$("prompt").value},canvas:{width:state.width,height:state.height},
     promptMode:$("promptMode").value,frameFit:$("frameFit").value,fitImages:$("fitImages").checked,fitFrames:$("fitFrames").checked,first:descriptor(state.first),last:descriptor(state.last),
-    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,styleDirection:state.styleDirection},
+    configuration:{modelProfile:state.modelProfile||"original",checkpoint:state.reuseCheckpoint||state.checkpoint,hybridPreset:state.hybridPreset||"none",sampling:state.sampling||{},nodeOptions:state.nodeOptions||{},audioRefinement:state.audioRefinement||{},dials:state.dials||[],refinement:state.refinement||{},refineScale:state.refineScale??1.25,preserveReferenceAudio:!!state.preserveReferenceAudio,preserveAudioSource:state.preserveAudioSource||null,styleDirection:state.styleDirection},
     refs:state.refs.map(descriptor),guides:state.guides.map(descriptor),continuation:state.continuation,
     preparationMode:$("preparationMode")?.value||"auto",enableRefine:$("enableRefine").checked,
     control:state.control?{...state.control,control_file:undefined,source_file:undefined,mask_file:undefined}:null,
@@ -234,7 +234,7 @@ async function hydrateProjectDraft(draft,{preserveFailedLocal=false}={}){
   state.first=first;state.last=last;state.refs=refs.filter(Boolean);state.guides=guides.filter(Boolean);state.continuation=draft.continuation||null;
   delete state.pikaBefore;
   state.loras=state.loras.map(x=>({...x,enabled:!!draft.loras?.some(l=>l.name===x.name&&l.enabled!==false),strength:draft.loras?.find(l=>l.name===x.name)?.strength??x.strength}));
-  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},dials:[],refinement:{},refineScale:1.25,preserveReferenceAudio:false,styleDirection:null},draft.configuration||{});
+  Object.assign(state,{modelProfile:"original",checkpoint:null,hybridPreset:"none",sampling:{},nodeOptions:{},audioRefinement:{},dials:[],refinement:{},refineScale:1.25,preserveReferenceAudio:false,preserveAudioSource:null,styleDirection:null},draft.configuration||{});
   if(window.H3ConfigurationUI)H3ConfigurationUI.refresh();
   state.control=draft.control||{enabled:false};state.controlInputs=controlInputs;state.preparedContext=null;
   if($("enableRefine"))$("enableRefine").checked=!!draft.enableRefine;

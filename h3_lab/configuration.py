@@ -194,9 +194,11 @@ def validate_pika(spec):
     return True
 
 
-def _validate_execution_path(spec, graph, audio_sampler):
+def _validate_execution_path(spec, graph, audio_sampler, capabilities):
     """Validate connected execution, rather than merely the presence of optional nodes."""
     from .render_values import seed_value
+    from .execution_inputs import validate_input_paths
+    validate_input_paths(spec, graph, capabilities)
     def node(key, klass=None):
         value=graph.get(key, {})
         if not isinstance(value.get('inputs'), dict) or klass and value.get('class_type') != klass:
@@ -236,6 +238,10 @@ def _validate_execution_path(spec, graph, audio_sampler):
     for lora in declarations:
         for field in ('strength','refinement_strength'):
             if field in lora and (type(lora[field]) not in (int,float) or not math.isfinite(lora[field]) or not 0<=lora[field]<=2): raise ValueError('Invalid LoRA strength')
+        if lora.get('enabled'):
+            import re
+            fl=bool(re.search(r'fl2v|t2v',lora['name'],re.I));ref=bool(re.search(r'ref2v|r2v',lora['name'],re.I))
+            if (spec.get('mode')=='refs' and fl and not ref) or (spec.get('mode')!='refs' and ref and not fl):raise ValueError('LoRA is unsupported in the selected input mode/family')
     positive=chain(base.get('positive'),'positive')
     guides=spec.get('guides') or []
     if len(positive)!=len(guides)+1 or not positive or positive[-1]!='6' or any(graph[key].get('class_type')!='MiniMaxH3AddGuide' for key in positive[:-1]): raise ValueError('Selected temporal guides/conditioning disagree')
@@ -253,17 +259,20 @@ def _validate_execution_path(spec, graph, audio_sampler):
             raise ValueError('Selected temporal guide timing/latent disagrees')
         kind = guide.get('kind', 'image')
         if kind == 'audio':
-            node(linked(values.get('audio')), 'LoadAudio')
+            media=node(linked(values.get('audio')), 'LoadAudio')
+            if guide.get('filename') and media.get('audio')!=guide['filename']:raise ValueError('Selected audio guide source disagrees')
             if 'image' in values or values.get('audio_vae') != ['5', 0]:
                 raise ValueError('Selected audio guide disagrees')
         elif kind == 'image':
-            node(linked(values.get('image')), 'LoadImage')
+            media=node(linked(values.get('image')), 'LoadImage')
+            if guide.get('filename') and media.get('image')!=guide['filename']:raise ValueError('Selected image guide source disagrees')
             if 'audio' in values or values.get('vae') != ['4', 0]:
                 raise ValueError('Selected image guide disagrees')
         elif kind == 'video':
             split_id = linked(values.get('image'))
             split = node(split_id, 'GetVideoComponents')
-            node(linked(split.get('video')), 'LoadVideo')
+            media=node(linked(split.get('video')), 'LoadVideo')
+            if guide.get('filename') and media.get('file')!=guide['filename']:raise ValueError('Selected video guide source disagrees')
             if values.get('vae') != ['4', 0] or bool(guide.get('use_audio')) != ('audio' in values):
                 raise ValueError('Selected video guide disagrees')
             if guide.get('use_audio') and (values.get('audio') != [split_id, 1] or values.get('audio_vae') != ['5', 0]):
@@ -315,6 +324,21 @@ def _validate_execution_path(spec, graph, audio_sampler):
     expected_patch={'spectrum':'SpectrumApplyMiniMaxH3','motioncache':'MiniMaxH3MotionCache'}.get(method)
     if expected_patch and not any(graph[key].get('class_type')==expected_patch for key in models): raise ValueError('Sampling bypasses the selected acceleration')
     declared=[l for l in declarations if l.get('enabled')]
+    def check_model_layers(path):
+        adapter_count=1 if method in ('turbo','turbo_ref') else len(declared)
+        adapter_class='MiniMaxH3TurboLoRA' if method=='turbo' else 'LoraLoaderModelOnly'
+        expected=[graph['1']['class_type']]+[adapter_class]*adapter_count+['DialsApplyDial']*len([d for d in spec.get('dials',[]) if d.get('enabled')])+['MiniMaxH3SigmaShift']
+        if (spec.get('control') or {}).get('enabled'):expected.append('MiniMaxH3FunControlNetApply')
+        if expected_patch:expected.append(expected_patch)
+        if [graph[k].get('class_type') for k in reversed(path)]!=expected:raise ValueError('Selected model layers/order disagree')
+        acceleration_defaults={
+            'SpectrumApplyMiniMaxH3':{'enabled':True,'blend_weight':.5,'degree':1,'ridge_lambda':.1,'window_size':2,'flex_window':.75,'warmup_steps':1,'tail_actual_steps':1,'max_history':2,'debug':False,'history_storage':'system_ram','offline_archive_storage':'system_ram','audio_blend_weight':0,'offline_smoothing_replay':False},
+            'MiniMaxH3MotionCache':{'reuse_threshold':.15,'motion_strength':1,'warmup_steps':4,'max_consecutive_skips':2,'start_percent':.15,'end_percent':.95,'subsample_factor':8,'verbose':False}}
+        if expected_patch:
+            patch=next(node(k) for k in path if graph[k].get('class_type')==expected_patch)
+            selected={**acceleration_defaults[expected_patch],**(spec.get('node_options') or {}).get(expected_patch,{})}
+            if {k:v for k,v in patch.items() if k!='model'}!=selected:raise ValueError('Selected acceleration widget settings disagree')
+    check_model_layers(models)
     consumed_dials=set()
     def check_dials(path):
         actual=[]
@@ -339,6 +363,7 @@ def _validate_execution_path(spec, graph, audio_sampler):
     if refine:
         key=refiners[0];values=node(key);final=[key,0]
         path=chain(values.get('model'),'model');check_loras(path,True)
+        check_model_layers(path)
         check_dials(path)
         if not path or path[-1]!='1' or not any(graph[k].get('class_type')=='MiniMaxH3SigmaShift' for k in path): raise ValueError('Refinement bypasses the selected checkpoint/sigma path')
         if expected_patch and not any(graph[k].get('class_type')==expected_patch for k in path): raise ValueError('Refinement bypasses the selected acceleration')
@@ -346,6 +371,9 @@ def _validate_execution_path(spec, graph, audio_sampler):
             if any(shift.get(field)!=node('2').get(field) for field in ('shift_video','shift_audio')): raise ValueError('Refinement sigma shifts disagree')
         concat=node(linked(values.get('latent_image')),'LTXVConcatAVLatent')
         upscale=node(linked(concat.get('video_latent')),'MinimaxH3LatentUpscaler3D')
+        expected_upscale={'model_name':'minimax_h3_latent_upscaler_3d_conv_v1_fp16.safetensors','mode':'scale by multiplier','mode.scale':spec.get('refine_scale',1.25),'align':32,'enable_temporal_chunking':True,'force_unload':True,'device':'cuda','precision':'fp16'}
+        if any(upscale.get(k)!=v for k,v in expected_upscale.items()):raise ValueError('Selected refinement upscaler disagrees')
+        if values.get('positive')!=base.get('positive') or values.get('negative')!=base.get('negative') or seed_value(values.get('seed'))!=(seed_value(base.get('seed'))+1)%(2**64):raise ValueError('Refinement seed/conditioning disagree with the base pass')
         separate_id=linked(upscale.get('latent'))
         if node(separate_id,'LTXVSeparateAVLatent').get('av_latent')!=['8',0] or concat.get('audio_latent')!=[separate_id,1]: raise ValueError('Refinement does not consume the base AV pass')
     if not audio_sampler and node('13').get('samples')!=final: raise ValueError('Selected final pass is bypassed before decode')
@@ -353,9 +381,11 @@ def _validate_execution_path(spec, graph, audio_sampler):
 
 
 def validate_configuration(spec, capabilities):
+    graph=spec.get('workflow',{})
+    if not isinstance(graph,dict) or any(not isinstance(n,dict) or not isinstance(n.get('inputs',{}),dict) for n in graph.values()):raise ValueError('Workflow nodes require object inputs')
     for value in spec.get('workflow',{}).values():
         if 'lora_name' in value.get('inputs',{}) and not isinstance(value['inputs']['lora_name'],str): raise ValueError('Graph adapter filenames must be strings')
-    for field in ('sampling','control','audio_refinement','refinement','continuation','node_options'):
+    for field in ('sampling','control','audio_refinement','refinement','continuation','node_options','frames'):
         if spec.get(field) is not None and not isinstance(spec[field],dict): raise ValueError(field+' must be an object')
     for field in ('loras','references','guides','dials'):
         values=spec.get(field,[])
@@ -449,6 +479,7 @@ def validate_configuration(spec, capabilities):
     if spec.get('steps') is not None and graph.get('8', {}).get('inputs', {}).get('steps') != spec['steps']:
         raise ValueError('Submitted step count disagrees with the selected settings')
     if spec.get('enable_refine') or spec.get('refine'):
+        if not capabilities.get('refine_ready'):raise ValueError('Selected refinement runtime is unavailable')
         refiners = [node for key, node in graph.items() if key not in ('8', audio_sampler) and node.get('class_type') == 'KSampler']
         if len(refiners) != 1:
             raise ValueError('Refinement requires one explicit second sampler')
@@ -468,7 +499,10 @@ def validate_configuration(spec, capabilities):
         if not isinstance(references, list) or any(not isinstance(ref, dict) for ref in references):
             raise ValueError('References must be a list of reference objects')
         videos = [ref for ref in references if ref.get('kind') == 'video']
-        slot = next((i for i, ref in enumerate(videos) if (ref.get('asset_id') or ref.get('alias')) == spec['preserve_reference_audio'] and ref.get('use_audio')), None)
+        if spec.get('mode')!='refs' or spec.get('continuation'):raise ValueError('Source soundtrack reuse requires References without continuation')
+        aliases=[i for i,ref in enumerate(videos) if ref.get('alias')==spec['preserve_reference_audio']]
+        matches=aliases or [i for i,ref in enumerate(videos) if ref.get('asset_id')==spec['preserve_reference_audio']]
+        slot=matches[0] if len(matches)==1 and videos[matches[0]].get('use_audio') else None
         expected_audio = graph.get('6', {}).get('inputs', {}).get(f'ref_video_audios.ref_video_audio_{slot}') if slot is not None else None
         if not expected_audio or graph.get('11', {}).get('inputs', {}).get('audio') != expected_audio:
             raise ValueError('Source soundtrack reuse disagrees with the selected reference')
@@ -484,4 +518,4 @@ def validate_configuration(spec, capabilities):
         # Saved inactive-method overrides remain in projects, but do not change this graph.
         if selected and any(any(n.get('inputs', {}).get(k) != v for k, v in values.items()) for n in selected):
             raise ValueError('Submitted accelerator settings disagree with the configuration')
-    _validate_execution_path(spec, graph, audio_sampler)
+    _validate_execution_path(spec, graph, audio_sampler, capabilities)

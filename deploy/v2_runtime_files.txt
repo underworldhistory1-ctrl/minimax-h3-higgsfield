@@ -159,3 +159,5 @@ web/h3/vendor/sortable.min.js
 web/h3/vendor/SORTABLE-LICENSE.txt
 web/h3/vendor/sortable-manifest.json
 docs/RELEASE_2_13.md
+h3_lab/execution_inputs.py
+docs/RELEASE_2_14.md

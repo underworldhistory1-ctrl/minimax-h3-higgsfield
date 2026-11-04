@@ -51,6 +51,7 @@
 
   function buildGraph(renderSpec, resolvedAssets = {}, capabilities = {}) {
     const config = Configuration.resolve(renderSpec, capabilities);
+    const preservedAudio = Configuration.preservedReference(renderSpec);
     const mode = renderSpec.mode || 'text';
     const isRefs = mode === 'refs';
     const token = renderSpec.token || '000000000000';
@@ -269,7 +270,7 @@
       const ordered = ['image', 'video', 'audio'].flatMap(kind => refs.filter(ref => ref.kind === kind));
       for (const ref of ordered) {
         // A card's prepared fit is distinct even when cards share a saved asset.
-        const file = resolvedFile(resolvedAssets, ref.alias, ref.asset_id);
+        const file = resolvedFile(own(resolvedAssets,'references') ?? resolvedAssets, ref.alias, ref.asset_id);
         if (!file) throw new Error(`Reference ${ref.alias || ref.asset_id} has not been resolved.`);
 
         if (ref.kind === 'image') {
@@ -292,7 +293,7 @@
             const audioId = allocate(nextNodeId++);
             g[audioId] = {class_type:'TrimAudioDuration',inputs:{audio:[splitId,1],start_index:0,duration:used/24}};
             g["6"].inputs[`ref_video_audios.ref_video_audio_${currentSlot}`] = [audioId, 0];
-            if(renderSpec.preserve_reference_audio === (ref.asset_id||ref.alias)) {
+            if(ref === preservedAudio) {
               if(renderSpec.continuation)throw Error('Source soundtrack reuse with continuation has not been validated.');
               if(used!==length)throw Error('Source soundtrack must cover the full output duration; choose a shorter output.');
               g['11'].inputs.audio=[audioId,0];
@@ -304,7 +305,6 @@
           g["6"].inputs[`ref_audios.ref_audio_${audSlot++}`] = [loadId, 0];
         }
       }
-      if(renderSpec.preserve_reference_audio&&!ordered.some(ref=>ref.kind==='video'&&ref.use_audio&&(ref.asset_id||ref.alias)===renderSpec.preserve_reference_audio))throw Error('Select a source video with its soundtrack enabled before reusing audio.');
     }
     if(renderSpec.preserve_reference_audio&&!isRefs)throw Error('Source soundtrack reuse requires References mode.');
 
@@ -315,7 +315,7 @@
       guides.forEach((guide, gIdx) => {
         const guideNodeId = allocate(70);
         const guideImgNodeId = allocate(Number(guideNodeId) + 1);
-        const guideFile = canonicalFile(resolvedFile(resolvedAssets, guide.alias, guide.asset_id) ?? guide.file ?? guide.filename);
+        const guideFile = canonicalFile(resolvedFile(own(resolvedAssets,'guides') ?? resolvedAssets, guide.alias, guide.asset_id) ?? guide.file ?? guide.filename);
         if (!guideFile) throw new Error('Temporal guide image has not been resolved.');
         if (typeof guide.frame_idx !== 'number' || !Number.isInteger(guide.frame_idx)) throw new Error('Temporal guide frame index must be an integer.');
         const frameIdx = guide.frame_idx + (guide.relative_to_new_content && renderSpec.continuation ? contextLength : 0);
