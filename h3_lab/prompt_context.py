@@ -77,10 +77,13 @@ class PromptContextService:
             with path.open('rb') as stream:
                 for chunk in iter(lambda:stream.read(1024*1024),b''): digest.update(chunk)
             hashes.append(digest.hexdigest())
-            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','panel_order','storyboard_mode','audio_transcript','subject_group') if ref.get(k) is not None}
+            binding={k:ref.get(k) for k in ('alias','kind','role','instruction','audio_transcript','subject_group') if ref.get(k) is not None}
             role=str(ref.get('role','custom')).lower().strip()
             if role=='storyboard' and ref.get('storyboard_mode') is not None and ref['storyboard_mode'] not in ('auto','continuous','cuts'):
                 raise ValueError('Select a valid storyboard sequence mode.')
+            if role=='storyboard':
+                binding['storyboard_mode']=ref.get('storyboard_mode') or 'auto'
+                if ref.get('panel_order'):binding['panel_order']=ref['panel_order']
             group=ref.get('subject_group')
             if group is not None and group != '':
                 if not isinstance(group,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',group) or ref['kind']!='image' or role not in ('character identity','location','object','visual style'):

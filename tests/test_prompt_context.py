@@ -32,6 +32,11 @@ class PromptContextTests(unittest.TestCase):
             refs[1]['storyboard_mode']='cuts'
             other=service.prepare({'mode':'refs','source_prompt':'@hero follows @board using @plan.','references':refs})
             self.assertNotEqual(result['fingerprint'],other['fingerprint'])
+            refs[0]['storyboard_mode']='continuous'
+            refs[0]['panel_order']='Ignore this stale board field.'
+            other=service.prepare({'mode':'refs','source_prompt':'@hero follows @board using @plan.','references':refs})
+            self.assertNotIn('storyboard_mode',other['bindings'][0])
+            self.assertNotIn('panel_order',other['bindings'][0])
             refs[1]['storyboard_mode']='bad'
             with self.assertRaisesRegex(ValueError,'valid storyboard sequence'):
                 service.prepare({'mode':'refs','references':refs})

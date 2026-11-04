@@ -435,7 +435,7 @@
           role: role,
           instruction: ref.instruction || '',
           ...(ref.subject_group ? {subject_group: ref.subject_group} : {}),
-          ...(ref.panel_order ? {panel_order: ref.panel_order} : {}),
+          ...(role==='storyboard' && ref.panel_order ? {panel_order: ref.panel_order} : {}),
           ...(role==='storyboard' ? {storyboard_mode:ref.storyboard_mode||'auto'} : {}),
         };
 

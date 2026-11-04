@@ -359,7 +359,7 @@ function captureSettings(){
     references:refs?state.refs.map(ref=>({name:"@"+ref.alias,type:ref.kind,use_as:ref.role,
       file:ref.file.name,asset_id:ref.assetId||null,thumbnail:H3StudioUX.captureThumbnail(ref),video_soundtrack:!!ref.useAudio,
       trim:(ref.kind==="video"||ref.kind==="audio")&&ref.trimEnabled?{start:Number(ref.trimStart),duration:Number(ref.trimDuration)}:null,
-      subject_group:ref.subject_group||"",instruction:ref.instruction||"",panel_order:ref.panelOrder||"",storyboard_mode:ref.storyboardMode||"auto",use_original_resolution:ref.useOriginalResolution===true,
+      subject_group:ref.subject_group||"",instruction:ref.instruction||"",...(ref.role==="storyboard"?{panel_order:ref.panelOrder||"",storyboard_mode:ref.storyboardMode??"auto"}:{}),use_original_resolution:ref.useOriginalResolution===true,
       auto_fit:ref.kind==="video"?ref.fitVideo!==false:ref.kind==="image"?H3ReferencePolicy.imageResize(ref,$("fitImages").checked):null})):[],
     start_frame:state.mode==="frames"?state.first?.file.name||null:null,
     end_frame:state.mode==="frames"?state.last?.file.name||null:null,
@@ -857,8 +857,7 @@ function currentRenderSpec() {
     source_prompt: $("prompt").value.trim(),
     references: refs ? state.refs.map(r => ({
       asset_id: r.assetId || r.alias,
-      panel_order:r.panelOrder||"",
-      storyboard_mode:r.storyboardMode??"auto",
+      ...(r.role==="storyboard"?{panel_order:r.panelOrder||"",storyboard_mode:r.storyboardMode??"auto"}:{}),
       subject_group:r.subject_group??"",
       use_original_resolution:r.useOriginalResolution===true,
       alias: r.alias,

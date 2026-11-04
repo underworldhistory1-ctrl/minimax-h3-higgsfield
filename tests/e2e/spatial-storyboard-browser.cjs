@@ -29,6 +29,7 @@ const {spawn}=require('node:child_process');const path=require('node:path');cons
   assert.equal(graph['6'].inputs.first_frame,undefined);assert.match(graph['6'].inputs.prompt,/spatial planning diagram/);
   await page.locator('#cancel').click();await page.waitForFunction(()=>!state.busy&&!state.running);
   await page.locator('.ref-storyboard-mode').selectOption('cuts');assert.match(await page.evaluate(()=>H3PromptCompiler.compilePrompt({...currentRenderSpec(),source_prompt:'@hero follows @board using @plan.'}).compiled_prompt),/do not invent one cut per panel/);
+  await page.locator('#refs .ref-fields select').nth(1).selectOption('location');assert.equal(await page.evaluate(()=>currentRenderSpec().references[1].storyboard_mode),undefined);assert.equal(await page.evaluate(()=>H3PromptCompiler.compilePrompt(currentRenderSpec()).bindings[1].storyboard_mode),undefined);
   assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,checks:['real spatial plan and storyboard selectors','continuous metadata in draft and saved settings','saved project reload','three native reference image inputs','no automatic AddGuide or first frame routing','separate shots mode']}));
  }catch(error){console.error(error.stack);if(page)console.error(await page.evaluate(()=>({error:document.querySelector('#error')?.textContent,refs:state.refs.map(x=>({alias:x.alias,role:x.role,mode:x.storyboardMode}))})).catch(()=>({})));console.error(stderr);process.exitCode=1;}
  finally{if(browser)await browser.close();server.kill();}
