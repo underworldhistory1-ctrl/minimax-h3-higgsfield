@@ -77,5 +77,7 @@ class ProjectAssetUploadTests(AioHTTPTestCase):
         self.assertEqual(data['scope'],'server_output')
         self.assertGreater(data['total_bytes'],0)
         self.assertGreaterEqual(data['free_bytes'],0)
-        self.assertEqual(data['used_bytes']+data['free_bytes'],data['total_bytes'])
+        # Unix filesystems may reserve blocks unavailable to this process.
+        self.assertLessEqual(data['used_bytes']+data['free_bytes'],data['total_bytes'])
+        self.assertGreaterEqual(data['used_bytes'],0)
         self.assertNotIn('path',data)
