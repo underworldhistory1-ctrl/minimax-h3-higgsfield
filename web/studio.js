@@ -652,7 +652,7 @@ function renderRefs() {
     name.onchange=()=>{
       if(locked)return;
       const value=name.value.trim();
-      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias.toLocaleLowerCase()===value.toLocaleLowerCase())||(state.currentProject?.assets||[]).some(a=>a.asset_id!==ref.assetId&&a.alias?.toLocaleLowerCase()===value.toLocaleLowerCase())){
+      if(!/^[\p{L}\p{N}_-]{1,32}$/u.test(value)||state.refs.some(r=>r!==ref&&r.alias.toLocaleLowerCase()===value.toLocaleLowerCase())||(typeof projectCatalogItems==='function'?projectCatalogItems():[]).some(a=>a.assetId!==ref.assetId&&a.alias?.toLocaleLowerCase()===value.toLocaleLowerCase())){
         name.value=ref.alias; info("Use a unique name with letters, numbers, _ or -, and no spaces.",true);return;
       }
       const old=ref.alias;ref.alias=value;
