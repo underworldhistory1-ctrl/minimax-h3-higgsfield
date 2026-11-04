@@ -18,7 +18,7 @@ The added default LoRA downloads total **4,687,800,976 bytes** beyond the previo
 
 Linux: append `--checkpoint singularity-v2-int8` to the normal launcher command. Windows: append `-Checkpoint singularity-v2-int8`. For Matlow packs use `--matlow` / `-Matlow`; recognized existing installations remain managed. See [launcher](LAUNCHER.md).
 
-ComfyUI remains on stable release 0.43.0. At audit time the latest-release API still selected 0.43.0 while the development branch already contained a 0.44.0 version commit. A moving development branch is not substituted for the tested runtime. Hybrid and AudioRefine source pins had no newer commits. Additional Qwen Turbo and H3 precision variants require distinct runtime/graph validation and were not silently substituted for the current base.
+ComfyUI remains pinned to the previously source/CPU-tested 0.43.0 runtime. During final publication checks, the upstream latest-release API changed to [0.44.0](https://github.com/Comfy-Org/ComfyUI/releases/tag/v0.44.0), published 2026-11-04. Its 40-commit source difference was inspected: native H3 context windows, latent upscaler support, Sol-H3-VAE and PH3Image support are relevant local additions; paid partner API nodes are separate. The model/VAE and execution changes need a native H3 GPU smoke test before replacing the runtime pin. No such server is available in this audit, so 0.44.0 is a documented next validation target, not silently deployed. Hybrid and AudioRefine source pins had no newer commits. Additional Qwen Turbo and H3 precision variants require distinct runtime/graph validation and were not silently substituted for the current base.
 
 ## Which additions can improve motion?
 
@@ -26,6 +26,7 @@ These are engineering recommendations, not measured quality rankings. Select by 
 
 | Tool | Useful operation | Boundary and adoption decision |
 | --- | --- | --- |
+| [ComfyUI 0.44 H3 primitives](https://github.com/Comfy-Org/ComfyUI/releases/tag/v0.44.0) | Native context windows, latent upscaling and newer VAE/image paths | First runtime-upgrade candidate. Source difference inspected; core pin remains 0.43 until actual H3 GPU compatibility is established. |
 | [MAINodes Motion Lab](https://github.com/matlowai/ComfyUI-MAINodes#motion-lab-de-rope) | Detect bursty motion in latents, retime it, regenerate with more temporal room, recover the original timing | Strong H3-specific candidate for motion smear. Adds a render and can change the shot; does not enforce physical laws. Available through the updated optional backend pack, not yet a Studio repair button. |
 | [ControlNet auxiliary preprocessors](https://github.com/Fannovel16/comfyui_controlnet_aux) | Extract pose/depth from a source performance | Already scoped/pinned in this project. Source choreography and geometry are more controllable than asking an unconstrained prompt to repair motion. They do not infer correct contacts or forces. |
 | [Meta SAM 3](https://github.com/facebookresearch/sam3) | Segment and track a selected subject for masked editing | Strong official research implementation. Requires model/license/runtime review and a tested mask-to-H3 contract. Not installed by this release; segmentation alone cannot guarantee successful replacement. |
