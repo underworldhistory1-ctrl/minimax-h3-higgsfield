@@ -2220,7 +2220,7 @@ async function initProjectController() {
     if(pid&&!project){try{project=await controller.loadProject(pid);}catch(e){if(e.status!==404)throw e;sessionStorage.removeItem(controller._storageKey("active_project_id"));}}
     if(controller!==projectCtrl)return;
     if(!project){state.currentProject=null;state.activeProjectId=null;await hydrateWorkspaceDraft(null);if(controller!==projectCtrl)return;if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);await refreshProjectList();if(typeof renderProjectHub==='function')await renderProjectHub();return;}
-    if(!await hydrateWorkspaceDraft(project,{freshTab:true}))return;
+    if(!await hydrateWorkspaceDraft(project,{freshTab:!reuseRequested,reuse:reuseRequested}))return;
     if(reuseRequested)state.tabRestoredView='studio';
     else if(navigation.hash)state.tabRestoredView=navigation.hash.slice(1);
     else if(navigation.searchParams.has('project'))state.tabRestoredView='studio';

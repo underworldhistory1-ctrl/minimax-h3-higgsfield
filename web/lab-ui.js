@@ -205,7 +205,7 @@ function captureProjectDraft(local=false){
     settings:{duration:$("duration").value,durationSeconds:$("durationSeconds").value,steps:$("steps").value,seed:$("seed").value,refSize:$("refSize").value,renderMethod:method()},loras:[...state.loras.filter(x=>x.enabled),...(state.reuseRequiredLoras||[]).filter(l=>!state.loras.some(current=>current.name===l.name&&current.enabled))]};
 }
 function emptyWorkspaceDraft(){return {mode:'text',prompts:{text:'',frames:'',refs:''},refs:[],guides:[],canvas:{width:1344,height:768},settings:{duration:'124',durationSeconds:'5.167',steps:'20',seed:'42',refSize:'max',renderMethod:'native'},loras:[]};}
-async function hydrateWorkspaceDraft(project,{freshTab=false}={}){
+async function hydrateWorkspaceDraft(project,{freshTab=false,reuse=false}={}){
   const controller=projectCtrl,id=project?.project_id||'unassigned';
   if(project&&typeof H3ScenesUI!=='undefined')H3ScenesUI.restore(project);
   const scopeKey=tabProjectDraftKey(id);
@@ -214,7 +214,7 @@ async function hydrateWorkspaceDraft(project,{freshTab=false}={}){
   if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
   const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
   let draft=local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft();
-  if(!local&&!state.tabDraftRestoreError&&!new URL(location.href).searchParams.has('reuse')&&typeof H3ProjectSettings!=='undefined'){
+  if(!reuse&&!local&&!state.tabDraftRestoreError&&!new URL(location.href).searchParams.has('reuse')&&typeof H3ProjectSettings!=='undefined'){
     if(freshTab)draft=emptyWorkspaceDraft();
     draft=H3ProjectSettings.inherit(draft,project);
   }
