@@ -213,7 +213,7 @@ async function hydrateWorkspaceDraft(project,{freshTab=false,reuse=false}={}){
   try{local=await H3TabDraftStore.load(scopeKey);}catch(error){if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id)return false;state.tabDraftRestoreError=error.message;}
   if(controller!==projectCtrl||(state.activeProjectId||'unassigned')!==id||scopeKey!==tabProjectDraftKey(id))return false;
   const selectedDraft=typeof H3Scenes!=='undefined'?H3Scenes.draft(project,projectCtrl?.draftScope):project?.draft;
-  let draft=local||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft();
+  let draft=(!reuse&&local)||(selectedDraft&&Object.keys(selectedDraft).length?selectedDraft:null)||emptyWorkspaceDraft();
   if(!reuse&&!local&&!state.tabDraftRestoreError&&!new URL(location.href).searchParams.has('reuse')&&typeof H3ProjectSettings!=='undefined'){
     if(freshTab)draft=emptyWorkspaceDraft();
     draft=H3ProjectSettings.inherit(draft,project);
