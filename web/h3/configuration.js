@@ -4,6 +4,11 @@
   const FL='minimax_h3_fl2va_pruned_int8_convrot.safetensors', REF='minimax_h3_ref2va_pruned_int8_convrot.safetensors';
   const defaults=Object.freeze({sampler_name:'res_multistep',scheduler:'simple',cfg:1,denoise:1,shift_video:12,shift_audio:3,weight_dtype:'default'});
   const profiles=Object.freeze({original:{label:'Original H3',accent:'original'},singularity:{label:'H3 Singularity',accent:'singularity'},hybrid_conditioning:{label:'Hybrid · FL2VA reference conditioning',accent:'hybrid'},hybrid_loader:{label:'Hybrid · tensor overlay loader',accent:'hybrid'}});
+  const SINGULARITY_V2='Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors';
+  function preferredCheckpoint(profile,caps,current=null){
+    const names=(caps.model_catalog||[]).filter(x=>x.profiles?.includes(profile)).map(x=>x.name);
+    return names.includes(current)?current:profile==='singularity'&&names.includes(SINGULARITY_V2)?SINGULARITY_V2:names[0]||null;
+  }
   function filename(value){if(typeof value!=='string'||!value||value.includes('..')||/[\\\x00-\x1f]/.test(value)||value.startsWith('/')||/^[a-z]+:/i.test(value))throw Error('Invalid model filename.');return value;}
   const TURBO_REF='minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors';
   const TURBO='minimax_h3_turbo_v4_step600_ema.safetensors';
@@ -30,6 +35,36 @@
     ['pika_h3_flex_turbo_2step_draft_ref2va.safetensors',{steps:2,family:'ref2va',variant:'draft'}]
   ]));
   function pikaVariant(name){return PIKA[name]||null;}
+  function pikaWorkflow(spec){
+    const active=(spec.loras||[]).filter(l=>l.enabled!==false&&pikaVariant(l.name));
+    if(active.length!==1)return null;
+    const p=pikaVariant(active[0].name),tier={draft:'Draft',lite:'Lite',full:'Fast',hd:'HD'}[p.variant];
+    return {title:`Pika Flex Turbo · ${p.steps}-step ${tier} · ${p.family==='ref2va'?'References':'Text / Frames'}`,
+      detail:'Fused Pika/Turbo LoRA on native H3 nodes. Euler/simple, CFG 1, strength 1, shifts '+(p.family==='ref2va'?'12':'6')+'/3. '+(p.variant==='draft'?'Preview only; review a 4/8-step final.':p.variant==='lite'?'Compressed adapter; compare detail with full weights.':'Review identity, contact, motion and audio. The HD label does not set output resolution.')};
+  }
+  function selectionChanges(previous,next){
+    const changes=[];
+    const disabled=(previous.loras||[]).filter(l=>l.enabled&&!(next.loras||[]).some(n=>n.name===l.name&&n.enabled));
+    if(disabled.length)changes.push('Disabled adapters: '+disabled.map(l=>l.name).join(', '));
+    if(previous.enable_refine&&!next.enable_refine)changes.push('Disabled image refinement');
+    if(previous.control?.enabled&&!next.control?.enabled)changes.push('Disabled ControlNet');
+    if(previous.audio_refinement?.enabled&&!next.audio_refinement?.enabled)changes.push('Disabled audio enhancement');
+    if(previous.model_profile!==next.model_profile)changes.push('Model profile: '+next.model_profile);
+    if(previous.render_method!==next.render_method)changes.push('Render method: '+next.render_method);
+    const pika=pikaWorkflow(next);
+    if(pika&&(!pikaWorkflow(previous)||disabled.length))changes.push(pika.title+'; required sampling applied');
+    return changes;
+  }
+  function pikaPromptWarnings(spec,compiled){
+    if(!pikaWorkflow(spec))return [];
+    const count=Array.from(compiled).length;
+    return count>8000?['Compiled Pika prompt: '+count.toLocaleString('en-US')+' characters, above the official Flex guide\'s 8,000-character limit. This local Turbo route has separate tokenizer limits. Shorten repeated instructions and resolve conflicting references; Studio has not truncated your prompt.']:[];
+  }
+  function promptQualityWarnings(spec,compiled,warnings=[]){
+    const notes=pikaPromptWarnings(spec,compiled),count=Array.from(compiled).length;
+    if(spec.model_profile==='singularity'&&spec.checkpoint===SINGULARITY_V2&&count>5000)notes.push('Compiled Singularity v2 prompt: '+count.toLocaleString('en-US')+' characters. Its publisher recommends focused prompts within approximately 5,000 characters. This is advice, not a minimum or a hard model limit; Studio has not truncated your prompt.');
+    return notes.concat(warnings.filter(w=>w.includes('reference card roles, panel order and instructions are bypassed')));
+  }
   function pikaProfileCompatible(spec){return (spec.model_profile||'original')==='original'||(spec.model_profile==='singularity'&&spec.mode==='refs'&&String(spec.checkpoint||'').split(/[\\/]/).pop()==='Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors');}
   function pikaSampling(variant){return {sampler_name:'euler',scheduler:'simple',cfg:1,denoise:1,shift_video:variant.family==='ref2va'?12:6,shift_audio:3};}
   function loraModeCompatible(name,mode){
@@ -164,5 +199,5 @@
     }
     return node;
   }
-  return {PIKA,pikaVariant,pikaSampling,loraModeCompatible,preservedReference,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,CHARACTER_SWAP,isCharacterSwap,preferredCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
+  return {PIKA,pikaVariant,pikaWorkflow,selectionChanges,pikaPromptWarnings,promptQualityWarnings,preferredCheckpoint,pikaSampling,loraModeCompatible,preservedReference,normalizeSelection,selectionRestrictions,validatePika,TURBO_REF,TURBO,defaults,profiles,resolve,patchOptions,FL,REF,SINGULARITY_V2,CHARACTER_SWAP,isCharacterSwap,preferredCharacterSwap,validateCharacterSwap,ANIME_TO_REALISM,isAnimeToRealism,validateAnimeToRealism};
 });

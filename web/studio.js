@@ -184,8 +184,8 @@ function updateCapabilities(){
 }
 function preservedSoundtrack(){return state.preserveReferenceAudio?(state.preserveAudioSource||((state.refs||[]).filter(r=>r.kind==='video').length===1?state.refs.find(r=>r.kind==='video').alias:true)):null;}
 function selectionSpec(){return {mode:state.mode,model_profile:state.modelProfile||'original',checkpoint:state.checkpoint,render_method:method(),steps:Number($('steps').value),sampling:state.sampling,loras:state.loras,enable_refine:!!$('enableRefine')?.checked,control:state.control,continuation:state.continuation,audio_refinement:state.audioRefinement,preserve_reference_audio:preservedSoundtrack()};}
-function applySelection(action){
-  const previous=selectionSpec();let next=H3Configuration.normalizeSelection(previous,action,state.labCapabilities||{});
+function applySelection(action,before=null){
+  const previous={...selectionSpec(),loras:state.loras.map(l=>({...l}))};let next=H3Configuration.normalizeSelection(previous,action,state.labCapabilities||{});
   if(previous.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))&&!next.loras.some(l=>l.enabled&&H3Configuration.pikaVariant(l.name))){next.sampling={...(state.pikaBefore?.sampling||H3Configuration.defaults)};if(!['turbo','turbo_ref'].includes(next.render_method))next.steps=state.pikaBefore?.steps>=8?state.pikaBefore.steps:20;delete state.pikaBefore;next=H3Configuration.normalizeSelection(next,action,state.labCapabilities||{});}
   state.modelProfile=next.model_profile;state.sampling=next.sampling;state.loras=next.loras.map(l=>Object.assign(state.loras.find(old=>old.name===l.name)||{},l));state.control=next.control||{enabled:false};state.audioRefinement=next.audio_refinement||{};
   state.preserveReferenceAudio=!!next.preserve_reference_audio;if(!state.preserveReferenceAudio)state.preserveAudioSource=null;
@@ -194,6 +194,8 @@ function applySelection(action){
   if($('enableControl'))$('enableControl').checked=!!state.control.enabled;
   if(!selectedPika()&&Number($('steps').value)<8&&!turboMethod())restorePikaSampling();
   if(action!=='reset'&&(previous.model_profile!==next.model_profile||previous.render_method!==next.render_method||previous.enable_refine!==next.enable_refine||previous.control?.enabled!==next.control?.enabled||previous.audio_refinement?.enabled!==next.audio_refinement?.enabled))info('Workflow updated automatically for this selection. Review the displayed model, steps and passes.');
+  const notice=$('selectionChanges'),changes=H3Configuration.selectionChanges(before||previous,next);
+  if(notice){notice.textContent=changes.length?'Automatically updated: '+changes.join('. ')+'.':'';notice.hidden=!changes.length;}
   refreshSelectionAvailability();
 }
 function refreshSelectionAvailability(){
@@ -231,7 +233,9 @@ function updateMethodAvailability(){
   renderMethodInfo();
 }
 function renderMethodInfo(){
-  const value=method(),steps=Number($("steps").value),info=methodInfo[value]||{title:'Unavailable method',detail:'Select a supported render method before generating.'};
+  const value=method(),steps=Number($("steps").value),pika=H3Configuration.pikaWorkflow(selectionSpec()),info=pika||methodInfo[value]||{title:'Unavailable method',detail:'Select a supported render method before generating.'};
+  const nativeOption=[...$('renderMethod').options].find(option=>option.value==='native');
+  if(nativeOption)nativeOption.textContent=pika?pika.title:'Original quality · recommended';
   $("steps").min=selectedPika()?String(selectedPika().steps):value==="turbo"?"4":"8";
   $("steps").max=selectedPika()?String(selectedPika().steps):["turbo","turbo_ref"].includes(value)?"8":"100";
   $("stepPresets").hidden=!!selectedPika()||["turbo","turbo_ref"].includes(value);
@@ -240,7 +244,7 @@ function renderMethodInfo(){
   if(selectedPika())$("stepAdvice").textContent="Pika Flex uses its exact step count. Review motion and audio; 8-step HD targets detail; 2-step Draft is for previews.";
   document.querySelectorAll("#stepPresets button").forEach(button=>button.classList.toggle("active",Number(button.dataset.steps)===Number($("steps").value)));
   $("profile").replaceChildren();
-  const strong=document.createElement("strong");strong.textContent=info.title+(Number.isInteger(steps)&&steps>=Number($("steps").min)&&steps<=Number($("steps").max)?" · "+steps+" steps":" · choose valid steps");
+  const strong=document.createElement("strong");strong.textContent=info.title+(Number.isInteger(steps)&&steps>=Number($("steps").min)&&steps<=Number($("steps").max)?pika?'':" · "+steps+" steps":" · choose valid steps");
   $("profile").append(strong,document.createElement("br"),document.createTextNode(info.detail));
 }
 const post = async (path, body) => {
@@ -425,16 +429,35 @@ function renderEstimates() {
   $("memoryNotice").classList.toggle("hidden",!risk);
   $("memoryNotice").textContent=risk?`This server has ${state.ramLimit} GB system RAM. Long Ref2VA renders at this canvas may run out of system RAM during video decoding. You can still render; a shorter duration, smaller canvas, or 64 GB RAM server lowers that risk.`:"";
 }
-function applyAdapterSelection(item,enabled){item.enabled=enabled;if(enabled&&H3Configuration.isCharacterSwap(item.name))for(const other of state.loras)if(other!==item&&H3Configuration.isCharacterSwap(other.name))other.enabled=false;const pika=H3Configuration.pikaVariant(item.name);if(item.enabled&&pika){if(!state.pikaBefore)state.pikaBefore={sampling:{...state.sampling},steps:Number($('steps').value)};for(const other of state.loras)if(other!==item)other.enabled=false;applySelection('pika');}else if(pika)restorePikaSampling();else if(item.enabled){const hadPika=!!selectedPika();for(const other of state.loras)if(H3Configuration.pikaVariant(other.name))other.enabled=false;if(hadPika)restorePikaSampling();if(turboMethod())$('renderMethod').value='native';applySelection('lora');}}
+function applyAdapterSelection(item,enabled){
+  const before={...selectionSpec(),loras:state.loras.map(l=>({...l}))};
+  item.enabled=enabled;
+  if(enabled&&H3Configuration.isCharacterSwap(item.name))for(const other of state.loras)if(other!==item&&H3Configuration.isCharacterSwap(other.name))other.enabled=false;
+  const pika=H3Configuration.pikaVariant(item.name);
+  if(item.enabled&&pika){
+    if(!state.pikaBefore)state.pikaBefore={sampling:{...state.sampling},steps:Number($('steps').value)};
+    for(const other of state.loras)if(other!==item)other.enabled=false;
+    applySelection('pika',before);
+  }else if(pika){restorePikaSampling();applySelection('lora',before);}
+  else if(item.enabled){
+    const hadPika=!!selectedPika();
+    for(const other of state.loras)if(H3Configuration.pikaVariant(other.name))other.enabled=false;
+    if(hadPika)restorePikaSampling();
+    if(turboMethod())$('renderMethod').value='native';
+    applySelection('lora',before);
+  }else applySelection('lora',before);
+}
 function renderLoras() {
   const list=$("loraList");list.replaceChildren();
   state.loras=state.loras.filter(item=>!/turbo|lightx2v/i.test(item.name)||H3Configuration.pikaVariant(item.name));
-  const count=state.loras.length;
+  window.H3ConfigurationUI?.refreshPikaControls();
+  const creativeLoras=state.loras.filter(item=>!H3Configuration.pikaVariant(item.name));
+  const count=creativeLoras.length;
   $("loraCount").textContent=count?"("+count+" installed)":"";
-  $("loraRecommendation").hidden=!(state.loras.some(item=>item.enabled)||method()==="turbo");
+  $("loraRecommendation").hidden=!!selectedPika()||turboMethod()||!state.loras.some(item=>item.enabled);
   renderMethodInfo();
   if(!count){const empty=document.createElement("div");empty.className="tip";empty.textContent="No LoRAs found in ComfyUI/models/loras.";list.append(empty);return;}
-  state.loras.forEach(item=>{
+  creativeLoras.forEach(item=>{
     const swap=H3Configuration.isCharacterSwap(item.name);
     const anime=H3Configuration.isAnimeToRealism(item.name);
     const combat=/^H3_Combat_V2\.safetensors$/i.test(item.name);
@@ -942,6 +965,8 @@ function updatePreviewLive() {
   if (!display) return;
   const spec = currentRenderSpec();
   spec.preview_only=true;
+  const qualityNotes=$('promptQualityNotes');
+  if(qualityNotes){qualityNotes.textContent='';qualityNotes.hidden=true;}
   if (!spec.source_prompt) {
     display.textContent = "Write a prompt to see the compiled preview.";
     if (tagsWrap) tagsWrap.replaceChildren();
@@ -949,6 +974,8 @@ function updatePreviewLive() {
   }
   try {
     const res = H3PromptCompiler.compilePrompt(spec);
+    const notes=H3Configuration.promptQualityWarnings(spec,res.compiled_prompt,res.warnings);
+    if(qualityNotes){qualityNotes.textContent=notes.join(' ');qualityNotes.hidden=!notes.length;}
     display.textContent = res.compiled_prompt;
     if (tagsWrap) {
       tagsWrap.replaceChildren();
@@ -1661,7 +1688,7 @@ function openDetails(entry,trigger){
     row("Canvas",[settings.quality,settings.canvas].filter(Boolean).join(" · "));
     if(settings.sampling_canvas&&settings.sampling_canvas!==settings.canvas)row("Sampling canvas",settings.sampling_canvas+" · final output "+settings.canvas);
 
-    row("Render method",methodNames[settings.render_method]||settings.render_method);
+    row("Render method",H3Configuration.pikaWorkflow(settings)?.title||methodNames[settings.render_method]||settings.render_method);
     row("Sampling steps",settings.steps);
     row("Seed",settings.seed);
     row("LoRAs",Array.isArray(settings.loras)?settings.loras.length?settings.loras.map(x=>x.name+" · "+x.strength+(x.refinement_strength!==undefined?" / refinement "+x.refinement_strength:"")).join(" · "):"None":"Not recorded");

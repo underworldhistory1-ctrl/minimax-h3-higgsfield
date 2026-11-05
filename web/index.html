@@ -137,6 +137,7 @@
     <label for="promptMode">PROMPT FORMAT</label><select id="promptMode"><option value="guided">Guided prompt</option><option value="structured">Native structured prompt</option></select>
     <div><div style="position:relative"><textarea id="prompt" placeholder="A quiet train station at dawn. A woman checks the empty platform. The first train approaches; distant announcement and wheels on the tracks."></textarea><div id="mentionMenu" class="mention-menu hidden"></div></div><div id="promptAssets" class="prompt-assets" aria-live="polite"></div></div>
     <div class="tip" id="promptTip">Write the scene directly. In References mode, type @ to mention a named asset.</div>
+    <div class="notice" id="promptQualityNotes" role="status" hidden></div>
     <details class="prompt-preview" id="promptPreviewBox" style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:var(--muted)">Compiled prompt preview &amp; tags</summary><div id="compiledPromptDisplay" class="detail-prompt" style="margin-top:8px;font-size:11px">No prompt compiled yet.</div><div id="tagBindingsDisplay" class="prompt-assets" style="margin-top:6px"></div></details>
     <div id="error" class="notice error hidden" role="alert"></div>
    </section>
@@ -161,6 +162,7 @@
     </div>
     <div class="tip" id="stepAdvice">20 follows the ComfyUI H3 template. 30 or 50 take longer and are comparison choices, not guaranteed improvements. This interface allows up to 100; ComfyUI KSampler's technical limit is 10,000.</div>
     <div class="profile" id="profile"><strong>Quality baseline · 20 steps</strong><br>Original H3 path. Speed LoRAs and approximations are off by default.</div>
+    <div class="notice" id="selectionChanges" role="status" aria-live="polite" hidden></div>
     <div class="estimate" id="estimateNote"></div><div class="tip" id="estimateBasis"></div><div id="memoryNotice" class="notice hidden" role="status"></div>
    </section>
    <section class="panel">
@@ -212,7 +214,7 @@
 <script src="./h3/reference-policy.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/reference-controls.js?v=20261104-interface-2.13.0"></script>
 <script src="./h3/prompt-compiler.js?v=20261104-interface-2.13.0"></script>
-<script src="./h3/configuration.js?v=20261104-interface-2.14.0"></script>
+<script src="./h3/configuration.js?v=20261105-pika-singularity"></script>
 <script src="./h3/graph-builder.js?v=20261104-interface-2.14.0"></script>
 <script src="./h3/scenes-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/project-controller.js?v=20261103-interface-2.9.0"></script>
@@ -227,10 +229,10 @@
 <script src="./h3/timing-estimator.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/tab-draft-store.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/reuse-navigation.js?v=20261103-interface-2.9.0"></script>
-<script src="./studio.js?v=20261104-interface-2.15.0"></script>
+<script src="./studio.js?v=20261105-pika-singularity"></script>
 <script src="./h3/updates-ui.js?v=20261103-interface-2.9.0"></script>
 <script src="./h3/connected-studio.js?v=20261104-interface-2.13.0"></script>
-<script src="./h3/configuration-ui.js?v=20261104-interface-2.15.0"></script>
+<script src="./h3/configuration-ui.js?v=20261105-pika-singularity"></script>
 <script src="./h3/dials-ui.js?v=20261103-interface-2.9.0"></script>
 <dialog id="workspaceNameDialog" class="organization-dialog" aria-labelledby="workspaceNameTitle"><form method="dialog" id="workspaceNameForm"><h2 id="workspaceNameTitle">Name</h2><label for="workspaceNameInput">NAME</label><input id="workspaceNameInput" required maxlength="160"><p id="workspaceNameError" role="alert"></p><div class="row"><button value="cancel" formnovalidate class="button alt">Cancel</button><button value="save" class="button">Save name</button></div></form></dialog>
 <dialog id="fileProjectDialog" class="organization-dialog" aria-labelledby="fileProjectTitle"><h2 id="fileProjectTitle">Project folder</h2><p data-guidance-key="videoHelp27" lang="en" dir="ltr">Grouping changes the project location in this library. Media, stable identities and saved shots stay intact.</p><label for="fileProjectFolder">DESTINATION FOLDER</label><select id="fileProjectFolder"></select><p id="fileProjectStatus" role="alert"></p><div class="row"><button data-close-dialog class="button alt">Cancel</button><button id="fileProjectApply" class="button">Move project</button></div></dialog>

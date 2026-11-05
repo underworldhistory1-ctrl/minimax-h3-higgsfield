@@ -56,6 +56,8 @@ Studio compiles the current setup into a connected ComfyUI graph. Shared fronten
 | Control, Refine, audio and continuation | Capability checks, supported pass ordering and explicit rejection of conflicting combinations |
 | Canvas, seed, duration and guides | Selected values reach conditioning/sampling/output transforms; exact uint64 seeds are retained |
 
+Choose installed Pika variants in **Model configuration > Pika Flex Turbo**. Creative LoRAs stay in their own section. Switching to Singularity prefers the installed v2 checkpoint while preserving compatible Pika References settings. Explicitly restored checkpoint choices remain unchanged.
+
 This is deterministic configuration coordination. It does not infer the training requirements of every unknown LoRA or search for an artistically optimal result. Required settings are automated; scene-specific strengths, prompts and quality/speed tradeoffs still need output review. See [selection rules and Matlow setup](docs/MATLOW_AND_SELECTIONS.md), [graph contract](docs/GRAPH_MAP.md), [Pika](docs/PIKA_FLEX.md) and [Turbo](docs/TURBO_V4.md).
 
 ## Models and acceleration

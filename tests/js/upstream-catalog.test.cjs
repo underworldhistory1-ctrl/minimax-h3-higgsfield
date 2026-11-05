@@ -40,7 +40,7 @@ test('actual Studio selection passes the checkpoint through Pika reconciliation'
 test('selecting a Character Swap version replaces the other version and retains unrelated adapters',()=>{
  const fs=require('node:fs'),vm=require('node:vm'),source=fs.readFileSync('web/studio.js','utf8');
  const old={name:C.CHARACTER_SWAP,enabled:true},next={name:'h3_character_swap_v1.5.safetensors',enabled:false},style={name:'style.safetensors',enabled:true,strength:.3};
- const ctx={state:{loras:[old,next,style]},H3Configuration:C,selectedPika:()=>false,turboMethod:()=>false,applySelection(){}};
+ const ctx={state:{loras:[old,next,style]},selectionSpec:()=>({loras:[old,next,style]}),H3Configuration:C,selectedPika:()=>false,turboMethod:()=>false,applySelection(){}};
  vm.runInNewContext(source.slice(source.indexOf('function applyAdapterSelection('),source.indexOf('function renderLoras()')),ctx);
  ctx.applyAdapterSelection(next,true);assert.equal(old.enabled,false);assert.equal(next.enabled,true);assert.equal(style.enabled,true);assert.equal(style.strength,.3);
  assert.throws(()=>C.validateCharacterSwap({mode:'refs',loras:[{...old,enabled:true},next]}),/one Character Swap version/);

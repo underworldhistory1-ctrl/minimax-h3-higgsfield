@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add a dedicated installed Pika Flex Turbo selector with mode-aware variants, accurate active sampling summaries and visible selection-change notices.
+- Preserve compatible Pika adapters when switching into the installed Singularity v2 checkpoint; retain explicitly restored checkpoint choices.
+- Surface compiled-prompt length guidance and native reference-role bypass warnings without truncation.
+- Verify 339 JavaScript tests, 21 focused Python tests and live browser selection transitions. Existing Pika outputs were decoded; a new Singularity v2 + Turbo GPU render remains unverified. See [dated audit](docs/PIKA_AUDIT_2026_11_05.md).
+
 ## 2.15.0 - 2026-11-04
 
 - Require named project elements and use only current catalog mentions; prevent historical filename collisions with direct references.

@@ -5,6 +5,30 @@
   const panel=document.createElement('section');panel.className='panel';panel.id='modelConfiguration';
   panel.innerHTML='<h2>Model &amp; workflow</h2><div class="workflow-help" data-guidance-key="model" lang="en" dir="ltr">Start with Original. Choose the model here, then the input below: Text for a description, Frames for opening/closing images, or References for characters, locations and storyboards. Missing options are disabled. Changing the model does not automatically change your canvas or steps.</div><div class="tip">Model profile chooses base weights. Pika Flex Turbo is a managed LoRA on a compatible base, with automatic sampling. Singularity is a replacement checkpoint; extra creative LoRAs are optional. Singularity v2 recommends focused prompts within about 5,000 characters, not a minimum.</div><label for="modelProfile">H3 checkpoint family</label><select id="modelProfile"></select><label for="checkpoint">Installed checkpoint</label><select id="checkpoint"></select><div id="checkpointNotice" class="tip" role="status"></div><div id="serverAttention" class="tip" role="note"></div><label for="hybridPreset">Tensor overlay</label><select id="hybridPreset"><option value="none">None · single FL2VA baseline</option><option value="block_range_adaln">AdaLN blocks 45–49</option><option value="all_adaln">All AdaLN · community experiment</option></select><details id="samplingControls"><summary>Advanced sampling &amp; acceleration</summary><div class="workflow-help workflow-help-warning" data-guidance-key="sampling" lang="en" dir="ltr">These are the actual render settings, saved with the project. Start with the original settings; acceleration can change the result. Restore baseline settings resets the sampling settings.</div><div id="samplingFields" class="configuration-grid"></div><div id="patchFields" class="configuration-grid"></div><details><summary>Refinement pass settings</summary><div id="refinementFields" class="configuration-grid"></div></details><button id="resetSampling" type="button" class="button alt smallbtn">Restore baseline settings</button></details><details><summary>Style prompt presets</summary><div class="workflow-help" data-guidance-key="style" lang="en" dir="ltr">Upload the source video in References, choose a transformation direction, then Prepare. This regenerates a video guided by the source; it is not an exact frame-by-frame conversion. Reuse source soundtrack keeps the original audio when it is long enough.</div><label for="styleDirection">Direction</label><select id="styleDirection"><option value="anime_to_realism">Anime → realism</option><option value="realism_to_anime">Realism → anime</option></select><div id="styleAdapterNotice" class="tip" role="status"></div><label for="preserveAudio"><input id="preserveAudio" type="checkbox"> Reuse source soundtrack</label><button id="applyStyle" type="button" class="button alt smallbtn">Apply style prompt preset</button><div class="tip" data-guidance-key="configHelp1" lang="en" dir="ltr">This shortcut enables the Anime → Realism LoRA and writes a source-video prompt with LumiReal. It preserves your selected model, method, keyframes and other adapters. You can also select the LoRA manually. Realism → Anime writes a prompt and disables only the one-way Anime → Realism adapter.</div></details>';
   const audioPanel=document.createElement('details');audioPanel.id='audioEnhancementPanel';
+  panel.querySelector('#checkpointNotice').insertAdjacentHTML('afterend','<label for="pikaAcceleration">Pika Flex Turbo</label><select id="pikaAcceleration" aria-describedby="pikaAccelerationNotice"></select><div id="pikaAccelerationNotice" class="tip" role="note"></div>');
+  function refreshPikaControls(){
+    const select=$('pikaAcceleration'),family=state.mode==='refs'?'ref2va':'fl2va';
+    const active=state.loras.find(l=>l.enabled&&H3Configuration.pikaVariant(l.name));
+    select.replaceChildren();
+    const off=document.createElement('option');off.value='';off.textContent='Off · use selected render method';select.append(off);
+    const choices=state.loras.filter(l=>{const p=H3Configuration.pikaVariant(l.name);return p&&(p.family===family||l===active);}).sort((a,b)=>{
+      const x=H3Configuration.pikaVariant(a.name),y=H3Configuration.pikaVariant(b.name);return y.steps-x.steps||Number(x.variant==='lite')-Number(y.variant==='lite');
+    });
+    for(const l of choices){
+      const p=H3Configuration.pikaVariant(l.name),o=document.createElement('option');o.value=l.name;
+      o.textContent=H3Configuration.pikaWorkflow({loras:[{...l,enabled:true}]}).title;
+      o.disabled=p.family!==family||!!state.continuation;select.append(o);
+    }
+    select.value=active?.name||'';select.disabled=state.busy||state.projectLoading||!choices.length&&!active;
+    $('pikaAccelerationNotice').textContent=active?H3Configuration.pikaWorkflow({loras:[active]}).detail:choices.length?'Optional fused Turbo adapter: 8-step HD for detail comparison, 4-step for speed, Lite for a smaller adapter, 2-step Draft for References previews. Selection applies matching weights and sampling. No extra node pack is required.':'No matching Pika Turbo adapter is installed for this mode. Run the launcher to prepare the verified files.';
+    if(state.continuation)$('pikaAccelerationNotice').textContent+=' Clear continuation before enabling Pika; existing source media is retained.';
+  }
+  panel.querySelector('#pikaAcceleration').onchange=()=>{
+    if(state.busy||state.projectLoading)return;
+    const selected=state.loras.find(l=>l.name===$('pikaAcceleration').value),active=state.loras.find(l=>l.enabled&&H3Configuration.pikaVariant(l.name));
+    if(selected)applyAdapterSelection(selected,true);else if(active)applyAdapterSelection(active,false);
+    renderLoras();refresh();changed();
+  };
   audioPanel.innerHTML='<summary>Audio enhancement · preserve the picture</summary><label><input id="enhanceAudio" type="checkbox"> Enhance generated audio</label><div id="audioEnhancementNotice" class="tip" role="status"></div><div id="audioEnhancementFields" class="configuration-grid"></div>';
   panel.append(audioPanel);
   audioPanel.querySelector('#enhanceAudio').onchange=()=>{state.audioRefinement={...state.audioRefinement,enabled:$('enhanceAudio').checked};refresh();changed();};
@@ -31,9 +55,9 @@
   $('modelProfile').onchange=()=>{
     if(state.busy)return;
     if(state.continuation?.type==='generated'){info('Re-encode the source video before changing checkpoint families.',true);$('modelProfile').value=state.modelProfile||'original';return;}
-    state.modelProfile=$('modelProfile').value;state.checkpoint=null;applySelection('profile');refresh().then(()=>{changed();updateCapabilities();});
+    state.modelProfile=$('modelProfile').value;state.checkpoint=H3Configuration.preferredCheckpoint(state.modelProfile,state.labCapabilities||{});applySelection('profile');refresh().then(()=>{changed();updateCapabilities();});
   };
-  $('checkpoint').onchange=()=>{if(state.busy)return;state.checkpoint=$('checkpoint').value;changed();updateCapabilities();};
+  $('checkpoint').onchange=()=>{if(state.busy)return;state.checkpoint=$('checkpoint').value;applySelection('profile');refresh();changed();updateCapabilities();};
   $('hybridPreset').onchange=()=>{state.hybridPreset=$('hybridPreset').value;changed();};
   $('resetSampling').onclick=()=>{state.sampling={};state.nodeOptions={};state.refinement={};state.refineScale=1.25;applySelection('reset');refresh();changed();};
   $('styleDirection').onchange=()=>{state.styleDirection=$('styleDirection').value;refresh();changed();};
@@ -97,7 +121,7 @@
     const names=profile==='original'?[state.mode==='refs'?modelRef:modelFL]:(caps.model_catalog||[]).filter(x=>x.profiles.includes(profile)).map(x=>x.name);
     if(profile!=='original'&&state.checkpoint&&!names.includes(state.checkpoint))names.unshift(state.checkpoint);
     for(const name of names){const o=document.createElement('option');o.value=name;o.textContent=name;o.disabled=profile!=='original'&&!(caps.model_catalog||[]).some(x=>x.name===name);select.append(o);}
-    if(names.length&&(profile==='original'||!state.checkpoint))state.checkpoint=names[0];select.value=state.checkpoint||'';
+    if(names.length&&(profile==='original'||!state.checkpoint))state.checkpoint=profile==='original'?names[0]:H3Configuration.preferredCheckpoint(profile,caps);select.value=state.checkpoint||'';
     select.disabled=state.busy||state.projectLoading||profile==='original';$('modelProfile').disabled=state.busy||state.projectLoading;
     $('hybridPreset').hidden=profile!=='hybrid_loader';document.querySelector('label[for="hybridPreset"]').hidden=profile!=='hybrid_loader';$('hybridPreset').value=state.hybridPreset||'none';
     $('checkpointNotice').textContent=profile==='original'?'Native audio · mode selects the original FL2VA or Ref2VA checkpoint.':profile==='hybrid_conditioning'?'Community experiment: FL2VA weights with native reference conditioning. This does not merge models. No GPU validation on this installation.':profile==='hybrid_loader'?'Community tensor overlays, separate from reference conditioning. Format compatibility is checked by the loader. No GPU validation on this installation.':'Independent community checkpoint. File availability does not certify quality or acceleration compatibility.';
@@ -138,7 +162,7 @@
     refreshSoundtrackSource();
   }
   $('renderMethod').addEventListener('change',refresh);
-  window.H3ConfigurationUI={refresh,refreshSoundtrackSource};refresh();
+  window.H3ConfigurationUI={refresh,refreshSoundtrackSource,refreshPikaControls};refresh();
   // Desktop resize handle supports pointer and keyboard, with a persisted width.
   const handle=document.createElement('div');handle.className='sidebar-resizer';handle.tabIndex=0;handle.setAttribute('role','separator');handle.setAttribute('aria-label','Resize settings sidebar');handle.setAttribute('aria-orientation','vertical');document.querySelector('.left').append(handle);
   function resize(value){const max=Math.min(850,innerWidth-360-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-width"))||0)),width=Math.max(390,Math.min(max,value));document.documentElement.style.setProperty('--settings-width',width+'px');handle.setAttribute('aria-valuenow',width);handle.setAttribute('aria-valuemin',390);handle.setAttribute('aria-valuemax',Math.max(390,max));return width;}
