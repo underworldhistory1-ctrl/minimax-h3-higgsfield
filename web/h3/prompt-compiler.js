@@ -170,7 +170,7 @@
 
   function aliasDefinitionRelations(definitions, bindings) {
     const lines = [];
-    for (const line of definitions.split(/\n/)) {
+    for (const line of definitions.split(/\n|[;.!?][ \t]+(?=@)/)) {
       const header = line.match(/^\s*(@[\p{L}\p{N}_-]+(?:\s*,\s*@[\p{L}\p{N}_-]+)*)(?=$|[^\p{L}\p{N}_-])/u);
       if (!header) continue;
       // Explicit Picture relations must be validated as written, rather than
