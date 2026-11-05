@@ -15,6 +15,8 @@ import asyncio
 import json
 import math
 import os
+from .linux_compat import ensure_memfd
+ensure_memfd()
 import pathlib
 import re
 import subprocess

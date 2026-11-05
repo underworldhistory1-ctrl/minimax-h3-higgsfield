@@ -31,7 +31,7 @@ SPEED_NODES = (
      "bc2894102b2486661884371259a27080b0b137bf"),
 )
 RUNTIME_FILES = (
-    "__init__.py", "h3_video_save.py", "qwen_image.py", "LICENSE", "README.md",
+    "__init__.py", "linux_compat.py", "h3_video_save.py", "qwen_image.py", "LICENSE", "README.md",
     "web/index.html", "web/studio.js", "web/image.html", "web/image-studio.js",
     "workflows/h3_t2v_ui.json", "workflows/h3_t2v_api.json",
     "workflows/h3_t2v_smoke_ui.json", "workflows/h3_t2v_smoke_api.json",
