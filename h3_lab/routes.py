@@ -726,6 +726,18 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
                     except Exception:
                         return {"fps": 24}
                 metadata = await asyncio.to_thread(process_video_asset, temporary)
+            if kinds[suffix] == "audio":
+                def inspect_audio(source_path):
+                    from .assembly import inspect_media
+                    try:
+                        probe = inspect_media(str(source_path))
+                        streams = probe.get("streams", [])
+                        astream = next((s for s in streams if s.get("codec_type") == "audio"), None)
+                        dur = float((astream or {}).get("duration") or probe.get("format", {}).get("duration") or 0.0)
+                        return {"duration": round(dur, 2), "source_duration": round(dur, 2)} if dur > 0 else {}
+                    except Exception:
+                        return {}
+                metadata = await asyncio.to_thread(inspect_audio, temporary)
             rec = await asyncio.to_thread(assets.register_asset, str(temporary), kinds[suffix], filename, pid, metadata)
             if pid:
                 await asyncio.to_thread(projects.attach_asset, pid, rec, request.query.get("category"), request.query.get("name"))
@@ -800,6 +812,9 @@ def register_lab_routes(app_or_routes, storage_root: str, folder_paths_mod=None,
             resp["fps"] = 24
             resp["frame_count"] = meta.get("frame_count")
             resp["duration"] = meta.get("duration")
+        elif rec["kind"] == "audio" and meta.get("duration"):
+            resp["duration"] = meta.get("duration")
+            resp["source_duration"] = meta.get("source_duration") or meta.get("duration")
         return web.json_response(resp)
 
     async def handle_storage_usage(request):

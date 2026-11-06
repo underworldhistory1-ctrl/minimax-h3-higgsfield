@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import time
 
 from aiohttp import web
 
@@ -78,6 +79,7 @@ def check_storage(paths, required_bytes):
 def register_storage_guard(app, paths, queue_count):
     """Serialize /prompt admission; count both video and image queue entries."""
     admission_lock = asyncio.Lock()
+    last_upload_probe = 0.0
 
     async def check():
         # One GiB safety floor plus one GiB for each active/queued/new job.
@@ -85,6 +87,7 @@ def register_storage_guard(app, paths, queue_count):
 
     @web.middleware
     async def guard(request, handler):
+        nonlocal last_upload_probe
         try:
             if request.method == "POST" and request.path == "/prompt":
                 async with admission_lock:
@@ -94,7 +97,10 @@ def register_storage_guard(app, paths, queue_count):
                     request.path.startswith("/h3_studio/")):
                 # Cancellation and input deletion must remain available when full.
                 if not any(word in request.path for word in ("cancel", "delete", "discard", "cleanup", "session")):
-                    await asyncio.to_thread(check_storage, paths, GIB)
+                    now = time.monotonic()
+                    if now - last_upload_probe >= 30.0:
+                        await asyncio.to_thread(check_storage, paths, GIB)
+                        last_upload_probe = time.monotonic()
             return await handler(request)
         except StorageUnavailable as error:
             return web.json_response({"error": str(error), "code": "storage_full"}, status=507)

@@ -141,7 +141,7 @@ class PromptContextService:
                 if not any(s.get('codec_type')=='audio' for s in metadata.get('streams',[])): raise ValueError('Reference lacks audio.')
                 stream=next(s for s in metadata['streams'] if s.get('codec_type')=='audio')
                 duration=float(stream.get('duration') or metadata.get('format',{}).get('duration') or 0)
-                if not 1.9<=duration<=15.1: raise ValueError('Reference audio must be 2–15 seconds.')
+                if not 0.1<=duration<=15.1: raise ValueError('Reference audio must be up to 15 seconds.')
                 audio_seconds+=duration
                 if audio_seconds>15.1: raise ValueError('Standalone audio references exceed 15 seconds combined.')
                 aud+=1;binding.update(tag=f'<Audio {aud}>',audio_idx=aud,effective_seconds=duration)

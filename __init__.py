@@ -318,8 +318,8 @@ async def upload_ref(request):
         resize = request.query.get("resize", "0") == "1"
         if not math.isfinite(trim_start) or not 0 <= trim_start <= 3600:
             raise ValueError("Invalid trim start.")
-        if trim_duration is not None and (not math.isfinite(trim_duration) or not 2 <= trim_duration <= (15.1 if kind == "video" else 15)):
-            raise ValueError("Trim length must be 2–15 seconds.")
+        if trim_duration is not None and (not math.isfinite(trim_duration) or not (0.2 if kind == "audio" else 2) <= trim_duration <= (15.1 if kind == "video" else 15)):
+            raise ValueError("Trim length must be 0.2–15 seconds for audio or 2–15 seconds for video.")
         if kind == "image" and (trim_start or trim_duration is not None):
             raise ValueError("Images cannot have an audio/video trim.")
     except (TypeError, ValueError) as exc:
@@ -408,8 +408,8 @@ async def upload_ref(request):
                     if trim_duration is not None:
                         if trim_start + trim_duration > duration + .01:
                             raise ValueError("Audio trim exceeds the source duration.")
-                    elif not 1.9 <= duration <= 15.1:
-                        raise ValueError("H3 reference audio must be 2–15 seconds long. Select a trim.")
+                    elif not 0.1 <= duration <= 15.1:
+                        raise ValueError("H3 reference audio must be up to 15 seconds long. Select a trim.")
                     info["duration"] = round(duration, 2)
                     info["source_duration"] = round(duration, 2)
         if kind == "audio" and (trim_duration is not None or trim_start):
@@ -427,8 +427,8 @@ async def upload_ref(request):
                 raise ValueError("Audio trim failed: " + errors.decode("utf-8", "replace")[-300:])
             with av.open(normalized_path) as checked:
                 actual = sum(frame.samples for frame in checked.decode(audio=0)) / checked.streams.audio[0].codec_context.sample_rate
-            if not 1.9 <= actual <= 15.1:
-                raise ValueError("Trimmed audio does not meet the 2–15 second limit.")
+            if not 0.1 <= actual <= 15.1:
+                raise ValueError("Trimmed audio does not meet the 0.2–15 second limit.")
             os.unlink(path)
             path, name = normalized_path, normalized_name
             normalized_path = None

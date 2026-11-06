@@ -574,10 +574,10 @@ if($("aspect3_4")) $("aspect3_4").onclick=()=>setAspectFormat("3:4");
 if($("aspect21_9")) $("aspect21_9").onclick=()=>setAspectFormat("21:9");
 function fitReferenceTrim(ref) {
   const source=Number(ref.meta?.source_duration||ref.localDuration||0);
-  const start=Number(ref.trimStart);
-  if(!ref.trimEnabled||!Number.isFinite(source)||!Number.isFinite(start)||start<0||source-start<2)return false;
+  const start=Number(ref.trimStart),minLen=ref.kind==="audio"?0.2:2;
+  if(!ref.trimEnabled||!Number.isFinite(source)||!Number.isFinite(start)||start<0||source-start<minLen)return false;
   const available=Math.min(15,Math.floor((source-start+0.000001)*100)/100);
-  if(Number.isFinite(Number(ref.trimDuration))&&Number(ref.trimDuration)>=2&&Number(ref.trimDuration)<=available)return false;
+  if(Number.isFinite(Number(ref.trimDuration))&&Number(ref.trimDuration)>=minLen&&Number(ref.trimDuration)<=available)return false;
   ref.trimDuration=available;
   return true;
 }
@@ -636,6 +636,7 @@ function attachReferenceSorting(){
   H3Drag.attach(container,{selector:'.reference-unit',handle:'.ref-block-handle',locked,onCommit:commit,onCancel:renderRefs});
 }
 function renderRefs() {
+  state.refs=orderedRefs();
   const locked=state.busy||state.projectLoading||(typeof referenceMutationLocked==='function'&&referenceMutationLocked());
   H3ReferenceControls.cleanup($("refs"));
   $("refs").replaceChildren();
@@ -706,8 +707,8 @@ function renderRefs() {
     H3ReferenceControls.addFields(card,ref,state.refs,locked,rerender=>{saveDraft();if(rerender)renderRefs();updatePreviewLive();});
     H3ReferenceControls.addPreview(card,ref,()=>{if(!state.refs.includes(ref))return;if(fitReferenceTrim(ref)){renderRefs();saveDraft();}else updateRefDurationNotice();});
     if(ref.kind==="audio"){
-      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;renderRefs();saveDraft();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
-      if(ref.trimEnabled)for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;input.oninput=()=>{ref[key]=Number(input.value);card.referencePreview?.update();updateRefDurationNotice();saveDraft();};card.append(label,input);}
+      const label=document.createElement("label"),toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!ref.trimEnabled;toggle.disabled=locked;toggle.onchange=()=>{ref.trimEnabled=toggle.checked;fitReferenceTrim(ref);renderRefs();saveDraft();};label.append(toggle,document.createTextNode(" Trim audio range"));card.append(label);
+      if(ref.trimEnabled){let useInput;for(const [key,title,min,max] of [["trimStart","Audio start (s)",0,3600],["trimDuration","Use audio (s)",0.2,15]]){const label=document.createElement("label"),input=document.createElement("input");label.textContent=title;input.type="number";input.min=min;input.max=max;input.step=".01";input.value=ref[key]??(key==="trimStart"?0:15);input.disabled=locked;if(key==="trimDuration")useInput=input;input.oninput=()=>{ref[key]=Number(input.value);if(key==="trimStart"&&fitReferenceTrim(ref)&&useInput)useInput.value=ref.trimDuration;card.referencePreview?.update();updateRefDurationNotice();saveDraft();};card.append(label,input);}}
     }
     const insert=document.createElement("button");insert.type="button";insert.className="button alt smallbtn ref-insert";insert.textContent="Insert @"+ref.alias+" into prompt";insert.title=insert.textContent;insert.disabled=locked;insert.onclick=()=>insertReferenceMention(ref.alias,true);card.append(insert);
     if(ref.kind==="video"){
@@ -765,7 +766,7 @@ $("refFile").onchange=()=>{
     state.refs.push(ref);
     if(kind==="audio"){
       const url=URL.createObjectURL(file),probe=document.createElement("audio");probe.preload="metadata";probe.src=url;
-      probe.onloadedmetadata=()=>{if(Number.isFinite(probe.duration)&&probe.duration>0)ref.localDuration=probe.duration;URL.revokeObjectURL(url);renderRefs();};probe.onerror=()=>URL.revokeObjectURL(url);
+      probe.onloadedmetadata=()=>{if(Number.isFinite(probe.duration)&&probe.duration>0){ref.localDuration=probe.duration;if(probe.duration>15.1&&!ref.trimEnabled){ref.trimEnabled=true;ref.trimDuration=15;}fitReferenceTrim(ref);}URL.revokeObjectURL(url);renderRefs();};probe.onerror=()=>URL.revokeObjectURL(url);
     }
   }
   state.pendingRefGroup=null;
@@ -1411,12 +1412,13 @@ async function generate() {
     }
     for(const ref of (state.mode==='refs'?state.refs:[]).filter(item=>item.kind==="video"||item.kind==="audio")){
       const source=Number(ref.meta?.source_duration||ref.localDuration||0);
+      const minLen=ref.kind==="audio"?0.2:2;
       if(ref.trimEnabled){
         const start=Number(ref.trimStart),length=Number(ref.trimDuration);
-        if(!Number.isFinite(start)||start<0||!Number.isFinite(length)||length<2||length>15)
-          throw Error(`@${ref.alias}: trim start must be 0 or more and selected length 2–15 seconds.`);
+        if(!Number.isFinite(start)||start<0||!Number.isFinite(length)||length<minLen||length>15)
+          throw Error(`@${ref.alias}: trim start must be 0 or more and selected length ${minLen}–15 seconds.`);
         if(source&&start+length>source+.01)throw Error(`@${ref.alias}: selected range ends at ${(start+length).toFixed(2)} s, but the source ends at ${source.toFixed(2)} s. Shorten Use (s).`);
-      }else if(source>15.1)throw Error(`@${ref.alias}: source is ${source.toFixed(2)} s. Enable Trim and select 2–15 seconds.`);
+      }else if(source>15.1)throw Error(`@${ref.alias}: source is ${source.toFixed(2)} s. Enable Trim and select ${minLen}–15 seconds.`);
     }
     const selectedLoras=state.loras.filter(item=>item.enabled).map(item=>item.name);
     const selectedMethod=method();
